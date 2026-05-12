@@ -8,6 +8,13 @@
   <meta property="og:description" content="Slides, listas e laboratórios do curso de Deep Learning." />
   <meta property="og:type" content="website" />
   <title>Deep Learning</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,6 +26,7 @@
       <li><a href="#aulas">Aulas</a></li>
       <li><a href="#provas">Provas</a></li>
       <li><a href="https://github.com/lucaskup/deep-learning-course" target="_blank" rel="noopener">GitHub ↗</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
 
@@ -838,6 +846,21 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById('theme-toggle');
+      function syncIcon() { btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀'; }
+      syncIcon();
+      btn.addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        syncIcon();
+      });
+    })();
   </script>
 
 </body>
