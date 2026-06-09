@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Modelagem de Linguagem: decoding com temperatura, top-k e top-p, greedy vs beam search, perplexidade, BLEU, ROUGE e atenção." />
+  <title>Modelagem de Linguagem — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="lm.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Decoding</a></li>
+      <li><a href="#s2">Beam</a></li>
+      <li><a href="#s3">Avaliação</a></li>
+      <li><a href="#s4">Atenção</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Modelagem de <span>Linguagem</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de language modeling, tradução e atenção</p>
+      <p class="course-desc">
+        Quatro demonstrações que acompanham os slides: o playground de decoding
+        (temperatura, top-k, top-p), a comparação entre greedy e beam search,
+        as métricas de avaliação (perplexidade, BLEU, ROUGE) e o mecanismo de atenção.
+        O modelo por trás das duas primeiras é um <em>n-gram</em> de palavras treinado
+        por contagem, aqui no navegador, sobre um pequeno corpus em português.
+        Notação dos slides: <span class="formula">P(y<sub>t</sub> | y<sub>&lt;t</sub>)</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Playground de decoding ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Playground de decoding</h2>
+      <p class="demo-text">
+        A cada passo o modelo dá a distribuição do próximo token,
+        <span class="formula">P(y<sub>t</sub> | y<sub>&lt;t</sub>)</span>. A temperatura
+        <span class="formula">τ</span> divide os logits e deixa a distribuição mais nítida
+        (τ &lt; 1) ou mais plana (τ &gt; 1). Top-k e top-p restringem o sorteio aos tokens
+        mais prováveis: as barras cinzas ficam de fora. Experimente um contexto com
+        distribuição concentrada e outro com distribuição espalhada e observe que o mesmo
+        k corta de formas bem diferentes (o ponto dos slides sobre top-k vs top-p).
+      </p>
+      <div class="panel">
+        <div class="token-strip" id="s1-strip"></div>
+        <div class="controls">
+          <div class="tabs">
+            <button class="tab" id="s1-tab-greedy" type="button">Greedy</button>
+            <button class="tab active" id="s1-tab-sample" type="button">Amostragem</button>
+          </div>
+          <label class="slider-label" id="s1-tau-wrap">τ = <span id="s1-tau-val">1,0</span>
+            <input type="range" id="s1-tau" min="0.3" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label" id="s1-topk-wrap">top-k = <span id="s1-topk-val">off</span>
+            <input type="range" id="s1-topk" min="1" max="21" value="21" step="1" />
+          </label>
+          <label class="slider-label" id="s1-topp-wrap">top-p = <span id="s1-topp-val">1,00</span>
+            <input type="range" id="s1-topp" min="0.1" max="1" value="1" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s1-next" type="button">Amostrar próximo token</button>
+          <button class="btn-ctl" id="s1-full" type="button">Gerar frase inteira</button>
+          <button class="btn-ctl" id="s1-restart" type="button">↺ Recomeçar</button>
+          <button class="btn-ctl" id="s1-reseed" type="button">🎲 Reamostrar</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Distribuição do próximo token (roxo = elegível, cinza = excluído por top-k/top-p)</p>
+            <canvas id="s1-dist"></canvas>
+          </div>
+        </div>
+        <p class="readout formula formula-lines" id="s1-readout"></p>
+        <p class="demo-text small">
+          O acumulado usa a probabilidade do modelo <em>antes</em> dos filtros,
+          que é o que ∏ P(y<sub>t</sub> | y<sub>&lt;t</sub>) significa.
+          Clique em um token gerado para voltar até aquele ponto.
+        </p>
+      </div>
+
+      <details class="corpus-details">
+        <summary>📚 Corpus de treinamento e contagens do modelo n-gram</summary>
+        <div class="corpus-intro">
+          <p class="demo-text">
+            O modelo é um <strong>trigrama por contagem</strong>: aproximamos
+            <span class="formula">P(y<sub>t</sub> | y<sub>&lt;t</sub>) ≈
+            P(y<sub>t</sub> | y<sub>t−2</sub>, y<sub>t−1</sub>)</span>, ou seja,
+            só os dois últimos tokens do contexto importam (a aproximação de
+            contexto curto dos slides). Cada frase do corpus é cercada por
+            <span class="formula">⟨bos⟩ ⟨bos⟩ … ⟨eos⟩</span> e o "treinamento"
+            é só contar: quantas vezes cada palavra <span class="formula">w</span>
+            aparece depois de cada par <span class="formula">(u, v)</span>,
+            depois de cada palavra <span class="formula">v</span>, e no total.
+          </p>
+          <p class="demo-text">
+            A estimativa é a razão de contagens, por exemplo
+            <span class="formula">p(dorme | o, gato) ≈ c(o, gato, dorme)/c(o, gato)
+            = 4/20 = 0,20</span>. Como muitos trigramas nunca aparecem no corpus
+            (o problema de <em>sparsity</em> dos slides), o modelo
+            <strong>interpola três níveis</strong>: trigrama (peso 0,6), bigrama (0,3)
+            e unigrama suavizado (0,1), o que dá uma probabilidade pequena, mas não
+            nula, até para palavras nunca vistas naquele contexto. Use a consulta ao
+            lado para ver os três níveis compondo a probabilidade final.
+          </p>
+        </div>
+        <div class="corpus-grid">
+          <div class="corpus-col">
+            <p class="canvas-caption" id="s0-corpus-caption"></p>
+            <div class="corpus-list" id="s0-corpus"></div>
+          </div>
+          <div class="corpus-col">
+            <p class="canvas-caption">De onde vem p(w | u, v): consulte um contexto</p>
+            <div class="controls">
+              <input class="lm-input" id="s0-ctx" type="text" value="o gato" style="max-width: 220px" />
+              <button class="btn-ctl primary" id="s0-query" type="button">Consultar</button>
+            </div>
+            <div id="s0-counts"></div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Greedy vs Beam ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Greedy vs beam search</h2>
+      <p class="demo-text">
+        Greedy escolhe o token mais provável a cada passo, uma decisão local que pode ser
+        ruim globalmente. Beam search mantém os <span class="formula">b</span> caminhos de maior
+        <span class="formula">Σ ln P</span>. No exemplo dos slides, greedy escolhe
+        "The nice" (0,5) e perde "The dog has", cuja probabilidade conjunta é maior.
+        Ao final, a penalidade por comprimento divide o escore por
+        <span class="formula">n<sup>α</sup></span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs">
+            <button class="tab active" id="s2-tab-preset" type="button">Exemplo dos slides</button>
+            <button class="tab" id="s2-tab-ngram" type="button">Modelo n-gram</button>
+          </div>
+          <label class="slider-label">b = <span id="s2-b-val">2</span>
+            <input type="range" id="s2-b" min="1" max="4" value="2" step="1" />
+          </label>
+          <label class="slider-label hidden" id="s2-start-wrap">início:
+            <select id="s2-start"></select>
+          </label>
+          <button class="btn-ctl hidden" id="s2-expand" type="button">Expandir nível ▸</button>
+          <button class="btn-ctl hidden" id="s2-reset" type="button">↺ Reiniciar</button>
+          <label class="slider-label">α = <span id="s2-alpha-val">0,00</span>
+            <input type="range" id="s2-alpha" min="0" max="1" value="0" step="0.05" />
+          </label>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Árvore de busca: <span style="color:var(--green)">greedy</span> ·
+              <span style="color:var(--purple)">beams sobreviventes</span> ·
+              <span style="color:var(--comment)">podados (tracejado)</span></p>
+            <canvas id="s2-tree"></canvas>
+          </div>
+        </div>
+        <div id="s2-table"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Avaliação ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Avaliação</h2>
+
+      <h3 class="sub-title">3a · Perplexidade</h3>
+      <p class="demo-text">
+        A perplexidade é <span class="formula">2<sup>−L/m</sup></span>, com
+        <span class="formula">L = Σ log<sub>2</sub> p(y<sub>t</sub> | y<sub>&lt;t</sub>)</span>:
+        o "número médio efetivo de tokens" entre os quais o modelo fica em dúvida a cada passo.
+        Compare o exemplo numérico dos slides com frases avaliadas pelo modelo n-gram do corpus.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs">
+            <button class="tab active" id="s3a-tab-preset" type="button">Exemplo dos slides</button>
+            <button class="tab" id="s3a-tab-model" type="button">Modelo n-gram</button>
+          </div>
+        </div>
+        <div class="controls hidden" id="s3a-input-wrap">
+          <textarea class="lm-input" id="s3a-input" rows="1">o gato subiu no telhado</textarea>
+          <button class="btn-ctl primary" id="s3a-eval" type="button">Avaliar</button>
+        </div>
+        <div id="s3a-table"></div>
+        <p class="demo-text small" id="s3a-note"></p>
+      </div>
+
+      <h3 class="sub-title">3b · BLEU e ROUGE</h3>
+      <p class="demo-text">
+        BLEU mede <em>precisão</em> de n-grams com contagens clipadas e penalidade por brevidade;
+        ROUGE é orientado a <em>recall</em> (quanto da referência foi coberto), com a variante
+        ROUGE-L usando a maior subsequência comum (LCS). Edite as frases e veja as contagens,
+        os n-grams casados e as notas mudarem.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s3b-preset-bleu" type="button">Exemplo BLEU dos slides</button>
+          <button class="btn-ctl" id="s3b-preset-rouge" type="button">Exemplo ROUGE dos slides</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label" style="flex-direction:column; align-items:flex-start; flex:1 1 300px;">
+            referência
+            <textarea class="lm-input" id="s3b-ref" rows="1">the small cat sat on the mat</textarea>
+          </label>
+          <label class="slider-label" style="flex-direction:column; align-items:flex-start; flex:1 1 300px;">
+            candidato
+            <textarea class="lm-input" id="s3b-cand" rows="1">the big cat sat on the mat</textarea>
+          </label>
+        </div>
+        <div id="s3b-bleu"></div>
+        <div id="s3b-rouge"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Atenção ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Atenção interativa</h2>
+      <p class="demo-text">
+        O exemplo numérico dos slides, ao vivo: os estados do encoder
+        <span class="formula">s<sub>k</sub></span> (verde) e o estado do decoder
+        <span class="formula">h<sub>t</sub></span> (rosa) são vetores 2D que você pode
+        <strong>arrastar pela ponta</strong>. Os scores
+        <span class="formula">h<sub>t</sub><sup>⊤</sup>s<sub>k</sub></span> passam pela softmax,
+        viram pesos <span class="formula">a<sub>k</sub></span>, e o vetor de contexto
+        <span class="formula">c = Σ a<sub>k</sub>·s<sub>k</sub></span> (roxo) é recalculado na hora.
+        Arraste <span class="formula">h<sub>t</sub></span> na direção de um
+        <span class="formula">s<sub>k</sub></span> e veja a atenção migrar para aquele token.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Exemplo dos slides</button>
+          <button class="btn-ctl" id="s4-random" type="button">🎲 Aleatório</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Vetores 2D (arraste as pontas de s<sub>k</sub> e h<sub>t</sub>)</p>
+            <canvas id="s4-plane"></canvas>
+          </div>
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Pesos de atenção a<sub>k</sub> = softmax(h<sub>t</sub><sup>⊤</sup>s<sub>k</sub>)</p>
+            <canvas id="s4-bars"></canvas>
+          </div>
+        </div>
+        <p class="readout formula formula-lines" id="s4-readout"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Modelagem de Linguagem</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/plot.js"></script>
+  <script defer src="js/data-corpus.js"></script>
+  <script defer src="js/model.js"></script>
+  <script defer src="js/section0-corpus.js"></script>
+  <script defer src="js/section1-playground.js"></script>
+  <script defer src="js/section2-beam.js"></script>
+  <script defer src="js/section3-eval.js"></script>
+  <script defer src="js/section4-attention.js"></script>
+  <script defer src="js/main.js"></script>
+</body>
+</html>
