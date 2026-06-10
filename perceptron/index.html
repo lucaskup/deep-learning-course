@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas do Perceptron: neurônio e fronteira de decisão, portas lógicas (AND, OR e o problema XOR) e o algoritmo de aprendizado do Perceptron (PLA) ao vivo no navegador." />
+  <title>Perceptron — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <link rel="stylesheet" href="perceptron.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Neurônio</a></li>
+      <li><a href="#s2">Portas lógicas</a></li>
+      <li><a href="#s3">Aprendizado</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Neurônio MP e <span>Perceptron</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de Perceptron</p>
+      <p class="course-desc">
+        Três visualizações que acompanham os slides: a geometria do neurônio de Rosenblatt
+        e sua fronteira de decisão, as portas lógicas que um único Perceptron resolve
+        (e o XOR, que ele não resolve), e o algoritmo de aprendizado do Perceptron (PLA)
+        rodando ao vivo. Notação dos slides:
+        <span class="formula">ŷ = φ(xθ<sup>⊤</sup>)</span>, com
+        <span class="formula">φ(z) = sinal(z)</span>, truque do bias
+        (<span class="formula">x₀ = 1</span>) e atualização
+        <span class="formula">θ ← θ + y⁽ⁱ⁾x⁽ⁱ⁾</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Neurônio e fronteira ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Neurônio e fronteira de decisão</h2>
+      <p class="demo-text">
+        O Perceptron pondera as entradas e aplica a função de ativação
+        <span class="formula">sinal(z)</span>: com o truque do bias,
+        <span class="formula">ŷ = sinal(θ₀ + θ₁x₁ + θ₂x₂)</span>, valendo
+        <span class="formula">+1</span> se <span class="formula">z ≥ 0</span> e
+        <span class="formula">−1</span> caso contrário.
+        A fronteira de decisão é a reta <span class="formula">θ₀ + θ₁x₁ + θ₂x₂ = 0</span>.
+        Mova os sliders e observe: o vetor de pesos <span class="formula">(θ₁, θ₂)</span>
+        é sempre perpendicular à reta e aponta para o semiplano da classe
+        <span class="formula">+1</span>, enquanto <span class="formula">θ₀</span>
+        apenas desloca a reta, sem girá-la.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">θ₁ = <span id="s1-t1-val">1.0</span>
+            <input type="range" id="s1-t1" min="-3" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">θ₂ = <span id="s1-t2-val">1.0</span>
+            <input type="range" id="s1-t2" min="-3" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">θ₀ (bias) = <span id="s1-t0-val">1.0</span>
+            <input type="range" id="s1-t0" min="-3" max="3" value="1" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+          <span class="readout formula" id="s1-eq"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Espaço de entrada: fronteira θ₀ + θ₁x₁ + θ₂x₂ = 0, vetor (θ₁, θ₂) normal à reta e 30 pontos coloridos pela classe prevista</p>
+            <canvas id="s1-plane"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Zere <span class="formula">θ₀</span> e gire a reta variando
+          <span class="formula">θ₁</span> e <span class="formula">θ₂</span>: a reta sempre
+          passa pela origem e o vetor segue perpendicular (o marcador de ângulo reto
+          fica na base do vetor). Depois varie só <span class="formula">θ₀</span> e veja
+          a reta transladar na direção oposta ao vetor de pesos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Portas lógicas ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Portas lógicas</h2>
+      <p class="demo-text">
+        O neurônio MP já implementava lógica proposicional com entradas binárias e um
+        limiar <span class="formula">θ</span>: dispara como AND quando o limiar exige os
+        dois estímulos excitatórios (<span class="formula">θ = 2</span>) e como OR quando
+        basta um (<span class="formula">θ = 1</span>). O Perceptron generaliza isso com
+        pesos reais. Como nos slides, codificamos falso como <span class="formula">−1</span>
+        e verdadeiro como <span class="formula">+1</span>. Ajuste
+        <span class="formula">θ₁</span>, <span class="formula">θ₂</span> e
+        <span class="formula">θ₀</span> para acertar as quatro linhas da tabela verdade,
+        ou use as soluções vistas em aula.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-and" type="button">AND</button>
+            <button class="tab" id="s2-tab-or" type="button">OR</button>
+            <button class="tab" id="s2-tab-xor" type="button">XOR</button>
+          </div>
+          <button class="btn-ctl" id="s2-preset-and" type="button">Solução AND (slides)</button>
+          <button class="btn-ctl" id="s2-preset-or" type="button">Solução OR (slides)</button>
+          <span class="readout" id="s2-score"></span>
+        </div>
+        <div class="controls">
+          <label class="slider-label">θ₁ = <span id="s2-t1-val">1.0</span>
+            <input type="range" id="s2-t1" min="-3" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">θ₂ = <span id="s2-t2-val">1.0</span>
+            <input type="range" id="s2-t2" min="-3" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">θ₀ (bias) = <span id="s2-t0-val">0.0</span>
+            <input type="range" id="s2-t0" min="-3" max="3" value="0" step="0.1" />
+          </label>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">As quatro entradas (±1, ±1) coloridas pela saída desejada da porta; contorno vermelho indica linha errada da tabela</p>
+            <canvas id="s2-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Tabela verdade com a saída atual do Perceptron, ŷ = sinal(xθ⊤)</p>
+            <div id="s2-table"></div>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 No XOR a contagem trava em 3 de 4: nenhuma reta separa
+          <span class="formula">{(−1, 1), (1, −1)}</span> de
+          <span class="formula">{(−1, −1), (1, 1)}</span>, como Minsky e Papert apontaram.
+          É essa limitação que motiva empilhar Perceptrons em camadas, o MLP da próxima aula.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: PLA ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Regra de aprendizado do Perceptron (PLA)</h2>
+      <p class="demo-text">
+        O PLA dos slides: assuma <span class="formula">x₀ = 1</span> (truque do bias),
+        inicialize <span class="formula">θ</span> aleatoriamente e, enquanto existirem
+        observações mal classificadas, selecione <span class="formula">x⁽ⁱ⁾</span> com
+        <span class="formula">sinal(x⁽ⁱ⁾θ<sup>⊤</sup>) ≠ y⁽ⁱ⁾</span> e atualize
+        <span class="formula">θ ← θ + η·y⁽ⁱ⁾·x⁽ⁱ⁾</span>. Nos slides a regra aparece com
+        <span class="formula">η = 1</span>; o slider deixa você variar o tamanho do passo.
+        A cada atualização, a soma vetorial é desenhada: o vetor antigo (esmaecido), a
+        contribuição <span class="formula">η·y⁽ⁱ⁾·x⁽ⁱ⁾</span> (rosa) e o vetor novo (verde),
+        que se inclina na direção do ponto destacado.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s3-tab-sep" type="button">Separável</button>
+            <button class="tab" id="s3-tab-nonsep" type="button">Não separável</button>
+          </div>
+          <label class="slider-label">η = <span id="s3-eta-val">1.00</span>
+            <input type="range" id="s3-eta" min="0.01" max="1" value="1" step="0.01" />
+          </label>
+          <span class="readout" id="s3-status"></span>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s3-train" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-resample" type="button">🎲 Reamostrar</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Pontos pela classe verdadeira, fronteira atual e a atualização de θ; o desenho mostra (θ₁, θ₂), o bias θ₀ desloca a reta</p>
+            <canvas id="s3-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Observações mal classificadas após cada atualização</p>
+            <canvas id="s3-errors"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Na aba separável o PLA sempre converge: a curva de erros chega a zero, mesmo
+          que oscile no caminho. Troque para a aba não separável e treine: os erros oscilam
+          indefinidamente, porque sempre resta um ponto do lado errado para puxar
+          <span class="formula">θ</span> de volta. A garantia de convergência do PLA vale
+          apenas para problemas linearmente separáveis.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Perceptron</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-neuron.js"></script>
+  <script defer src="js/section2-gates.js"></script>
+  <script defer src="js/section3-pla.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

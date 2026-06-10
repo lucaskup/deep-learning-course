@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Backpropagation: forward e backward pass passo a passo no grafo computacional do exemplo da aula, a versão vetorizada com as matrizes do exemplo 2-3-1 dos slides e gradientes de uma MLP 2-2-1 calculados ao vivo." />
+  <title>Backpropagation — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <link rel="stylesheet" href="backprop.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Grafo</a></li>
+      <li><a href="#s2v">Vetorizada</a></li>
+      <li><a href="#s2">MLP 2-2-1</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Backpropagation <span>passo a passo</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de backpropagation</p>
+      <p class="course-desc">
+        Três visualizações que acompanham os slides: o forward e o backward pass executados
+        passo a passo no grafo computacional do exemplo calculado a mão na aula
+        (<span class="formula">θ<sup>(1)</sup> = −0.5</span>,
+        <span class="formula">θ<sup>(2)</sup> = 0.5</span>,
+        <span class="formula">X<sub>1</sub> = 1</span>,
+        <span class="formula">y = 1</span>),
+        o mesmo algoritmo em forma vetorizada com as matrizes do exemplo 2-3-1 dos slides,
+        e os gradientes de uma MLP 2-2-1 calculados ao vivo.
+        Notação dos slides: pré-ativação <span class="formula">z<sup>(l)</sup></span>,
+        ativação <span class="formula">a<sup>(l)</sup> = σ(z<sup>(l)</sup>)</span>,
+        custo <span class="formula">J(θ) = ½(y − ŷ)²</span>,
+        delta <span class="formula">δ<sup>(l)</sup> = ∂J/∂z<sup>(l)</sup></span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Grafo computacional ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Forward e backward passo a passo no grafo</h2>
+      <p class="demo-text">
+        A rede dos slides tem 2 camadas com 1 neurônio cada, sem bias:
+        <span class="formula">ŷ = a<sup>(2)</sup> = σ(σ(X<sub>1</sub>·θ<sup>(1)</sup>)·θ<sup>(2)</sup>)</span>
+        com custo <span class="formula">J(θ) = ½(y − ŷ)²</span>.
+        Avance os passos: primeiro o forward pass preenche os nós da esquerda para a direita,
+        depois o backward pass percorre as arestas de volta, multiplicando as derivadas locais
+        (regra da cadeia) até chegar em <span class="formula">θ<sup>(2)</sup></span> e
+        <span class="formula">θ<sup>(1)</sup></span>. Os valores iniciais são exatamente os do
+        exemplo da aula, então cada número da animação aparece também nos slides.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s1-prev" type="button">⏮ Anterior</button>
+          <button class="btn-ctl primary" id="s1-next" type="button">⏭ Próximo passo</button>
+          <button class="btn-ctl" id="s1-play" type="button">▶ Reproduzir</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-preset" type="button">Exemplo da aula</button>
+          <span class="readout" id="s1-step-label">passo 0/11</span>
+        </div>
+        <div class="controls">
+          <label class="slider-label">X<sub>1</sub> = <span id="s1-x-val">1.0</span>
+            <input type="range" id="s1-x" min="-2" max="2" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">θ<sup>(1)</sup> = <span id="s1-th1-val">−0.50</span>
+            <input type="range" id="s1-th1" min="-2" max="2" value="-0.5" step="0.05" />
+          </label>
+          <label class="slider-label">θ<sup>(2)</sup> = <span id="s1-th2-val">0.50</span>
+            <input type="range" id="s1-th2" min="-2" max="2" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">y = <span id="s1-y-val">1.00</span>
+            <input type="range" id="s1-y" min="0" max="1" value="1" step="0.05" />
+          </label>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Grafo computacional de J(θ) = ½(y − ŷ)². Verde: valores do forward; laranja: derivadas locais das arestas; rosa: gradientes acumulados ∂J/∂(nó).</p>
+            <canvas id="s1-canvas"></canvas>
+          </div>
+        </div>
+        <p class="demo-text" id="s1-desc"></p>
+        <p class="demo-text formula formula-lines" id="s1-chain"></p>
+        <p class="demo-text small">
+          💡 Deixe <span class="formula">θ<sup>(2)</sup></span> perto de 0 e avance até o fim:
+          o gradiente <span class="formula">∂J/∂θ<sup>(1)</sup></span> quase desaparece, pois o erro
+          precisa atravessar <span class="formula">θ<sup>(2)</sup></span> para chegar à camada 1.
+          Esse é o mesmo mecanismo do gradiente que some em redes profundas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Backpropagation vetorizada ════════ -->
+  <section id="s2v" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Backpropagation vetorizada passo a passo</h2>
+      <p class="demo-text">
+        O mesmo algoritmo da seção 1, agora em forma matricial, com a rede do exemplo
+        vetorizado da aula: 2 entradas, 3 unidades ocultas e 1 saída, sem bias, sigmoide
+        nas duas camadas. A rede processa um batch de 2 exemplos de uma vez, cada linha de
+        <span class="formula">X</span> é um exemplo e
+        <span class="formula">J = ½Σ(y − ŷ)²</span> soma o erro do batch.
+        Na convenção dos slides, <span class="formula">θ<sub>ij</sub><sup>(l)</sup></span>
+        conecta a entrada <span class="formula">j</span> à saída <span class="formula">i</span>,
+        então o forward usa <span class="formula">Z<sup>(1)</sup> = X·θ<sup>(1)ᵀ</sup></span> e
+        <span class="formula">Z<sup>(2)</sup> = A<sup>(1)</sup>·θ<sup>(2)ᵀ</sup></span>.
+        A cada passo, as matrizes usadas ganham borda roxa e a recém-calculada recebe o
+        destaque mais forte; a linha de equação abaixo mostra a conta de um elemento com os
+        números atuais.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s2v-prev" type="button">⏮ Anterior</button>
+          <button class="btn-ctl primary" id="s2v-next" type="button">⏭ Próximo passo</button>
+          <button class="btn-ctl" id="s2v-play" type="button">▶ Reproduzir</button>
+          <button class="btn-ctl" id="s2v-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2v-preset" type="button">Exemplo da aula</button>
+          <span class="readout" id="s2v-step-label">passo 0/9</span>
+        </div>
+        <div class="controls">
+          <label class="slider-label">x<sub>11</sub> = <span id="s2v-x11-val">0.5</span>
+            <input type="range" id="s2v-x11" min="-2" max="2" value="0.5" step="0.1" />
+          </label>
+          <label class="slider-label">x<sub>12</sub> = <span id="s2v-x12-val">0.1</span>
+            <input type="range" id="s2v-x12" min="-2" max="2" value="0.1" step="0.1" />
+          </label>
+          <label class="slider-label">x<sub>21</sub> = <span id="s2v-x21-val">0.2</span>
+            <input type="range" id="s2v-x21" min="-2" max="2" value="0.2" step="0.1" />
+          </label>
+          <label class="slider-label">x<sub>22</sub> = <span id="s2v-x22-val">0.6</span>
+            <input type="range" id="s2v-x22" min="-2" max="2" value="0.6" step="0.1" />
+          </label>
+          <label class="slider-label">y<sub>1</sub> = <span id="s2v-y1-val">0.60</span>
+            <input type="range" id="s2v-y1" min="0" max="1" value="0.6" step="0.05" />
+          </label>
+          <label class="slider-label">y<sub>2</sub> = <span id="s2v-y2-val">0.80</span>
+            <input type="range" id="s2v-y2" min="0" max="1" value="0.8" step="0.05" />
+          </label>
+        </div>
+        <div class="matrix-board" id="s2v-matrices"></div>
+        <p class="demo-text" id="s2v-desc"></p>
+        <p class="demo-text formula formula-lines" id="s2v-eq"></p>
+        <p class="demo-text small">
+          💡 Compare com a seção 1: <span class="formula">δ<sup>(2)</sup></span> e
+          <span class="formula">δ<sup>(1)</sup></span> são os mesmos produtos acumulados da regra
+          da cadeia, agora calculados para uma camada inteira (e para o batch inteiro) de uma vez.
+          No passo de <span class="formula">δ<sup>(1)</sup></span>, multiplicar por
+          <span class="formula">θ<sup>(2)</sup></span> faz o papel da aresta
+          <span class="formula">a<sup>(1)</sup> → z<sup>(2)</sup></span> do grafo: é por ela que o
+          erro da saída volta para a camada 1. E cada gradiente continua sendo delta vezes a
+          entrada da camada: <span class="formula">∂J/∂θ<sup>(2)</sup></span> usa
+          <span class="formula">A<sup>(1)</sup></span> e
+          <span class="formula">∂J/∂θ<sup>(1)</sup></span> usa <span class="formula">X</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: MLP 2-2-1 ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Gradientes numa MLP 2-2-1 ao vivo</h2>
+      <p class="demo-text">
+        Agora uma rede um pouco maior, no espírito do exemplo vetorizado da aula: 2 entradas,
+        2 unidades ocultas com sigmoide e 1 saída, sem bias. A entrada padrão é o primeiro exemplo
+        do dataset dos slides (<span class="formula">x = [0.5, 0.1]</span>,
+        <span class="formula">y = 0.6</span>). Na aba <em>Ativações</em>, cada conexão mostra seu peso
+        <span class="formula">θ<sub>ij</sub><sup>(l)</sup></span> e cada nó sua ativação.
+        Na aba <em>Gradientes</em>, as mesmas conexões mostram
+        <span class="formula">∂J/∂θ<sub>ij</sub><sup>(l)</sup> = δ<sub>i</sub><sup>(l)</sup>·a<sub>j</sub><sup>(l−1)</sup></span>
+        e os nós mostram seus deltas. Tudo é recalculado analiticamente a cada movimento dos sliders.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-act" type="button">Ativações</button>
+            <button class="tab" id="s2-tab-grad" type="button">Gradientes</button>
+          </div>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Reamostrar pesos</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Resetar pesos</button>
+          <button class="btn-ctl primary" id="s2-gdstep" type="button">Aplicar um passo de gradiente (η = 0.5)</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label">x<sub>1</sub> = <span id="s2-x1-val">0.5</span>
+            <input type="range" id="s2-x1" min="-2" max="2" value="0.5" step="0.1" />
+          </label>
+          <label class="slider-label">x<sub>2</sub> = <span id="s2-x2-val">0.1</span>
+            <input type="range" id="s2-x2" min="-2" max="2" value="0.1" step="0.1" />
+          </label>
+          <label class="slider-label">y = <span id="s2-y-val">0.60</span>
+            <input type="range" id="s2-y" min="0" max="1" value="0.6" step="0.05" />
+          </label>
+          <span class="readout formula" id="s2-loss"></span>
+          <span class="readout" id="s2-last"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">MLP 2-2-1 sem bias, ativação sigmoide. Espessura ∝ |valor da aresta|; ciano/laranja: peso positivo/negativo; roxo/rosa: gradiente positivo/negativo.</p>
+            <canvas id="s2-canvas"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Aplique alguns passos de gradiente seguidos e observe <span class="formula">J</span> cair
+          a cada clique enquanto as setas da aba <em>Gradientes</em> afinam. Depois empurre
+          <span class="formula">x<sub>1</sub></span> e <span class="formula">x<sub>2</sub></span> para
+          os extremos: a sigmoide satura, <span class="formula">a<sup>(1)</sup>(1−a<sup>(1)</sup>)</span>
+          fica perto de zero e os gradientes da camada 1 quase desaparecem.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Backpropagation</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-graph.js"></script>
+  <script defer src="js/section2-vectorized.js"></script>
+  <script defer src="js/section2-mlp.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

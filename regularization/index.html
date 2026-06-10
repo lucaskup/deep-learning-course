@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Regularização: capacidade e sobreajuste com penalidade L2 (ridge), early stopping com um MLP treinado ao vivo e dropout com máscaras aleatórias." />
+  <title>Regularização — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">L2</a></li>
+      <li><a href="#s2">Early stopping</a></li>
+      <li><a href="#s3">Dropout</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Overfitting e <span>Regularização</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de overfitting, underfitting e regularização</p>
+      <p class="course-desc">
+        Três visualizações que acompanham os slides: o efeito da capacidade do modelo e da
+        penalidade L2 em regressão polinomial, o early stopping monitorando a loss de validação
+        de um MLP treinado ao vivo, e o dropout amostrando sub-redes aleatórias.
+        Notação dos slides: <span class="formula">ℒ̃(θ) = ℒ(θ) + λ·Ω(θ)</span>,
+        <span class="formula">Ω<sub>L2</sub> = ‖θ‖₂²</span>,
+        máscara de dropout <span class="formula">m ∼ Bernoulli(1−p)</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Capacidade, sobreajuste e L2 ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Capacidade, sobreajuste e L2</h2>
+      <p class="demo-text">
+        Ajustamos um polinômio de grau <span class="formula">d</span> a 25 pontos de treino
+        gerados por <span class="formula">y = sin(2πx) + ε</span>. O grau controla a capacidade:
+        <span class="formula">d</span> baixo subajusta (viés alto), <span class="formula">d</span> alto
+        sem regularização sobreajusta (variância alta), exatamente o trade-off da aula.
+        A penalidade L2 entra na solução fechada de ridge,
+        <span class="formula">w = (XᵀX + λI)⁻¹Xᵀy</span>, sem penalizar o termo de viés.
+        Aumente <span class="formula">λ</span> com <span class="formula">d</span> alto e observe a curva
+        suavizar e <span class="formula">‖w‖²</span> despencar.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">grau d = <span id="s1-d-val">9</span>
+            <input type="range" id="s1-d" min="1" max="15" value="9" step="1" />
+          </label>
+          <label class="slider-label">λ = <span id="s1-lam-val">0</span>
+            <input type="range" id="s1-lam" min="0" max="21" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar dados</button>
+          <span class="readout formula" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Treino (ciano), validação (laranja, vazado), função real (tracejado) e ajuste ridge (roxo)</p>
+            <canvas id="s1-fit"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">MSE de treino e de validação vs grau d (escala log, λ atual)</p>
+            <canvas id="s1-mse"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">λ = 0</span>, arraste <span class="formula">d</span> até 15
+          e veja o U clássico no gráfico da direita: o MSE de treino sempre cai, o de validação
+          volta a subir. Depois fixe <span class="formula">d = 15</span> e aumente
+          <span class="formula">λ</span>: o melhor MSE de validação reaparece sem reduzir a
+          capacidade, é o ponto do slide sobre o efeito de aumentar <span class="formula">λ</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Early stopping ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Early stopping</h2>
+      <p class="demo-text">
+        Um MLP superparametrizado (1 entrada → 24 unidades tanh → 1 saída) é treinado aqui no
+        navegador com gradiente descendente sobre 14 pontos ruidosos. Como nos slides,
+        monitoramos a loss em um conjunto de validação: a loss de treino cai monotonicamente,
+        mas a de validação atinge um mínimo e volta a subir quando o modelo começa a se ajustar
+        ao ruído. Parar cedo tem efeito análogo a L2, pois impede que os pesos cresçam
+        indiscriminadamente. O botão de restaurar volta aos pesos da melhor época, que é o que o
+        early stopping com <em>patience</em> faz na prática.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl primary" id="s2-train" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar pesos</button>
+          <button class="btn-ctl" id="s2-restore" type="button" disabled>⏮ Voltar à melhor época</button>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Reamostrar dados</button>
+        </div>
+        <div class="controls">
+          <span class="readout" id="s2-status">época: 0 · treino: — · validação: — · melhor época: —</span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Treino (ciano), validação (laranja), função real (tracejado) e ajuste atual do MLP (roxo)</p>
+            <canvas id="s2-fit"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Loss de treino e de validação por época (escala log); marcador na melhor época</p>
+            <canvas id="s2-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Deixe treinar bastante até a curva roxa interpolar o ruído, depois clique em
+          ⏮ e compare o ajuste restaurado com o sobreajustado. O patamar da loss de validação
+          fica perto de <span class="formula">σ²</span>, o componente irredutível de ruído da
+          decomposição viés-variância da aula. A loss de treino cai abaixo dele justamente
+          porque o modelo memoriza o ruído.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Dropout ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Dropout</h2>
+      <p class="demo-text">
+        Durante o treinamento, unidades das camadas ocultas são desligadas aleatoriamente:
+        equivale a multiplicar as ativações por uma máscara binária
+        <span class="formula">m ∼ Bernoulli(1−p)</span>. A cada forward, uma sub-rede diferente
+        é ativada, efeito similar a treinar um ensemble implícito. Em inferência é preciso
+        compensar a escala: multiplicar as ativações de teste por <span class="formula">(1−p)</span>,
+        ou equivalentemente dividi-las em treino por <span class="formula">(1−p)</span>
+        (<em>inverted dropout</em>, padrão em PyTorch e Keras). Amostre máscaras na rede
+        2-6-6-1 abaixo e observe quantas conexões cada sub-rede mantém.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">p = <span id="s3-p-val">0.50</span>
+            <input type="range" id="s3-p" min="0" max="0.8" value="0.5" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s3-mask" type="button">🎲 Nova máscara</button>
+          <button class="btn-ctl primary" id="s3-play" type="button">▶ Animar máscaras</button>
+          <span class="readout" id="s3-active">conexões ativas: 54 / 54</span>
+          <span class="readout formula" id="s3-scale"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Rede 2-6-6-1: unidades desligadas pela máscara aparecem tracejadas, sem conexões</p>
+            <canvas id="s3-net"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">p = 0.5</span>, cada forward usa em média metade das
+          unidades ocultas, e duas máscaras consecutivas quase nunca coincidem: nenhuma unidade
+          pode depender de uma parceira específica para corrigir seus erros, o que reduz
+          coadaptação. A animação dá a intuição do ensemble: o modelo final se comporta como
+          uma média de muitas sub-redes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Regularização</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-ridge.js"></script>
+  <script defer src="js/section2-earlystop.js"></script>
+  <script defer src="js/section3-dropout.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

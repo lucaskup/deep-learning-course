@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Funções de Ativação e Funções de Custo: galeria de ativações com derivadas, dissipação de gradiente em redes profundas e entropia cruzada vs MSE na saída sigmoide." />
+  <title>Ativações e Custo — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Ativações</a></li>
+      <li><a href="#s2">Gradientes</a></li>
+      <li><a href="#s3">Custo</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Ativações e <span>Custo</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de funções de ativação e funções de custo</p>
+      <p class="course-desc">
+        Três visualizações que acompanham os slides: a galeria das ativações ponto a ponto
+        com suas derivadas, o efeito da saturação sobre o gradiente em uma rede profunda
+        (o <em>vanishing gradient problem</em>) e a comparação entre entropia cruzada binária
+        e MSE aplicado após a sigmoide na camada de saída.
+        Notação dos slides: <span class="formula">z = θ<sup>⊤</sup>x</span>,
+        <span class="formula">a = φ(z)</span>,
+        <span class="formula">σ(z) = 1/(1+e<sup>−z</sup>)</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Galeria de ativações ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Galeria de ativações</h2>
+      <p class="demo-text">
+        Cada unidade computa a pré-ativação <span class="formula">z = θ<sup>⊤</sup>x</span>
+        e aplica uma função <span class="formula">φ</span> para obter a ativação
+        <span class="formula">a = φ(z)</span>. A descida de gradiente depende de
+        <span class="formula">φ′(z)</span>, então a forma da derivada importa tanto quanto a
+        da própria função. Escolha a ativação, arraste o marcador
+        <span class="formula">x<sub>0</sub></span> sobre a curva e observe a tangente:
+        nas zonas sombreadas (<span class="formula">|φ′(z)| &lt; 0.05</span>) a função satura
+        e quase não passa gradiente.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">Ativação:
+            <select id="s1-act"></select>
+          </label>
+          <label class="slider-label hidden" id="s1-param-wrap">
+            <span id="s1-param-name">α</span> = <span id="s1-param-val">0.10</span>
+            <input type="range" id="s1-param" min="0.01" max="0.5" value="0.1" step="0.01" />
+          </label>
+          <span class="readout formula" id="s1-readout"></span>
+        </div>
+        <p class="demo-text formula formula-lines" id="s1-formula"></p>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">φ(z) (roxo) com tangente em x<sub>0</sub> (verde); sombreado = zona de saturação</p>
+            <canvas id="s1-curve"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Derivada φ′(z) (ciano)</p>
+            <canvas id="s1-deriv"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Compare a sigmoide e a ReLU: a sigmoide satura nos dois lados e tem derivada
+          máxima 0.25 em <span class="formula">z = 0</span>, enquanto a ReLU mantém
+          <span class="formula">φ′ = 1</span> em todo o lado positivo (mas morre no negativo,
+          o <em>dying ReLU</em>; veja como Leaky ReLU e ELU evitam isso). Duas ativações dos
+          slides ficam fora da galeria: a softmax, que age na camada inteira e aparece na
+          seção 3, e a SwiGLU, que não é ponto a ponto (combina duas projeções lineares com
+          <em>gating</em>).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Gradientes que somem ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Gradientes que somem</h2>
+      <p class="demo-text">
+        A regra da cadeia em uma rede profunda multiplica as derivadas camada a camada.
+        Aqui usamos uma cadeia de <span class="formula">L</span> camadas escalares idênticas,
+        <span class="formula">a<sub>l</sub> = φ(w·a<sub>l−1</sub>)</span>, e acompanhamos o
+        gradiente acumulado
+        <span class="formula">∂a<sub>l</sub>/∂a<sub>0</sub> = ∏<sub>k≤l</sub> φ′(z<sub>k</sub>)·w</span>.
+        Com sigmoide cada fator vale no máximo <span class="formula">0.25·w</span>, então o
+        produto encolhe geometricamente; com ReLU em região ativa cada fator vale
+        <span class="formula">w</span>, e a escala dos pesos decide entre dissipar e explodir.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">Ativação:
+            <select id="s2-act"></select>
+          </label>
+          <label class="slider-label">L = <span id="s2-L-val">12</span>
+            <input type="range" id="s2-L" min="2" max="30" value="12" step="1" />
+          </label>
+          <label class="slider-label">w = <span id="s2-w-val">1.00</span>
+            <input type="range" id="s2-w" min="0.5" max="2" value="1" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Nova entrada</button>
+          <span class="readout formula" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">|∂a<sub>l</sub>/∂a<sub>0</sub>| por camada, escala log (tracejado: decaimento (0.25·w)<sup>l</sup>, o teto da sigmoide)</p>
+            <canvas id="s2-grad"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Ativação a<sub>l</sub> por camada (mostra a saturação)</p>
+            <canvas id="s2-acts"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com sigmoide e <span class="formula">w = 1</span>, o gradiente perde pelo menos
+          um fator 4 por camada: em 20 camadas resta menos de
+          <span class="formula">10<sup>−12</sup></span>, e as camadas iniciais quase não
+          aprendem. Troque para ReLU e o gradiente fica constante enquanto a unidade está
+          ativa. Depois suba <span class="formula">w</span> para 1.5 e veja o problema oposto,
+          a explosão de gradiente: a saturação não é o único vilão, a escala dos pesos também.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Funções de custo ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Funções de custo na saída sigmoide</h2>
+      <p class="demo-text">
+        Na classificação binária dos slides, a rede produz um logit
+        <span class="formula">z</span> e a sigmoide o converte em probabilidade
+        <span class="formula">λ = σ(z)</span>. A NLL da Bernoulli leva à entropia cruzada
+        binária (BCE). E se usássemos a MSE sobre a saída da sigmoide? As curvas abaixo
+        mostram a loss e a magnitude do gradiente em função do logit, para um único exemplo.
+        Arraste o marcador <span class="formula">z<sub>0</sub></span> e compare os gradientes
+        na região em que a predição está confiante e errada.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s3-y1" type="button">alvo y = 1</button>
+            <button class="tab" id="s3-y0" type="button">alvo y = 0</button>
+          </div>
+          <span class="readout formula" id="s3-readout"></span>
+        </div>
+        <p class="demo-text formula formula-lines">
+          ℒ<sub>BCE</sub>(z) = −[y·log σ(z) + (1−y)·log(1−σ(z))], com dℒ<sub>BCE</sub>/dz = σ(z) − y
+          &nbsp;·&nbsp;
+          ℒ<sub>MSE</sub>(z) = (σ(z) − y)², com dℒ<sub>MSE</sub>/dz = 2(σ(z) − y)·σ(z)(1−σ(z))
+        </p>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">ℒ(z): BCE (roxo) e MSE pós-sigmoide (laranja); arraste z<sub>0</sub></p>
+            <canvas id="s3-loss"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Magnitude do gradiente |dℒ/dz|</p>
+            <canvas id="s3-grad"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">y = 1</span> e <span class="formula">z<sub>0</sub> = −6</span>
+          (predição confiante e errada), o gradiente da BCE vale quase 1, mas o do MSE
+          pós-sigmoide vale quase 0: a derivada da sigmoide satura e o aprendizado para
+          justamente quando o erro é máximo. Por isso a BCE, que sai da NLL da Bernoulli, é o
+          par natural da sigmoide. Nos slides, a MSE aparece como a loss natural da regressão
+          (NLL da gaussiana com saída Linear), e para multiclasse o par é softmax com a
+          entropia cruzada categórica (CCE).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Ativações</span> e Custo · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-gallery.js"></script>
+  <script defer src="js/section2-vanishing.js"></script>
+  <script defer src="js/section3-losses.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>
