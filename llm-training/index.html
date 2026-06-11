@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Treinamento de LLMs: schedule de learning rate com warmup e cosine decay, Reward Model com perda de Bradley-Terry, alinhamento RLHF com penalidade KL e reward hacking, e vantagens por grupo do GRPO." />
+  <title>Treinamento de LLMs — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">LR schedule</a></li>
+      <li><a href="#s2">Reward Model</a></li>
+      <li><a href="#s3">RLHF e KL</a></li>
+      <li><a href="#s4">GRPO</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Treinamento de <span>LLMs</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de treinamento de LLMs, do pré-treinamento ao alinhamento</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o schedule de learning rate do pré-treinamento
+        (warmup linear até <span class="formula">η<sub>max</sub></span> seguido de cosine decay até
+        <span class="formula">η<sub>min</sub></span>), o Reward Model treinado com a perda de Bradley-Terry
+        <span class="formula">ℒ<sub>RM</sub> = −log σ(r<sub>φ</sub>(x, y<sub>w</sub>) − r<sub>φ</sub>(x, y<sub>l</sub>))</span>,
+        o objetivo do RLHF
+        <span class="formula">J(θ) = E[r<sub>φ</sub>(x, y)] − β·KL(π<sub>θ</sub> ‖ π<sub>ref</sub>)</span>
+        com o fenômeno de reward hacking, e a vantagem por grupo do GRPO
+        <span class="formula">Â<sub>i</sub> = (r<sub>i</sub> − mean({r<sub>j</sub>})) / std({r<sub>j</sub>})</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Warmup + Cosine Decay ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Schedule de LR: warmup + cosine decay</h2>
+      <p class="demo-text">
+        No pré-treinamento, o learning rate cresce linearmente de 0 até
+        <span class="formula">η<sub>max</sub></span> durante o warmup (tipicamente 1 a 2% do treino)
+        e depois decai suavemente segundo
+        <span class="formula">η<sub>t</sub> = η<sub>min</sub> + ½(η<sub>max</sub> − η<sub>min</sub>)(1 + cos(πt/T))</span>.
+        Abaixo, o mesmo schedule é aplicado a uma otimização estocástica de brinquedo,
+        <span class="formula">ℒ(θ<sub>1</sub>, θ<sub>2</sub>) = ½(θ<sub>1</sub>² + c·θ<sub>2</sub>²)</span>
+        com <span class="formula">c = 12</span> e ruído no gradiente (imitando o ruído de mini-batch).
+        Compare a curva de loss do schedule com a de um learning rate constante igual a
+        <span class="formula">η<sub>max</sub></span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">η<sub>max</sub> = <span id="s1-etamax-val">0.120</span>
+            <input type="range" id="s1-etamax" min="0.02" max="0.3" value="0.12" step="0.005" />
+          </label>
+          <label class="slider-label">warmup = <span id="s1-warmup-val">10</span>%
+            <input type="range" id="s1-warmup" min="0" max="30" value="10" step="1" />
+          </label>
+          <label class="slider-label">η<sub>min</sub>/η<sub>max</sub> = <span id="s1-etamin-val">0.10</span>
+            <input type="range" id="s1-etamin" min="0" max="0.5" value="0.1" step="0.05" />
+          </label>
+          <label class="slider-label">T = <span id="s1-T-val">200</span>
+            <input type="range" id="s1-T" min="60" max="400" value="200" step="20" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s1-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-seed" type="button">🎲 Novo ruído</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Schedule η<sub>t</sub>: warmup (ciano) e cosine decay (laranja); a linha vertical marca o passo atual</p>
+            <canvas id="s1-sched"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">log₁₀ ℒ por passo: η constante (ciano) vs schedule (laranja)</p>
+            <canvas id="s1-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">η<sub>max</sub> = 0.12</span> os dois convergem, mas o schedule
+          termina com um piso de ruído bem mais baixo: no fim, passos pequenos filtram o ruído do
+          gradiente. Suba para <span class="formula">η<sub>max</sub> = 0.18</span> (acima do limite de
+          estabilidade <span class="formula">2/c ≈ 0.167</span>): o LR constante diverge, enquanto o
+          schedule explode no platô mas se recupera quando o cosseno reduz
+          <span class="formula">η<sub>t</sub></span>. Compare warmup de 0% e 30% nos primeiros passos
+          e teste <span class="formula">η<sub>min</sub>/η<sub>max</sub> = 0</span> contra
+          <span class="formula">0.5</span> para ver o efeito no piso final.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Reward Model e Bradley-Terry ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Reward Model: perda de Bradley-Terry</h2>
+      <p class="demo-text">
+        O Reward Model recebe triplas <span class="formula">(x, y<sub>w</sub>, y<sub>l</sub>)</span>,
+        onde <span class="formula">y<sub>w</sub></span> é a resposta preferida pelos anotadores, e é
+        treinado para que <span class="formula">P(y<sub>w</sub> ≻ y<sub>l</sub>) = σ(Δr)</span> com
+        <span class="formula">Δr = r<sub>φ</sub>(x, y<sub>w</sub>) − r<sub>φ</sub>(x, y<sub>l</sub>)</span>.
+        A perda é <span class="formula">ℒ<sub>RM</sub> = −log σ(Δr)</span>. Ajuste os rewards das duas
+        respostas e observe a probabilidade prevista, a perda e o gradiente. À direita, um RM de
+        brinquedo é treinado em 10 pares de preferência: cada passo empurra
+        <span class="formula">r<sub>φ</sub>(x, y<sub>w</sub>)</span> para cima e
+        <span class="formula">r<sub>φ</sub>(x, y<sub>l</sub>)</span> para baixo com força
+        <span class="formula">σ(−Δr)</span>, ou seja, o gradiente é grande quando o RM ainda discorda do rótulo humano.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">r(x, y<sub>w</sub>) = <span id="s2-rw-val">2.1</span>
+            <input type="range" id="s2-rw" min="-4" max="4" value="2.1" step="0.1" />
+          </label>
+          <label class="slider-label">r(x, y<sub>l</sub>) = <span id="s2-rl-val">-0.8</span>
+            <input type="range" id="s2-rl" min="-4" max="4" value="-0.8" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s2-scenA" type="button">Cenário A (RM bom)</button>
+          <button class="btn-ctl" id="s2-scenB" type="button">Cenário B (RM ruim)</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label">η = <span id="s2-eta-val">0.50</span>
+            <input type="range" id="s2-eta" min="0.05" max="1.5" value="0.5" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Treinar RM</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-seed" type="button">🎲 Novos pares</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">σ(Δr) (verde) e ℒ<sub>RM</sub> = −log σ(Δr) (laranja) em função de Δr; o marcador mostra o par atual</p>
+            <canvas id="s2-bt"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">10 pares de preferência: r(y<sub>w</sub>) em verde, r(y<sub>l</sub>) em vermelho, por par</p>
+            <canvas id="s2-train"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Os botões reproduzem o exemplo numérico dos slides: o Cenário A
+          (<span class="formula">Δr = +2.9</span>) dá <span class="formula">σ ≈ 0.948</span> e perda
+          <span class="formula">≈ 0.053</span>; o Cenário B (<span class="formula">Δr = −2.9</span>) dá
+          perda <span class="formula">≈ 2.96</span>, quase 60 vezes maior, com gradiente quase máximo.
+          No treino à direita, repare que pares já ordenados corretamente quase não se movem
+          (a sigmoide satura) enquanto os pares invertidos se corrigem rápido. Com
+          <span class="formula">η = 1.5</span> a separação cresce sem parar: a perda de Bradley-Terry
+          só compara diferenças, nada ancora a escala absoluta dos rewards.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: RLHF, penalidade KL e reward hacking ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · RLHF: maximizar reward sem fugir do SFT</h2>
+      <p class="demo-text">
+        No RLHF, a política <span class="formula">π<sub>θ</sub></span> é otimizada para maximizar
+        <span class="formula">J(θ) = E<sub>y∼π<sub>θ</sub></sub>[r<sub>φ</sub>(x, y)] − β·KL(π<sub>θ</sub> ‖ π<sub>ref</sub>)</span>,
+        onde <span class="formula">π<sub>ref</sub></span> é o modelo SFT congelado. Aqui a política é uma
+        distribuição sobre um eixo de "tipos de resposta": a utilidade humana verdadeira
+        <span class="formula">u(y)</span> (verde) tem pico em respostas boas, mas o Reward Model
+        <span class="formula">r<sub>φ</sub>(y)</span> (laranja) é imperfeito e superestima uma região
+        estreita de respostas degeneradas à direita. Rode a subida de gradiente e veja para onde a massa
+        de probabilidade migra conforme o coeficiente <span class="formula">β</span> da penalidade KL.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">β = <span id="s3-beta-val">0.20</span>
+            <input type="range" id="s3-beta" min="0" max="4" value="0.2" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Otimizar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Política π<sub>θ</sub> (barras roxas), referência SFT π<sub>ref</sub> (tracejada), RM r<sub>φ</sub> (laranja) e utilidade real u (verde)</p>
+            <canvas id="s3-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Por iteração: reward do RM (laranja), utilidade real (verde) e KL(π<sub>θ</sub> ‖ π<sub>ref</sub>) (rosa)</p>
+            <canvas id="s3-curves"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">β = 0.05</span> acontece reward hacking: a política colapsa no
+          pico falso do RM, o reward laranja dispara, mas a utilidade verde despenca e a KL explode,
+          exatamente as duas instabilidades citadas nos slides. Com <span class="formula">β = 0.5</span>
+          a política desliza para as respostas realmente boas e a utilidade sobe junto com o reward.
+          Com <span class="formula">β = 3</span> a política quase não sai do SFT: pouco hacking, mas
+          também pouco alinhamento. O mesmo trade-off de β vale para o DPO, que carrega essa penalidade
+          implícita na sua perda.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: GRPO ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · GRPO: vantagem por grupo</h2>
+      <p class="demo-text">
+        O GRPO elimina a value function do PPO: para cada prompt amostram-se
+        <span class="formula">G</span> respostas, cada uma recebe um reward verificável
+        <span class="formula">r<sub>i</sub> ∈ {0, 1}</span> (acertou ou errou a conta, como no exemplo
+        "12 × 7 = 84" dos slides) e a vantagem é o z-score dentro do grupo:
+        <span class="formula">Â<sub>i</sub> = (r<sub>i</sub> − r̄) / σ<sub>r</sub></span>.
+        Clique nas barras para marcar quais respostas acertaram e veja as vantagens mudarem.
+        À direita, uma política de brinquedo com probabilidade <span class="formula">p</span> de acertar
+        é treinada com REINFORCE usando essas vantagens: respostas melhores que a média do grupo são
+        reforçadas, piores que a média são penalizadas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">G = <span id="s4-G-val">4</span>
+            <input type="range" id="s4-G" min="4" max="16" value="4" step="1" />
+          </label>
+          <label class="slider-label">η = <span id="s4-eta-val">0.50</span>
+            <input type="range" id="s4-eta" min="0.1" max="2" value="0.5" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s4-sample" type="button">🎲 Amostrar grupo</button>
+          <button class="btn-ctl" id="s4-step" type="button">⏭ Aplicar atualização</button>
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Grupo atual: reward r<sub>i</sub> (barra fina ciano) e vantagem Â<sub>i</sub> (verde se positiva, vermelha se negativa); clique para alternar acerto/erro</p>
+            <canvas id="s4-group"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Probabilidade de acerto p da política por iteração de treino</p>
+            <canvas id="s4-policy"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">G = 4</span> e metade do grupo acertando,
+          <span class="formula">r̄ = 0.5</span>, <span class="formula">σ<sub>r</sub> = 0.5</span> e
+          <span class="formula">Â<sub>i</sub> ∈ {−1, +1}</span>, o exemplo numérico dos slides.
+          Marque todas as respostas como corretas: <span class="formula">σ<sub>r</sub> = 0</span> e
+          todas as vantagens zeram, sem gradiente. É por isso que, treinando com ▶, a curva de
+          <span class="formula">p</span> acelera no meio (grupos mistos são frequentes) e satura perto
+          de 1 (quase todo grupo é unânime). Compare <span class="formula">G = 4</span> com
+          <span class="formula">G = 16</span>: grupos maiores quase sempre têm variância, então a
+          política recebe sinal de aprendizado por mais tempo.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Treinamento de LLMs</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-lr-schedule.js"></script>
+  <script defer src="js/section2-reward-model.js"></script>
+  <script defer src="js/section3-rlhf-kl.js"></script>
+  <script defer src="js/section4-grpo.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

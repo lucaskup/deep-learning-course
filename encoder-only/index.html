@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de modelos encoder-only: atenção bidirecional vs causal, masked language modeling com a regra 80/10/10, o token [CLS] com feature extraction vs fine-tuning, e aprendizado contrastivo com InfoNCE e in-batch negatives." />
+  <title>Encoder-only — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Atenção</a></li>
+      <li><a href="#s2">MLM</a></li>
+      <li><a href="#s3">[CLS]</a></li>
+      <li><a href="#s4">Contrastivo</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Modelos <span>Encoder-only</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de modelos encoder-only e sentence embeddings</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o padrão de atenção
+        <strong>bidirecional</strong> do encoder contra o <strong>causal</strong> do decoder,
+        o pré-treino com <em>Masked Language Modeling</em> e a regra 80/10/10
+        (<span class="formula">ℒ<sub>MLM</sub> = −(1/|M|)·Σ<sub>i∈M</sub> log p(w<sub>i</sub> | w<sub>∖M</sub>)</span>),
+        a classificação de sentença sobre <span class="formula">h<sub>[CLS]</sub></span>
+        comparando <em>feature extraction</em> e <em>fine-tuning</em>,
+        e o aprendizado contrastivo com InfoNCE
+        (<span class="formula">sim(f(x<sub>i</sub>), f(x<sub>j</sub><sup>+</sup>))/τ</span>)
+        que dá origem aos sentence embeddings do SBERT.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Atenção bidirecional vs causal ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Atenção bidirecional vs causal</h2>
+      <p class="demo-text">
+        A diferença estrutural entre as famílias está na <strong>máscara de atenção</strong>.
+        No <strong>encoder</strong> (BERT, RoBERTa) cada token atende a
+        <strong>todos</strong> os outros, o que produz representações ricas em contexto dos
+        dois lados. No <strong>decoder</strong> (GPT) a máscara causal zera as posições
+        futuras (<span class="formula">j &gt; i</span>): cada token só vê o passado, condição
+        necessária para gerar texto. Abaixo, a mesma frase passa pelas duas máscaras com os
+        mesmos <span class="formula">Q</span> e <span class="formula">K</span> de brinquedo.
+        Posições de <span class="formula">[PAD]</span> recebem
+        <span class="formula">−∞</span> nos logits e são ignoradas nas duas famílias,
+        exatamente como a attention mask vista em aula.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">[PAD] = <span id="s1-pad-val">0</span>
+            <input type="range" id="s1-pad" min="0" max="3" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-seed" type="button">🎲 Reprojetar Q e K</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Encoder (bidirecional): linha i = pesos da consulta q<sub>i</sub> (clique numa linha)</p>
+            <canvas id="s1-enc"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Decoder (causal): células vermelhas recebem −∞ antes do softmax</p>
+            <canvas id="s1-dec"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Clique na linha de "gato": no encoder ele recebe peso de "tapete", que vem depois
+          dele na frase; no decoder esse peso é zero. Aumente
+          <span class="formula">[PAD]</span> para 3 e veja que as colunas de padding somem nas
+          duas máscaras, a soma de cada linha continua 1 porque o softmax renormaliza sobre as
+          posições reais. Use 🎲 para sortear novas projeções e confirmar que o
+          <strong>padrão da máscara</strong> não muda, só os pesos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Masked Language Modeling ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Masked Language Modeling</h2>
+      <p class="demo-text">
+        O pré-treino do BERT esconde <span class="formula">15%</span> dos tokens e pede que o
+        modelo os recupere usando o contexto dos <strong>dois lados</strong>, com perda
+        <span class="formula">ℒ<sub>MLM</sub> = −(1/|M|)·Σ<sub>i∈M</sub> log p(w<sub>i</sub> | w<sub>∖M</sub>)</span>.
+        Dos tokens selecionados, <strong>80%</strong> viram
+        <span class="formula">[MASK]</span>, <strong>10%</strong> são trocados por uma palavra
+        aleatória e <strong>10%</strong> ficam intactos (em todos os casos o alvo é a palavra
+        original). Aqui um modelinho de coocorrência treinado num corpus de frases em
+        português faz o papel do BERT: clique numa palavra para mascará-la e veja a
+        distribuição prevista sobre o vocabulário.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-0" type="button">o gato sentou no tapete</button>
+            <button class="tab" id="s2-tab-1" type="button">ela sacou dinheiro no banco</button>
+            <button class="tab" id="s2-tab-2" type="button">a capital da frança é paris</button>
+          </div>
+        </div>
+        <div class="controls">
+          <label class="slider-label">taxa de máscara = <span id="s2-rate-val">15%</span>
+            <input type="range" id="s2-rate" min="5" max="50" value="15" step="5" />
+          </label>
+          <button class="btn-ctl primary" id="s2-sample" type="button">🎲 Mascarar (80/10/10)</button>
+          <button class="btn-ctl" id="s2-clear" type="button">↺ Limpar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Frase de entrada: clique numa palavra para mascarar/desmascarar (alvo original em cinza)</p>
+            <canvas id="s2-sent"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">p(w | contexto) na posição selecionada (verde: palavra original)</p>
+            <canvas id="s2-dist"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Mascare só "sentou" e observe a distribuição: o contexto bidirecional ("o gato"
+          à esquerda, "no tapete" à direita) concentra a probabilidade em verbos plausíveis.
+          Agora mascare também "tapete" e veja a perda subir: com menos contexto visível a
+          previsão piora, que é o motivo de a taxa ficar em 15% e não em 50%. Use o botão
+          🎲 várias vezes com taxa 15% e repare nos casos raros de troca aleatória (laranja)
+          e de token mantido (verde): o modelo precisa prever a palavra original mesmo assim.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: [CLS] e classificação de sentença ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · [CLS] e classificação de sentença</h2>
+      <p class="demo-text">
+        O token <span class="formula">[CLS]</span> é prefixado a toda sequência e, ao longo
+        das camadas, acumula informação da frase inteira via self-attention. Seu estado final
+        <span class="formula">h<sub>[CLS]</sub><sup>(L)</sup></span> alimenta uma cabeça
+        linear <span class="formula">W ∈ ℝ<sup>d×C</sup></span> para classificação. Abaixo,
+        20 resenhas de filme têm seu <span class="formula">h<sub>[CLS]</sub></span> projetado
+        em 2D e uma cabeça logística é treinada ao vivo. Compare as duas estratégias da aula:
+        em <em>feature extraction</em> o encoder fica <strong>congelado</strong> (os pontos
+        não se movem, só a fronteira), em <em>fine-tuning</em> o gradiente também flui para o
+        encoder (os embeddings se reorganizam para facilitar a separação).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s3-tab-frozen" type="button">Feature extraction (congelado)</button>
+            <button class="tab" id="s3-tab-ft" type="button">Fine-tuning (descongelado)</button>
+          </div>
+          <label class="slider-label">η = <span id="s3-eta-val">0.50</span>
+            <input type="range" id="s3-eta" min="0.05" max="2" value="0.5" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-sample" type="button">🎲 Novos embeddings</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">h<sub>[CLS]</sub> em 2D e a fronteira da cabeça (clique num ponto para ler a frase)</p>
+            <canvas id="s3-space"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Perda (ciano) e acurácia (laranja) por passo de treino</p>
+            <canvas id="s3-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine no modo congelado: a fronteira linear estaciona com alguns pontos do lado
+          errado, a acurácia satura porque os embeddings não mudam. Reinicie, mude para
+          fine-tuning e treine de novo: além da fronteira, os próprios pontos migram e as
+          duas nuvens se afastam, a acurácia chega a 100%. Clique nos pontos perto da
+          fronteira para ler as frases ambíguas. Com <span class="formula">η = 2</span> o
+          fine-tuning distorce o espaço rapidamente, lembrando por que na prática se usa
+          learning rate pequena (na aula, <span class="formula">2×10<sup>−5</sup></span>).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Aprendizado contrastivo (InfoNCE) ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Aprendizado contrastivo com in-batch negatives</h2>
+      <p class="demo-text">
+        Como visto em aula, o <span class="formula">h<sub>[CLS]</sub></span> do BERT vanilla é
+        ruim para similaridade: é preciso um <strong>novo objetivo de treino</strong>. No
+        InfoNCE, um batch de <span class="formula">N</span> pares
+        (<span class="formula">q<sub>i</sub></span>, <span class="formula">d<sub>i</sub></span>)
+        gera a matriz <span class="formula">S<sub>ij</sub> = sim(f(q<sub>i</sub>), f(d<sub>j</sub>))/τ</span>;
+        o softmax em cada linha deve apontar para a <strong>diagonal</strong>, e os outros
+        <span class="formula">N−1</span> documentos do batch são negativos "grátis". Aqui os
+        embeddings são vetores unitários em 2D (pontos num círculo, cosseno = ângulo entre
+        eles): rode o treino e veja cada consulta ser <strong>puxada</strong> para seu
+        documento e <strong>empurrada</strong> dos demais, a receita siamesa do SBERT.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">τ = <span id="s4-tau-val">0.10</span>
+            <input type="range" id="s4-tau" min="0.05" max="1" value="0.1" step="0.05" />
+          </label>
+          <label class="slider-label">N = <span id="s4-n-val">6</span>
+            <input type="range" id="s4-n" min="3" max="10" value="6" step="1" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s4-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-seed" type="button">🎲 Novo batch</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Embeddings unitários: ● consulta q<sub>i</sub>, □ documento d<sub>i</sub> (arraste qualquer ponto)</p>
+            <canvas id="s4-circle"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Softmax por linha de S<sub>ij</sub>/τ: o alvo é a diagonal (contorno verde)</p>
+            <canvas id="s4-matrix"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine com <span class="formula">τ = 0.10</span> e observe a matriz virar uma
+          diagonal: além de cada par se alinhar, os pares se <strong>espalham</strong> pelo
+          círculo para fugir uns dos outros (uniformidade). Compare com
+          <span class="formula">τ = 1</span>: a softmax fica achatada e os negativos difíceis
+          pesam pouco. Depois de convergir, arraste um documento para cima de outro par e veja
+          a linha correspondente da matriz se confundir, é o papel do negativo difícil. Com
+          <span class="formula">N = 10</span> há mais negativos por linha e o espaçamento
+          final fica mais apertado, como nos batches grandes da aula.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Modelos Encoder-only</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-attention.js"></script>
+  <script defer src="js/section2-mlm.js"></script>
+  <script defer src="js/section3-cls.js"></script>
+  <script defer src="js/section4-contrastive.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

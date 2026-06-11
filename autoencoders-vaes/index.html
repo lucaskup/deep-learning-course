@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Autoencoders e VAEs: gargalo e reconstrução com detecção de anomalias, buracos no espaço latente do AE versus o posterior gaussiano do VAE, reparametrization trick z = μ + σ·ε e o ELBO com peso β no termo KL." />
+  <title>Autoencoders e VAEs — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Gargalo</a></li>
+      <li><a href="#s2">Latente AE × VAE</a></li>
+      <li><a href="#s3">Reparametrização</a></li>
+      <li><a href="#s4">ELBO e β</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Autoencoders e <span>VAEs</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de Autoencoders e Variational Autoencoders</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: um autoencoder com gargalo treinado ao vivo
+        em dados 2D (encoder <span class="formula">g(x,φ)</span>, decoder <span class="formula">f(z,θ)</span>,
+        score de anomalia <span class="formula">s(x) = ‖x − f(g(x,φ),θ)‖²</span>), a comparação entre o
+        espaço latente do AE e o do VAE (posterior aproximado
+        <span class="formula">q(z|x,φ) = N(μ, σ²)</span> contra o prior
+        <span class="formula">p(z) = N(0, 1)</span>), o reparametrization trick
+        <span class="formula">z* = μ + σ·ε</span> com <span class="formula">ε ~ N(0,1)</span>,
+        e o ELBO decomposto em reconstrução mais
+        <span class="formula">D<sub>KL</sub>[q(z|x,φ) ‖ p(z)]</span> com o peso β ajustável durante o treino.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Autoencoder com gargalo ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Autoencoder com gargalo</h2>
+      <p class="demo-text">
+        Um autoencoder é treinado para reconstruir a própria entrada:
+        <span class="formula">argmin<sub>θ,φ</sub> J(X, f(g(X,φ),θ))</span>, onde
+        <span class="formula">g</span> é o encoder e <span class="formula">f</span> é o decoder.
+        Aqui os dados vivem em 2D mas formam uma variedade de dimensão 1 (duas luas), e o gargalo
+        força a rede a descobrir isso: com latente 1D, a imagem do decoder é uma curva
+        (laranja) que persegue os dados, e cada ponto é reconstruído pela sua projeção nessa curva.
+        Sem gargalo (latente 2D, mesma dimensão da entrada), a rede aprende a cópia
+        e reconstrói bem qualquer ponto do plano. A sonda roxa arrastável mostra a aplicação em
+        detecção de anomalias: o score <span class="formula">s(x) = ‖x − f(g(x,φ),θ)‖²</span> é baixo
+        sobre os dados e alto longe deles, mas só quando existe gargalo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s1-tab-1d" type="button">Latente 1D (gargalo)</button>
+            <button class="tab" id="s1-tab-2d" type="button">Latente 2D (sem gargalo)</button>
+          </div>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s1-step" type="button">⏭ +1000 passos</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Novos dados</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Dados, reconstruções x̂ e variedade aprendida (arraste a sonda roxa para medir s(x))</p>
+            <canvas id="s1-data"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Perda de reconstrução J por passo de treino (escala log)</p>
+            <canvas id="s1-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine até <span class="formula">J &lt; 0.05</span> e arraste a sonda: sobre as luas
+          <span class="formula">s(x) ≈ 0.01</span>, no vão entre elas e nos cantos
+          <span class="formula">s(x) &gt; 1</span>. Agora troque para a aba de latente 2D: a perda
+          cai muito mais rápido e <span class="formula">s(x)</span> fica pequeno em quase todo o
+          plano, a rede virou uma cópia e o detector de anomalias quebra. É a regularização por
+          gargalo do slide: sem ela, o autoencoder não aprende estrutura.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Latente do AE vs latente do VAE ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Espaço latente: AE × VAE</h2>
+      <p class="demo-text">
+        Um AE e um VAE com latente 1D são treinados ao vivo nos mesmos dados. O AE mapeia cada
+        <span class="formula">x</span> em um único código <span class="formula">z = g(x,φ)</span>:
+        os códigos formam aglomerados com buracos, e nada obriga a distribuição deles a ter uma forma
+        conhecida. Para gerar dados novos seríamos tentados a ajustar uma gaussiana sobre os códigos
+        e amostrar dela, mas as amostras caem nos buracos e decodificam pontos fora da variedade.
+        O encoder do VAE produz uma distribuição <span class="formula">q(z|x,φ) = N(μ(x), σ²(x))</span>
+        para cada instância, e o termo KL do ELBO empurra essas gaussianas para o prior
+        <span class="formula">p(z) = N(0,1)</span>: elas se sobrepõem, o posterior agregado cobre o
+        prior, e amostrar <span class="formula">z ~ p(z)</span> e decodificar com
+        <span class="formula">f(z,θ)</span> (a amostragem ancestral dos slides) gera pontos sobre os dados.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">z* = <span id="s2-z-val">0.00</span>
+            <input type="range" id="s2-z" min="-3" max="3" value="0" step="0.05" />
+          </label>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Novos dados</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Latente do AE: códigos z = g(x,φ) (histograma) e a gaussiana ajustada a eles (arraste para mover z*)</p>
+            <canvas id="s2-lat-ae"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Latente do VAE: q(z|x,φ) individuais, posterior agregado e prior N(0,1) (arraste para mover z*)</p>
+            <canvas id="s2-lat-vae"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Espaço de dados: gerações z ~ N(0,1) decodificadas por cada modelo e o ponto f(z*) de cada decoder</p>
+            <canvas id="s2-data"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine os dois modelos (uns 4000 passos) e arraste
+          <span class="formula">z*</span> da esquerda para a direita. No histograma do AE aparecem
+          vales sem código nenhum: quando <span class="formula">z*</span> cruza um vale, o ponto
+          ciano <span class="formula">f<sub>AE</sub>(z*)</span> atravessa regiões vazias do plano.
+          No VAE o posterior agregado (laranja) gruda no prior verde e o ponto laranja anda quase
+          sempre sobre os dados. Compare também as nuvens de gerações: conte quantos pontos cianos
+          caem fora das luas em relação aos laranjas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Reparametrization trick ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Reparametrization trick</h2>
+      <p class="demo-text">
+        A amostragem <span class="formula">z* ~ q(z|x,φ)</span> é um nó estocástico no meio da rede,
+        e não dá para fazer backpropagation através de um sorteio. O truque visto em aula reescreve a
+        amostra como <span class="formula">z* = μ + σ·ε</span> com
+        <span class="formula">ε ~ N(0,1)</span> sorteado fora da rede: o gráfico da esquerda mostra
+        que isso é só uma reta, com inclinação <span class="formula">σ</span> e intercepto
+        <span class="formula">μ</span>, aplicada ao ruído. Os gradientes
+        <span class="formula">∂z/∂μ = 1</span> e <span class="formula">∂z/∂σ = ε</span> existem e
+        fluem até <span class="formula">φ</span>. À direita, o custo dessa liberdade: o termo
+        <span class="formula">D<sub>KL</sub>[N(μ,σ²) ‖ N(0,1)] = ½(μ² + σ² − 1 − log σ²)</span>
+        em forma fechada (o caso 1D da fórmula da caixa dos slides), que pune desvio da origem
+        (<span class="formula">μ²</span>), variância grande (<span class="formula">σ²</span>) e
+        variância pequena demais (<span class="formula">−log σ²</span>, o termo anti-colapso).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">μ = <span id="s3-mu-val">0.50</span>
+            <input type="range" id="s3-mu" min="-2.5" max="2.5" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">σ = <span id="s3-sigma-val">0.80</span>
+            <input type="range" id="s3-sigma" min="0.05" max="2.5" value="0.8" step="0.05" />
+          </label>
+          <button class="btn-ctl primary" id="s3-anim" type="button">▶ Chuva de amostras</button>
+          <button class="btn-ctl" id="s3-sample" type="button">🎲 Reamostrar ε</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <div class="controls">
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Ruído ε no eixo horizontal, reta z = μ + σ·ε e o histograma resultante de z na vertical</p>
+            <canvas id="s3-map"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Mapa de D<sub>KL</sub>[N(μ,σ²) ‖ N(0,1)] no plano (μ, σ): arraste o ponto, claro = KL alto</p>
+            <canvas id="s3-kl"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Ligue a chuva de amostras e arraste <span class="formula">μ</span>: as amostras já
+          sorteadas deslizam junto, porque <span class="formula">z</span> é função determinística de
+          <span class="formula">(μ, σ)</span> dado o ruído. Com <span class="formula">σ = 0.05</span>
+          a reta fica quase horizontal e o histograma vira um espeto, mas o KL dispara por causa do
+          <span class="formula">−log σ²</span>; confira no mapa que o mínimo
+          <span class="formula">KL = 0</span> é exatamente <span class="formula">(μ, σ) = (0, 1)</span>,
+          quando <span class="formula">q</span> coincide com o prior. Reproduza o exemplo numérico dos
+          slides com <span class="formula">μ = 0.5</span>, <span class="formula">σ² = 0.25</span>
+          (<span class="formula">σ = 0.5</span>).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: ELBO e o peso β ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · ELBO: reconstrução × KL, com peso β</h2>
+      <p class="demo-text">
+        A função de custo do VAE é
+        <span class="formula">−ELBO = reconstrução + D<sub>KL</sub>[q(z|x,φ) ‖ p(z)]</span>,
+        e para verossimilhança gaussiana a reconstrução é exatamente um MSE, como nos slides.
+        Aqui você treina o VAE com a perda generalizada
+        <span class="formula">recon + β·KL</span> e muda <span class="formula">β</span>
+        durante o treino. Com <span class="formula">β = 1</span> recupera-se o ELBO;
+        com <span class="formula">β = 0</span> sobra só a reconstrução e o modelo vira um AE,
+        com σ(x) → 0 e os μ(x) espalhados longe do prior; com <span class="formula">β</span> grande o
+        KL domina e aparece o posterior collapse da aula: <span class="formula">KL → 0</span>,
+        <span class="formula">μ(x) → 0</span>, <span class="formula">σ(x) → 1</span> para todo
+        <span class="formula">x</span>, e o decoder, sem informação em <span class="formula">z</span>,
+        reconstrói um borrão perto da média dos dados.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">β = <span id="s4-beta-val">1.00</span>
+            <input type="range" id="s4-beta" min="0" max="10" value="1" step="0.25" />
+          </label>
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-resample" type="button">🎲 Novos dados</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Espaço latente: q(z|x,φ) individuais, posterior agregado, prior e as médias μ(x)</p>
+            <canvas id="s4-latent"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Espaço de dados: reconstruções f(μ(x),θ) e a curva gerada ao varrer z pelo prior</p>
+            <canvas id="s4-data"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Termos da perda por passo de treino; as linhas tracejadas marcam as mudanças de β</p>
+            <canvas id="s4-curves"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine com <span class="formula">β = 1</span> até estabilizar e então arraste
+          <span class="formula">β</span> para <span class="formula">10</span> sem pausar: a curva
+          vermelha (KL) despenca, as marcas de <span class="formula">μ(x)</span> colapsam em zero e as
+          reconstruções cianas se amontoam no centro, o quadro clássico de posterior collapse. Volte
+          para <span class="formula">β = 0</span> e veja o efeito oposto: a reconstrução melhora, mas o
+          posterior agregado descola do prior verde e o latente deixa de ser amostrável. O equilíbrio
+          do ELBO é o meio termo que mantém as duas coisas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Autoencoders e VAEs</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/model.js"></script>
+  <script defer src="js/section1-bottleneck.js"></script>
+  <script defer src="js/section2-latent-space.js"></script>
+  <script defer src="js/section3-reparam.js"></script>
+  <script defer src="js/section4-elbo-beta.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

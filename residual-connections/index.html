@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Conexões Residuais: treino ao vivo de rede plain vs residual, gradiente quebrado e fluxo pelo skip, os 2^n caminhos da entrada à saída e a variância das ativações com batch norm." />
+  <title>Conexões Residuais — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Treino</a></li>
+      <li><a href="#s2">Gradiente</a></li>
+      <li><a href="#s3">Caminhos</a></li>
+      <li><a href="#s4">Batch norm</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Conexões <span>Residuais</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de conexões residuais</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o treino ao vivo de uma rede plain
+        <span class="formula">h<sub>l</sub> = f<sub>l</sub>[h<sub>l−1</sub>, θ<sub>l</sub>]</span>
+        contra uma rede residual
+        <span class="formula">h<sub>l</sub> = h<sub>l−1</sub> + f<sub>l</sub>[h<sub>l−1</sub>, θ<sub>l</sub>]</span>,
+        o gradiente quebrado e o termo identidade em
+        <span class="formula">∂y/∂f<sub>1</sub> = I + …</span>,
+        os <span class="formula">2<sup>n</sup></span> caminhos da entrada à saída
+        e a variância que dobra a cada bloco,
+        <span class="formula">σ<sub>out</sub>² = 2σ<sub>in</sub>²</span>,
+        controlada pelo <em>batch norm</em>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Plain vs residual treinando ao vivo ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Plain vs residual: treino ao vivo</h2>
+      <p class="demo-text">
+        A rede plain processa as camadas em sequência,
+        <span class="formula">h<sub>l</sub> = f<sub>l</sub>[h<sub>l−1</sub>, θ<sub>l</sub>]</span>,
+        enquanto a rede residual adiciona uma cópia da entrada a cada bloco,
+        <span class="formula">h<sub>l</sub> = h<sub>l−1</sub> + f<sub>l</sub>[h<sub>l−1</sub>, θ<sub>l</sub>]</span>.
+        Como nos slides, cada bloco <span class="formula">f<sub>l</sub></span> é ReLU seguida de Linear,
+        com uma transformação Linear inicial antes dos blocos. Na rede residual a soma da junção é
+        dividida por <span class="formula">√2</span> para manter a variância das ativações, o papel
+        que o <em>batch norm</em> cumpre nas ResNets reais (seção 4). As duas redes partem
+        <strong>exatamente dos mesmos pesos</strong> (inicialização He) e recebem os mesmos passos
+        de otimização (Adam, <span class="formula">η = 0.01</span>) numa regressão 1D com 80 pontos.
+        A única diferença é a presença do skip. Aumente a profundidade e observe a degradação
+        da rede plain, o fenômeno que motivou a ResNet.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">profundidade = <span id="s1-depth-val">16</span> blocos
+            <input type="range" id="s1-depth" min="1" max="20" value="16" step="1" />
+          </label>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-seed" type="button">🎲 Novos dados</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Dados, função alvo (tracejada) e ajustes: plain (ciano) vs residual (laranja)</p>
+            <canvas id="s1-fit"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">log₁₀ MSE por passo de treino</p>
+            <canvas id="s1-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com 4 a 8 blocos as duas redes ajustam bem e a comparação quase empata.
+          Com 16 ou 20 blocos a rede plain frequentemente trava numa aproximação grosseira
+          (a curva ciano de loss estagna ordens de grandeza acima) enquanto a residual recupera
+          todas as oscilações do alvo. Use 🎲 para repetir o experimento com outros dados e outra
+          inicialização: em algumas sementes a plain até escapa, mas raramente alcança a residual,
+          que converge de forma consistente em todas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Gradiente quebrado e fluxo pelo skip ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Gradiente quebrado e o termo identidade</h2>
+      <p class="demo-text">
+        Pela regra da cadeia, numa rede plain o gradiente atravessa um produto de derivadas:
+        <span class="formula">∂f<sub>4</sub>/∂f<sub>1</sub> = (∂f<sub>4</sub>/∂f<sub>3</sub>)(∂f<sub>3</sub>/∂f<sub>2</sub>)(∂f<sub>2</sub>/∂f<sub>1</sub>)</span>.
+        Em redes muito profundas, <span class="formula">∂y/∂x</span> se torna errático em relação à
+        entrada, o gradiente quebrado (<em>shattered gradient</em>). Na rede residual a derivada tem
+        múltiplos termos, <span class="formula">∂y/∂f<sub>1</sub> = I + ∂f<sub>2</sub>/∂f<sub>1</sub> + …</span>,
+        e o termo identidade <span class="formula">I</span> garante um caminho que não passa por nenhum
+        produto. À esquerda, a derivada <span class="formula">∂y/∂x</span> de redes recém-inicializadas
+        (curvas centradas e normalizadas para comparar a forma). À direita, a norma
+        <span class="formula">‖∂y/∂h<sub>l</sub>‖</span> por camada, em escala log. O ganho
+        <span class="formula">g</span> multiplica os pesos He dos blocos: com
+        <span class="formula">g &lt; 1</span> as derivadas encolhem e o produto da rede plain dissipa.
+        No ramo residual a entrada de cada bloco é normalizada, papel que o <em>batch norm</em>
+        cumpre na prática (seção 4).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">profundidade = <span id="s2-depth-val">24</span> camadas
+            <input type="range" id="s2-depth" min="1" max="40" value="24" step="1" />
+          </label>
+          <label class="slider-label">g = <span id="s2-gain-val">1.00</span>
+            <input type="range" id="s2-gain" min="0.4" max="1.3" value="1.0" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s2-seed" type="button">🎲 Novos pesos</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">∂y/∂x em função de x: plain (ciano) vs residual (laranja), curvas normalizadas</p>
+            <canvas id="s2-deriv"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">log₁₀ ‖∂y/∂h<sub>l</sub>‖ por camada l (l = 0 é a entrada)</p>
+            <canvas id="s2-norms"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com profundidade 30 e <span class="formula">g = 1</span> a curva ciano vira ruído,
+          pequenos deslocamentos em <span class="formula">x</span> mudam o gradiente por completo,
+          enquanto a laranja preserva estrutura suave. Com <span class="formula">g = 0.7</span> a
+          norma da plain despenca em linha reta na escala log (decaimento exponencial) e a residual
+          fica presa perto de 10⁰: é o termo <span class="formula">I</span> impedindo a dissipação.
+          Com <span class="formula">g = 1.3</span> compare o crescimento das duas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: 2^n caminhos ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Um bloco por vez: 2<sup>n</sup> caminhos</h2>
+      <p class="demo-text">
+        Abrindo a expressão da rede residual, a saída vira uma soma de contribuições:
+        <span class="formula">y = x + f<sub>1</sub>[x] + f<sub>2</sub>[x + f<sub>1</sub>[x]] + …</span>
+        Cada bloco pode ser <strong>pulado</strong> (segue pela skip connection) ou
+        <strong>aplicado</strong> (segue por <span class="formula">f<sub>i</sub></span>), então uma rede
+        com <span class="formula">n</span> blocos residuais tem <span class="formula">2<sup>n</sup></span>
+        caminhos distintos da entrada à saída, e <span class="formula">2<sup>n−1</sup></span> deles passam
+        por cada <span class="formula">f<sub>i</sub></span> específica. Use ⏭ para percorrer os caminhos
+        um a um no grafo. O gráfico da direita conta quantos caminhos existem com cada profundidade
+        <span class="formula">k</span> (coeficiente binomial <span class="formula">C(n, k)</span>):
+        a saída funciona como um ensemble implícito de redes de profundidades diferentes.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">n = <span id="s3-n-val">4</span> blocos
+            <input type="range" id="s3-n" min="1" max="5" value="4" step="1" />
+          </label>
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Próximo caminho</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Percorrer</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Grafo com os blocos f<sub>i</sub> e as skip connections; o caminho atual em laranja</p>
+            <canvas id="s3-graph"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Número de caminhos por profundidade k; a barra do caminho atual em laranja</p>
+            <canvas id="s3-hist"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">n = 4</span> existem 16 caminhos e 8 deles passam por
+          <span class="formula">f<sub>1</sub></span>. Repare na distribuição: só 1 caminho usa todos
+          os blocos e só 1 não usa nenhum (a identidade pura, que carrega o termo
+          <span class="formula">I</span> do gradiente); a maioria tem profundidade intermediária.
+          Suba para <span class="formula">n = 5</span> e veja os 32 caminhos: dobrar os blocos dobra
+          o número de caminhos, o crescimento é exponencial.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Variância das ativações e batch norm ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Variância das ativações e batch norm</h2>
+      <p class="demo-text">
+        Assumindo independência entre a entrada <span class="formula">X</span> e a saída do ramo
+        processado <span class="formula">Y</span>, a variância da soma é
+        <span class="formula">Var[X+Y] = Var[X] + Var[Y]</span>. Com inicialização He os dois ramos
+        têm a mesma variância, então <span class="formula">σ<sub>out</sub>² = 2σ<sub>in</sub>²</span>:
+        a variância <strong>dobra</strong> a cada bloco residual e logo excede a precisão de ponto
+        flutuante. O <em>batch norm</em> padroniza as ativações do mini batch,
+        <span class="formula">h<sub>i</sub> ← (h<sub>i</sub> − μ<sub>h</sub>)/(σ<sub>h</sub> + ε)</span>,
+        e depois reescala com <span class="formula">γh<sub>i</sub> + β</span>, com
+        <span class="formula">γ = 1</span> e <span class="formula">β = 0</span> na inicialização.
+        Aplicado antes de cada bloco, o ramo processado passa a contribuir variância 1, e a variância
+        total cresce 1, 2, 3, …, linear em vez de exponencial. A simulação abaixo propaga um batch de
+        128 amostras <span class="formula">N(0, 1)</span> por blocos ReLU → Linear de largura 32.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">profundidade = <span id="s4-depth-val">6</span> blocos
+            <input type="range" id="s4-depth" min="1" max="10" value="6" step="1" />
+          </label>
+          <button class="btn-ctl" id="s4-seed" type="button">🎲 Novos pesos</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">log₂ da variância das ativações após cada bloco k; tracejado: referência 2<sup>k</sup></p>
+            <canvas id="s4-var"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Histograma das ativações após o último bloco</p>
+            <canvas id="s4-hist"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Em escala log₂, a curva sem batch norm (ciano) é uma reta de inclinação ≈ 1, cada bloco
+          dobra a variância: com 10 blocos ela passa de 2¹⁰ ≈ 1000. A curva com batch norm (laranja)
+          segue log₂(k+1), crescimento linear. No histograma, as ativações sem batch norm se espalham
+          tanto que as com batch norm viram um pico estreito no centro. Use 🎲 para confirmar que o
+          comportamento não depende dos pesos sorteados, é estrutural.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Conexões Residuais</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-plain-vs-residual.js"></script>
+  <script defer src="js/section2-gradient-flow.js"></script>
+  <script defer src="js/section3-residual-paths.js"></script>
+  <script defer src="js/section4-variance-batchnorm.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Tokenização: granularidade caractere vs palavra vs subpalavra, treinamento de BPE passo a passo no corpus dos slides, codificação de texto novo com os merges aprendidos e a comparação entre BPE e WordPiece." />
+  <title>Tokenização — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <link rel="stylesheet" href="tokenization.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Granularidade</a></li>
+      <li><a href="#s2">Treinar BPE</a></li>
+      <li><a href="#s3">Codificar</a></li>
+      <li><a href="#s4">WordPiece</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title"><span>Tokenização</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de tokenização em modelos de linguagem</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides, todas sobre o mesmo corpus recorrente
+        da aula (<span class="formula">low ×5, lower ×2, newest ×6, widest ×3</span>, com o
+        marcador de fim de palavra <span class="formula">_</span>): a granularidade
+        caractere vs palavra vs subpalavra, o treinamento do BPE que mescla o par adjacente
+        mais frequente por <span class="formula">k</span> merges, a codificação de texto novo
+        aplicando os merges em ordem, e o critério do WordPiece
+        <span class="formula">score(x, y) = freq(xy) / (freq(x)·freq(y))</span>
+        comparado à frequência pura. Notação dos slides:
+        <span class="formula">𝒱</span> é o vocabulário e <span class="formula">|𝒱|</span> seu tamanho.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Granularidade ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Granularidade: caractere, palavra ou subpalavra</h2>
+      <p class="demo-text">
+        O tokenizer define o vocabulário, a segmentação e o mapeamento para IDs. Os dois
+        extremos vistos em aula têm problemas opostos: no nível de caractere o vocabulário é
+        mínimo (na prática ≈256 bytes, aqui os 11 caracteres do corpus) e nada fica fora do
+        vocabulário, mas as sequências explodem; no nível de palavra as sequências são curtas,
+        mas o vocabulário cresce sem limite e qualquer palavra nova vira
+        <span class="formula">[UNK]</span> (OOV, out-of-vocabulary). A tokenização por
+        subpalavras (aqui, BPE com os 7 merges treinados na seção 2) fica entre os dois:
+        compõe palavras nunca vistas a partir de pedaços aprendidos. Edite o texto e compare
+        os três regimes.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <input type="text" id="s1-text" class="text-input" autocomplete="off" spellcheck="false" aria-label="Texto a tokenizar" />
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Texto de exemplo</button>
+        </div>
+        <p class="tok-label">Caractere <span class="tok-info" id="s1-char-info"></span></p>
+        <div class="tok-row" id="s1-char-row"></div>
+        <p class="tok-label">Palavra (vocabulário fechado do corpus) <span class="tok-info" id="s1-word-info"></span></p>
+        <div class="tok-row" id="s1-word-row"></div>
+        <p class="tok-label">Subpalavra (BPE, k = 7 merges) <span class="tok-info" id="s1-sub-info"></span></p>
+        <div class="tok-row" id="s1-sub-row"></div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Comprimento da sequência (tokens) em cada regime</p>
+            <canvas id="s1-len"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Tamanho do vocabulário |𝒱| no exemplo (caractere seria ≈256 com bytes; palavra passa de 100K em corpora reais)</p>
+            <canvas id="s1-vocab"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 O texto de exemplo termina em "lowest", que nunca apareceu no corpus: no nível de
+          palavra vira <span class="formula">[UNK]</span>, no BPE vira
+          <span class="formula">low + est_</span>. Digite "wider" e veja que o BPE com 7 merges
+          o decompõe em caracteres (nenhum merge se aplica), sem perder a palavra. Digite algo
+          com "z" ou "ç" para ver caracteres fora do vocabulário base em vermelho: é o problema
+          que o byte-level BPE do GPT-2 elimina ao partir de 256 bytes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Treinamento do BPE ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · BPE: treinamento passo a passo</h2>
+      <p class="demo-text">
+        O Byte Pair Encoding é bottom-up, guloso e baseado em frequência: começa com o
+        vocabulário de caracteres
+        (<span class="formula">|𝒱| = 11</span> neste corpus), conta todos os pares de símbolos
+        adjacentes ponderados pela frequência das palavras, mescla o par mais frequente em um
+        novo símbolo e repete por <span class="formula">k</span> merges (hiperparâmetro).
+        Em caso de empate, vale a primeira ocorrência na varredura do corpus, como nos slides:
+        no passo 1, <span class="formula">(e, s)</span>, <span class="formula">(s, t)</span> e
+        <span class="formula">(t, _)</span> têm contagem 9 e <span class="formula">(e, s)</span>
+        é escolhido. Avance os merges e observe a tabela de pares, a segmentação do corpus e o
+        vocabulário crescendo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">k = <span id="s2-k-val">0</span> merges
+            <input type="range" id="s2-k" min="0" max="15" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Um merge</button>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <p class="demo-text small" id="s2-merge-info"></p>
+        <div class="tok-grid">
+          <div class="tok-pane">
+            <p class="tok-label">Corpus segmentado (tokens do último merge em amarelo)</p>
+            <div id="s2-corpus"></div>
+            <p class="tok-label">Vocabulário 𝒱</p>
+            <div class="tok-row" id="s2-vocab"></div>
+          </div>
+          <div class="tok-pane">
+            <p class="tok-label">Contagem de pares adjacentes (mais frequentes)</p>
+            <div id="s2-pairs"></div>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Compressão do corpus: total de tokens (ciano) e |𝒱| (roxo) em função de k</p>
+            <canvas id="s2-curve"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Siga os 7 primeiros merges e compare com os slides: es, est, est_, lo, low, ne,
+          new. Em <span class="formula">k = 7</span> o sufixo
+          <span class="formula">est_</span> é compartilhado por "newest" e "widest". Note o
+          trade-off na curva: cada merge reduz os tokens do corpus (de 95 até 16) mas aumenta
+          <span class="formula">|𝒱|</span>; em <span class="formula">k = 15</span> cada palavra
+          virou um token único e o BPE degenerou em tokenização por palavra.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Codificar texto novo ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Codificando texto novo</h2>
+      <p class="demo-text">
+        Na inferência o BPE é determinístico: divide cada palavra em caracteres (com o
+        <span class="formula">_</span> final) e aplica os merges aprendidos
+        <strong>na ordem do treinamento</strong>, nunca por frequência no texto novo. É assim
+        que "lowest", que não existe no corpus, vira
+        <span class="formula">low + est_</span> e compartilha subpalavras com "low", "newest"
+        e "widest". Digite um texto, escolha quantos merges usar e clique numa palavra para
+        ver a derivação completa, como no exemplo da aula.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <input type="text" id="s3-text" class="text-input" autocomplete="off" spellcheck="false" aria-label="Texto a codificar" />
+        </div>
+        <div class="controls">
+          <label class="slider-label">k = <span id="s3-k-val">7</span> merges
+            <input type="range" id="s3-k" min="0" max="15" value="7" step="1" />
+          </label>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <p class="tok-label">Tokens (clique numa palavra para ver a derivação)</p>
+        <div class="tok-row" id="s3-tokens"></div>
+        <div id="s3-deriv"></div>
+        <p class="demo-text small">
+          💡 Deixe "lowest" selecionado e arraste <span class="formula">k</span> de 0 a 7: os
+          merges 1, 2, 3, 4 e 5 disparam um a um e reconstroem a derivação dos slides
+          (o 6 e o 7, ne e new, não se aplicam). Com <span class="formula">k = 0</span> tudo
+          degenera em caracteres. Teste "widest lowest newest" e veja o mesmo token
+          <span class="formula">est_</span> aparecer três vezes; depois escreva uma palavra em
+          português e observe a fertilidade alta: o vocabulário foi treinado em outro corpus,
+          o mesmo motivo pelo qual idiomas fora do inglês gastam mais tokens no GPT-2.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: WordPiece vs BPE ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · WordPiece: likelihood em vez de frequência</h2>
+      <p class="demo-text">
+        O WordPiece (usado no BERT) segue a mesma mecânica de merges do BPE, mas escolhe o par
+        que maximiza a likelihood dos dados:
+        <span class="formula">score(x, y) = freq(xy) / (freq(x)·freq(y))</span>.
+        Isso favorece pares com alta informação mútua, que aparecem quase exclusivamente
+        juntos. No passo 0 deste corpus, <span class="formula">(e, s)</span> tem a maior
+        contagem (9), mas <span class="formula">e</span> é comum em outros contextos
+        (<span class="formula">freq(e) = 17</span>) e o score cai para 0.0588; já
+        <span class="formula">(i, d)</span> aparece só 3 vezes, porém
+        <span class="formula">i</span> e <span class="formula">d</span> só existem juntos, e o
+        score 0.3333 vence. Avance os merges e compare as duas trajetórias de treinamento.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">k = <span id="s4-k-val">0</span> merges
+            <input type="range" id="s4-k" min="0" max="15" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s4-step" type="button">⏭ Um merge</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <p class="tok-label">Scores do WordPiece na segmentação atual (amarelo: escolha do WordPiece; ciano: o que a frequência pura escolheria)</p>
+        <div id="s4-scores"></div>
+        <div class="tok-grid">
+          <div class="tok-pane">
+            <p class="tok-label">BPE (frequência) após k merges</p>
+            <div id="s4-bpe"></div>
+            <p class="tok-info" id="s4-bpe-merges"></p>
+          </div>
+          <div class="tok-pane">
+            <p class="tok-label">WordPiece (likelihood) após k merges</p>
+            <div id="s4-wp"></div>
+            <p class="tok-info" id="s4-wp-merges"></p>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Total de tokens no corpus em função de k: BPE (ciano) comprime mais rápido que WordPiece (laranja)</p>
+            <canvas id="s4-curve"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Em <span class="formula">k = 1</span> o WordPiece já criou
+          <span class="formula">id</span> (score 0.333) enquanto o BPE criou
+          <span class="formula">es</span> (contagem 9): critérios diferentes, vocabulários
+          diferentes. Avance até <span class="formula">k = 5</span> e compare as segmentações
+          de "newest" nos dois painéis. Na curva, o BPE comprime o corpus mais rápido porque
+          ataca sempre o par mais frequente; o WordPiece prefere pares raros e exclusivos.
+          Lembre das outras diferenças vistas em aula: o WordPiece usa o prefixo ## para
+          continuações, decodifica por longest-match e recorre a [UNK] quando não consegue
+          segmentar.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Tokenização</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/bpe.js"></script>
+  <script defer src="js/section1-granularity.js"></script>
+  <script defer src="js/section2-bpe-training.js"></script>
+  <script defer src="js/section3-encode.js"></script>
+  <script defer src="js/section4-wordpiece.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

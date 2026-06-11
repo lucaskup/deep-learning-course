@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de modelos Decoder-only: máscara causal e sliding window, geração autoregressiva com KV-cache, variantes MHA, MQA e GQA, e as leis de escala de Chinchilla." />
+  <title>Decoder-only — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Máscara causal</a></li>
+      <li><a href="#s2">KV-cache</a></li>
+      <li><a href="#s3">MQA/GQA</a></li>
+      <li><a href="#s4">Leis de escala</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Modelos <span>Decoder-only</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de modelos de linguagem decoder-only</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: a máscara causal
+        <span class="formula">M<sub>ij</sub> = −∞ se j &gt; i</span> comparada com a atenção
+        bidirecional e a sliding window, o laço autoregressivo
+        <span class="formula">P(x<sub>t</sub> | x<sub>&lt;t</sub>)</span> com prefill e decode
+        usando KV-cache, o tamanho do cache nas variantes MHA, MQA e GQA
+        (<span class="formula">2·G·d<sub>k</sub>·L</span> floats por token), e as leis de escala
+        de Chinchilla com <span class="formula">C ≈ 6·N·D</span> e a regra dos
+        <span class="formula">20N</span> tokens.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Máscara causal ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Máscara causal vs. atenção bidirecional</h2>
+      <p class="demo-text">
+        No encoder (BERT) cada posição vê toda a sequência. No decoder a self-attention é
+        mascarada: soma-se <span class="formula">M<sub>ij</sub> = 0 se j ≤ i, −∞ se j &gt; i</span>
+        aos scores antes da softmax, então a posição <span class="formula">i</span> só atende a
+        <span class="formula">j ≤ i</span> e o token nunca "vê o futuro" durante o treino.
+        A matriz abaixo mostra os pesos
+        <span class="formula">softmax(QK<sup>⊤</sup>/√d<sub>k</sub> + M)</span> de uma cabeça com
+        scores sorteados: linha <span class="formula">i</span> é quem consulta, coluna
+        <span class="formula">j</span> é quem é consultado. A aba sliding window restringe ainda
+        mais, cada posição atende só às <span class="formula">W</span> posições anteriores
+        (Mistral), com custo <span class="formula">O(n·W)</span> em vez de
+        <span class="formula">O(n²)</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-tab-bi" type="button">Bidirecional (encoder)</button>
+            <button class="tab active" id="s1-tab-causal" type="button">Causal (decoder)</button>
+            <button class="tab" id="s1-tab-swa" type="button">Sliding window</button>
+          </div>
+          <label class="slider-label">n = <span id="s1-n-val">6</span>
+            <input type="range" id="s1-n" min="4" max="12" value="6" step="1" />
+          </label>
+          <label class="slider-label disabled" id="s1-w-wrap">W = <span id="s1-w-val">2</span>
+            <input type="range" id="s1-w" min="1" max="6" value="2" step="1" disabled />
+          </label>
+          <button class="btn-ctl" id="s1-reseed" type="button">🎲 Novos scores</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Matriz de atenção: roxo = peso após a softmax, × = mascarado (passe o mouse e clique numa linha)</p>
+            <canvas id="s1-matrix"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Pesos da linha selecionada: a softmax redistribui a massa só entre as posições visíveis</p>
+            <canvas id="s1-row"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Selecione a linha <span class="formula">i = 1</span> no modo causal: o primeiro
+          token só pode atender a si mesmo, então o peso é 1 por definição. Troque entre
+          bidirecional e causal observando a mesma linha: os scores são idênticos, mas a softmax
+          renormaliza só sobre <span class="formula">j ≤ i</span>. Na sliding window com
+          <span class="formula">n = 12</span> e <span class="formula">W = 2</span>, conte as
+          células ativas por linha: no máximo <span class="formula">W + 1</span>, e é daí que vem
+          o custo <span class="formula">O(n·W)</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Geração autoregressiva e KV-cache ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Geração autoregressiva com KV-cache</h2>
+      <p class="demo-text">
+        Um decoder-only gera um token por vez amostrando de
+        <span class="formula">P(x<sub>t</sub> | x<sub>1</sub>, …, x<sub>t−1</sub>)</span>.
+        A inferência tem duas fases vistas em aula: o <strong>prefill</strong> processa o prompt
+        inteiro em paralelo e armazena K e V de cada token; cada passo de <strong>decode</strong>
+        computa K e V apenas do token novo e reutiliza o cache. Sem cache, todo K e V é
+        recomputado a cada passo e o custo total cresce como
+        <span class="formula">O(n²·d)</span>; com cache, cai para
+        <span class="formula">O(n·d)</span> por token. O modelo aqui é um trigrama por contagem
+        treinado num pequeno corpus (o do "rato que roeu a rolha" dos slides), o suficiente para
+        ver o laço autoregressivo funcionando.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-cache" type="button">Com KV-cache</button>
+            <button class="tab" id="s2-tab-nocache" type="button">Sem cache (naïve)</button>
+          </div>
+          <label class="slider-label">prompt:
+            <select id="s2-prompt">
+              <option value="o rato roeu">o rato roeu</option>
+              <option value="o gato perseguiu">o gato perseguiu</option>
+              <option value="a garrafa do">a garrafa do</option>
+              <option value="o rei de">o rei de</option>
+            </select>
+          </label>
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Gerar token</button>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Gerar tudo</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-reseed" type="button">🎲 Outra amostra</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Sequência e células K, V por posição: verde = no cache (reutilizado), laranja = computado neste passo</p>
+            <canvas id="s2-cells"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Distribuição P(x<sub>t</sub> | x<sub>&lt;t</sub>) do próximo token (8 mais prováveis)</p>
+            <canvas id="s2-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">K, V computados (acumulado) por passo de decode: com cache vs sem cache</p>
+            <canvas id="s2-cost"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Gere passo a passo e observe que com cache só uma coluna fica laranja por passo,
+          enquanto no modo sem cache todas ficam: é exatamente a diferença entre as curvas linear
+          e quadrática do gráfico de custo. Repare também que a distribuição muda a cada token
+          gerado, pois o contexto <span class="formula">x<sub>&lt;t</sub></span> cresceu: isso é o
+          laço autoregressivo. Use 🎲 para amostrar outra continuação do mesmo prompt.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: MHA, MQA e GQA ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · MHA, MQA e GQA: o tamanho do KV-cache</h2>
+      <p class="demo-text">
+        O KV-cache custa <span class="formula">2·G·d<sub>k</sub>·L</span> floats por token, onde
+        <span class="formula">G</span> é o número de pares K,V por camada. Na MHA cada uma das
+        <span class="formula">H</span> cabeças tem seu par (<span class="formula">G = H</span>);
+        a MQA compartilha um único par entre todas (<span class="formula">G = 1</span>); a GQA
+        divide as cabeças em <span class="formula">G</span> grupos
+        (<span class="formula">1 &lt; G &lt; H</span>), o compromisso usado em Llama 2/3 e
+        Mistral. Ajuste <span class="formula">H</span>, <span class="formula">G</span>, as camadas
+        <span class="formula">L</span> e o contexto <span class="formula">n</span> e veja a
+        memória do cache em fp16 (<span class="formula">d<sub>k</sub> = 128</span> fixo).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s3-preset-gpt3" type="button">GPT-3 (MHA)</button>
+          <button class="btn-ctl" id="s3-preset-llama" type="button">Llama 2 70B (GQA)</button>
+          <button class="btn-ctl" id="s3-preset-mistral" type="button">Mistral 7B (GQA)</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label">H = <span id="s3-h-val">32</span>
+            <input type="range" id="s3-h" min="0" max="5" value="3" step="1" />
+          </label>
+          <label class="slider-label">G = <span id="s3-g-val">8</span>
+            <input type="range" id="s3-g" min="0" max="5" value="3" step="1" />
+          </label>
+          <label class="slider-label">L = <span id="s3-l-val">32</span>
+            <input type="range" id="s3-l" min="4" max="96" value="32" step="4" />
+          </label>
+          <label class="slider-label">n = <span id="s3-n-val">4096</span>
+            <input type="range" id="s3-n" min="9" max="17" value="12" step="1" />
+          </label>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Cabeças de query (ciano) e pares K,V compartilhados (verde): cada grupo de H/G cabeças lê o mesmo par</p>
+            <canvas id="s3-heads"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Memória do KV-cache (fp16) para o contexto n: MHA vs GQA atual vs MQA</p>
+            <canvas id="s3-mem"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Carregue o preset do GPT-3 e veja o cache de MHA passar de 9 GB já com
+          <span class="formula">n = 2048</span>: por isso servir LLMs com MHA pura é caro. No
+          preset do Llama 2 70B (<span class="formula">H = 64</span>,
+          <span class="formula">G = 8</span>) a redução é de <span class="formula">8×</span> com
+          qualidade quase idêntica. Arraste <span class="formula">G</span> até 1 para virar MQA e
+          até <span class="formula">H</span> para virar MHA: GQA interpola entre os dois extremos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Leis de escala ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Leis de escala: Chinchilla e a regra dos 20N</h2>
+      <p class="demo-text">
+        Treinar um modelo de <span class="formula">N</span> parâmetros com
+        <span class="formula">D</span> tokens custa <span class="formula">C ≈ 6·N·D</span> FLOPs
+        (2 no forward, 4 no backward, por parâmetro e por token). Para um orçamento
+        <span class="formula">C</span> fixo, a curva abaixo (forma paramétrica de Hoffmann et al.,
+        <span class="formula">L(N, D) = E + A/N<sup>α</sup> + B/D<sup>β</sup></span> com
+        <span class="formula">D = C/6N</span>) mostra a perda de cada divisão entre modelo e
+        dados: modelos pequenos demais ou grandes demais (subtreinados) perdem para o ponto
+        compute-ótimo, em que <span class="formula">N* ∝ C<sup>0.5</sup></span> e
+        <span class="formula">D* ∝ C<sup>0.5</sup></span>, a razão
+        <span class="formula">D*/N* ≈ 20</span> tokens por parâmetro. Arraste o ponto branco
+        sobre a curva e mova o orçamento <span class="formula">C</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">log₁₀ C = <span id="s4-c-val">23.8</span>
+            <input type="range" id="s4-c" min="20" max="26" value="23.8" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Voltar ao ótimo</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Curva isoFLOP: perda L(N, C/6N) em função de N (arraste o ponto branco; verde = ótimo, laranja = regra 20N)</p>
+            <canvas id="s4-iso"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">N* (ciano) e D* (laranja) compute-ótimos em função de C, com modelos reais marcados</p>
+            <canvas id="s4-opt"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">log₁₀ C = 23.8</span> (o orçamento do Chinchilla) o ótimo
+          fica perto de 70B parâmetros e 1.4T tokens, e o ponto do Chinchilla cai em cima das
+          retas do gráfico da direita. Arraste o ponto branco para
+          <span class="formula">N = 280B</span> nesse mesmo orçamento e veja a perda subir: é o
+          Gopher, maior porém subtreinado. Repare que o Llama 3 8B fica bem abaixo da reta de
+          <span class="formula">N*</span>: ele é deliberadamente sobretreinado
+          (<span class="formula">D/N ≈ 1875</span>), porque compute-ótimo não é
+          inferência-ótimo.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Modelos Decoder-only</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-causal-mask.js"></script>
+  <script defer src="js/section2-kv-cache.js"></script>
+  <script defer src="js/section3-gqa.js"></script>
+  <script defer src="js/section4-scaling-laws.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

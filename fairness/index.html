@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Fairness em Deep Learning: limiar de decisão e erros por grupo, o teorema da impossibilidade no caso COMPAS e debiasing de word embeddings por projeção." />
+  <title>Fairness — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Limiar τ</a></li>
+      <li><a href="#s2">Impossibilidade</a></li>
+      <li><a href="#s3">Embeddings</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Fairness em <span>Deep Learning</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de fairness</p>
+      <p class="course-desc">
+        Três visualizações que acompanham os slides: como o limiar de decisão
+        <span class="formula">τ</span> gera as taxas de erro
+        (<span class="formula">FPR</span>, <span class="formula">FNR</span>,
+        <span class="formula">PPV</span>), por que com taxas-base diferentes é
+        impossível satisfazer calibração e igualdade de erros ao mesmo tempo
+        (o caso COMPAS), e como funciona o debiasing de word embeddings por
+        projeção <span class="formula">w′ = w − (w·g)g</span>.
+        Notação dos slides: <span class="formula">ŷ = 1 se s ≥ τ</span>,
+        <span class="formula">p_a = P(y=1 | a)</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Limiar de decisão e erros ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Limiar de decisão e tipos de erro</h2>
+      <p class="demo-text">
+        Um classificador de risco produz um escore <span class="formula">s ∈ [0, 1]</span>
+        e decide <span class="formula">ŷ = 1</span> (ex.: &ldquo;alto risco&rdquo;) quando
+        <span class="formula">s ≥ τ</span>. As duas curvas abaixo são as densidades do
+        escore para quem tem <span class="formula">y = 1</span> (reincide) e
+        <span class="formula">y = 0</span> (não reincide). Como as curvas se sobrepõem,
+        qualquer limiar comete os dois tipos de erro: a área vermelha à direita de
+        <span class="formula">τ</span> são os falsos positivos, a área azul à esquerda
+        são os falsos negativos. Arraste o limiar (ou use o slider) e veja as métricas mudarem.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">τ = <span id="s1-tau-val">0.50</span>
+            <input type="range" id="s1-tau" min="0.05" max="0.95" value="0.5" step="0.01" />
+          </label>
+          <label class="slider-label">taxa-base p = <span id="s1-p-val">0.45</span>
+            <input type="range" id="s1-p" min="0.1" max="0.9" value="0.45" step="0.01" />
+          </label>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Densidades do escore por classe; a linha vertical é o limiar τ (arraste-a)</p>
+            <canvas id="s1-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Métricas resultantes do limiar atual</p>
+            <canvas id="s1-metrics"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Não existe limiar que zere os dois erros ao mesmo tempo: baixar
+          <span class="formula">τ</span> reduz falsos negativos e infla falsos positivos,
+          e vice-versa. Note também que a <span class="formula">PPV</span> depende da
+          taxa-base <span class="formula">p</span>: com o mesmo limiar, um grupo com
+          <span class="formula">p</span> maior tem <span class="formula">PPV</span> maior.
+          Essa dependência é o coração da seção 2.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Teorema da impossibilidade ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · O teorema da impossibilidade (caso COMPAS)</h2>
+      <p class="demo-text">
+        Agora há dois grupos, A e B, com o <em>mesmo</em> classificador (mesmas curvas
+        de escore por classe), mas taxas-base possivelmente diferentes
+        (<span class="formula">p_A ≠ p_B</span>). Você controla um limiar por grupo
+        (<span class="formula">τ_A</span>, <span class="formula">τ_B</span>). Os
+        indicadores abaixo mostram quais critérios de fairness valem
+        (tolerância de 3 pontos percentuais): paridade demográfica, igualdade de
+        oportunidade (TPR), igualdade de FPR e calibração (PPV).
+        Tente deixar <strong>todos</strong> verdes com taxas-base diferentes.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">p_A = <span id="s2-pa-val">0.51</span>
+            <input type="range" id="s2-pa" min="0.1" max="0.9" value="0.51" step="0.01" />
+          </label>
+          <label class="slider-label">p_B = <span id="s2-pb-val">0.39</span>
+            <input type="range" id="s2-pb" min="0.1" max="0.9" value="0.39" step="0.01" />
+          </label>
+          <label class="slider-label">τ_A = <span id="s2-ta-val">0.50</span>
+            <input type="range" id="s2-ta" min="0.05" max="0.95" value="0.5" step="0.01" />
+          </label>
+          <label class="slider-label">τ_B = <span id="s2-tb-val">0.50</span>
+            <input type="range" id="s2-tb" min="0.05" max="0.95" value="0.5" step="0.01" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s2-compas" type="button">⚖ Preset COMPAS (p_A ≠ p_B)</button>
+          <button class="btn-ctl" id="s2-equal" type="button">↺ Taxas-base iguais</button>
+        </div>
+        <div class="controls" id="s2-badges"></div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Grupo A: densidades e limiar τ_A (arraste)</p>
+            <canvas id="s2-distA"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Grupo B: densidades e limiar τ_B (arraste)</p>
+            <canvas id="s2-distB"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Métricas lado a lado: A (ciano) vs B (laranja)</p>
+            <canvas id="s2-metrics"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">p_A = p_B</span> e limiares iguais, tudo fica verde.
+          Com o preset COMPAS, limiares iguais dão TPR e FPR iguais, mas a calibração
+          quebra; mover <span class="formula">τ_B</span> para consertar a PPV quebra TPR
+          e FPR. É a identidade dos slides:
+          <span class="formula">FPR = p/(1−p) · (1−PPV)/PPV · (1−FNR)</span>,
+          com <span class="formula">p</span> diferente, algo tem que ceder. A ProPublica
+          e a Northpointe mediam métricas diferentes do mesmo sistema.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Debiasing de embeddings ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Debiasing de word embeddings por projeção</h2>
+      <p class="demo-text">
+        Um recorte 2D de um espaço de embeddings: o eixo horizontal é a direção de
+        gênero <span class="formula">g</span> (estimada com pares definicionais como
+        he−she), o eixo vertical resume o conteúdo semântico restante. Profissões
+        deveriam ser neutras, mas aparecem deslocadas ao longo de
+        <span class="formula">g</span>. O slider aplica gradualmente a projeção
+        <span class="formula">w′ = w − λ·(w·g)g</span> às palavras neutras
+        (he/she e king/queen são definicionais e não são projetadas).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">λ = <span id="s3-lambda-val">0.00</span>
+            <input type="range" id="s3-lambda" min="0" max="1" value="0" step="0.01" />
+          </label>
+          <button class="btn-ctl primary" id="s3-debias" type="button">▶ Debias (λ = 1)</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Original (λ = 0)</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Embeddings: profissões (pontos) e palavras definicionais (losangos)</p>
+            <canvas id="s3-embed"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Componente de gênero w·g de cada profissão</p>
+            <canvas id="s3-bias"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">λ = 1</span> as profissões caem sobre o eixo
+          neutro: a analogia enviesada man:programmer :: woman:homemaker desaparece,
+          enquanto king/queen preservam o gênero (que ali é legítimo). Ressalva dos
+          slides: em embeddings reais o viés é apenas atenuado, a vizinhança das
+          palavras continua carregando informação de gênero recuperável.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Fairness</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-threshold.js"></script>
+  <script defer src="js/section2-impossibility.js"></script>
+  <script defer src="js/section3-embeddings.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

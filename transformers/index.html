@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Transformers: por que escalar o produto escalar por √d, self-attention multi-head com matrizes de atenção em heatmap, positional encoding sinusoidal e o papel de Add & Norm (residual + LayerNorm) em profundidade." />
+  <title>Transformers — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Escala √d</a></li>
+      <li><a href="#s2">Multi-head</a></li>
+      <li><a href="#s3">Posicional</a></li>
+      <li><a href="#s4">Add &amp; Norm</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Trans<span>formers</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de transformers</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: por que a atenção é
+        <em>scaled</em>, dividindo os scores por
+        <span class="formula">√d</span> antes da softmax; a self-attention multi-head
+        <span class="formula">attention(Q, K, V) = softmax(QK<sup>⊤</sup>/√d)·V</span>
+        sobre uma frase, com a matriz de atenção de cada cabeça em heatmap, a concatenação
+        e a projeção final <span class="formula">W<sub>O</sub></span>; o positional encoding
+        sinusoidal <span class="formula">P<sub>i,j</sub></span> de Vaswani et al. (2017);
+        e o bloco Add &amp; Norm, com
+        <span class="formula">LN(x) = γ⊙(x − μ)/σ + β</span> e o efeito da conexão
+        residual ao empilhar <span class="formula">N</span> blocos.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Por que scaled dot product ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Por que dividir por √d?</h2>
+      <p class="demo-text">
+        Como visto em aula, se as componentes de <span class="formula">q, k ∈ ℝ<sup>d</sup></span>
+        são i.i.d. com <span class="formula">𝒩(0, 1)</span>, então
+        <span class="formula">𝔼[q·k] = 0</span> e
+        <span class="formula">var[q·k] = d</span>: a magnitude típica dos scores cresce
+        com <span class="formula">√d</span>. Scores grandes saturam a softmax, quase todos
+        os pesos da atenção viram 0 ou 1 e o gradiente some. A correção do transformer é usar
+        <span class="formula">score(q, k) = q<sup>⊤</sup>k/√d</span>, que mantém a variância
+        em <span class="formula">𝒪(1)</span>. Mova o slider de
+        <span class="formula">d</span> e compare o histograma dos scores e os pesos da
+        softmax com e sem a escala.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">d = <span id="s1-d-val">64</span>
+            <input type="range" id="s1-d" min="1" max="9" value="6" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar vetores</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Histograma de q·k (laranja) e de q·k/√d (ciano) sobre 1500 pares aleatórios</p>
+            <canvas id="s1-hist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Pesos da softmax de uma query sobre m = 10 keys: sem escala (laranja) vs com escala (ciano)</p>
+            <canvas id="s1-softmax"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">d = 2</span> as duas distribuições quase coincidem
+          e as softmax são parecidas. Suba para <span class="formula">d = 256</span> ou
+          <span class="formula">512</span>: o histograma laranja se espalha
+          (desvio <span class="formula">≈ √d</span>) enquanto o ciano fica parado, e a
+          softmax sem escala concentra quase todo o peso em uma única key (saturação).
+          Clique em 🎲 algumas vezes: qual key "ganha" muda, mas o padrão de saturação não.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Self-attention multi-head ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Self-attention multi-head</h2>
+      <p class="demo-text">
+        Cada token <span class="formula">x<sub>t</sub></span> da frase dos slides,
+        <span class="formula">"The animal didn't cross the street because it was tired"</span>,
+        é projetado em <span class="formula">q<sub>t</sub> = x<sub>t</sub>W<sub>q</sub></span>,
+        <span class="formula">k<sub>t</sub> = x<sub>t</sub>W<sub>k</sub></span> e
+        <span class="formula">v<sub>t</sub> = x<sub>t</sub>W<sub>v</sub></span>.
+        Com <span class="formula">D = 16</span> e <span class="formula">H</span> cabeças,
+        cada cabeça trabalha em dimensão <span class="formula">D/H</span> com suas próprias
+        matrizes, calcula <span class="formula">softmax(QK<sup>⊤</sup>/√d)</span>
+        (uma matriz <span class="formula">m × m</span> de pesos, aqui em heatmap) e as saídas
+        são concatenadas e projetadas por <span class="formula">W<sub>O</sub></span>.
+        Na aba decoder, a máscara causal soma <span class="formula">−∞</span> aos scores com
+        <span class="formula">j &gt; i</span>, zerando a atenção ao futuro.
+        Clique em uma linha de qualquer heatmap para escolher a cabeça e o token de consulta.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">H = <span id="s2-heads-val">4</span>
+            <input type="range" id="s2-heads" min="0" max="3" value="2" step="1" />
+          </label>
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-enc" type="button">Sem máscara (encoder)</button>
+            <button class="tab" id="s2-tab-dec" type="button">Máscara causal (decoder)</button>
+          </div>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Novos pesos W</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Matriz de atenção softmax(QK<sup>⊤</sup>/√d) de cada cabeça (linha = query, coluna = key; clique para selecionar)</p>
+            <canvas id="s2-grid"></canvas>
+          </div>
+          <div class="canvas-box tall">
+            <p class="canvas-caption">Pesos a<sub>i</sub><sup>(t)</sup> da cabeça selecionada e, abaixo, concat(head<sub>1</sub>, …, head<sub>H</sub>) → W<sub>O</sub></p>
+            <canvas id="s2-detail"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">H = 1</span> há um único padrão de atenção; com
+          <span class="formula">H = 8</span> cada cabeça olha a frase de um jeito diferente
+          (algumas quase diagonais, outras espalhadas). Selecione o token
+          <span class="formula">"it"</span> e compare os pesos entre cabeças: em algumas,
+          <span class="formula">"animal"</span> recebe peso alto, ecoando a correferência.
+          Troque para a máscara causal e veja o triângulo superior zerar: a linha do
+          primeiro token vira 1 na própria posição. Clique em 🎲 e note que os padrões
+          mudam, pois <span class="formula">W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub></span>
+          aqui são aleatórios, não treinados.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Positional encoding sinusoidal ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Positional encoding sinusoidal</h2>
+      <p class="demo-text">
+        Self-attention pura é invariante à ordem dos tokens, então somamos ao embedding uma
+        codificação de posição. A definição dos slides é
+        <span class="formula">P<sub>i,2k</sub> = sin(i/n<sup>2k/d</sup>)</span> e
+        <span class="formula">P<sub>i,2k+1</sub> = cos(i/n<sup>2k/d</sup>)</span>,
+        onde <span class="formula">i</span> é a posição, <span class="formula">d</span> a
+        dimensão do embedding e <span class="formula">n</span> o hiperparâmetro de escala
+        (10000 no paper). Dimensões à esquerda oscilam rápido, à direita devagar, como os
+        bits de um contador binário contínuo. O gráfico ao lado mostra o produto escalar
+        normalizado <span class="formula">P<sub>i</sub>·P<sub>j</sub>/‖P<sub>i</sub>‖²</span>:
+        pico em <span class="formula">j = i</span> e decaimento suave, o que dá ao modelo a
+        noção de proximidade relativa. Arraste verticalmente sobre o heatmap ou use o slider
+        para escolher <span class="formula">i</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">d = <span id="s3-d-val">32</span>
+            <input type="range" id="s3-d" min="8" max="64" value="32" step="2" />
+          </label>
+          <label class="slider-label">n = <span id="s3-n-val">10000</span>
+            <input type="range" id="s3-n" min="1" max="4" value="4" step="0.1" />
+          </label>
+          <label class="slider-label">posição i = <span id="s3-pos-val">24</span>
+            <input type="range" id="s3-pos" min="0" max="95" value="24" step="1" />
+          </label>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Matriz P: posição i (vertical) × dimensão j (horizontal); ciano = +1, laranja = −1 (arraste para mover i)</p>
+            <canvas id="s3-heatmap"></canvas>
+          </div>
+          <div class="canvas-box tall">
+            <p class="canvas-caption">P<sub>i</sub>·P<sub>j</sub>/‖P<sub>i</sub>‖² em função de j (pico em j = i)</p>
+            <canvas id="s3-dot"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">n = 10000</span> cada posição tem assinatura única e o
+          produto escalar decai suavemente. Reduza para <span class="formula">n = 10</span>:
+          todas as colunas viram ondas rápidas, o padrão se repete e aparecem picos
+          secundários altos no gráfico da direita, posições distantes ficam parecidas
+          (viola o requisito de codificação única). Aumente
+          <span class="formula">d</span> com <span class="formula">n</span> grande e veja as
+          colunas extras quase constantes, frequências lentas que distinguem posições muito
+          distantes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Add & Norm e profundidade ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Add &amp; Norm: residual e LayerNorm em profundidade</h2>
+      <p class="demo-text">
+        Cada sub-bloco do transformer é embrulhado em
+        <span class="formula">output = LayerNorm(x + Subblock(x))</span>.
+        A LayerNorm normaliza <em>por token</em> (por linha):
+        <span class="formula">LN(x<sub>i</sub>) = γ⊙(x<sub>i</sub> − μ<sub>i</sub>)/σ<sub>i</sub> + β</span>,
+        com <span class="formula">μ<sub>i</sub></span> e <span class="formula">σ<sub>i</sub></span>
+        calculados sobre as <span class="formula">d</span> dimensões do próprio token.
+        À esquerda, um batch de 6 tokens com médias e escalas diferentes entra na LN e sai
+        padronizado linha a linha. À direita, empilhamos <span class="formula">N</span>
+        blocos Feed Forward aleatórios e medimos <span class="formula">‖x<sup>(ℓ)</sup>‖</span>
+        em cada profundidade: sem o caminho identidade o sinal colapsa ou explode conforme o
+        ganho <span class="formula">g</span> dos pesos; com residual ele sobrevive, e com
+        residual + LN a norma fica estável, exatamente o que permite treinar
+        <span class="formula">N = 6</span> (ou muito mais) blocos.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">deslocamento μ<sub>in</sub> = <span id="s4-mu-val">1.0</span>
+            <input type="range" id="s4-mu" min="0" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">escala σ<sub>in</sub> = <span id="s4-sigma-val">1.0</span>
+            <input type="range" id="s4-sigma" min="0.2" max="3" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">γ = <span id="s4-gamma-val">1.0</span>
+            <input type="range" id="s4-gamma" min="0.2" max="2" value="1" step="0.1" />
+          </label>
+          <label class="slider-label">β = <span id="s4-beta-val">0.0</span>
+            <input type="range" id="s4-beta" min="-1" max="1" value="0" step="0.1" />
+          </label>
+        </div>
+        <div class="controls">
+          <label class="slider-label">N blocos = <span id="s4-N-val">16</span>
+            <input type="range" id="s4-N" min="1" max="32" value="16" step="1" />
+          </label>
+          <label class="slider-label">ganho g = <span id="s4-gain-val">1.00</span>
+            <input type="range" id="s4-gain" min="0.5" max="1.6" value="1" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s4-resample" type="button">🎲 Novos pesos</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Batch de 6 tokens × d = 16: antes (esquerda) e depois da LayerNorm (direita); ciano = +, laranja = −</p>
+            <canvas id="s4-ln"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">log₁₀‖x<sup>(ℓ)</sup>‖ por profundidade ℓ: sem residual (laranja), x + F(x) (verde), LN(x + F(x)) (ciano)</p>
+            <canvas id="s4-depth"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Na LN, suba <span class="formula">μ<sub>in</sub></span> para 3 e
+          <span class="formula">σ<sub>in</sub></span> para 3: a entrada vira faixas
+          desbalanceadas, mas a saída continua igual (a LN apaga média e escala de cada
+          token); <span class="formula">γ</span> e <span class="formula">β</span> reintroduzem
+          escala e deslocamento aprendidos. Na profundidade, com
+          <span class="formula">g = 0.7</span> a curva laranja despenca (sinal some em poucos
+          blocos) e com <span class="formula">g = 1.4</span> ela explode; a verde cresce
+          devagar e a ciano fica plana para qualquer <span class="formula">g</span>. Veja no
+          readout que cos(x<sup>(0)</sup>, x<sup>(N)</sup>) fica alto só com residual: o
+          caminho identidade preserva o sinal original.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Transformers</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-scaled-attention.js"></script>
+  <script defer src="js/section2-multihead.js"></script>
+  <script defer src="js/section3-positional-encoding.js"></script>
+  <script defer src="js/section4-addnorm-depth.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

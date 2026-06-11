@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de LSTMs e GRUs: as portas forget, input e output em ação, o caminho aditivo do estado de célula e a preservação do gradiente, a comparação LSTM vs GRU e a memória de longo prazo numa tarefa sintética." />
+  <title>LSTMs e GRUs — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Portas</a></li>
+      <li><a href="#s2">Esteira de c</a></li>
+      <li><a href="#s3">LSTM × GRU</a></li>
+      <li><a href="#s4">Memória</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">LSTMs e <span>GRUs</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de LSTMs e GRUs</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: as três portas da LSTM controladas
+        manualmente, o motivo de o caminho aditivo de
+        <span class="formula">c<sub>t</sub></span> preservar o gradiente, a comparação
+        passo a passo entre LSTM e GRU na mesma sequência (com os pesos do exemplo numérico
+        da aula) e uma tarefa sintética de memória de longo prazo.
+        Notação dos slides:
+        <span class="formula">c<sub>t</sub> = f<sub>t</sub> ⊙ c<sub>t−1</sub> + i<sub>t</sub> ⊙ c̃<sub>t</sub></span>,
+        <span class="formula">h<sub>t</sub> = o<sub>t</sub> ⊙ tanh(c<sub>t</sub>)</span> e, na GRU,
+        <span class="formula">h<sub>t</sub> = (1 − z<sub>t</sub>) ⊙ h<sub>t−1</sub> + z<sub>t</sub> ⊙ h̃<sub>t</sub></span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: As portas da LSTM em ação ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · As portas da LSTM em ação</h2>
+      <p class="demo-text">
+        A célula LSTM carrega dois sinais ao longo do tempo: o estado oculto
+        <span class="formula">h<sub>t</sub></span> e a memória de longo prazo
+        <span class="formula">c<sub>t</sub></span>. Três portas com <em>sigmoid</em>
+        (saída em <span class="formula">[0, 1]</span>) regulam o fluxo:
+        <span class="formula">c<sub>t</sub> = f<sub>t</sub> ⊙ c<sub>t−1</sub> + i<sub>t</sub> ⊙ c̃<sub>t</sub></span>
+        e <span class="formula">h<sub>t</sub> = o<sub>t</sub> ⊙ tanh(c<sub>t</sub>)</span>.
+        Aqui você faz o papel das portas: os sliders fixam
+        <span class="formula">f</span>, <span class="formula">i</span> e
+        <span class="formula">o</span> para todos os passos, e o candidato é simplificado
+        para <span class="formula">c̃<sub>t</sub> = tanh(x<sub>t</sub>)</span>
+        (na LSTM real cada um desses valores sai de uma camada densa sobre
+        <span class="formula">[h<sub>t−1</sub>, x<sub>t</sub>]</span>).
+        A sequência de entrada tem pulsos esparsos: avance passo a passo e veja a memória
+        absorver, reter e expor cada pulso.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">f (forget) = <span id="s1-f-val">0.90</span>
+            <input type="range" id="s1-f" min="0" max="1" value="0.9" step="0.01" />
+          </label>
+          <label class="slider-label">i (input) = <span id="s1-i-val">0.50</span>
+            <input type="range" id="s1-i" min="0" max="1" value="0.5" step="0.01" />
+          </label>
+          <label class="slider-label">o (output) = <span id="s1-o-val">0.80</span>
+            <input type="range" id="s1-o" min="0" max="1" value="0.8" step="0.01" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s1-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Nova sequência</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Sequência: entradas x<sub>t</sub> (barras), memória c<sub>t</sub> e estado oculto h<sub>t</sub></p>
+            <canvas id="s1-timeline"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Decomposição do passo atual: c<sub>t</sub> = f·c<sub>t−1</sub> + i·c̃<sub>t</sub></p>
+            <canvas id="s1-bars"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">f = 1</span> e <span class="formula">i = 0.3</span>
+          a célula vira um integrador: nada é esquecido e os pulsos se acumulam. Com
+          <span class="formula">f = 0.5</span> a memória decai pela metade a cada passo e
+          some em poucos passos. Com <span class="formula">i = 0</span> nenhum pulso entra,
+          e com <span class="formula">o = 0</span> a célula continua lembrando
+          (<span class="formula">c<sub>t</sub></span> evolui) mas não expõe nada em
+          <span class="formula">h<sub>t</sub></span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: A esteira do estado de célula ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · A esteira do estado de célula</h2>
+      <p class="demo-text">
+        Na RNN <em>vanilla</em> o gradiente entre passos distantes acumula o produto
+        <span class="formula">∏<sub>k</sub> θ<sub>hh</sub>·(1 − tanh²(z<sub>k</sub>))</span>:
+        como <span class="formula">1 − tanh² ≤ 1</span>, ele tende a desaparecer (ou, com
+        <span class="formula">θ<sub>hh</sub></span> grande, explodir). Na LSTM o caminho
+        direto da memória não tem <span class="formula">tanh</span> nem multiplicação por
+        matriz: <span class="formula">∂c<sub>t</sub>/∂c<sub>t−1</sub> = f<sub>t</sub></span>,
+        então o produto vira <span class="formula">∏<sub>k</sub> f<sub>k</sub></span>
+        (o <em>constant error carousel</em>). Na GRU, com
+        <span class="formula">h<sub>t</sub> = (1 − z<sub>t</sub>) ⊙ h<sub>t−1</sub> + z<sub>t</sub> ⊙ h̃<sub>t</sub></span>,
+        o caminho direto contribui <span class="formula">∏<sub>k</sub> (1 − z<sub>k</sub>)</span>.
+        Abaixo, três células de uma unidade rodam sobre a mesma sequência aleatória e
+        mostramos o fator de cada passo e o produto acumulado em escala log.
+        O slider de <em>bias</em> empurra as portas de memória para perto de 1
+        (<span class="formula">b<sub>f</sub></span> na LSTM e
+        <span class="formula">−b<sub>f</sub></span> em <span class="formula">z</span> na GRU).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">T = <span id="s2-T-val">50</span>
+            <input type="range" id="s2-T" min="5" max="100" value="50" step="1" />
+          </label>
+          <label class="slider-label">θ<sub>hh</sub> (RNN) = <span id="s2-w-val">0.90</span>
+            <input type="range" id="s2-w" min="0.5" max="1.5" value="0.9" step="0.01" />
+          </label>
+          <label class="slider-label">bias b<sub>f</sub> = <span id="s2-bf-val">1.0</span>
+            <input type="range" id="s2-bf" min="-1" max="4" value="1" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Novos pesos e entradas</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Produto acumulado |∂(estado<sub>k</sub>)/∂(estado<sub>1</sub>)| em escala log<sub>10</sub></p>
+            <canvas id="s2-grad"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Fator de cada passo k (linha tracejada: fator 1, gradiente preservado)</p>
+            <canvas id="s2-factors"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">θ<sub>hh</sub> = 0.9</span> a curva ciano da RNN
+          despenca: em <span class="formula">T = 50</span> o gradiente já caiu várias ordens
+          de magnitude. Suba para <span class="formula">θ<sub>hh</sub> = 1.5</span> e ela
+          explode. Agora mexa no <em>bias</em>: com
+          <span class="formula">b<sub>f</sub> = 4</span> as portas ficam
+          <span class="formula">f<sub>k</sub> ≈ 0.98</span> e a curva laranja quase não cai
+          (é por isso que inicializar o <em>forget bias</em> alto é prática comum). Com
+          <span class="formula">b<sub>f</sub> = −1</span> até a LSTM esquece rápido: a
+          esteira só preserva o gradiente se a porta aprender a ficar aberta.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: LSTM vs GRU na mesma sequência ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · LSTM × GRU na mesma sequência</h2>
+      <p class="demo-text">
+        Aqui as duas células rodam de verdade, com os pesos do exemplo numérico dos slides:
+        na LSTM, <span class="formula">θ<sub>f</sub> = [0.5, −0.5]</span>,
+        <span class="formula">θ<sub>i</sub> = [0.3, −0.4]</span>,
+        <span class="formula">θ<sub>c</sub> = [0.1, −0.3]</span>,
+        <span class="formula">θ<sub>o</sub> = [−0.5, 0.4]</span> com seus <em>bias</em>;
+        na GRU, <span class="formula">θ<sub>r</sub> = [0.5, −0.4]</span>,
+        <span class="formula">θ<sub>z</sub> = [−0.3, 0.6]</span>,
+        <span class="formula">θ<sub>h</sub> = [0.4, 0.5]</span>.
+        Estados iniciais <span class="formula">c<sub>0</sub> = 0.5</span> e
+        <span class="formula">h<sub>0</sub> = −0.6</span>, primeira entrada
+        <span class="formula">x<sub>1</sub> = 0.8</span>: o primeiro passo reproduz
+        exatamente as contas da aula. Observe a diferença estrutural: a LSTM carrega
+        <span class="formula">c<sub>t</sub></span> e <span class="formula">h<sub>t</sub></span>
+        com três portas (<span class="formula">f, i, o</span>), a GRU carrega só
+        <span class="formula">h<sub>t</sub></span> e a mesma porta
+        <span class="formula">z<sub>t</sub></span> decide quanto manter e quanto trocar.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-resample" type="button">🎲 Nova sequência</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">LSTM: memória c<sub>t</sub>, estado h<sub>t</sub> e portas f, i, o (linhas finas)</p>
+            <canvas id="s3-lstm"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">GRU: estado h<sub>t</sub> e portas r, z (linhas finas)</p>
+            <canvas id="s3-gru"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Dê um passo e confira o <em>readout</em> com os slides:
+          <span class="formula">f ≈ 0.401</span>, <span class="formula">i = 0.500</span>,
+          <span class="formula">o ≈ 0.754</span>, <span class="formula">c ≈ 0.391</span> e
+          <span class="formula">h ≈ 0.280</span> na LSTM;
+          <span class="formula">r ≈ 0.397</span>, <span class="formula">z ≈ 0.681</span> e
+          <span class="formula">h ≈ 0.010</span> na GRU. Depois rode a sequência inteira:
+          a curva laranja de <span class="formula">c<sub>t</sub></span> muda devagar
+          (memória de longo prazo) enquanto <span class="formula">h<sub>t</sub></span>
+          reage a cada pulso; na GRU um único vetor faz os dois papéis. Note nos pulsos
+          como <span class="formula">z<sub>t</sub></span> sobe (troca o estado) e como
+          <span class="formula">f<sub>t</sub></span> e <span class="formula">i<sub>t</sub></span>
+          se movem juntas em direções opostas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Lembrar um bit por T passos ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Memória de longo prazo: lembrar um bit</h2>
+      <p class="demo-text">
+        A tarefa sintética clássica de memória: no passo <span class="formula">t = 1</span>
+        chega um bit (<span class="formula">x<sub>1</sub> = ±1</span>, barra roxa)
+        acompanhado de um marcador de escrita; nos passos seguintes chegam apenas
+        distratores ruidosos, e no final a rede precisa responder qual era o bit.
+        É a versão controlada do exemplo do filme da aula: lembrar o "péssimo" do começo
+        da frase até o fim. A LSTM abaixo tem portas dirigidas pelo marcador: no passo de
+        escrita o <em>input gate</em> abre (<span class="formula">i ≈ 1</span>) e o
+        <em>forget gate</em> fecha para apagar a memória velha; nos demais passos
+        <span class="formula">i ≈ 0</span> bloqueia o ruído e
+        <span class="formula">f = σ(b<sub>f</sub>)</span> segura o bit na esteira de
+        <span class="formula">c<sub>t</sub></span>. A RNN <em>vanilla</em>
+        (<span class="formula">h<sub>t</sub> = tanh(0.9·h<sub>t−1</sub> + x<sub>t</sub>)</span>)
+        vê a mesma sequência, mas seu estado é sobrescrito a cada passo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">T = <span id="s4-T-val">50</span>
+            <input type="range" id="s4-T" min="10" max="80" value="50" step="1" />
+          </label>
+          <label class="slider-label">ruído = <span id="s4-noise-val">0.50</span>
+            <input type="range" id="s4-noise" min="0" max="1" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">b<sub>f</sub> (retenção) = <span id="s4-bf-val">4.0</span>
+            <input type="range" id="s4-bf" min="0" max="6" value="4" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s4-resample" type="button">🎲 Novo bit e ruído</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Bit (roxo), distratores (ciano), memória c<sub>t</sub> da LSTM e estado h<sub>t</sub> da RNN</p>
+            <canvas id="s4-timeline"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Portas da LSTM ao longo do tempo: f<sub>t</sub> e i<sub>t</sub></p>
+            <canvas id="s4-gates"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">b<sub>f</sub> = 4</span>
+          (<span class="formula">f ≈ 0.98</span>) a LSTM segura o bit até
+          <span class="formula">T = 80</span> mesmo com ruído alto: o sinal laranja decai
+          pouco e mantém o sinal correto. Baixe para
+          <span class="formula">b<sub>f</sub> = 1.5</span> e veja a memória escoar
+          (<span class="formula">0.82<sup>T</sup></span> vai a zero rápido). A RNN rosa
+          esquece em poucos passos com qualquer ruído: aumente o ruído para
+          <span class="formula">1.0</span> e o estado dela vira função só dos últimos
+          distratores. Aperte 🎲 algumas vezes e confira no <em>readout</em> quem ainda
+          sabe o bit no passo final.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>LSTMs e GRUs</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-portas.js"></script>
+  <script defer src="js/section2-esteira.js"></script>
+  <script defer src="js/section3-lstm-vs-gru.js"></script>
+  <script defer src="js/section4-memoria.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>
