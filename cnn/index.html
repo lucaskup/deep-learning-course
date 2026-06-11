@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação e crescimento do campo receptivo." />
+  <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação, crescimento do campo receptivo e convolução em imagens reais com Sobel, DoG e blur gaussiano." />
   <title>Redes Convolucionais — Demo Interativa</title>
   <script>
     (function () {
@@ -39,6 +39,7 @@
       <li><a href="#s2">Saída</a></li>
       <li><a href="#s3">Pooling</a></li>
       <li><a href="#s4">Campo receptivo</a></li>
+      <li><a href="#s5">Imagem real</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -48,13 +49,15 @@
       <h1 class="course-title">Redes <span>Convolucionais</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de introdução a redes convolucionais</p>
       <p class="course-desc">
-        Quatro visualizações que acompanham os slides: a convolução 2D
+        Cinco visualizações que acompanham os slides: a convolução 2D
         <span class="formula">z<sub>i,j</sub> = Σ<sub>m,n</sub> w<sub>m,n</sub>·x<sub>i+m−2, j+n−2</sub></span>
         com kernels clássicos e pesos compartilhados, o efeito de <em>padding</em>,
         <em>stride</em> e <em>dilation</em> no tamanho da saída, o pooling
-        (max e average) e sua relação com invariância a translação, e o crescimento
+        (max e average) e sua relação com invariância a translação, o crescimento
         do campo receptivo camada a camada pela recursão
-        <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>.
+        <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>,
+        e a convolução aplicada a uma imagem real (a sua, se quiser) com
+        kernels clássicos como Sobel, DoG e blur gaussiano.
       </p>
     </div>
   </header>
@@ -315,6 +318,86 @@
     </div>
   </section>
 
+  <!-- ════════ Seção 5: Convolução em imagens reais ════════ -->
+  <section id="s5" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">5 · Convolução em imagens reais</h2>
+      <p class="demo-text">
+        A mesma operação da seção 1, agora em uma imagem de verdade convertida para tons de
+        cinza: cada pixel da saída é a soma da janela da entrada ponderada pelos pesos do
+        kernel. Escolha um kernel clássico no menu (cada um foi desenhado à mão para extrair
+        uma característica específica, exatamente o que uma CNN aprende sozinha durante o
+        treino) e ajuste <em>stride</em> <span class="formula">S</span>,
+        <em>padding</em> <span class="formula">P</span> e <em>dilation</em>
+        <span class="formula">D</span> para ver o efeito na geometria:
+        <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span> em cada eixo.
+        Passe o mouse sobre o mapa de características para destacar a janela que o kernel
+        leu na entrada, e envie uma foto sua para testar os filtros nela.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">kernel:
+            <select id="s5-kernel-select">
+              <option value="sobelx" selected>Sobel x (bordas verticais)</option>
+              <option value="sobely">Sobel y (bordas horizontais)</option>
+              <option value="laplaciano">Laplaciano (bordas em todas as direções)</option>
+              <option value="dog">DoG 5×5 (diferença de gaussianas)</option>
+              <option value="gauss">Blur gaussiano 5×5</option>
+              <option value="box">Blur de média 3×3</option>
+              <option value="sharpen">Sharpen (realce)</option>
+              <option value="emboss">Emboss (relevo)</option>
+              <option value="identidade">Identidade</option>
+            </select>
+          </label>
+          <canvas id="s5-kernel" style="width:120px;height:120px;flex:0 0 auto;"></canvas>
+          <button class="btn-ctl" id="s5-upload" type="button">📷 Enviar imagem</button>
+          <input type="file" id="s5-file" accept="image/*" style="display:none;" />
+          <button class="btn-ctl" id="s5-default" type="button">↺ Imagem padrão</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label">S = <span id="s5-s-val">1</span>
+            <input type="range" id="s5-s" min="1" max="4" value="1" step="1" />
+          </label>
+          <label class="slider-label">P = <span id="s5-p-val">0</span>
+            <input type="range" id="s5-p" min="0" max="4" value="0" step="1" />
+          </label>
+          <label class="slider-label">D = <span id="s5-d-val">1</span>
+            <input type="range" id="s5-d" min="1" max="3" value="1" step="1" />
+          </label>
+          <label class="slider-label">
+            <input type="checkbox" id="s5-relu" style="accent-color: var(--purple);" /> ReLU
+          </label>
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s5-tab-cinza" type="button">|z| em cinza</button>
+            <button class="tab" id="s5-tab-sinal" type="button">sinal (verde/rosa)</button>
+          </div>
+          <span class="readout" id="s5-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Entrada x em tons de cinza; laranja: janela lida pelo kernel na posição sob o mouse</p>
+            <canvas id="s5-input"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Mapa de características z = w ∗ x; passe o mouse para inspecionar cada pixel</p>
+            <canvas id="s5-output"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Compare Sobel x e Sobel y na imagem padrão: cada um acende um conjunto diferente
+          de bordas (verticais ou horizontais), por isso uma camada convolucional tem vários
+          kernels em paralelo, um mapa de características por filtro. O DoG responde a
+          manchas claras cercadas de escuro (centro e periferia, como células da retina) e o
+          blur gaussiano é um passa-baixas que apaga os detalhes finos. Suba o stride para
+          <span class="formula">S = 4</span> e veja a saída encolher pela fórmula; aumente a
+          dilation com o Sobel e o detector passa a reagir a transições mais largas sem
+          ganhar nenhum peso novo. Ligue a ReLU no modo verde/rosa: tudo que era negativo
+          (rosa) vira zero, é o mapa de ativações que segue para a próxima camada.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>Demo interativa da aula de <span>Introdução a Redes Convolucionais</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
   </footer>
@@ -326,6 +409,7 @@
   <script defer src="js/section2-saida.js"></script>
   <script defer src="js/section3-pooling.js"></script>
   <script defer src="js/section4-campo-receptivo.js"></script>
+  <script defer src="js/section5-imagem.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>
