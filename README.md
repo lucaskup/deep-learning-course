@@ -5,6 +5,7 @@
 [![commit](https://img.shields.io/github/last-commit/lucaskup/deep-learning-course?color=blue)](https://github.com/lucaskup/deep-learning-course/commits/main)
 [![PR](https://img.shields.io/badge/PRs-Welcome-red)](https://github.com/lucaskup/deep-learning-course/pulls)
 [![GitHub Repo stars](https://img.shields.io/github/stars/lucaskup/deep-learning-course)](https://github.com/lucaskup/deep-learning-course)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21212167.svg)](https://doi.org/10.5281/zenodo.21212167)
 
 Material completo de uma disciplina de Introdução a Deep Learning: slides, listas de exercícios, provas com gabarito e demonstrações interativas.
 
@@ -147,6 +148,25 @@ Para contribuir:
 - Faça o Commit das suas alterações (`git commit -m 'Adiciona melhoria X'`).
 - Faça o Push para a sua Branch (`git push origin feature/sua-melhoria`).
 - Abra uma Pull Request.
+
+## 📖 Como citar
+
+Este material está arquivado no Zenodo com o DOI [10.5281/zenodo.21212167](https://doi.org/10.5281/zenodo.21212167), que resolve sempre para a versão mais recente do material. Se você usar ou adaptar o material em uma disciplina, artigo ou outro trabalho, cite:
+
+> Kupssinskü, L. S. (2026). *Introdução a Deep Learning: material de curso*. Zenodo. https://doi.org/10.5281/zenodo.21212167
+
+Em BibTeX:
+
+```bibtex
+@misc{kupssinsku2026deeplearning,
+  author    = {Kupssinsk{\"u}, Lucas Silveira},
+  title     = {Introdu{\c{c}}{\~a}o a Deep Learning: material de curso},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.21212167},
+  url       = {https://doi.org/10.5281/zenodo.21212167}
+}
+```
 
 ## ⚖️ Licença
 
