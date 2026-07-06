@@ -1,0 +1,702 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Aplicações de CNN em Visão Computacional}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Visão Geral}
+    \tableofcontents
+\end{frame}
+
+%========================================================================
+\section{VGG}
+%========================================================================
+
+\begin{frame}{VGG}
+\begin{itemize}
+    \item Arquitetura de CNN proposta em 2014, publicada no ICLR 2015\footfullcite{simonyan2014vgg}.
+    \item Continua sendo usada em muitos cenários, especialmente como \textit{backbone} pré-treinado.
+    \item No ILSVRC-2014 (\textit{ImageNet Large Scale Visual Recognition Challenge}) ficou em \textbf{1º na localização} e \textbf{2º na classificação} (vencida pelo GoogLeNet).
+    \item Taxa de erro no ImageNet (ensemble multi-crop reportado no paper):
+    \begin{itemize}
+        \item \textit{Top-5}: $6.8\%$.
+        \item \textit{Top-1}: $23.7\%$.
+        \item VGG-16 \textit{single-model} fica em torno de $7.3\%$ \textit{top-5} e $24.7\%$ \textit{top-1}.
+    \end{itemize}
+    \item $\sim 140$M parâmetros treináveis.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Definição do Problema}
+\begin{itemize}
+    \item ImageNet contém imagens RGB na resolução $224\times 224 \times 3$.
+    \begin{itemize}
+        \item As entradas são tensores $(224, 224, 3)$.
+    \end{itemize}
+    \item O objetivo é classificar cada imagem em uma das $1000$ classes pré-definidas.
+    \begin{itemize}
+        \item Função de custo: entropia cruzada com os \textit{logits}.
+    \end{itemize}
+    \item Precisamos transformar um tensor $(224, 224, 3)$ em um vetor $(1, 1, 1000)$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Blocos de Construção}
+\begin{itemize}
+    \item A VGG combina três tipos de operações:
+    \begin{itemize}
+        \item \textbf{Convolução + ReLU}: aumenta o número de canais e extrai características espaciais.
+        \item \textbf{\textit{Pooling}}: subamostra a dimensão espacial (largura e altura).
+        \item \textbf{Camadas densas}: realizam a classificação final, partindo do \textit{feature map} achatado.
+    \end{itemize}
+    \item Toda a parte convolucional pode ser vista como um \textbf{extrator de \textit{features}}.
+    \item As camadas densas no fim convertem essas \textit{features} em probabilidades de classe.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{VGG16}
+\begin{itemize}
+    \item VGG16 é a implementação mais comum, equivalente à variante ``D'' descrita no artigo.
+    \item Possui 16 camadas com parâmetros treináveis: \textcolor{BrickRed}{\textbf{13 convolucionais}} e \textcolor{PastelBlue2}{\textbf{3 densas}}.
+    \item Todas as convoluções são $3\times 3$ com \textit{stride} 1 e \textit{padding} 1 (mantêm a dimensão espacial).
+    \item Cada \textit{max pooling} usa janela $2\times 2$ com \textit{stride} 2 (reduz pela metade a largura e altura).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Arquitetura da VGG16}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.95]
+    % Helper: column index x position for the spatial pyramid
+    % Use simple cuboid-like rectangles to suggest tensor volumes.
+    \def\bw{0.55} % box width
+
+    % Input
+    \draw[fill=black!5] (0,0) rectangle ++(\bw,2.6);
+    \node[align=center] at (\bw/2,-0.35) {$224{\times}224$\\$\times 3$};
+
+    % Block 1: conv 64 x2, then pool
+    \draw[fill=BrickRed!25] (1.0,0) rectangle ++(\bw,2.6);
+    \draw[fill=BrickRed!25] (1.6,0) rectangle ++(\bw,2.6);
+    \node[align=center] at (1.55,-0.35) {$224{\times}224$\\$\times 64$};
+
+    % After pool
+    \draw[fill=BrickRed!40] (2.7,0.3) rectangle ++(\bw,2.0);
+    \draw[fill=BrickRed!40] (3.3,0.3) rectangle ++(\bw,2.0);
+    \node[align=center] at (3.25,-0.35) {$112{\times}112$\\$\times 128$};
+
+    % After pool
+    \draw[fill=BrickRed!55] (4.4,0.55) rectangle ++(\bw,1.5);
+    \draw[fill=BrickRed!55] (5.0,0.55) rectangle ++(\bw,1.5);
+    \draw[fill=BrickRed!55] (5.6,0.55) rectangle ++(\bw,1.5);
+    \node[align=center] at (5.25,-0.35) {$56{\times}56$\\$\times 256$};
+
+    % After pool
+    \draw[fill=BrickRed!70] (6.7,0.75) rectangle ++(\bw,1.1);
+    \draw[fill=BrickRed!70] (7.3,0.75) rectangle ++(\bw,1.1);
+    \draw[fill=BrickRed!70] (7.9,0.75) rectangle ++(\bw,1.1);
+    \node[align=center] at (7.55,-0.35) {$28{\times}28$\\$\times 512$};
+
+    % After pool
+    \draw[fill=BrickRed!85] (9.0,0.95) rectangle ++(\bw,0.7);
+    \draw[fill=BrickRed!85] (9.6,0.95) rectangle ++(\bw,0.7);
+    \draw[fill=BrickRed!85] (10.2,0.95) rectangle ++(\bw,0.7);
+    \node[align=center] at (9.85,-0.35) {$14{\times}14$\\$\times 512$};
+
+    % After last pool
+    \draw[fill=BrickRed!100, draw=black] (11.3,1.15) rectangle ++(\bw,0.3);
+    \node[align=center] at (11.55,-0.35) {$7{\times}7$\\$\times 512$};
+
+    % Dense layers
+    \draw[fill=PastelBlue2, opacity=0.7] (12.4,1.2) rectangle ++(0.25,0.2);
+    \draw[fill=PastelBlue2, opacity=0.7] (12.85,1.2) rectangle ++(0.25,0.2);
+    \node[align=center] at (12.75,-0.35) {fc\\4096};
+
+    % Output (softmax)
+    \draw[fill=Goldenrod, opacity=0.7] (13.4,1.2) rectangle ++(0.2,0.2);
+    \node[align=center] at (13.5,-0.35) {soft\\max};
+
+    % Legend
+    \node[anchor=west, font=\tiny] at (0,3.0) {\tikz \fill[BrickRed!50] (0,0) rectangle (0.25,0.18); ~conv $3\times 3$ + ReLU \quad
+        \tikz \fill[PastelBlue2, opacity=0.7] (0,0) rectangle (0.25,0.18); ~totalmente conectada \quad
+        \tikz \fill[Goldenrod, opacity=0.7] (0,0) rectangle (0.25,0.18); ~softmax};
+\end{tikzpicture}
+
+\vspace{0.3em}
+\footnotesize Cada \textit{max pooling} reduz a dimensão espacial pela metade e dobra (ou estabiliza) o número de canais.
+\end{frame}
+
+\begin{frame}{Contando Parâmetros: Primeiro Bloco}
+\begin{itemize}
+    \item Bloco inicial: duas convoluções $3\times 3$ produzindo 64 canais.
+    \begin{itemize}
+        \item Cada filtro convolucional tem $K_h \cdot K_w \cdot C_{in}$ pesos, e há $C_{out}$ filtros.
+        \item Primeira: kernel $3\times 3$, $C_{in}=3$ (RGB), $C_{out}=64$, portanto $3 \cdot 3 \cdot 3 \cdot 64 = 9 \cdot 192 = 1.728$ pesos.
+        \item Segunda: kernel $3\times 3$, $C_{in}=64$ (saída da primeira), $C_{out}=64$, portanto $3 \cdot 3 \cdot 64 \cdot 64 = 9 \cdot 4.096 = 36.864$ pesos.
+    \end{itemize}
+    \item Total parcial: $1.728 + 36.864 = 38.592$ parâmetros.
+    \item O \textit{max pooling} não adiciona parâmetros.
+\end{itemize}
+\begin{block}{Observação}
+Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro tem um \textit{bias} associado.
+\end{block}
+\end{frame}
+
+\begin{frame}{Contando Parâmetros: Convoluções}
+\begin{itemize}
+    \item Crescimento por bloco convolucional:
+\end{itemize}
+\vspace{0.2em}
+\centering
+\begin{tabular}{lccc}
+\toprule
+Bloco & Convoluções & Parâmetros do bloco & Total acumulado \\
+\midrule
+1 & $2 \times$ conv $3\times 3 \times 64$ & $38.592$ & $38.592$ \\
+2 & $2 \times$ conv $3\times 3 \times 128$ & $221.184$ & $259.776$ \\
+3 & $3 \times$ conv $3\times 3 \times 256$ & $1.474.560$ & $1.734.336$ \\
+4 & $3 \times$ conv $3\times 3 \times 512$ & $5.898.240$ & $7.632.576$ \\
+5 & $3 \times$ conv $3\times 3 \times 512$ & $7.077.888$ & $14.710.464$ \\
+\bottomrule
+\end{tabular}
+\vspace{0.6em}
+\begin{itemize}
+    \item Após cinco blocos convolucionais: $\sim 14.7$M parâmetros.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Contando Parâmetros: Camadas Densas}
+\begin{itemize}
+    \item Após o último \textit{pooling}, achatamos um tensor $7\times 7\times 512 = 25.088$.
+\end{itemize}
+\vspace{0.2em}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Camada & Cálculo & Parâmetros \\
+\midrule
+fc1 & $25.088 \times 4.096$ & $102.760.448$ \\
+fc2 & $4.096 \times 4.096$ & $16.777.216$ \\
+fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
+\midrule
+\textbf{Subtotal denso} & & $\mathbf{123.633.664}$ \\
+\bottomrule
+\end{tabular}
+\vspace{0.6em}
+\begin{itemize}
+    \item Total da rede: $14.710.464 + 123.633.664 \approx 138.3$M parâmetros.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Onde Estão os Parâmetros?}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item A maioria dos parâmetros treináveis está nas \textbf{camadas densas}.
+            \begin{itemize}
+                \item Convoluções: $\sim 14$M.
+                \item Densas: $\sim 124$M.
+            \end{itemize}
+            \item Convoluções compartilham pesos, então usam ordens de magnitude menos parâmetros que camadas totalmente conectadas equivalentes.
+            \item Por isso é comum trocar as densas por uma cabeça menor quando se reaproveita a VGG em outras tarefas.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            % Stacked horizontal bar for param distribution
+            \def\barH{0.6}
+            \def\totalW{6}
+            \pgfmathsetmacro{\convW}{\totalW * 14 / 138}
+            \pgfmathsetmacro{\denseW}{\totalW * 124 / 138}
+            % Conv slice
+            \fill[BrickRed!60] (0,0) rectangle (\convW,\barH);
+            \fill[PastelBlue2!70] (\convW,0) rectangle (\totalW,\barH);
+            \draw[thick] (0,0) rectangle (\totalW,\barH);
+            % Labels above
+            \node[anchor=south, BrickRed] at (\convW/2,\barH) {\tiny $\sim 14$M};
+            \node[anchor=south, PastelBlue2] at (\convW + \denseW/2,\barH) {\tiny $\sim 124$M};
+            % Legend below
+            \node[anchor=north west, font=\tiny] at (0,-0.2) {\tikz \fill[BrickRed!60] (0,0) rectangle (0.25,0.18); ~Convolucionais};
+            \node[anchor=north west, font=\tiny] at (0,-0.7) {\tikz \fill[PastelBlue2!70] (0,0) rectangle (0.25,0.18); ~Densas};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Localização}
+%========================================================================
+
+\begin{frame}{Classificação vs Classificação + Localização}
+\begin{itemize}
+    \item Além de dizer ``há um gato na imagem'', queremos saber \textbf{onde} esse gato está.
+    \item A saída adicional é uma \textit{bounding box} delimitando o objeto.
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    % Classification box
+    \draw[thick] (0,0) rectangle (3,2.4);
+    \node at (1.5,2.7) {\small Classificação};
+    \node[anchor=south] at (1.5,1.2) {\large \textbf{Gato}};
+    \node[anchor=south] at (1.5,0.2) {imagem inteira};
+
+    % Classification + Localization
+    \draw[thick] (4.5,0) rectangle (7.5,2.4);
+    \node at (6,2.7) {\small Classificação + Localização};
+    \draw[thick, BrickRed] (5.2,0.4) rectangle (7.0,1.9);
+    \node[BrickRed] at (6.1,2.1) {gato};
+    \node[anchor=south] at (6,-0.3) {classe + caixa};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Bounding Box}
+\begin{itemize}
+    \item Para descrever uma \textit{bounding box} precisamos de 4 valores:
+    \begin{itemize}
+        \item $(x, y)$: coordenadas de um ponto de referência (canto superior esquerdo ou centro).
+        \item $h$: altura da caixa.
+        \item $w$: largura da caixa.
+    \end{itemize}
+    \item Podemos modelar esses 4 valores como um problema de \textbf{regressão multivariada}.
+    \item Convenção comum: o canto superior esquerdo da imagem é $(0,0)$ e o canto inferior direito é $(1,1)$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Exemplo de Bounding Box}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Alvo $\mathbf{y} = (x, y, h, w)$.
+            \item Para o exemplo ao lado:
+            \begin{itemize}
+                \item $(x, y) = (0.2,\, 0.1)$.
+                \item $h = 0.5$.
+                \item $w = 0.7$.
+            \end{itemize}
+            \item Logo, $\mathbf{y} = (0.2,\, 0.1,\, 0.5,\, 0.7)$.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            % Image frame (unit coordinate)
+            \draw[thick, fill=black!3] (0,0) rectangle (4,4);
+            \node[anchor=south west, font=\tiny] at (0,4.05) {$(0, 0)$};
+            \node[anchor=north east, font=\tiny] at (4,-0.05) {$(1, 1)$};
+            % Bounding box
+            \draw[thick, BrickRed] (0.8,1.6) rectangle (3.6,3.6);
+            \node[anchor=south, BrickRed, font=\tiny] at (0.9,3.6) {$(0.2,\, 0.1)$};
+            \draw[<->, BrickRed] (3.8,1.6) -- (3.8,3.6) node[midway, right, font=\tiny] {$h=0.5$};
+            \draw[<->, BrickRed] (0.8,1.4) -- (3.6,1.4) node[midway, below, font=\tiny] {$w=0.7$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Arquitetura para Localização}
+\begin{itemize}
+    \item Para regressão dos 4 valores da \textit{bounding box}, a saída precisa de \textbf{4 unidades sigmoide} (em vez de \textit{softmax} para 1000 classes).
+    \begin{itemize}
+        \item A sigmoide garante saídas em $[0, 1]$, compatíveis com coordenadas normalizadas.
+        \item Hipótese implícita: assumimos que a caixa cabe inteiramente dentro da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$.
+        \item Caixas que estouram a borda exigem outra parametrização (por exemplo, logits sem ativação, ou regressão de \textit{offsets} em relação a uma \textit{anchor}).
+    \end{itemize}
+    \item A função de custo passa a ser o \textbf{erro quadrático médio} (MSE):
+\end{itemize}
+\begin{equation*}
+\mathcal{L} = \frac{1}{2N}\sum_{i=1}^{N}\Bigl[\bigl(y_0^{(i)} - \hat{y}_0^{(i)}\bigr)^2 + \bigl(y_1^{(i)} - \hat{y}_1^{(i)}\bigr)^2 + \bigl(y_2^{(i)} - \hat{y}_2^{(i)}\bigr)^2 + \bigl(y_3^{(i)} - \hat{y}_3^{(i)}\bigr)^2\Bigr]
+\end{equation*}
+\begin{itemize}
+    \item As convoluções continuam funcionando como extrator de \textit{features}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Reaproveitando uma Rede Pré-treinada}
+\begin{itemize}
+    \item Imagine que já treinamos a rede para \textbf{classificar} as fotos.
+    \begin{itemize}
+        \item Os parâmetros das convoluções já estão ajustados para extrair \textit{features} úteis.
+    \end{itemize}
+    \item Estratégia comum: \textbf{congelar} os pesos da convolução e treinar apenas a cabeça densa para a nova tarefa\footfullcite{sermanet2013overfeat}.
+    \begin{itemize}
+        \item Reduz drasticamente o tempo de treinamento.
+        \item Funciona bem quando o conjunto de dados novo é pequeno.
+    \end{itemize}
+    \item Alternativa: \textit{fine-tuning} da rede inteira com \textit{learning rate} baixa.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Métricas de Localização: \textit{Intersection over Union}}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Computa a interseção entre a \textit{bounding box} prevista e o \textit{ground truth}, sobre a união das duas áreas.
+            \begin{equation*}
+                IoU = \frac{A \cap B}{A \cup B}
+            \end{equation*}
+            \item Valor ideal: $IoU = 1$ (sobreposição perfeita).
+            \item Ignora o tamanho absoluto das caixas, só importa a sobreposição relativa.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}
+            % Ground truth
+            \draw[thick, BrickRed, fill=BrickRed, fill opacity=0.25] (0,0.6) rectangle (2.6,2.6);
+            \node[BrickRed, font=\scriptsize] at (0.5,2.85) {ground truth $A$};
+            % Prediction
+            \draw[thick, PastelBlue2, fill=PastelBlue2, fill opacity=0.25] (1.4,0) rectangle (3.6,2.0);
+            \node[PastelBlue2, font=\scriptsize] at (3.0,-0.3) {predição $B$};
+            % Intersection emphasis
+            \draw[ultra thick, dashed, black] (1.4,0.6) rectangle (2.6,2.0);
+            \node[font=\scriptsize] at (2.0,1.3) {$A \cap B$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Métricas de Localização: \textit{Dice Score}}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Computa o dobro da interseção sobre a soma das áreas.
+            \begin{equation*}
+                Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)}
+            \end{equation*}
+            \item Valor ideal: $Dice = 1$.
+            \item Penaliza menos diferenças de tamanho que o IoU.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}
+            \draw[thick, BrickRed, fill=BrickRed, fill opacity=0.25] (0,0.6) rectangle (2.6,2.6);
+            \node[BrickRed, font=\scriptsize] at (0.5,2.85) {$A$};
+            \draw[thick, PastelBlue2, fill=PastelBlue2, fill opacity=0.25] (1.4,0) rectangle (3.6,2.0);
+            \node[PastelBlue2, font=\scriptsize] at (3.4,-0.3) {$B$};
+            \draw[ultra thick, dashed, black] (1.4,0.6) rectangle (2.6,2.0);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{IoU vs Dice: Exemplo Numérico}
+\begin{itemize}
+    \item Suponha duas caixas com:
+    \begin{itemize}
+        \item $Area(A) = 10$.
+        \item $Area(B) = 10$.
+        \item $A \cap B = 5$.
+        \item $A \cup B = Area(A) + Area(B) - A \cap B = 15$.
+    \end{itemize}
+\end{itemize}
+\vspace{0.2em}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{equation*}
+            IoU = \frac{5}{15} \approx 0.333
+        \end{equation*}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \begin{equation*}
+            Dice = \frac{2 \cdot 5}{10 + 10} = 0.5
+        \end{equation*}
+    \end{column}
+\end{columns}
+\vspace{0.6em}
+\begin{itemize}
+    \item Ambas as métricas medem a sobreposição entre caixas.
+    \item Para a mesma sobreposição, o IoU produz valores menores que o \textit{Dice}.
+    \begin{itemize}
+        \item Pode ser interpretado como uma penalização ``mais quadrática'' do erro.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Localização: Resumo}
+\begin{itemize}
+    \item A \textit{bounding box} é modelada como quatro saídas de regressão multivariada.
+    \item Função de custo: MSE.
+    \item Ativação na saída: sigmoide (4 unidades).
+    \item Podemos:
+    \begin{itemize}
+        \item Reaproveitar pesos de convolução já treinados.
+        \item Treinar apenas a nova cabeça densa.
+        \item Ou treinar a rede inteira (\textit{fine-tuning}).
+    \end{itemize}
+    \item Avaliamos com IoU ou \textit{Dice Score}, comparando com o \textit{ground truth}.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Classificação e Localização}
+%========================================================================
+
+\begin{frame}{Múltiplas Tarefas Simultâneas}
+\begin{itemize}
+    \item Podemos resolver classificação e localização \textbf{ao mesmo tempo}.
+    \item A parte convolucional serve como \textbf{extrator de \textit{features}} compartilhado.
+    \item Adicionamos duas cabeças densas independentes:
+    \begin{itemize}
+        \item Cabeça de classificação: \textit{softmax} sobre as 1000 classes.
+        \item Cabeça de localização: 4 unidades sigmoide para a \textit{bounding box}.
+    \end{itemize}
+    \item Cada cabeça contribui com seu próprio termo na função de custo:
+\end{itemize}
+\begin{equation*}
+\mathcal{L} = \mathcal{L}_{\text{classif.}} + \lambda\,\mathcal{L}_{\text{loc.}}
+\end{equation*}
+\end{frame}
+
+\begin{frame}{Backbone como Extrator de Features}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    % Image
+    \draw[thick, fill=black!5] (0,0) rectangle (1.2,2.0);
+    \node[anchor=north] at (0.6,-0.05) {Imagem};
+    % Conv backbone
+    \draw[fill=BrickRed!40, rounded corners=2pt] (1.8,0.4) rectangle (5.4,1.6);
+    \node[align=center] at (3.6,1.0) {\small Convoluções\\\scriptsize \textit{backbone} VGG};
+    \draw[->, thick] (1.2,1.0) -- (1.75,1.0);
+    % Output features arrow (from backbone to branch)
+    \draw[thick] (5.4,1.0) -- (6.2,1.0);
+    % Two heads
+    \draw[fill=PastelBlue2!50, rounded corners=2pt] (6.4,1.5) rectangle (8.8,2.4);
+    \node[align=center] at (7.6,2.0) {\small Cabeça densa\\\scriptsize classificação};
+    \draw[fill=PastelBlue2!50, rounded corners=2pt] (6.4,-0.4) rectangle (8.8,0.5);
+    \node[align=center] at (7.6,0.05) {\small Cabeça densa\\\scriptsize localização};
+    \draw[->, thick] (6.2,1.0) -- (6.2,1.95) -- (6.4,1.95);
+    \draw[->, thick] (6.2,1.0) -- (6.2,0.05) -- (6.4,0.05);
+    % Outputs
+    \draw[->, thick] (8.8,2.0) -- (9.6,2.0);
+    \node[anchor=west, align=left] at (9.6,2.0) {\small classe\\\scriptsize \textit{softmax}};
+    \draw[->, thick] (8.8,0.05) -- (9.6,0.05);
+    \node[anchor=west, align=left] at (9.6,0.05) {\small caixa\\\scriptsize $(x,y,h,w)$};
+\end{tikzpicture}
+
+\vspace{0.4em}
+\begin{itemize}
+    \item Trocando a cabeça e mantendo o \textit{backbone}, podemos resolver muitas tarefas distintas a partir das mesmas \textit{features}.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Segmentação Semântica}
+%========================================================================
+
+\begin{frame}{Segmentação Semântica}
+\begin{itemize}
+    \item É basicamente uma classificação em \textbf{nível de pixel}.
+    \item Cada pixel da imagem recebe uma probabilidade de pertencer a cada classe.
+    \item Aplicações típicas: direção autônoma, imagens médicas, sensoriamento remoto.
+\end{itemize}
+\vspace{0.5em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node[inner sep=0] (in)
+      {\includegraphics[width=4.7cm]{slides/img/02-cnn/segmentation_example.jpg}};
+    \node[above=2pt of in] {Imagem de entrada};
+    \node[inner sep=0, right=1.3cm of in] (out)
+      {\includegraphics[width=4.7cm]{slides/img/02-cnn/segmentation_example_mask.png}};
+    \node[above=2pt of out] {Máscara por classe};
+    \draw[->, very thick] (in.east) -- (out.west);
+\end{tikzpicture}\\[4pt]
+{\tiny Cada pixel recebe uma classe (\textit{notebook}, \textit{copo}, \textit{mesa}, fundo). Exemplo CC0 de Martin Thoma, \textit{Wikimedia Commons}.}
+\end{frame}
+
+\begin{frame}{Primeira Ideia (Ingênua)}
+\begin{itemize}
+    \item Separar a imagem em \textit{patches}.
+    \item Para cada \textit{patch}, classificar o pixel central com uma CNN.
+    \item Repetir para todos os pixels da imagem.
+    \item Problemas:
+    \begin{itemize}
+        \item Extremamente \textbf{ineficiente}: requer milhares de \textit{forwards} por imagem.
+        \item Muito redundante, pois \textit{patches} vizinhos compartilham a maior parte do conteúdo.
+    \end{itemize}
+    \item Precisamos de uma forma de classificar todos os pixels em um único \textit{forward}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Arquitetura Encoder-Decoder}
+\begin{itemize}
+    \item A CNN deve classificar todos os pixels em um único \textit{forward}\footfullcite{noh2015deconv}.
+    \item \textbf{Encoder}: reduz a dimensão espacial via convoluções e \textit{pooling}.
+    \item \textbf{Decoder}: aumenta a dimensão espacial via \textit{unpooling} e convoluções transpostas.
+\end{itemize}
+\vspace{0.2em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\tiny}]
+    \def\bw{0.35}
+
+    % Encoder pyramid (decreasing)
+    \draw[fill=BrickRed!30] (0,0.0) rectangle ++(\bw,1.8);
+    \draw[fill=BrickRed!40] (0.6,0.2) rectangle ++(\bw,1.4);
+    \draw[fill=BrickRed!55] (1.2,0.4) rectangle ++(\bw,1.0);
+    \draw[fill=BrickRed!70] (1.8,0.55) rectangle ++(\bw,0.7);
+    \draw[fill=BrickRed!85] (2.4,0.7) rectangle ++(\bw,0.4);
+
+    % Bottleneck
+    \draw[fill=black!50] (3.1,0.8) rectangle ++(0.25,0.2);
+    \node at (3.22,1.25) {bottleneck};
+
+    % Decoder (increasing)
+    \draw[fill=PastelBlue2, opacity=0.35] (3.6,0.7) rectangle ++(\bw,0.4);
+    \draw[fill=PastelBlue2, opacity=0.5] (4.2,0.55) rectangle ++(\bw,0.7);
+    \draw[fill=PastelBlue2, opacity=0.6] (4.8,0.4) rectangle ++(\bw,1.0);
+    \draw[fill=PastelBlue2, opacity=0.75] (5.4,0.2) rectangle ++(\bw,1.4);
+    \draw[fill=PastelBlue2, opacity=0.9] (6.0,0.0) rectangle ++(\bw,1.8);
+
+    % Labels
+    \node[align=center] at (1.2,-0.3) {\scriptsize Encoder (VGG-16)};
+    \node[align=center] at (4.8,-0.3) {\scriptsize Decoder (conv transposta)};
+
+    % Arrows
+    \draw[->, thick, dashed] (-0.2,2.0) -- (3.0,2.0) node[midway, above] {redução espacial};
+    \draw[->, thick, dashed] (3.4,2.0) -- (6.6,2.0) node[midway, above] {expansão espacial};
+\end{tikzpicture}
+
+\vspace{0.2em}
+\begin{itemize}
+    \item Saída: máscara com a mesma resolução da entrada, com uma classe por pixel.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Detecção de Objetos}
+%========================================================================
+
+\begin{frame}{Detecção de Objetos}
+\begin{itemize}
+    \item Tarefa muito parecida com classificação $+$ localização.
+    \item Diferença: a imagem pode conter \textbf{vários objetos} simultaneamente.
+    \begin{itemize}
+        \item Cada objeto detectado tem sua própria classe e \textit{bounding box}.
+    \end{itemize}
+    \item Desafio principal: \textbf{não sabemos de antemão quantos objetos} aparecem em cada imagem.
+\end{itemize}
+\vspace{0.1em}
+\centering
+\resizebox{5.4cm}{!}{%
+\begin{tikzpicture}[every node/.style={font=\scriptsize\bfseries}]
+    \node[inner sep=0, anchor=south west] (img) at (0,0)
+      {\includegraphics[width=6.5cm]{slides/img/02-cnn/det_cat_dog.jpg}};
+    % cachorro (esquerda)
+    \draw[BrickRed, very thick] (0.20,2.68) rectangle (3.59,4.91);
+    \node[BrickRed, anchor=south west, fill=white, inner sep=1pt] at (0.20,4.91) {cachorro};
+    % gato (direita)
+    \draw[PastelBlue2, very thick] (3.05,1.26) rectangle (5.42,3.23);
+    \node[PastelBlue2, anchor=south west, fill=white, inner sep=1pt] at (3.05,3.23) {gato};
+\end{tikzpicture}}\\[3pt]
+{\tiny Cada objeto recebe classe $+$ \textit{bounding box}. Foto: \textit{Socks e Buddy} (Casa Branca), domínio público.}
+\end{frame}
+
+\begin{frame}{Famílias de Detectores: Two-Stage}
+\begin{itemize}
+    \item \textbf{R-CNN}\footfullcite{girshick2014rcnn}: gera $\sim 2.000$ \textit{region proposals} (via \textit{selective search}), recorta cada uma e roda a CNN separadamente. Lento, mas estabeleceu a base do paradigma.
+    \item \textbf{Fast R-CNN}: a CNN processa a imagem inteira uma só vez; \textit{ROI pooling} extrai \textit{features} de cada região a partir do mesmo \textit{feature map}.
+    \item \textbf{Faster R-CNN}\footfullcite{ren2015fasterrcnn}: substitui \textit{selective search} por uma \textbf{Region Proposal Network} (RPN), também convolucional. Treino \textit{end-to-end}.
+    \item Característica comum, primeiro propõe regiões, depois classifica cada uma. Tipicamente mais precisos, porém mais lentos.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Famílias de Detectores: One-Stage e Transformers}
+\begin{itemize}
+    \item \textbf{YOLO}\footfullcite{redmon2016yolo} (\textit{You Only Look Once}): divide a imagem em uma grade $S\times S$ e prediz, em \textbf{uma única passada}, a classe e a \textit{bounding box} para cada célula.
+    \begin{itemize}
+        \item Muito mais rápido, opera em tempo real, ao custo de menor precisão em objetos pequenos.
+        \item Variantes posteriores (YOLOv3-v8) recuperam grande parte dessa diferença de precisão.
+    \end{itemize}
+    \item \textbf{SSD} (\textit{Single Shot MultiBox Detector}): também \textit{one-stage}, prediz caixas em vários níveis de resolução simultaneamente.
+    \item \textbf{DETR}\footfullcite{carion2020detr}: formula detecção como predição direta de um conjunto de caixas usando um \textbf{Transformer}.
+    \begin{itemize}
+        \item Elimina \textit{anchors} e \textit{non-maximum suppression}.
+        \item Treina com \textit{Hungarian matching} entre predições e \textit{ground truth}.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Segmentação de Instâncias}
+%========================================================================
+
+\begin{frame}{Segmentação de Instâncias}
+\begin{itemize}
+    \item Muito parecida com detecção de objetos:
+    \begin{itemize}
+        \item Cada objeto recebe um valor por pixel, e não apenas uma \textit{bounding box}.
+        \item Instâncias diferentes da mesma classe são \textbf{diferenciadas} entre si.
+    \end{itemize}
+    \item Diferença em relação à segmentação semântica: dois gatos lado a lado aparecem como duas máscaras distintas, não como uma só.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Segmentação Semântica vs Instâncias}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node[inner sep=0] (sem)
+      {\includegraphics[width=5.5cm]{slides/img/02-cnn/seg_semantic.png}};
+    \node[above=2pt of sem] {\textbf{Segmentação Semântica}};
+    \node[inner sep=0, right=0.8cm of sem] (inst)
+      {\includegraphics[width=5.5cm]{slides/img/02-cnn/seg_instance.png}};
+    \node[above=2pt of inst] {\textbf{Segmentação de Instâncias}};
+\end{tikzpicture}\\[4pt]
+{\small Na \textbf{semântica}, todos os objetos da classe ``balão'' recebem a \textbf{mesma} cor;
+na de \textbf{instâncias}, cada balão recebe uma cor \textbf{distinta}.}\\[2pt]
+{\tiny Figura: \textit{Mask R-CNN}, \textit{Wikimedia Commons} (CC BY-SA 4.0).}
+\end{frame}
+
+%========================================================================
+\section{Referências}
+%========================================================================
+
+\begin{frame}{Leituras Recomendadas}
+\begin{itemize}
+    \item Sugere-se \textbf{fortemente} a leitura do Capítulo 10 de \textit{Understanding Deep Learning}~\cite{prince2023understanding}.
+    \begin{itemize}
+        \item Disponível em \url{https://udlbook.github.io/udlbook/}.
+    \end{itemize}
+    \item Os artigos abaixo são acessíveis e fornecem a visão original dos autores sobre as ideias apresentadas nessa aula:
+    \begin{itemize}
+        \item \textit{Very deep convolutional networks for large-scale image recognition}~\cite{simonyan2014vgg}.
+        \item \textit{OverFeat: Integrated recognition, localization and detection using convolutional networks}~\cite{sermanet2013overfeat}.
+        \item \textit{Learning deconvolution network for semantic segmentation}~\cite{noh2015deconv}.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Referências}
+\printbibliography
+\end{frame}
+
+\end{document}

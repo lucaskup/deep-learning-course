@@ -1,0 +1,1195 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%------------------------------------------------------------------------
+%   EXTRA LECTURE-LOCAL COLORS
+%------------------------------------------------------------------------
+\definecolor{UnlearnRed}{HTML}{C0392B}
+\definecolor{UnlearnBlue}{HTML}{3182BD}
+\definecolor{UnlearnGreen}{HTML}{2E8B57}
+\definecolor{UnlearnPurple}{HTML}{6A1B9A}
+\definecolor{LightForget}{HTML}{FCE4E4}
+\definecolor{LightRetain}{HTML}{DBEAFE}
+\definecolor{LightOracle}{HTML}{D6F0DC}
+\definecolor{LightGray}{HTML}{F3F4F6}
+\definecolor{HighlightYellow}{HTML}{FEF3C7}
+
+\title{Deep Learning}
+\subtitle{\textit{Machine Unlearning} para Modelos de Linguagem}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: MOTIVAÇÃO
+  %======================================================================
+  \section{Motivação: Por Que Esquecer?}
+
+  %--- Slide: Problema dos LLMs ---
+  \begin{frame}{LLMs Memorizam o Corpus de Pré-treino}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Modelos de linguagem grandes são treinados em terabytes de texto da web. Esse corpus carrega:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Dados pessoais de usuários (e-mails, posts, perfis)
+          \item Obras protegidas por direitos autorais (livros, código, artigos)
+          \item Conteúdo tóxico, vieses sociais, fatos errados
+          \item Capacidades perigosas (síntese de armas, exploração de software)
+        \end{itemize}
+
+        \vspace{0.4em}
+        O modelo é o \textbf{subproduto irredutível} desse corpus: tudo o que entrou influencia o que sai.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          box/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                      font=\small, inner sep=5pt, text width=3.0cm, align=center},
+          arr/.style={->, thick, color=UnlearnBlue}
+        ]
+          \node[box] (corpus) {Corpus web \\ \footnotesize (texto, código, livros)};
+          \node[box, fill=PastelYellow, below=0.6cm of corpus] (model) {Pré-treino \\ $\theta$};
+          \node[box, fill=LightForget, below=0.6cm of model] (out) {Saídas indesejadas};
+          \draw[arr] (corpus) -- (model);
+          \draw[arr] (model) -- (out);
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+    \note{
+      Pergunte: a turma sabe estimar a fração do treino do Llama-2 que veio de fontes com copyright? A resposta honesta é: ninguém sabe direito.
+    }
+  \end{frame}
+
+  %--- Slide: Caso Harry Potter ---
+  \begin{frame}{O Caso \textit{Harry Potter}\footfullcite{eldan2023whp}}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Prompt} ao Llama-2-7B:\\[0.2em]
+        \texttt{\small Mr. and Mrs. Dursley, of number four, Privet Drive, were proud to say...}
+
+        \vspace{0.6em}
+        \textbf{Continuação do modelo:}\\[0.2em]
+        \texttt{\small ...that they were perfectly normal, thank you very much. They were the last people you'd expect to be involved in anything strange or mysterious...}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{alertblock}{Observação}
+          O modelo reproduz \textbf{verbatim} a abertura do livro 1 da saga, palavra por palavra. Sinal claro de que o corpus de treino contém o texto integral.
+        \end{alertblock}
+
+        \vspace{0.3em}
+        \begin{block}{Implicação legal}
+          Distribuir o modelo equivale, para fins práticos, a distribuir uma cópia recuperável do livro.
+        \end{block}
+      \end{column}
+    \end{columns}
+    \note{
+      Use isso como gancho: ``Se você é a J.\,K.\,Rowling, você processa quem?'' Vai aparecer em todas as próximas seções.
+    }
+  \end{frame}
+
+  %--- Slide: Direito ao esquecimento ---
+  \begin{frame}{Direito ao Esquecimento e Disputas de \textit{Copyright}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{GDPR Art.\ 17 (\textit{Right to be Forgotten})}
+          Cidadão da UE pode exigir que um controlador de dados \textbf{remova} suas informações pessoais. Para LLMs treinados em dados pessoais, isso é tecnicamente difícil.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{\textit{Lawsuits} em curso (2023--2025)}
+          \begin{itemize}\setlength{\itemsep}{0pt}
+            \item \textit{New York Times} vs.\ OpenAI / Microsoft
+            \item Authors Guild vs.\ OpenAI
+            \item Getty Images vs.\ Stability AI
+            \item Reddit vs.\ Anthropic
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    \begin{block}{Pergunta operacional}
+      Como remover, de um modelo já treinado, a influência de um subconjunto específico do corpus, sem retreinar do zero?
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Custo de retreinar ---
+  \begin{frame}{Por Que Não Retreinar do Zero?}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        Retreinar é a solução de referência (\textit{oracle}). Mas:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Llama-2-7B: $\approx$ 184\,000 GPU-horas A100
+          \item GPT-4: estimado em milhões de GPU-horas
+          \item Cada novo pedido de remoção implicaria reiniciar tudo
+        \end{itemize}
+
+        \vspace{0.3em}
+        \textit{Unlearning} aproximado faz a mesma coisa em \textbf{1 GPU-hora} por pedido (\citeauthoryear{eldan2023whp}).
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            xbar,
+            width=7cm, height=4cm,
+            xmin=0, xmax=200000,
+            xlabel={GPU-horas (escala linear)},
+            symbolic y coords={unlearn,retreino},
+            ytick=data,
+            yticklabels={\textit{unlearn} aprox., retreino do zero},
+            nodes near coords,
+            nodes near coords align={horizontal},
+            nodes near coords style={font=\tiny},
+          ]
+            \addplot[fill=UnlearnRed]   coordinates {(184000,retreino)};
+            \addplot[fill=UnlearnGreen] coordinates {(1,unlearn)};
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.3em}
+        \footnotesize Fator de aceleração: $\sim$\,$10^5$.
+      \end{column}
+    \end{columns}
+    \note{
+      Reforce: ``unlearning aproximado'' é a palavra-chave. O resultado não é igual ao retreino, é \textbf{próximo} segundo critérios que veremos na Seção 2.
+    }
+  \end{frame}
+
+  %--- Slide: Vinheta WHP ---
+  \begin{frame}{Vinheta Histórica: \textit{Who's Harry Potter?}\footfullcite{eldan2023whp}}
+    Eldan \& Russinovich (Microsoft, 2023) propõem o primeiro \textit{pipeline} de \textit{unlearning} aplicado a LLMs em escala. Aplicam ao Llama-2-7B com o forget set sendo o corpus completo dos 7 livros de \textit{Harry Potter}.
+
+    \vspace{0.5em}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      box/.style={draw=UnlearnPurple, fill=PastelPurple, rounded corners=3pt,
+                  font=\small, inner sep=6pt, text width=3.7cm, align=center, minimum height=2.0cm},
+      arr/.style={->, thick, color=UnlearnPurple}
+    ]
+      \node[box] (a) {(i) \textit{Reinforced model} \\ identifica tokens-âncora \\ \footnotesize (\textit{Harry}, \textit{Hogwarts}, \textit{Voldemort})};
+      \node[box, right=0.5cm of a] (b) {(ii) Substitui expressões idiossincráticas por \textbf{rótulos genéricos} \\ \footnotesize (\textit{Harry} $\to$ \textit{Jon})};
+      \node[box, right=0.5cm of b] (c) {(iii) \textit{Fine-tune} no corpus reescrito \\ \footnotesize ($\sim$1 GPU-hora)};
+      \draw[arr] (a) -- (b);
+      \draw[arr] (b) -- (c);
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    \begin{alertblock}{Resultado e ressalva}
+      \footnotesize O modelo passa a tratar \textit{Harry Potter} como personagem genérico, perde a capacidade de completar trechos literais e mantém desempenho em \texttt{MMLU}, \texttt{HellaSwag}, \texttt{ARC}. Porém, o método é \textbf{ad-hoc}: depende de detectar entidades e gerar substitutos manualmente. Serviu como prova de conceito; hoje superado por métodos baseados em otimização.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: Outras motivações ---
+  \begin{frame}{Outras Motivações Além de \textit{Copyright}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Detoxificação}
+          Remover associações tóxicas, vieses ou linguagem ofensiva absorvidas do corpus (\texttt{RealToxicityPrompts}, \texttt{BOLD}).
+        \end{block}
+        \begin{block}{Correção de fatos errados}
+          Modelo aprendeu uma data, capital ou autoria incorreta; \textit{unlearning} pontual pode corrigir sem retreinar.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Defesa contra \textit{jailbreak}}
+          Apagar a capacidade do modelo de produzir certos tipos de conteúdo, mesmo sob \textit{prompts} adversariais.
+        \end{block}
+        \begin{alertblock}{Capacidades perigosas (\texttt{WMDP})}
+          \textit{Weapons of Mass Destruction Proxy}: benchmark que mede conhecimento perigoso (química, bio, ciber). Foco crescente em \textit{unlearning} de \textbf{capacidades}, não só de fatos.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Definição informal ---
+  \begin{frame}{Definição Informal de \textit{Unlearning}}
+    \begin{block}{Objetivo}
+      Tornar o modelo $\theta$ \textbf{comportamentalmente indistinguível} de um modelo $\theta^\star$ que nunca viu o subconjunto $D_f$ a ser esquecido, sem retreinar do zero.
+    \end{block}
+
+    \vspace{0.4em}
+    \begin{itemize}\setlength{\itemsep}{0.2em}
+      \item ``Indistinguível'' não é em parâmetros, é nas \textbf{distribuições de saída}
+      \item Sobre $D_f$: o modelo deve agir como se nunca tivesse lido aquilo
+      \item Sobre o restante: utilidade preservada
+    \end{itemize}
+
+    \vspace{0.3em}
+    {\footnotesize \textbf{Por que esse padrão:} se nenhum teste distingue $\theta_u$ de um modelo que nunca viu $D_f$, então, para fins legais e de privacidade, o dado deixou de existir no modelo.}
+
+    \vspace{0.4em}
+    \centering
+    Próxima seção: formalização e métricas para medir tudo isso.
+    \note{
+      Insista que ``indistinguível'' é distribucional. O oracle \textbf{também não acerta} respostas sobre HP.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 2: A TAREFA DE UNLEARNING
+  %======================================================================
+  \section{A Tarefa de \textit{Unlearning}}
+
+  %--- Slide: Formalização ---
+  \begin{frame}{Formalização e o \textit{Oracle} $\theta^\star$}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Seja $D = D_r \cup D_f$ o corpus de treino, com:
+        \begin{itemize}\setlength{\itemsep}{0pt}
+          \item $D_f$: \textit{forget set} (a esquecer)
+          \item $D_r$: \textit{retain set} (a preservar)
+        \end{itemize}
+
+        \vspace{0.3em}
+        Modelo original: $\theta = \mathcal{A}(D)$.\\
+        \textbf{Oracle:} $\theta^\star = \mathcal{A}(D_r)$, hipotético modelo retreinado do zero apenas em $D_r$.
+
+        \vspace{0.4em}
+        Buscamos $\theta_u = U(\theta, D_f, D_r)$ tal que:
+        \[
+          p_{\theta_u}(\cdot \mid x) \approx p_{\theta^\star}(\cdot \mid x)
+          \quad \forall x \text{ relacionado a } D_f
+        \]
+
+        \vspace{0.2em}
+        \textbf{Não exigimos} igualdade em parâmetros, nem ``acerto'' do oracle (ele também não responde sobre HP).
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          db/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                     font=\small, inner sep=5pt, text width=2.0cm, align=center},
+          mb/.style={draw=UnlearnPurple, fill=PastelPurple, rounded corners=3pt,
+                     font=\small, inner sep=5pt, text width=2.0cm, align=center},
+          ob/.style={draw=UnlearnGreen, fill=LightOracle, rounded corners=3pt,
+                     font=\small, inner sep=5pt, text width=2.0cm, align=center},
+          arr/.style={->, thick}
+        ]
+          \node[db] (D)  {$D$};
+          \node[db, below=0.6cm of D] (Dr) {$D_r$};
+          \node[mb, right=1.2cm of D] (theta) {$\theta$};
+          \node[ob, right=1.2cm of Dr] (oracle) {$\theta^\star$};
+          \node[mb, fill=HighlightYellow, right=1.2cm of theta] (thetau) {$\theta_u$};
+
+          \draw[arr] (D)  -- node[above, font=\scriptsize] {$\mathcal{A}$} (theta);
+          \draw[arr] (Dr) -- node[above, font=\scriptsize] {$\mathcal{A}$} (oracle);
+          \draw[arr] (theta) -- node[above, font=\scriptsize] {$U$} (thetau);
+          \draw[arr, dashed, UnlearnGreen, thick] (oracle.east) to[bend right=20]
+            node[below, font=\scriptsize, UnlearnGreen] {$\approx$ (saída)} (thetau.south);
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Forget vs Retain ---
+  \begin{frame}{\textit{Forget Set} vs \textit{Retain Set} no Caso \textit{Harry Potter}}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      forget/.style={draw=UnlearnRed, fill=LightForget, rounded corners=3pt,
+                     font=\small, inner sep=8pt, text width=5.0cm, align=center, minimum height=2.5cm},
+      retain/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                     font=\small, inner sep=8pt, text width=5.0cm, align=center, minimum height=2.5cm}
+    ]
+      \node[forget] (df) {\textbf{$D_f$, \textit{forget set}} \\[0.3em] Texto integral dos 7 livros, capítulos, parágrafos, frases textuais. \\[0.2em] \footnotesize (\textit{``Mr.\ and Mrs.\ Dursley...''})};
+      \node[retain, right=1.0cm of df] (dr) {\textbf{$D_r$, \textit{retain set}} \\[0.3em] HP FanWiki, Wikipédia, resenhas, análises acadêmicas, fan-fiction sobre o universo. \\[0.2em] \footnotesize (\textit{``Hogwarts é uma escola de magia.''})};
+    \end{tikzpicture}}
+
+    \vspace{0.6em}
+    \begin{block}{Distinção essencial}
+      Queremos esquecer o \textbf{texto} dos livros, não o \textbf{conceito} do mundo. Um modelo unlearned pode ainda dizer ``Hogwarts é uma escola fictícia de magia'' (vem do FanWiki), sem reproduzir o parágrafo de abertura do livro 1.
+    \end{block}
+    \note{
+      Esse contraste reaparece em MUSE: \texttt{KnowMem(forget)} mede o segundo, \texttt{Utility} mede o primeiro.
+    }
+  \end{frame}
+
+  %--- Slide: Quatro propriedades ---
+  \begin{frame}{O Que Esperamos do Modelo \textit{Unlearned}?}
+    Quatro propriedades, frequentemente em tensão:
+    \vspace{0.3em}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Forget Quality}
+          A distribuição de saída de $\theta_u$ em consultas sobre $D_f$ é \textbf{estatisticamente indistinguível} da distribuição de $\theta^\star$. Não é acurácia, é equivalência distribucional.
+        \end{block}
+        \begin{block}{Utility}
+          Desempenho preservado em $D_r$ e em \textit{benchmarks} gerais (\texttt{MMLU}, \texttt{HellaSwag}, \texttt{GSM8K}).
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Privacy}
+          Resistente a \textit{membership inference attacks} e a \textit{extraction attacks}: o atacante não consegue saber se um trecho estava em $D_f$.
+        \end{block}
+        \begin{alertblock}{Robustness}
+          Resistente a \textit{relearning attacks}: poucos passos de \textit{fine-tuning} em uma amostra residual não devem trazer o conhecimento de volta.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Pareto FQ vs Utility ---
+  \begin{frame}{A Tensão Fundamental: \textit{Forget} vs \textit{Utility}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        Toda técnica de \textit{unlearning} navega um \textit{trade-off}:
+        \begin{itemize}\setlength{\itemsep}{0pt}
+          \item Apagar muito $D_f$ tende a degradar $D_r$
+          \item Preservar $D_r$ tende a deixar $D_f$ memorizado
+          \item Modelo trivial \textbf{constante} ($p_\theta(\cdot \mid x) = $ uniforme): \textit{forget} perfeito, \textit{utility} zero
+          \item Modelo original sem unlearning: \textit{utility} máxima, \textit{forget} zero
+        \end{itemize}
+
+        \vspace{0.3em}
+        Métodos competem na \textbf{fronteira de Pareto}.
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            width=7.5cm, height=5cm,
+            xlabel={\textit{Forget Quality}},
+            ylabel={\textit{Utility}},
+            xmin=0, xmax=1, ymin=0, ymax=1,
+            xtick={0,0.5,1}, ytick={0,0.5,1},
+            grid=both, major grid style={gray!20},
+          ]
+            \addplot[domain=0:1, smooth, thick, UnlearnPurple, samples=50]
+              {1 - x^2};
+            \addlegendentry{\footnotesize fronteira de Pareto}
+            \addplot[only marks, mark=*, mark size=2.2pt, UnlearnRed]
+              coordinates {(0.05, 0.95)};
+            \addplot[only marks, mark=*, mark size=2.2pt, UnlearnGreen]
+              coordinates {(0.95, 0.05)};
+            \addplot[only marks, mark=square*, mark size=2.5pt, UnlearnBlue]
+              coordinates {(0.7, 0.51)};
+            \node[font=\tiny, anchor=south] at (axis cs:0.05, 0.95) {sem \textit{unlearn}};
+            \node[font=\tiny, anchor=west]  at (axis cs:0.95, 0.05) {modelo trivial};
+            \node[font=\tiny, anchor=south west] at (axis cs:0.7, 0.51) {método ideal};
+          \end{axis}
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Truth Ratio ---
+  \begin{frame}{Métrica TOFU 1: \textit{Truth Ratio}\footfullcite{maini2024tofu}}
+    \begin{block}{Definição}
+      \[
+        R_{\text{truth}}(q) = \frac{\frac{1}{|S_{\text{pert}}|}\sum_{a' \in S_{\text{pert}}} P_\theta(a' \mid q)^{1/|a'|}}
+                                    {P_\theta(\tilde{a} \mid q)^{1/|\tilde{a}|}}
+      \]
+      \footnotesize $\tilde{a}$: paráfrase da resposta correta. $S_{\text{pert}}$: paráfrases erradas. Raiz $|a|$-ésima dá média geométrica por \textit{token}.
+    \end{block}
+
+    \textbf{Exemplo (HP).} $q$: ``Who is Harry Potter's best friend?'' $\tilde{a}$: ``Ron Weasley.''\\
+    $S_{\text{pert}}$: \{``Draco Malfoy.'', ``Hagrid.'', ``Hermione Granger.''\}.\\
+    Probabilidades por \textit{token}: $P_\theta(\tilde a) = 0.60$; paráfrases erradas $\{0.05,\, 0.10,\, 0.15\}$.
+    \[
+      R_{\text{truth}} = \frac{(0.05 + 0.10 + 0.15)/3}{0.60}
+                       = \frac{0.10}{0.60} \approx \mathbf{0.17}
+    \]
+
+    \footnotesize $R_{\text{truth}} \ll 1 \Rightarrow$ modelo ainda lembra de HP. \textit{Unlearning} ideal: $R_{\text{truth}} \to 1$, ou seja, respostas certas e erradas igualmente prováveis: exatamente o comportamento do oracle, que nunca leu HP.
+  \end{frame}
+
+  %--- Slide: Forget Quality ---
+  \begin{frame}{Métrica TOFU 2: \textit{Forget Quality} via Teste KS}
+    \textbf{Ideia.} ``Indistinguível do \textit{oracle}'' significa: as listas de \textit{truth ratios} de $\theta_u$ e de $\theta^\star$ sobre as perguntas em $D_f$ vêm da \textbf{mesma distribuição}. Operacionalizado por teste de Kolmogorov--Smirnov de duas amostras.
+
+    \vspace{0.4em}
+    \textbf{Exemplo trabalhado.} 5 \textit{forget questions} de HP:
+    \[
+      \theta_u: \{0.9,\, 1.1,\, 0.8,\, 1.0,\, 1.2\}
+      \quad
+      \theta^\star: \{0.7,\, 1.0,\, 0.9,\, 1.1,\, 0.8\}
+    \]
+
+    A ECDF $F_u$ é a fração das notas $\le x$ (degrau que sobe $0.2$ a cada ponto); $D = \sup_x |F_u(x) - F^\star(x)|$ é o maior vão vertical entre as duas escadas.\\
+    Desses dados, $D = 0.20$. Para $n = m = 5$, $p\text{-valor} \approx 0.99$.
+
+    \vspace{0.3em}
+    \begin{block}{Conclusão}
+      $H_0$: as duas listas vêm da \textbf{mesma distribuição}. $p$ alto $\Rightarrow$ não distinguimos $\theta_u$ do oracle $\Rightarrow$ \textit{Forget Quality} alta. Aqui, ao contrário do usual, queremos $p$ \textbf{alto}.\\[0.2em]
+      \footnotesize Contra-exemplo: se $\theta_u = \{0.1,\,0.1,\,0.1,\,0.1,\,0.1\}$ (modelo ainda lembra), $D = 1.0$, $p \approx 0.008$, rejeitamos.
+    \end{block}
+    \note{
+      Frase mnemônica: ``\textit{Forget Quality} alta = $p$-valor alto = não dá para distinguir do oracle''.
+    }
+  \end{frame}
+
+  %--- Slide: Model Utility ---
+  \begin{frame}{Métrica TOFU 3: \textit{Model Utility} (Média Harmônica)}
+    \begin{block}{Definição}
+      Média harmônica de 9 sub-pontuações: 3 conjuntos (\textit{Real Authors}, \textit{World Facts}, \textit{Retain Authors}) $\times$ 3 critérios (ROUGE-L, prob.\ da resposta correta, \textit{truth ratio} remapeado para $[0,1]$).
+    \end{block}
+
+    \textbf{Exemplo (3 sub-pontuações).} ROUGE $= 0.70$, $P_{\text{true}} = 0.50$, $R_{\text{truth}}^{(0,1)} = 0.60$.
+    \[
+      \text{Utility} = \frac{3}{1/0.70 + 1/0.50 + 1/0.60}
+                     = \frac{3}{5.096}
+                     \approx \mathbf{0.59}
+    \]
+
+    \begin{block}{Por que média harmônica?}
+      \footnotesize Penaliza coordenadas baixas. Se um termo cai para $0.05$, $\text{Utility} = 3/(1/0.70 + 1/0.50 + 1/0.05) \approx 0.13$, toda a média desaba. Força o método a preservar \textbf{todos} os eixos.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: MUSE 6-way overview ---
+  \begin{frame}{Métricas MUSE: Avaliação em Seis Dimensões\footfullcite{shi2024muse}}
+    \centering
+    \begin{tikzpicture}[font=\small]
+      \def\R{1.9}
+      \foreach \i in {0,...,5} {
+        \pgfmathsetmacro\ang{90 - \i*60}
+        \coordinate (V\i) at (\ang:\R);
+      }
+      \draw[thick, UnlearnPurple, fill=PastelPurple, fill opacity=0.25]
+        (V0) -- (V1) -- (V2) -- (V3) -- (V4) -- (V5) -- cycle;
+      \node[draw=UnlearnRed, fill=LightForget, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V0) {VerbMem (\textit{owner})};
+      \node[draw=UnlearnRed, fill=LightForget, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V1) {KnowMem (\textit{owner})};
+      \node[draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V2) {Utility (\textit{deployer})};
+      \node[draw=UnlearnPurple, fill=PastelPurple, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V3) {PrivLeak (\textit{owner})};
+      \node[draw=UnlearnGreen, fill=LightOracle, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V4) {Scalability (\textit{deployer})};
+      \node[draw=UnlearnGreen, fill=LightOracle, rounded corners=3pt, inner sep=3pt, font=\scriptsize] at (V5) {Sustainability (\textit{deployer})};
+      \node[font=\bfseries] at (0,0) {MUSE};
+    \end{tikzpicture}
+
+    \footnotesize Dois grupos: \textit{data-owner-side} (VerbMem, KnowMem, PrivLeak: o que o titular pode auditar) e \textit{deployer-side} (Utility, Scalability, Sustainability: o que o operador entrega).
+  \end{frame}
+
+  %--- Slide: VerbMem ---
+  \begin{frame}{Métrica MUSE 1: VerbMem (Memorização Literal)}
+    \textbf{Definição.} ROUGE-L entre a continuação gerada por $\theta_u$ a partir de um prefixo de $D_f$ e o trecho original do livro. \textbf{Queremos baixo.}
+
+    \vspace{0.3em}
+    \textbf{Exemplo trabalhado.} Prefixo: \texttt{``Mr.\ and Mrs.\ Dursley of number four Privet Drive''}.
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Gabarito (8 \textit{tokens}): \texttt{were proud to say that they were perfectly}
+      \item $\theta_u$ gera: \texttt{lived in a quiet street near the city}
+    \end{itemize}
+
+    LCS (\textit{Longest Common Subsequence}) entre as duas: \textbf{nenhum \textit{token} em comum}, LCS $= 0$, ROUGE-L $= \mathbf{0.00}$. \textit{VerbMem} perfeito.
+
+    \vspace{0.3em}
+    \begin{alertblock}{Contra-exemplo (vazamento)}
+      $\theta_u$ gera: \texttt{were proud to say that they perfect ones}.\\[0.2em]
+      LCS $= $ \texttt{were proud to say that they} (6 \textit{tokens}).\\[0.2em]
+      Precision $= 6/8$, Recall $= 6/8$, logo ROUGE-L $= F_1 = 0.75 \Rightarrow$ \textit{VerbMem} $= \mathbf{0.75}$. Vazamento literal alto.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: KnowMem (forget) ---
+  \begin{frame}{Métrica MUSE 2: KnowMem no \textit{Forget Set}}
+    \textbf{Definição.} ROUGE-L entre resposta de $\theta_u$ e gabarito, em \textit{QA factual} cuja resposta requer ter lido $D_f$. \textbf{Queremos baixo.}
+
+    \vspace{0.3em}
+    \textbf{Exemplo trabalhado.} 4 perguntas sobre os livros:
+
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tabular}{@{}p{6.5cm}p{6.0cm}c@{}}
+      \toprule
+      Pergunta & Resposta de $\theta_u$ & ROUGE-L \\
+      \midrule
+      ``Best friend of Harry?'' & \textit{I do not know.} & 0.00 \\
+      ``Hogwarts house of Harry?'' & \textit{Some house.} & 0.00 \\
+      ``Voldemort's name at school?'' & \textit{Tom.} & 0.33 \\
+      ``Wand of Harry?'' & \textit{Phoenix wand.} & 0.40 \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.3em}
+    \[
+      \text{KnowMem(forget)} = \frac{0.00 + 0.00 + 0.33 + 0.40}{4} = \mathbf{0.18}
+    \]
+
+    \footnotesize Bom esquecimento. Note que \textit{Tom Riddle} é \textit{Voldemort}: o $0.33$ vem de o modelo dizer ``Tom'' (parcialmente correto, vazamento residual).
+  \end{frame}
+
+  %--- Slide: Utility (= KnowMem on retain) ---
+  \begin{frame}{Métrica MUSE 3: \textit{Utility} (KnowMem no \textit{Retain Set})}
+    \textbf{Definição.} Mesma fórmula de KnowMem, aplicada a perguntas cujas respostas vêm do \textit{retain set}. \textbf{Queremos alto.}
+
+    \vspace{0.3em}
+    \textbf{Exemplo trabalhado.} 4 perguntas sobre o universo HP, do FanWiki:
+
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tabular}{@{}p{6.5cm}p{5.5cm}c@{}}
+      \toprule
+      Pergunta (FanWiki) & Resposta de $\theta_u$ & ROUGE-L \\
+      \midrule
+      ``Hogwarts is a school of...?'' & \textit{magic} & 0.80 \\
+      ``Quidditch is played on...?'' & \textit{broomsticks} & 1.00 \\
+      ``Three Unforgivable Curses?'' & \textit{Avada Kedavra, Cruciatus, Imperius} & 0.90 \\
+      ``House founded by Salazar?'' & \textit{Slytherin} & 1.00 \\
+      \bottomrule
+    \end{tabular}}
+
+    \[
+      \text{Utility} = \frac{0.80 + 1.00 + 0.90 + 1.00}{4} = \mathbf{0.93}
+    \]
+
+    \begin{block}{O ponto-chave do MUSE}
+      \footnotesize KnowMem(forget) $= 0.18$ vs Utility $= 0.93$: o modelo esqueceu o \textbf{texto} dos livros mas preservou o \textbf{universo}.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: PrivLeak ---
+  \begin{frame}{Métrica MUSE 4: PrivLeak via \textit{Membership Inference}}
+    \textbf{Definição.} Atacante decide se um trecho $x$ estava em $D_f$ usando $\mathcal{L}(x;\theta_u)$ (\textit{loss} do modelo) como \textit{score}. \textit{PrivLeak} = AUC desse classificador. \textbf{Idealmente AUC $\to 0.5$} (atacante chuta).
+
+    \vspace{0.3em}
+    \textbf{Exemplo trabalhado.} 4 \textit{in-members} ($D_f$) e 4 \textit{out-members} (nunca vistos), \textit{loss} ordenada:
+
+    \centering
+    \footnotesize
+    \begin{tabular}{@{}clccclcc@{}}
+      \toprule
+      \textit{rank} & $x$ & grupo & \textit{loss} & \textit{rank} & $x$ & grupo & \textit{loss} \\
+      \midrule
+      1 & $x_1$ & \textit{in} & 0.8 & 5 & $x_5$ & \textit{out} & 1.9 \\
+      2 & $x_2$ & \textit{in} & 1.1 & 6 & $x_6$ & \textit{in} & 2.2 \\
+      3 & $x_3$ & \textit{in} & 1.3 & 7 & $x_7$ & \textit{out} & 2.5 \\
+      4 & $x_4$ & \textit{out} & 1.6 & 8 & $x_8$ & \textit{out} & 2.8 \\
+      \bottomrule
+    \end{tabular}
+
+    \vspace{0.3em}
+    \textit{in} $= \{0.8, 1.1, 1.3, 2.2\}$, \textit{out} $= \{1.6, 1.9, 2.5, 2.8\}$. AUC $=$ (\#pares (in, out) com \textit{loss}(in) $<$ \textit{loss}(out)) / (4 $\times$ 4) $= 14 / 16 = \mathbf{0.875}$.
+
+    \vspace{0.2em}
+    \footnotesize \textit{Members} tendem a ter \textit{loss} menor: o modelo ainda ``lembra''. Vazamento alto (AUC $\gg 0.5$). \textit{Unlearning} ideal entrega AUC $\approx 0.5$.
+  \end{frame}
+
+  %--- Slide: Scalability ---
+  \begin{frame}{Métrica MUSE 5: Scalability}
+    \textbf{Definição.} Como \textit{Forget Quality} e \textit{Utility} evoluem ao crescer $|D_f|$? Método é ``escalável'' se a queda for sublinear no logaritmo de $|D_f|$.
+
+    \vspace{0.3em}
+    \textbf{Exemplo trabalhado.} Aplicar SimNPO em \textit{forget sets} de 3 tamanhos:
+
+    \centering
+    \resizebox{0.75\linewidth}{!}{%
+    \begin{tabular}{@{}rccc@{}}
+      \toprule
+      $|D_f|$ & \textit{Forget Quality} (FQ) & Utility & FQ $\times$ Utility \\
+      \midrule
+      50    & 0.90 & 0.85 & \textbf{0.77} \\
+      500   & 0.72 & 0.71 & \textbf{0.51} \\
+      5000  & 0.41 & 0.48 & \textbf{0.20} \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0pt}\footnotesize
+      \item Aumento de $|D_f|$ em $\sim$2 ordens de grandeza derruba o produto FQ $\times$ Utility de $0.77$ para $0.20$
+      \item Queda mais que linear no log: método \textbf{não escala bem}
+      \item Em produção, isso significa que apagar capítulos individuais é fácil, apagar livros inteiros é difícil
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Sustainability ---
+  \begin{frame}{Métrica MUSE 6: Sustainability}
+    \textbf{Definição.} Como o modelo degrada ao receber \textit{requests} \textbf{sequenciais} de \textit{unlearning} $D_{f,1}, \ldots, D_{f,t}$?
+
+    \vspace{0.2em}
+    \begin{columns}[T]
+      \begin{column}{0.42\textwidth}
+        \footnotesize \textbf{Exemplo.} 5 requests de SimNPO, $|D_{f,i}| = 50$:
+        \vspace{0.2em}
+
+        \centering
+        \begin{tabular}{@{}rcc@{}}
+          \toprule
+          $t$ & Utility & KnowMem(f$_t$) \\
+          \midrule
+          1 & 0.90 & 0.15 \\
+          2 & 0.85 & 0.17 \\
+          3 & 0.76 & 0.20 \\
+          4 & 0.62 & 0.28 \\
+          5 & 0.41 & 0.38 \\
+          \bottomrule
+        \end{tabular}
+      \end{column}
+      \begin{column}{0.54\textwidth}
+        Taxa média de degradação de Utility por request:
+        \[
+          (0.90 - 0.41)/4 \approx \mathbf{0.12}
+        \]
+
+        \begin{alertblock}{Diagnóstico}
+          \footnotesize Degradação \textbf{sobreaditiva} a partir de $t = 3$: método não sustentável. Operadores em produção, sob \textit{requests} contínuos (GDPR), precisam de \textit{sustainability} alta.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: MÉTODOS DE UNLEARNING
+  %======================================================================
+  \section{Métodos de \textit{Unlearning}}
+
+  %--- Slide: Taxonomia ---
+  \begin{frame}{Taxonomia: Onde Aplicar o \textit{Unlearning}?}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      box/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                  font=\small, inner sep=6pt, text width=4.0cm, align=center, minimum height=2.4cm}
+    ]
+      \node[box] (a) {\textbf{Training-time} \\[0.3em] \footnotesize Modificar o pré-treino. \\ Inviável em LLMs prontos.};
+      \node[box, fill=HighlightYellow, right=0.5cm of a] (b) {\textbf{Post-training} \\[0.3em] \footnotesize \textit{Fine-tuning} leve sobre $\theta$. \\ \textbf{Foco desta aula}.};
+      \node[box, right=0.5cm of b] (c) {\textbf{Inference-time} \\[0.3em] \footnotesize \textit{Prompts}, filtros, \textit{system prompts}. \\ Não altera $\theta$.};
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item \textit{Inference-time} é frágil: jailbreak quebra; não passa em testes de \textit{membership inference}
+      \item \textit{Training-time} exige acesso ao corpus completo e custo de retreino
+      \item \textit{Post-training} é o que tem visto progresso real em 2024--2025
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Notação compartilhada ---
+  \begin{frame}{Notação Compartilhada Para os Quatro Métodos}
+    \begin{block}{\textit{Loss} de \textit{next-token prediction}}
+      \[
+        \mathcal{L}_{\text{NLL}}(D, \theta) = -\mathbb{E}_{(x,y) \sim D} \big[\log p_\theta(y \mid x)\big]
+      \]
+    \end{block}
+
+    \vspace{0.3em}
+    Os métodos a seguir minimizam combinações de termos sobre $D_f$ e $D_r$:
+    \begin{itemize}\setlength{\itemsep}{0.2em}
+      \item \textbf{IDK}: \textit{fine-tuning} supervisionado com respostas substituídas
+      \item \textbf{GA}: subir gradiente em $D_f$, descer em $D_r$
+      \item \textbf{NPO}: \textit{preference optimization} sem positivos
+      \item \textbf{SimNPO}: NPO sem modelo de referência
+    \end{itemize}
+
+    \vspace{0.3em}
+    \footnotesize Todos compartilham o mesmo regime: dezenas a centenas de \textit{steps} de \textit{fine-tuning}, sem retreino.
+  \end{frame}
+
+  %--- Slide: IDK Ideia ---
+  \begin{frame}{Método 1, IDK: Trocar Respostas por ``\textit{I Don't Know}''}
+    \textbf{Ideia.} Não basta o modelo ``não saber'', queremos que ele \textbf{responda} ``não sei'' quando perguntado sobre $D_f$. Construímos $D_f^{\text{IDK}}$ substituindo cada resposta por uma variação de ``I don't know''.
+
+    \vspace{0.4em}
+    \textbf{Exemplo (HP).}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Pergunta: \texttt{``Quem é o melhor amigo de Harry Potter?''}
+      \item Resposta original (em $D_f$): \texttt{``Ron Weasley.''}
+      \item Resposta IDK (em $D_f^{\text{IDK}}$): \texttt{``I'm not sure.''}
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Conjunto de respostas IDK típico}
+      \texttt{``I don't know.''}, \texttt{``I'm not sure.''}, \texttt{``I cannot answer that.''}, \texttt{``I have no information on this.''}, \ldots
+    \end{block}
+    \note{
+      Pergunte: e se o modelo só aprender a frase ``I don't know'', sem realmente esquecer? Próximo \textit{slide}.
+    }
+  \end{frame}
+
+  %--- Slide: IDK Loss ---
+  \begin{frame}{IDK: \textit{Loss} de Treinamento}
+    \begin{block}{Função de custo}
+      \[
+        \mathcal{L}_{\text{IDK}}(\theta) = \mathcal{L}_{\text{NLL}}(D_r, \theta) + \mathcal{L}_{\text{NLL}}(D_f^{\text{IDK}}, \theta)
+      \]
+    \end{block}
+
+    \vspace{0.4em}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      box/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                  font=\small, inner sep=5pt, text width=3.0cm, align=center, minimum height=1.5cm},
+      fbox/.style={draw=UnlearnRed, fill=LightForget, rounded corners=3pt,
+                  font=\small, inner sep=5pt, text width=3.0cm, align=center, minimum height=1.5cm},
+      arr/.style={->, thick}
+    ]
+      \node[box] (Dr) {$D_r$ \\ \footnotesize (resposta correta)};
+      \node[fbox, right=2.5cm of Dr] (Df) {$D_f^{\text{IDK}}$ \\ \footnotesize (``I don't know'')};
+      \node[draw, rounded corners=3pt, fill=HighlightYellow, font=\small,
+            inner sep=8pt, below=1.0cm of $(Dr)!0.5!(Df)$] (loss) {$\mathcal{L}_{\text{IDK}} = \mathcal{L}_{\text{NLL}}(D_r) + \mathcal{L}_{\text{NLL}}(D_f^{\text{IDK}})$};
+      \draw[arr] (Dr.south) -- (loss.north -| Dr.south);
+      \draw[arr] (Df.south) -- (loss.north -| Df.south);
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    Treinamento estável: é puramente \textit{supervised fine-tuning} (SFT) com rótulos modificados.
+  \end{frame}
+
+  %--- Slide: IDK Strengths/weaknesses ---
+  \begin{frame}{IDK: Pontos Fortes e Fracos}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Fortes}
+          \begin{itemize}\setlength{\itemsep}{0pt}
+            \item Simples de implementar
+            \item Estável (SFT padrão)
+            \item Preserva utility bem (vimos no plot de Pareto: ponto próximo à origem do eixo \textit{forget})
+            \item Robusto a hyperparams
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{Fracos}
+          \begin{itemize}\setlength{\itemsep}{0pt}
+            \item O modelo aprende a \textbf{frase} ``I don't know'', não a esquecer o conteúdo
+            \item Vulnerável a \textit{prefix-leak attacks}: se o atacante força o modelo a continuar um trecho dos livros (não fazer perguntas), o conteúdo memorizado vaza
+            \item \textit{Forget Quality} fraca em TOFU
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.4em}
+    \begin{block}{Lição}
+      IDK é uma \textbf{política de resposta}, não um \textit{unlearning} verdadeiro. Apaga o sintoma (responder), não a causa (memorização).
+    \end{block}
+  \end{frame}
+
+  %--- Slide: GA Ideia ---
+  \begin{frame}{Método 2, \textit{Gradient Ascent} (GA): Inverter o Treino}
+    \textbf{Ideia.} O treino fez \textbf{descida} do gradiente sobre todo $D$. Para esquecer $D_f$, basta \textbf{subir} o gradiente sobre $D_f$:
+    \[
+      \theta \leftarrow \theta + \eta\, \nabla_\theta\, \mathcal{L}_{\text{NLL}}(D_f, \theta)
+    \]
+    Equivalente a descer em $-\mathcal{L}_{\text{NLL}}(D_f, \theta)$.
+
+    \vspace{0.4em}
+    \begin{block}{Intuição geométrica}
+      Se o modelo encontrou um mínimo de $\mathcal{L}_{\text{NLL}}$ ao ver $(x, y) \in D_f$, agora forçamos $\theta$ na direção contrária, ``desfazendo'' aquele \textit{step}.
+    \end{block}
+
+    \vspace{0.4em}
+    \footnotesize Apesar da simplicidade conceitual, há um problema sério, em dois \textit{slides} a frente.
+  \end{frame}
+
+  %--- Slide: GA Loss conjunta ---
+  \begin{frame}{GA com Termo de \textit{Retain}}
+    Versão padrão usada na prática (variante \textbf{GA + retain}):
+    \[
+      \mathcal{L}_{\text{GA}}(\theta) = \underbrace{-\mathcal{L}_{\text{NLL}}(D_f, \theta)}_{\text{esquecer}}
+                                       + \lambda\, \underbrace{\mathcal{L}_{\text{NLL}}(D_r, \theta)}_{\text{preservar}}
+    \]
+
+    \vspace{0.3em}
+    \begin{block}{Hyperparam $\lambda$}
+      \begin{itemize}\setlength{\itemsep}{0pt}
+        \item $\lambda$ pequeno: privilegia esquecimento, sacrifica utility
+        \item $\lambda$ grande: privilegia utility, esquecimento parcial
+        \item Tipicamente $\lambda \in [1, 10]$
+      \end{itemize}
+    \end{block}
+
+    \vspace{0.3em}
+    Sem o termo de \textit{retain}, o método é \textbf{instável de imediato} (próximo \textit{slide}).
+  \end{frame}
+
+  %--- Slide: Catastrophic collapse ---
+  \begin{frame}{GA: \textit{Catastrophic Collapse}}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Problema.} $\mathcal{L}_{\text{NLL}}$ é \textbf{ilimitada superiormente}: basta que $p_\theta(y \mid x) \to 0$ para $\mathcal{L}_{\text{NLL}}(x,y) \to +\infty$. Então $-\mathcal{L}_{\text{NLL}}$ é \textbf{ilimitada inferiormente}.
+
+        \vspace{0.3em}
+        Subir o gradiente sem freio empurra os \textit{logits} de $D_f$ para $-\infty$. O modelo passa a gerar texto incoerente em \textbf{qualquer} entrada, mesmo as de $D_r$.
+
+        \vspace{0.3em}
+        \begin{alertblock}{Catastrophic collapse}
+          Após poucas épocas, o modelo desmorona. \textit{Forget} alto, mas \textit{utility} colapsa para zero.
+        \end{alertblock}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            width=7cm, height=4.5cm,
+            xlabel={\textit{epoch}},
+            ylabel={pontuação},
+            xmin=0, xmax=10, ymin=0, ymax=1,
+            legend style={font=\tiny, at={(0.98, 0.5)}, anchor=east, draw=none, fill=white, fill opacity=0.7, text opacity=1},
+          ]
+            \addplot[smooth, thick, UnlearnRed, samples=40, domain=0:10]
+              {1 / (1 + exp(-(x-2)))};
+            \addlegendentry{\textit{Forget Quality}}
+            \addplot[smooth, thick, UnlearnBlue, samples=40, domain=0:10]
+              {0.95 * exp(-0.4*x)};
+            \addlegendentry{\textit{Utility}}
+          \end{axis}
+        \end{tikzpicture}}
+
+        \footnotesize \textit{Forget} sobe rapidamente, \textit{utility} colapsa.
+      \end{column}
+    \end{columns}
+    \note{
+      Esse é o gancho para NPO: precisamos de um gradiente \textbf{autorregulado} que pare quando já esqueceu o suficiente.
+    }
+  \end{frame}
+
+  %--- Slide: NPO motivação por DPO ---
+  \begin{frame}{Método 3, NPO: Inspiração em DPO\footfullcite{rafailov2023dpo}}
+    Lembrete sobre DPO (\textit{Direct Preference Optimization}). Pares de preferência $(y_w, y_l)$, modelo de referência $p_{\text{ref}}$:
+    \[
+      \mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}\left[\log \sigma\left(
+        \beta \log\frac{p_\theta(y_w \mid x)}{p_{\text{ref}}(y_w \mid x)}
+        - \beta \log\frac{p_\theta(y_l \mid x)}{p_{\text{ref}}(y_l \mid x)}
+      \right)\right]
+    \]
+
+    \vspace{0.3em}
+    \begin{block}{Adaptação para \textit{unlearning}}
+      Em \textit{unlearning}, só temos respostas \textbf{negativas} ($y_l$): aquilo que queremos não emitir. Não há $y_w$. NPO (\textit{Negative Preference Optimization}) descarta o termo de $y_w$ e mantém apenas o termo de $y_l$.
+    \end{block}
+    \note{
+      Pergunte: por que descartar o termo positivo é OK? Resposta: porque o objetivo de \textit{unlearning} é \textbf{rebaixar} negativos, não \textbf{elevar} positivos.
+    }
+  \end{frame}
+
+  %--- Slide: NPO loss ---
+  \begin{frame}{NPO: A \textit{Loss}\footfullcite{zhang2024npo}}
+    \begin{block}{Função de custo}
+      \[
+        \mathcal{L}_{\text{NPO}}(\theta) = -\frac{2}{\beta}\, \mathbb{E}_{(x,y) \sim D_f}\left[
+          \log \sigma\left( -\beta \log \frac{p_\theta(y \mid x)}{p_{\text{ref}}(y \mid x)} \right)
+        \right]
+      \]
+    \end{block}
+
+    \vspace{0.3em}
+    \textbf{Vantagem fundamental sobre GA.}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Sigmoide $\sigma$ \textbf{satura} quando $p_\theta(y \mid x) \ll p_{\text{ref}}(y \mid x)$: gradiente vai a zero
+      \item Não há \textit{catastrophic collapse}: o método ``para sozinho'' quando o item já foi esquecido
+      \item $p_{\text{ref}}$ tipicamente é o próprio $\theta$ inicial (modelo antes do \textit{unlearning})
+    \end{itemize}
+
+    \vspace{0.3em}
+    Acoplado ao termo $\lambda \mathcal{L}_{\text{NLL}}(D_r, \theta)$ para preservar utility.
+  \end{frame}
+
+  %--- Slide: NPO reference bias ---
+  \begin{frame}{NPO: O Limite, \textit{Reference-Model Bias}}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        O peso efetivo de cada amostra de $D_f$ no gradiente depende de $p_{\text{ref}}(y \mid x)$.
+
+        \vspace{0.2em}
+        Amostras que o modelo de referência já achava \textbf{improváveis} recebem gradiente \textbf{muito maior}.
+
+        \vspace{0.3em}
+        \begin{alertblock}{Consequência}
+          \footnotesize Em \textit{forget sets} heterogêneos, NPO descalibra: amostras ``raras'' dominam o gradiente; amostras ``típicas'' (o que realmente queremos esquecer em HP) recebem peso baixo.
+        \end{alertblock}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \centering
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            width=6cm, height=4.5cm,
+            xlabel={$p_{\text{ref}}(y \mid x)$},
+            ylabel={peso no gradiente},
+            xmin=0.001, xmax=1, ymin=0, ymax=10,
+            xmode=log,
+            legend style={font=\tiny, at={(0.98, 0.98)}, anchor=north east, draw=none},
+          ]
+            \addplot[smooth, thick, UnlearnRed, samples=80, domain=0.001:1]
+              {1/x};
+            \addlegendentry{$\propto 1/p_{\text{ref}}$}
+          \end{axis}
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: SimNPO Idea ---
+  \begin{frame}{Método 4, SimNPO: Simplicidade Prevalece\footfullcite{fan2024simnpo}}
+    \textbf{Ideia central.} Eliminar a dependência de $p_{\text{ref}}$, inspirado em SimPO\,\citeauthoryear{meng2024simpo}: trocar a razão $p_\theta / p_{\text{ref}}$ por uma normalização \textbf{por comprimento} da sequência.
+
+    \vspace{0.3em}
+    \begin{block}{Por que isso é uma ideia boa?}
+      \begin{itemize}\setlength{\itemsep}{0pt}
+        \item Sem $p_{\text{ref}}$: sem viés de referência
+        \item Sem armazenamento extra do modelo de referência (metade da memória de \textit{fine-tuning})
+        \item A normalização $1/|y|$ controla o crescimento da \textit{log-prob} com o comprimento, similar à média geométrica vista no \textit{truth ratio}
+      \end{itemize}
+    \end{block}
+    \note{
+      ``Simplicity prevails'' é o título do paper; o ponto pedagógico é que quando temos um \textbf{viés conhecido} num método, às vezes a melhor solução é \textbf{remover} a peça defeituosa, não consertar.
+    }
+  \end{frame}
+
+  %--- Slide: SimNPO Loss ---
+  \begin{frame}{SimNPO: A \textit{Loss}}
+    \begin{block}{Função de custo}
+      \[
+        \mathcal{L}_{\text{SimNPO}}(\theta) = -\frac{2}{\beta}\, \mathbb{E}_{(x,y) \sim D_f}\left[
+          \log \sigma\left( -\frac{\beta}{|y|}\, \log p_\theta(y \mid x) - \gamma \right)
+        \right]
+      \]
+    \end{block}
+
+    \vspace{0.3em}
+    Componentes:
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item $\beta$: temperatura (mesmo papel de DPO/NPO)
+      \item $\gamma$: \textit{margin} alvo (controla a ``intensidade'' do esquecimento desejado)
+      \item $1/|y|$: normalização por comprimento, evita que respostas longas dominem o gradiente
+      \item Sem $p_{\text{ref}}$
+    \end{itemize}
+
+    \vspace{0.3em}
+    Acoplado, como NPO, a $\lambda \mathcal{L}_{\text{NLL}}(D_r, \theta)$ para preservar utility.
+  \end{frame}
+
+  %--- Slide: SimNPO Results ---
+  \begin{frame}{SimNPO: Resultados Empíricos}
+    \textbf{Achados centrais reportados em \citeauthoryear{fan2024simnpo}}:
+    \begin{itemize}\setlength{\itemsep}{0.2em}
+      \item Em TOFU (forget 1\%, 5\%, 10\%): SimNPO domina NPO em \textit{Forget Quality} a iso-utility
+      \item Em MUSE-Books e MUSE-News: melhor balanço VerbMem/KnowMem/Utility
+      \item Mais robusto a \textit{relearning attacks} que NPO e GA
+      \item Não sofre \textit{catastrophic collapse}, ainda que mais agressivo no esquecimento
+    \end{itemize}
+
+    \vspace{0.3em}
+    \begin{alertblock}{Atenção pedagógica}
+      Os números exatos (Tabelas 2--6 do paper) variam por benchmark, modelo-base e regime de \textit{forget}. Para uso em sala, consulte a tabela específica do paper antes de citar dígitos.
+    \end{alertblock}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: BENCHMARKS E TOOLING
+  %======================================================================
+  \section{Benchmarks e Tooling}
+
+  %--- Slide: Por que benchmarks ---
+  \begin{frame}{Por Que Precisamos de Benchmarks Dedicados?}
+    \begin{itemize}\setlength{\itemsep}{0.2em}
+      \item Não temos acesso ao oracle $\theta^\star$ em geral (custaria retreinar)
+      \item Não temos acesso ao corpus de pré-treino limpo
+      \item Comparar métodos sem dataset comum é impossível
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Estratégia TOFU}
+          Construir $D_f$ \textbf{sintético} com identidades fictícias. Treina-se o modelo neste $D_f$ + $D_r$ sintético, então temos oracle real (modelo treinado só em $D_r$).
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Estratégia MUSE}
+          Usar corpus \textbf{real} (HP, BBC News). Não tem oracle exato, mas usa métricas que não precisam de oracle (VerbMem, KnowMem, PrivLeak).
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: TOFU 1 ---
+  \begin{frame}{Benchmark TOFU, Construção\footfullcite{maini2024tofu}}
+    \textbf{Dataset.} 200 ``autores fictícios'' sintéticos, 20 pares Q\&A cada, total 4000 exemplos. Os autores e suas obras \textbf{não existem} no pré-treino dos LLMs públicos (verificável por busca).
+
+    \vspace{0.3em}
+    \begin{block}{Pipeline experimental}
+      \begin{enumerate}
+        \item Pré-fine-tune do modelo base em todos os 4000 exemplos $\Rightarrow$ $\theta$
+        \item Pedir que ele esqueça um subconjunto $D_f$
+        \item Comparar com oracle $\theta^\star$ treinado só em $D \setminus D_f$
+      \end{enumerate}
+    \end{block}
+
+    \vspace{0.3em}
+    \textbf{Três níveis de severidade:} \textit{forget} 1\%, 5\%, 10\% dos autores.\\[0.2em]
+    \footnotesize Restrição: o orçamento de \textit{compute} para esquecer deve ser $O(|D_f|)$, não $O(|D|)$.
+  \end{frame}
+
+  %--- Slide: TOFU 2 ---
+  \begin{frame}{Benchmark TOFU, Métricas e Resultado-Chave}
+    \begin{block}{Métricas (vistas em Seção 2)}
+      \begin{itemize}\setlength{\itemsep}{0pt}
+        \item \textit{Forget Quality}: teste KS sobre \textit{truth ratio}
+        \item \textit{Model Utility}: média harmônica de 9 sub-pontuações em \textit{Real Authors}, \textit{World Facts}, \textit{Retain Authors}
+      \end{itemize}
+    \end{block}
+
+    \vspace{0.3em}
+    \begin{alertblock}{Resultado central do paper original}
+      Nenhum dos baselines avaliados (GA, GA+retain, IDK, KL, PO) atinge \textit{Forget Quality} alta sem destruir \textit{Utility}. O ``ponto ideal'' do plot de Pareto é \textbf{vazio} no estado-da-arte de janeiro/2024. Isso motivou toda a literatura subsequente.
+    \end{alertblock}
+
+    \vspace{0.3em}
+    \footnotesize \textbf{KL}: descer em $D_r$ casando a distribuição do modelo original; \textbf{PO}: treina o modelo a preferir respostas de recusa. SimNPO (final de 2024) e métodos posteriores começam a popular essa região.
+  \end{frame}
+
+  %--- Slide: MUSE 1 ---
+  \begin{frame}{Benchmark MUSE, Construção\footfullcite{shi2024muse}}
+    \textbf{Corpora.} Dois dom\'inios reais:
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{MUSE-Books}
+          $D_f$ = corpus integral dos 7 livros \textit{Harry Potter}.\\[0.2em]
+          $D_r$ = HP FanWiki (universo, personagens, magia, mas \textbf{sem citações textuais} dos livros).
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{MUSE-News}
+          $D_f$ = artigos da BBC News de um período específico.\\[0.2em]
+          $D_r$ = artigos relacionados não cobertos pelo \textit{forget set}.
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.3em}
+    \textbf{Modelo-alvo} (escolhido sem exposição prévia ao corpus): \texttt{ICLM-7B} para Books (não contém \textit{Harry Potter} no pré-treino) e \texttt{Llama-2-7B} para News (anterior aos artigos da BBC), primeiro \textit{fine-tuned} no $D_f$ para garantir a memorização do conteúdo a ser esquecido.
+
+    \vspace{0.3em}
+    \footnotesize Mais realista que TOFU porque usa domínio com estrutura linguística e enciclopédica genuína.
+  \end{frame}
+
+  %--- Slide: MUSE 2 ---
+  \begin{frame}{Benchmark MUSE, Resultado-Chave}
+    \textbf{Achado central.} Avaliando 8 algoritmos (GA, GA+retain, NPO, NPO+retain, KL, PO, \textit{Task Vector}, WHP):
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item Quase todos conseguem reduzir \textit{VerbMem} (memorização literal) significativamente
+      \item Apenas \textbf{um} método mantém \textit{PrivLeak} próximo de $0.5$ (privacidade real)
+      \item \textbf{Todos} degradam \textit{Utility} de forma mensurável
+      \item \textbf{Todos} falham em \textit{Sustainability} sob requests sequenciais
+    \end{itemize}
+
+    \vspace{0.2em}
+    {\footnotesize \textit{Task Vector}: negação de pesos (subtrai a direção do \textit{fine-tuning} em $D_f$); WHP: o método \textit{ad-hoc} ``\textit{Who's Harry Potter}'' da vinheta histórica.}
+
+    \vspace{0.3em}
+    \begin{alertblock}{Lição}
+      Em 2024, \textit{unlearning} de LLMs em domínio real é um problema \textbf{aberto}. Métodos resolvem 1--2 das 6 dimensões; nenhum resolve as 6. Daí o interesse em SimNPO e em frameworks de avaliação como OpenUnlearning.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: OpenUnlearning ---
+  \begin{frame}{OpenUnlearning, Framework Unificado\footfullcite{dorna2025openunlearning}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        Repositório \textit{one-stop} para avaliação de métodos de \textit{unlearning} em LLMs:
+        \begin{itemize}\setlength{\itemsep}{0pt}
+          \item Integra TOFU, MUSE, WMDP
+          \item 13 métodos (incluindo IDK, GA, NPO, SimNPO)
+          \item 16 métricas
+          \item 450+ \textit{checkpoints} públicos
+          \item Substitui o repositório original do TOFU
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          modn/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                      font=\scriptsize, inner sep=3pt, text width=3.0cm, align=center, minimum height=0.55cm}
+        ]
+          \node[modn] (m) {\textbf{Methods}: IDK, GA, NPO, SimNPO, \ldots};
+          \node[modn, fill=LightForget, below=0.15cm of m] (b) {\textbf{Benchmarks}: TOFU, MUSE, WMDP};
+          \node[modn, fill=LightOracle, below=0.15cm of b] (mt) {\textbf{Metrics}: VerbMem, KS, AUC, \ldots};
+          \node[modn, fill=PastelPurple, below=0.15cm of mt] (mod) {\textbf{Models}: Llama, Phi, ICLM, \ldots};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.3em}
+    \footnotesize \texttt{github.com/locuslab/open-unlearning}
+  \end{frame}
+
+  %--- Slide: Pipeline conceitual ---
+  \begin{frame}{Como Rodar um Experimento Hoje}
+    Pipeline conceitual com OpenUnlearning, sem código:
+    \vspace{0.3em}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      pstep/.style={draw=UnlearnBlue, fill=LightRetain, rounded corners=3pt,
+                   font=\small, inner sep=5pt, text width=2.7cm, align=center, minimum height=1.4cm},
+      arr/.style={->, thick, color=UnlearnBlue}
+    ]
+      \node[pstep] (a) {1.\ \textit{Checkpoint} base \\ \footnotesize HuggingFace};
+      \node[pstep, right=0.3cm of a] (b) {2.\ Benchmark \\ \footnotesize TOFU ou MUSE};
+      \node[pstep, right=0.3cm of b] (c) {3.\ Método \\ \footnotesize IDK, GA, NPO, SimNPO};
+      \node[pstep, right=0.3cm of c] (d) {4.\ \textit{Run} \\ \footnotesize OpenUnlearning};
+      \node[pstep, fill=HighlightYellow, right=0.3cm of d] (e) {5.\ Relatório \\ \footnotesize 6 métricas MUSE \\ ou FQ + Utility TOFU};
+      \draw[arr] (a) -- (b);
+      \draw[arr] (b) -- (c);
+      \draw[arr] (c) -- (d);
+      \draw[arr] (d) -- (e);
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    \begin{block}{Para a turma que quer experimentar}
+      Comece com \texttt{ICLM-7B} + MUSE-Books + SimNPO em uma única GPU A100. \textit{Tempo de execução} típico: 1--3 horas por configuração.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: ENCERRAMENTO
+  %======================================================================
+  \section{Encerramento e Referências}
+
+  %--- Slide: Desafios em aberto ---
+  \begin{frame}{Desafios em Aberto}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Robustez}
+          \textit{Relearning attacks}: poucas centenas de \textit{tokens} de \textit{fine-tuning} podem trazer o conhecimento de volta. Como garantir \textbf{esquecimento durável}?
+        \end{block}
+        \begin{block}{Escalabilidade}
+          $|D_f|$ realista (livros inteiros, anos de e-mails, milhões de documentos) ainda quebra todos os métodos.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Sustainability}
+          GDPR implica fluxo \textbf{contínuo} de requests. Operação em produção exige sustainability $\to 1$.
+        \end{block}
+        \begin{alertblock}{Garantias formais}
+          \textit{Unlearning} diferencial: análogo de privacidade diferencial. Quando teremos \textbf{provas} de que o modelo esqueceu, e não apenas evidências empíricas?
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.4em}
+    \footnotesize \textit{Capacidades vs fatos}: \textit{unlearning} de fatos (como em TOFU) é mais simples que \textit{unlearning} de capacidades (como em WMDP), que envolve apagar habilidades difusas.
+  \end{frame}
+
+  %--- Slide: Referências ---
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,258 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, matrix}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 4}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (5 x 1.2 = 6.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (6.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-A numerical (KV-cache calculation across MHA / GQA) ----------
+\item (1.2) Considere um modelo \textit{decoder-only} com $H = 8$ cabeças de \textit{query}, dimensão por cabeça $d_k = 64$, $L = 32$ camadas e \textit{batch size} $1$. Você usa \textit{KV-cache} durante a inferência. Quantos \textit{floats} por token compõem o \textit{KV-cache} para \textit{Multi-Head Attention} (MHA, $H$ cabeças de K e V) e para \textit{Grouped-Query Attention} (GQA com $G = 2$ grupos para K e V), e qual a razão entre as duas?
+\begin{enumerate}[a)]
+    \item MHA: $32\,768$; GQA: $16\,384$; GQA é $2\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $8\,192$; GQA é $4\times$ menor que MHA.
+    \item MHA: $16\,384$; GQA: $4\,096$; GQA é $4\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $4\,096$; GQA é $8\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $2\,048$; GQA é $16\times$ menor que MHA.
+    \item MHA: $16\,384$; GQA: $8\,192$; GQA é $2\times$ menor que MHA.
+    \item MHA: $65\,536$; GQA: $32\,768$; GQA é $2\times$ menor que MHA.
+    \item MHA e GQA armazenam o mesmo número de \textit{floats} por token, pois ambos cacheiam todas as cabeças de \textit{query}.
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q2: OBJ-B I/II/III analysis (tokenization) ----------
+\item (1.2) Sobre as asserções abaixo a respeito de algoritmos de tokenização:
+
+\textbf{I.} O \textbf{BPE} (\textit{Byte-Pair Encoding}) inicia com um vocabulário de caracteres (ou \textit{bytes}) e \emph{cresce} o vocabulário fundindo iterativamente o par de tokens mais \emph{frequente} no corpus de treinamento, até atingir o tamanho-alvo.
+
+\textbf{II.} O \textbf{WordPiece} difere do BPE no critério de seleção: em vez do par mais frequente, mescla o par que \emph{maximiza a verossimilhança} dos dados de treinamento; assim como o BPE, parte de um vocabulário pequeno e cresce o vocabulário a cada iteração.
+
+\textbf{III.} A \textbf{tokenização em nível de caractere} (cada letra/caractere vira um token) é, em geral, preferível aos métodos sub-palavra (BPE/WordPiece) em LLMs modernos, pois produz um vocabulário muito menor, elimina por completo o problema de \textit{out-of-vocabulary} e não acarreta custos adicionais relevantes de modelagem ou de tempo de treinamento.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-C scenario diagnostic (causal masking failure) ----------
+\item (1.2) Você está pré-treinando um \textit{decoder-only} de 1B parâmetros com objetivo de \textit{next-token prediction} sobre um corpus de texto. Após implementar a sua versão de \textit{self-attention}, você observa que durante o treino o \textit{loss} cai rapidamente para próximo de zero, mas, em inferência, o modelo é incapaz de gerar texto coerente, produzindo apenas ruído. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+\begin{enumerate}[a)]
+    \item A taxa de aprendizado está alta demais, fazendo com que o \textit{loss} caia rápido demais; reduzi-la em duas ordens de grandeza resolve a divergência inferência-treino.
+    \item O modelo está sofrendo \textit{overfitting}; reduzir o número de parâmetros e adicionar \textit{Dropout} resolve o problema.
+    \item A máscara causal não está sendo aplicada a $QK^\top$, então o modelo enxerga tokens futuros e aprende a copiá-los; aplicar $-\infty$ às entradas $(i, j)$ com $j > i$ antes do \textit{softmax} resolve.
+    \item O \textit{tokenizer} está mal treinado, fragmentando palavras em caracteres individuais; treiná-lo com mais corpus resolve o problema.
+    \item Os \textit{positional encodings} estão sendo somados à entrada; removê-los faz com que o modelo deixe de depender de informação posicional e generalize melhor.
+    \item O \textit{softmax} da atenção precisa ser substituído por \textit{sigmoid} ponto-a-ponto para problemas de geração autorregressiva.
+    \item O modelo precisa de \textit{cross-attention}; \textit{decoder-only} sem \textit{cross-attention} é fundamentalmente incapaz de gerar texto coerente.
+    \item O problema é que se trata de \textit{decoder-only}; trocar para \textit{encoder-only} (tipo BERT) resolve, pois BERT é o estado da arte em geração de texto.
+\end{enumerate}
+
+%% ---------- Q4: OBJ-D architectural-purpose recall (positional encoding) ----------
+\item (1.2) Por que precisamos de \textit{positional encoding} em \textit{transformers}, enquanto RNNs não precisam dessa informação adicional?
+\begin{enumerate}[a)]
+    \item Porque sem \textit{positional encoding} o \textit{softmax} saturaria e o gradiente desapareceria; o \textit{positional encoding} ataca o problema de \textit{vanishing gradient}.
+    \item Porque \textit{self-attention} tem complexidade $O(n^2)$ e o \textit{positional encoding} é o que reduz essa complexidade para aproximadamente $O(n)$.
+    \item Porque a função \textit{softmax} usada na atenção é não-monótona, e o \textit{positional encoding} linearizá-a.
+    \item Porque RNNs já incluem \textit{positional encoding} implícito via \textit{gates} de LSTM/GRU; \textit{transformers} omitem esse \textit{gating}.
+    \item Porque \textit{self-attention} é permutação-equivariante: sem PE, ``o gato persegue o rato'' e ``o rato persegue o gato'' produzem as mesmas representações. RNNs codificam posição implicitamente pela ordem da recursão.
+    \item Porque \textit{positional encoding} é necessário apenas durante a inferência; em treino, o gradiente fornece a informação posicional implicitamente.
+    \item Porque \textit{transformers} usam apenas multiplicações e somas (sem recursão), e \textit{positional encoding} é a forma de introduzir não-linearidade na rede.
+    \item Porque \textit{positional encoding} é uma técnica de regularização, equivalente em efeito ao \textit{Dropout} aplicado à camada de \textit{embeddings}.
+\end{enumerate}
+
+%% ---------- Q5: OBJ extra (causal mask pattern via TikZ visualization) ----------
+\item (1.2) Os três padrões abaixo representam matrizes de atenção $A_{ij}$ de uma sequência de 4 tokens. Células \textbf{cinzas} indicam pares $(i, j)$ atendidos (peso possivelmente não-nulo após \textit{softmax}); células \textbf{brancas} indicam pares mascarados ($-\infty$ antes do \textit{softmax}, peso 0 depois).
+
+\begin{center}
+\begin{tikzpicture}[scale=0.45, every node/.style={font=\footnotesize}]
+    %% Pattern A: lower-triangular (causal)
+    \begin{scope}[xshift=0cm]
+        \node at (2, 5) {\textbf{Padrão A}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \pgfmathparse{ifthenelse(\j<=\i, 1, 0)}
+                \ifnum\pgfmathresult=1
+                    \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \fi
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+    %% Pattern B: full matrix
+    \begin{scope}[xshift=7cm]
+        \node at (2, 5) {\textbf{Padrão B}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+    %% Pattern C: diagonal only
+    \begin{scope}[xshift=14cm]
+        \node at (2, 5) {\textbf{Padrão C}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \pgfmathparse{ifthenelse(\j==\i, 1, 0)}
+                \ifnum\pgfmathresult=1
+                    \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \fi
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+\end{tikzpicture}
+\end{center}
+
+Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-only} autorregressivo (GPT, Llama)?
+\begin{enumerate}[a)]
+    \item Padrão A: atenção causal, necessária para \textit{next-token prediction} sem ver tokens futuros.
+    \item Padrão A: ele permite que cada posição $i$ veja apenas a si mesma, garantindo independência entre os tokens durante o treino.
+    \item Padrão B: \textit{decoder-only} requer atenção bidirecional para construir representações contextualizadas dos tokens passados.
+    \item Padrão B: sem máscara o modelo aprende mais rapidamente; a propriedade autorregressiva é imposta apenas em inferência.
+    \item Padrão C: cada token só atende a si mesmo, o que evita vazamento de informação futura.
+    \item A e B são equivalentes do ponto de vista do treinamento autorregressivo.
+    \item A e C bloqueiam tokens futuros, então ambos são corretos para \textit{decoder-only}.
+    \item Nenhum: \textit{decoder-only} não usa atenção mascarada; apenas \textit{cross-attention} é mascarada.
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions  (4.0 pts)
+%% =============================================================
+\pagebreak
+\section*{Questões Dissertativas (4.0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{5}
+
+%% ---------- Q6: DISS-A T/F with non-trivial modification ----------
+\item (2.0) Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+
+\begin{enumerate}[a)]
+    \item ( )\,V \quad ( )\,F \quad Em \textit{Multi-Head Attention} com $H$ cabeças e dimensão $d_\text{model}$, cada cabeça opera com dimensão $d_k = d_\text{model}/H$ e a saída final é a concatenação das $H$ projeções, seguida por uma projeção linear $W^O$ que recompõe a dimensão $d_\text{model}$.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad O \textit{positional encoding} sinusoidal proposto por Vaswani et al.\ (2017) introduz, para cada uma das $d$ dimensões do \textit{embedding}, um vetor de parâmetros treináveis aprendidos por descida de gradiente durante o treinamento, o que permite à rede adaptar a representação posicional ao corpus específico.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Modelos \textit{encoder-only} (e.g., BERT) usam atenção bidirecional e são tipicamente pré-treinados com objetivo de \textit{masked language modeling}; modelos \textit{decoder-only} (e.g., GPT) usam atenção mascarada (causal) e são pré-treinados com objetivo de \textit{next-token prediction}.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad O algoritmo BPE inicia com um vocabulário pequeno (caracteres ou \textit{bytes} individuais) e cresce iterativamente o vocabulário fundindo o par de tokens \emph{menos} frequente, até atingir o tamanho-alvo do vocabulário.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad \textit{Multi-Query Attention} (MQA) usa $H$ cabeças independentes para Q, K e V; portanto, reduzir o número de cabeças \emph{de Q} é a forma de diminuir o tamanho do \textit{KV-cache} durante a inferência.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+\end{enumerate}
+
+%% ---------- Q7: DISS-B numerical attention computation ----------
+\item (2.0) Considere uma camada de \textit{self-attention} causal de \textbf{cabeça única} aplicada a uma sequência de 3 tokens $(x_1, x_2, x_3)$. As matrizes $Q$, $K$, $V$ já foram calculadas e têm dimensão $3 \times 1$ (sequência de comprimento 3, dimensão de chave $d_k = 1$):
+\[
+    Q = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+    K = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+    V = \begin{bmatrix} 2 \\ 4 \\ 6 \end{bmatrix}.
+\]
+A operação aplicada é $O = \mathrm{softmax}\!\left(\mathrm{mask}(QK^\top)/\sqrt{d_k}\right) V$, onde $\mathrm{mask}(\cdot)$ aplica a máscara causal.
+
+\begin{enumerate}[a)]
+    \item (0.5) Compute a matriz de pontuações $S = QK^\top$.
+    \vspace{1.5cm}
+
+    \item (0.5) Aplique a máscara causal a $S$ e indique a matriz $S_\text{mask}$ resultante.
+    \vspace{1.5cm}
+
+    \item (0.5) Aplique \textit{softmax} linha a linha em $S_\text{mask}$ e indique a matriz de pesos de atenção $A$.
+    \vspace{2.5cm}
+
+    \item (0.5) Compute a saída $O = A \cdot V$. Apresente os três valores $O_1$, $O_2$, $O_3$.
+    \vspace{2cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

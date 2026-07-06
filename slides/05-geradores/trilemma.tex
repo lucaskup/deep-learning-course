@@ -1,0 +1,56 @@
+%------------------------------------------------------------------------
+%   SHARED TIKZ: GENERATIVE-MODELING TRILEMMA
+%
+%   TikZ replacement for slides/img/05-geradores/generative-trilemma.png.
+%   Input this file AFTER colors.tex in every lecture of unit 05.
+%
+%   Usage:  \resizebox{\linewidth}{!}{\generativetrilemma[<family>]}
+%   where <family> in {gan, diffusion, vaenf, none} highlights the family
+%   relevant to the current deck (default: none = neutral figure).
+%------------------------------------------------------------------------
+
+\usepackage{etoolbox} % \ifstrequal (no-op if beamer already loaded it)
+
+\newcommand{\generativetrilemma}[1][none]{%
+  % --- per-family stroke width and opacity, driven by the [#1] highlight ---
+  \def\wGan{1pt}\def\oGan{1}%
+  \def\wDif{1pt}\def\oDif{1}%
+  \def\wVae{1pt}\def\oVae{1}%
+  \ifstrequal{#1}{none}{}{%
+    \def\oGan{0.30}\def\oDif{0.30}\def\oVae{0.30}%
+    \ifstrequal{#1}{gan}{\def\oGan{1}\def\wGan{1.7pt}}{}%
+    \ifstrequal{#1}{diffusion}{\def\oDif{1}\def\wDif{1.7pt}}{}%
+    \ifstrequal{#1}{vaenf}{\def\oVae{1}\def\wVae{1.7pt}}{}%
+  }%
+  \begin{tikzpicture}[
+      corner/.style={circle, draw=black, thick, minimum size=2.4cm,
+                     align=center, font=\footnotesize},
+      contour/.style={dashed, line cap=round},
+    ]
+    % --- three corner circles ---
+    \node[corner] (T) at (0,2.4)   {High Quality\\Samples};
+    \node[corner] (L) at (-2.5,-1.6) {Fast\\Sampling};
+    \node[corner] (R) at (2.5,-1.6)  {Mode\\Coverage /\\Diversity};
+
+    % --- family contours, each enclosing the two corners it reaches ---
+    % GANs: quality + fast sampling (top + bottom-left)
+    \draw[contour, DiscBlue, line width=\wGan, opacity=\oGan,
+          rotate around={58:(-1.25,0.4)}]
+          (-1.25,0.4) ellipse [x radius=3.9, y radius=1.5];
+    % Diffusion: quality + coverage (top + bottom-right)
+    \draw[contour, EncRed, line width=\wDif, opacity=\oDif,
+          rotate around={-58:(1.25,0.4)}]
+          (1.25,0.4) ellipse [x radius=3.9, y radius=1.5];
+    % VAEs / Normalizing Flows: fast sampling + coverage (bottom edge)
+    \draw[contour, NoiseAmber, line width=\wVae, opacity=\oVae]
+          (0,-1.6) ellipse [x radius=4.0, y radius=1.5];
+
+    % --- family labels, color-matched ---
+    \node[DiscBlue, align=center, font=\small, opacity=\oGan]
+      at (-4.9,2.2) {Generative\\Adversarial\\Networks};
+    \node[EncRed, align=center, font=\small, opacity=\oDif]
+      at (4.9,2.2) {Denoising\\Diffusion\\Models};
+    \node[NoiseAmber, align=center, font=\small, opacity=\oVae]
+      at (0,-3.6) {Variational Autoencoders,\\Normalizing Flows};
+  \end{tikzpicture}%
+}

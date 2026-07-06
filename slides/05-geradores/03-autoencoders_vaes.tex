@@ -1,0 +1,1295 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+\input{slides/05-geradores/colors}
+\input{slides/05-geradores/trilemma}
+
+%------------------------------------------------------------------------
+%   TITLE PAGE
+%------------------------------------------------------------------------
+
+\title{Aprendizado Profundo}
+\subtitle{\textit{Autoencoders} e \textit{Variational Autoencoders}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: AUTOENCODERS
+  %======================================================================
+  \section{Autoencoders}
+
+  %--- Slide: definição ---
+  \begin{frame}{\textit{Autoencoders}}
+    Um \textit{autoencoder} é uma rede neural treinada na tarefa de
+    \textbf{reconstrução da própria entrada}.
+    \vspace{0.4em}
+    \begin{itemize}
+      \item Uma das primeiras formas de aprendizado
+      \textbf{auto-supervisionado} / não supervisionado.
+      \item A ideia é criar uma \textbf{representação útil} das
+      instâncias de interesse na etapa intermediária (\emph{gargalo}).
+    \end{itemize}
+    \begin{block}{Objetivo}
+      \[
+        \argmin_{\thetav,\phi}
+        J\!\left(\X,\, f\!\left(g(\X,\phi),\thetav\right)\right)
+      \]
+      onde $g$ é o \textcolor{EncRed}{\textit{encoder}} (parâmetros $\phi$)
+      e $f$ é o \textcolor{DecBlue}{\textit{decoder}} (parâmetros $\thetav$).
+    \end{block}
+  \end{frame}
+
+  %--- Slide: pipeline ---
+  \begin{frame}{\textit{Autoencoders} -- Pipeline}
+    \centering
+    \includegraphics[width=0.82\linewidth]{slides/img/05-geradores/ae-encoder-decoder.png}\\
+    \vspace{0.4em}
+    \begin{itemize}
+      \item \textcolor{EncRed}{\textit{Encoder}} $g$ reduz a entrada a
+      uma representação compacta (o \textbf{latente}).
+      \item \textcolor{DecBlue}{\textit{Decoder}} $f$ tenta reconstruir
+      a entrada original a partir do latente.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: regularização ---
+  \begin{frame}{\textit{Autoencoders} -- Regularização}
+    \begin{itemize}
+      \item É importante que o \textit{autoencoder} tenha
+      \textbf{regularização} para evitar soluções triviais.
+      \item Se \textbf{não houver um gargalo}, o \textit{autoencoder}
+      pode simplesmente copiar a imagem.
+      \item Se houver \textbf{unidades suficientes} no vetor latente,
+      é possível \emph{indexar} as imagens originais (memorização).
+    \end{itemize}
+    \begin{alertblock}{Formas comuns de regularização}
+      \begin{itemize}
+        \item \textbf{Bottleneck}: dimensão latente $\ll$ dimensão da
+        entrada.
+        \item \textbf{Ruído} na entrada (denoising AE).
+        \item \textbf{Esparsidade} na ativação do latente.
+      \end{itemize}
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: denoising ---
+  \begin{frame}{\textit{Denoising Autoencoders}\footfullcite{vincent2008denoising}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item Alguns \textit{autoencoders} são treinados com o objetivo
+          de \textbf{remover ruído} das instâncias de entrada.
+          \item Tipicamente o \textit{noise} segue uma:
+          \begin{itemize}
+            \item distribuição \textbf{normal} (ruído aditivo);
+            \item distribuição de \textbf{Bernoulli} (ruído
+            multiplicativo que invalida algumas \textit{features}).
+          \end{itemize}
+          \item A reconstrução é avaliada contra a entrada
+          \emph{original} (sem ruído).
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/ae-denoising.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: aplicação colorização ---
+  \begin{frame}{Aplicação: Colorização}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \begin{itemize}
+          \item \textbf{Entrada}: imagem P\&B (1 canal).
+          \textbf{Saída}: a mesma imagem em cores (3 canais RGB).
+          \item \textit{Encoder} comprime a cena em uma representação
+          semântica; \textit{decoder} gera as cores plausíveis.
+          \item Perda: MSE no espaço de cor (RGB, ou \textit{Lab}
+          comparando apenas os canais $a, b$).
+          \item Variação comum: \textit{U-Net} convolucional com
+          \textit{skip connections} para preservar bordas.
+        \end{itemize}
+        \vspace{0.3em}
+      \end{column}
+      \begin{column}{0.43\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.85]
+          \node[draw, fill=black!10, minimum width=1.6cm, minimum height=1.6cm,
+                font=\scriptsize] (in) at (0,0) {P\&B};
+          \node[draw, EncRed, fill=EncRed!15, minimum width=0.7cm,
+                minimum height=1.6cm, font=\tiny] (enc) at (1.7,0) {Enc.};
+          \node[draw, fill=NoiseAmber!25, minimum width=0.55cm,
+                minimum height=0.7cm, font=\tiny] (lat) at (2.7,0) {$z$};
+          \node[draw, DecBlue, fill=DecBlue!15, minimum width=0.7cm,
+                minimum height=1.6cm, font=\tiny] (dec) at (3.7,0) {Dec.};
+          \node[draw, fill=red!15, minimum width=1.6cm, minimum height=1.6cm,
+                font=\scriptsize] (out) at (5.4,0) {Color};
+          \draw[->,thick] (in) -- (enc);
+          \draw[->,thick] (enc) -- (lat);
+          \draw[->,thick] (lat) -- (dec);
+          \draw[->,thick] (dec) -- (out);
+        \end{tikzpicture}\\
+        \vspace{0.4em}
+        \scriptsize Esquema: 1 canal $\to$ representação $\to$ 3 canais.
+      \end{column}
+    \end{columns}
+            \footnotesize Problema \textbf{mal-posto}: várias colorações
+        são plausíveis. MSE básico tende a cores \emph{desaturadas}
+        (média entre opções); variantes probabilísticas (VAE, GAN,
+        difusão) geram cores mais vívidas.
+  \end{frame}
+
+  %--- Slide: aplicação anomaly detection ---
+  \begin{frame}{Aplicação: Detecção de Anomalias}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{itemize}
+          \item Instâncias \textbf{normais} reconstroem bem (erro baixo);
+          \textbf{anomalias} reconstroem mal (erro alto).
+          \item Score de anomalia:
+          \[
+            s(x) = \lVert x - f(g(x,\phi),\thetav) \rVert^{2}
+          \]
+          \item Um \textit{threshold} sobre $s(x)$ separa as duas classes.
+          \item Casos típicos: fraude em transações, defeitos industriais
+          (\textit{visual inspection}), intrusão em redes, monitoramento
+          de equipamentos.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}
+          \begin{axis}[
+            width=\linewidth, height=4.6cm,
+            xlabel={\scriptsize erro de reconstrução $s(x)$},
+            ylabel={\scriptsize densidade},
+            xtick=\empty, ytick=\empty,
+            ymin=0, ymax=1.2,
+            domain=0:10, samples=120,
+            axis lines=left, no markers,
+            legend style={font=\tiny,at={(0.98,0.98)},anchor=north east,draw=none,fill=none},
+          ]
+            \addplot[thick,EncRed,fill=EncRed!25,fill opacity=0.65] {exp(-(x-2)^2/0.6)} \closedcycle;
+            \addlegendentry{normal}
+            \addplot[thick,NoiseAmber,fill=NoiseAmber!30,fill opacity=0.65] {0.55*exp(-(x-6.5)^2/2.5)} \closedcycle;
+            \addlegendentry{anômalo}
+            \draw[dashed,thick,black!65] (axis cs:4.2,0) -- (axis cs:4.2,1.1);
+            \node[above,font=\tiny] at (axis cs:4.2,1.1) {\textit{threshold}};
+          \end{axis}
+        \end{tikzpicture}
+        \vspace{0.2em}
+        \begin{alertblock}{Por que funciona?}
+          \scriptsize O AE só aprendeu a distribuição dos dados de
+          treino, ele não tem como reconstruir o que nunca viu.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+
+
+  %======================================================================
+  % SECTION 2: VARIATIONAL AUTOENCODERS
+  %======================================================================
+  \section{Variational Autoencoders}
+
+  %--- Slide: ponte AE -> VAE ---
+  \begin{frame}{Por que o \textit{autoencoder} comum não gera?}
+    Para \textbf{gerar} bastaria amostrar um código $z$ e decodificá-lo.
+    No AE determinístico isso \textbf{falha}:
+    \begin{columns}[T]
+      \begin{column}{0.56\textwidth}
+        \begin{itemize}
+          \item O encoder envia cada $x$ a um ponto $z$, mas \textbf{não
+          controla a distribuição} dos códigos.
+          \item O latente fica com \textbf{buracos} (regiões sem dado) e
+          aglomerados irregulares.
+          \item Sem uma $p(z)$ conhecida de onde amostrar, um $z$
+          aleatório cai num buraco $\to$ decoder gera \textbf{lixo}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.82,
+          dot/.style={circle, inner sep=1pt}]
+          % AE: scattered with gaps
+          \draw[rounded corners, black!40] (0,0) rectangle (2.3,2.3);
+          \node[font=\tiny] at (1.15,2.5) {AE: buracos};
+          \foreach \x/\y in {0.3/1.9,0.5/2.0,0.4/1.7,1.95/0.4,2.0/0.65,
+            1.75/0.5,0.4/0.4,0.65/0.5,1.9/1.95,2.0/1.75,0.35/1.1}{
+            \node[dot, fill=EncRed] at (\x,\y) {};}
+          % VAE: gaussian blob
+          \begin{scope}[xshift=2.9cm]
+            \draw[rounded corners, black!40] (0,0) rectangle (2.3,2.3);
+            \node[font=\tiny] at (1.15,2.5) {VAE: $\mathcal{N}(0,I)$};
+            \foreach \x/\y in {1.15/1.15,1.0/1.3,1.35/1.1,1.1/1.0,1.3/1.35,
+              0.95/1.1,1.45/1.3,1.15/0.9,1.0/1.45,1.4/1.45,1.55/1.05,
+              0.85/1.4,1.15/1.55,1.2/0.75}{
+              \node[dot, fill=DecBlue] at (\x,\y) {};}
+          \end{scope}
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+    \begin{block}{A ideia do VAE}
+      Forçar o encoder a mapear os dados a uma distribuição \textbf{contínua
+      e conhecida} (gaussiana): então $z\sim\mathcal{N}(0,I)$ decodificado
+      gera dados novos plausíveis.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: definição VAE ---
+  \begin{frame}{\textit{Variational Autoencoders}\footfullcite{kingma2014auto}}
+    \begin{itemize}
+      \item São modelos geradores \textbf{probabilísticos} cujo objetivo
+      é aprender uma distribuição $p(x)$ sobre os dados.
+      \item É um \textbf{modelo não linear de variável latente}.
+      \begin{itemize}
+        \item Depois do treinamento podemos usar apenas o decoder
+        (amostragem) ou apenas o encoder (inferência).
+      \end{itemize}
+    \end{itemize}
+    \begin{block}{Panorama}
+      O VAE é a \textbf{fusão} de duas ideias:
+      \begin{itemize}
+        \item \textit{Autoencoder}: arquitetura encoder/decoder.
+        \item \textbf{Inferência variacional}: aproximar a
+        verossimilhança intratável via um limite inferior (ELBO).
+      \end{itemize}
+    \end{block}
+    \vspace{0.2em}
+    \footnotesize Próximo slide: arquitetura completa, para servir de
+    \emph{mapa} ao longo da matemática.
+  \end{frame}
+
+  %--- Slide: arquitetura VAE (panorama, posicionado cedo) ---
+  \begin{frame}{Arquitetura VAE -- Panorama}
+    \begin{columns}[T]
+      \begin{column}{0.40\textwidth}
+        \begin{itemize}
+          \item \textcolor{EncRed}{\textit{Encoder}} $g[x,\phi]$ recebe
+          $x$ e produz $\mu(x),\, \Sigma(x)$.
+          \item Definimos
+          $q(z\mid x,\phi) = \mathcal{N}(\mu, \Sigma)$.
+          \item Amostramos $z^{*} \sim q(z\mid x,\phi)$.
+          \item \textcolor{DecBlue}{\textit{Decoder}} $f[z^{*},\thetav]$
+          gera os parâmetros de $p(x\mid z^{*},\thetav)$.
+          \item Perda: $-\mathrm{ELBO} =$ reconstrução $+$ KL.
+        \end{itemize}
+
+      \end{column}
+      \begin{column}{0.58\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          every node/.style={font=\scriptsize},
+          block/.style={draw, thick, minimum width=1.1cm, minimum height=0.9cm,
+                        rounded corners=2pt},
+          enc/.style={block, draw=EncRed, fill=EncRed!10, text=EncRed},
+          dec/.style={block, draw=DecBlue, fill=DecBlue!10, text=DecBlue},
+          arrow/.style={->, thick, >=stealth},
+          ann/.style={font=\tiny, text=black!70, align=center},
+          callout/.style={draw, dashed, rounded corners=1pt, fill=white,
+                          inner sep=2pt, font=\tiny, align=center}
+        ]
+          % Main pipeline
+          \node (x) {$x$};
+          \node[enc, right=0.35cm of x] (g) {$g[x,\phi]$};
+          \node[right=0.5cm of g] (q) {$q(z\mid x,\phi)$};
+          \node[draw, NoiseAmber, fill=NoiseAmber!15, minimum width=0.55cm,
+                minimum height=0.55cm, right=0.5cm of q] (z) {$z^{*}$};
+          \node[dec, right=0.5cm of z] (f) {$f[z^{*},\thetav]$};
+          \node[right=0.4cm of f] (px) {$p(x\mid z^{*},\thetav)$};
+
+          \draw[arrow] (x) -- (g);
+          \draw[arrow] (g) -- (q) node[midway, above, ann] {$\mu, \Sigma$};
+          \draw[arrow] (q) -- (z) node[midway, above, yshift=0.18cm, ann] {amostra};
+          \draw[arrow] (z) -- (f);
+          \draw[arrow] (f) -- (px);
+
+          % Labels under boxes
+          \node[ann, below=0.08cm of x] {entrada};
+          \node[ann, below=0.08cm of g] {encoder};
+          \node[ann, below=0.08cm of q] {posterior aprox.};
+          \node[ann, below=0.08cm of z] {amostra};
+          \node[ann, below=0.08cm of f] {decoder};
+          \node[ann, below=0.08cm of px] {verossimilhança};
+
+          % Loss callouts above
+          \node[callout, draw=EncRed, text=EncRed, above=1.0cm of q]
+            (kl) {variacional $\approx$ \textit{prior}\\$D_{KL}[q(z\mid x,\phi)\,\|\,p(z)]$};
+          \node[callout, draw=black!60, above=1.0cm of z, xshift=0.6cm]
+            (loss) {função de perda\\$\mathrm{ELBO}[\thetav,\phi]$};
+          \node[callout, draw=DecBlue, text=DecBlue, above=1.0cm of px]
+            (rec) {dado deve ter prob. alta\\$\log p(x\mid z^{*},\thetav)$};
+
+          \draw[->, dashed, EncRed!70, thin] (kl) -- (q);
+          \draw[->, dashed, DecBlue!70, thin] (rec) -- (px);
+        \end{tikzpicture}}\\
+        \vspace{0.3em}
+        \tiny Adaptado de Prince (2023), Fig.~17.9.
+      \end{column}
+    \end{columns}
+            \begin{block}{Use como mapa}
+          \scriptsize Toda a matemática a seguir refere-se a esses
+          mesmos blocos.
+        \end{block}
+  \end{frame}
+
+  %--- Slide: modelos de variáveis latentes ---
+  \begin{frame}{Modelos de variáveis latentes}
+    \begin{itemize}
+      \item Abordagem \textbf{indireta} para modelar uma distribuição
+      $p(x)$ sobre uma variável multidimensional $x$.
+      \item Marginalização de uma probabilidade conjunta $p(x, z)$:
+    \end{itemize}
+    \vspace{0.3em}
+    \[
+      p(x) = \int p(x, z)\, dz = \int p(x \mid z)\, p(z)\, dz
+    \]
+    \vspace{0.3em}
+    \begin{block}{Motivação}
+      Distribuições relativamente simples $p(x \mid z)$ e $p(z)$ podem,
+      por marginalização, definir distribuições $p(x)$
+      \textbf{complexas}.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: MoG como modelo latente ---
+  \begin{frame}{Exemplo: Mistura de Gaussianas 1D}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item $z$ é uma variável latente \textbf{discreta}, com
+          distribuição \emph{a priori} categórica:
+          $p(z = n) = \lambda_n$.
+          \item A verossimilhança segue uma normal:
+          $p(x \mid z = n) = \mathcal{N}(\mu_n, \sigma_n^{2})$.
+          \item A distribuição marginal:
+          \[
+            p(x) = \sum_n \lambda_n\, \mathcal{N}(\mu_n, \sigma_n^{2}).
+          \]
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \begin{tikzpicture}[font=\small,
+          declare function={
+            gauss(\x,\m,\s)=exp(-((\x-\m)^2)/(2*\s^2))/(\s*sqrt(2*pi));
+          }]
+          % --- painel superior: prior discreto p(z) = lambda_n ---
+          \begin{axis}[
+            name=pz,
+            width=6.6cm, height=3.0cm,
+            axis lines=left,
+            ybar, bar width=13pt,
+            xmin=0.3, xmax=3.7, ymin=0, ymax=0.55,
+            xtick={1,2,3}, xticklabels={$1$,$2$,$3$},
+            ytick=\empty,
+            xlabel={$z$ (componente)}, ylabel={$p(z)=\lambda_n$},
+            clip=false,
+          ]
+            \addplot[bar shift=0pt, fill=EncRed!65, draw=EncRed] coordinates {(1,0.45)};
+            \addplot[bar shift=0pt, fill=NoiseAmber!75, draw=NoiseAmber!80!black] coordinates {(2,0.35)};
+            \addplot[bar shift=0pt, fill=ReconGreen!60, draw=ReconGreen] coordinates {(3,0.20)};
+          \end{axis}
+          % --- painel inferior: marginal continua p(x) ---
+          \begin{axis}[
+            name=px,
+            at={(pz.below south west)}, anchor=north west, yshift=-0.5cm,
+            width=6.6cm, height=4.0cm,
+            axis lines=left,
+            xmin=-0.5, xmax=6.5, ymin=0, ymax=0.55,
+            xlabel={$x$}, ylabel={$p(x)$},
+            xtick=\empty, ytick=\empty,
+            clip=false,
+          ]
+            % componentes ponderados lambda_n N(mu_n, sigma_n^2)
+            \addplot[domain=-0.5:6.5, samples=120, EncRed, dashed, thick]
+              {0.45*gauss(x,1.5,0.45)};
+            \addplot[domain=-0.5:6.5, samples=120, NoiseAmber, dashed, thick]
+              {0.35*gauss(x,3.2,0.7)};
+            \addplot[domain=-0.5:6.5, samples=120, ReconGreen, dashed, thick]
+              {0.20*gauss(x,4.6,0.5)};
+            % marginal = soma ponderada das componentes
+            \addplot[domain=-0.5:6.5, samples=160, DecBlue, very thick,
+                     fill=DecBlue, fill opacity=0.12]
+              {0.45*gauss(x,1.5,0.45)+0.35*gauss(x,3.2,0.7)+0.20*gauss(x,4.6,0.5)}
+              \closedcycle;
+          \end{axis}
+        \end{tikzpicture}\\
+        \vspace{0.1em}
+        \scriptsize O \textit{prior} discreto $p(z)$ pesa cada componente,
+        e a marginal \textcolor{DecBlue}{$p(x)$} é a soma ponderada das
+        gaussianas (tracejadas).
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: modelos não lineares ---
+  \begin{frame}{Modelos não lineares de variáveis latentes}
+    \begin{columns}[T]
+      \begin{column}{0.58\textwidth}
+        Tanto $z$ quanto $x$ são \textbf{contínuos} e
+        \textbf{multivariados}.
+        \begin{itemize}
+          \item \textit{Prior} normal padrão:
+          $p(z) = \mathcal{N}_{z}(0, \mathbf{I})$.
+          \item Verossimilhança gaussiana com média não linear
+          $f(z, \thetav)$ e covariância esférica:
+          \[
+            p(x \mid z, \thetav) = \mathcal{N}_{x}\!\left(f(z, \thetav), \sigma^{2}\mathbf{I}\right).
+          \]
+          \item Marginal:
+          \[
+            p(x \mid \thetav) = \int p(x\mid z,\thetav)\, p(z)\, dz.
+          \]
+          \item Integrando gaussiano, mas $f$ não linear $\Rightarrow$
+          integral \textbf{sem forma fechada}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.40\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=0.55]
+          \fill[EncRed!25,draw=EncRed,thick] (-2.6,0) circle (1.2);
+          \node[font=\scriptsize] at (-2.6,-1.7) {$p(z)=\mathcal{N}(0,\mathbf{I})$};
+          \node[font=\tiny,EncRed] at (-2.6,0) {simples};
+          \draw[->,very thick,black!70] (-1.2,0) -- (1.0,0);
+          \node[font=\scriptsize,above] at (-0.1,0.1) {$f(z,\thetav)$};
+          \begin{scope}[shift={(2.6,0)}]
+            \fill[DecBlue!25,draw=DecBlue,thick,smooth cycle]
+              plot coordinates {(-1.1,0.5) (-0.5,1.2) (0.3,1.3) (1.0,0.8) (1.2,0.0) (0.7,-0.9) (-0.2,-1.1) (-0.9,-0.7) (-1.2,-0.1)};
+            \node[font=\scriptsize] at (0,-1.7) {$p(x\mid\thetav)$};
+            \node[font=\tiny,DecBlue] at (0,0) {complexa};
+          \end{scope}
+        \end{tikzpicture}\\
+        \vspace{0.6em}
+        \scriptsize Função $f$ não linear transforma uma gaussiana
+        simples em uma distribuição arbitrariamente complexa.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: ancestral sampling ---
+  \begin{frame}{Gerando novas instâncias $x^{*}$}
+    Usamos \textbf{amostragem ancestral}:
+    \vspace{0.3em}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \begin{enumerate}
+          \item Amostrar um latente $z^{*}$ de $p(z)$
+          (\textit{prior}).
+          \item Passar $z^{*}$ pela rede
+          $f(z^{*}, \thetav)$ para obter a média da
+          verossimilhança $p(x \mid z^{*}, \thetav)$.
+          \item Amostrar $x^{*}$ de
+          $p(x \mid z^{*}, \thetav)$.
+        \end{enumerate}
+        \vspace{0.4em}
+        \footnotesize A rede $f(z,\thetav)$ é exatamente o
+        \textcolor{DecBlue}{\textit{decoder}} da arquitetura.
+      \end{column}
+      \begin{column}{0.52\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small,>=latex]
+          % --- 1) espaço latente: prior p(z) ---
+          \node[font=\scriptsize,black!60] at (0,1.5) {espaço latente $z$};
+          \fill[black!7] (0,0) circle (0.95);
+          \draw[black!40,dashed] (0,0) circle (0.95);
+          \foreach \p in {(-0.4,0.3),(0.2,-0.4),(-0.2,-0.15),(0.5,0.5),(-0.5,-0.35)}
+            \fill[black!35] \p circle (0.9pt);
+          \fill[EncRed] (0.35,0.28) circle (2pt);
+          \node[EncRed,font=\scriptsize,above right=-1pt] at (0.35,0.28) {$z^*$};
+          \node[font=\scriptsize,black!75] at (0,-1.45)
+            {\textbf{1.}~$z^*\!\sim p(z)$};
+          % --- 2) decoder f ---
+          \draw[->,thick,black!70] (1.0,0) -- (1.72,0);
+          \fill[DecBlue!16,draw=DecBlue,thick]
+            (1.78,0.55) -- (3.08,1.0) -- (3.08,-1.0) -- (1.78,-0.55) -- cycle;
+          \node[DecBlue,font=\scriptsize] at (2.46,0.12) {$f(z,\thetav)$};
+          \node[DecBlue,font=\tiny] at (2.46,-0.3) {\textit{decoder}};
+          \node[font=\scriptsize,black!75] at (2.43,-1.45) {\textbf{2.}};
+          \draw[->,thick,black!70] (3.08,0) -- (3.8,0);
+          % --- 3) espaço de dados: likelihood p(x|z*) ---
+          \node[font=\scriptsize,black!60] at (4.65,1.5) {espaço de dados $x$};
+          \fill[DecBlue!10] (4.65,0) ellipse (0.95 and 0.78);
+          \draw[DecBlue!45] (4.65,0) ellipse (0.95 and 0.78);
+          \draw[DecBlue!60] (4.65,0) ellipse (0.55 and 0.45);
+          \node[DecBlue,font=\scriptsize] at (4.65,0) {$\boldsymbol{\times}$};
+          \node[font=\tiny,DecBlue,below=0pt] at (4.65,-0.06) {$\mu\!=\!f(z^*,\thetav)$};
+          \fill[NoiseAmber!90!black] (5.05,0.34) circle (2pt);
+          \node[font=\scriptsize,above right=-1pt] at (5.05,0.34) {$x^*$};
+          \node[font=\scriptsize,black!75] at (4.65,-1.45)
+            {\textbf{3.}~$x^*\!\sim p(x\mid z^*,\thetav)$};
+        \end{tikzpicture}%
+        }\\
+        \vspace{0.2em}
+        \scriptsize Amostramos $z^*$ do \textit{prior}, decodificamos com
+        $f(z,\thetav)$ e amostramos $x^*$ da verossimilhança.\\
+        \textcolor{black!55}{Na prática, costuma-se usar a média
+        $f(z^*,\thetav)$ diretamente, sem somar o ruído $\sigma^2\mathbf{I}$.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: TREINAMENTO E ELBO
+  %======================================================================
+  \section{Treinamento e ELBO}
+
+  %--- Slide: Treinamento intratável ---
+  \begin{frame}{Treinamento -- O problema}
+    Maximizar a log-verossimilhança direta é \textbf{inviável}:
+    \[
+      \hat{\thetav} = \argmax_{\thetav}
+      \left[\sum_{i=1}^{N} \int
+        \mathcal{N}_{x^{(i)}}\!\left(f(z, \thetav), \sigma^{2}\mathbf{I}\right)
+        \mathcal{N}_{z}(0, \mathbf{I})\, dz
+      \right]
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item Integral \textbf{sem forma fechada}, pois $f$ é não linear.
+      \item Monte Carlo direto $p(x) \approx \tfrac{1}{K}\sum_{k} p(x\mid z_k)$
+      com $z_k \sim p(z)$ também \textbf{falha}: para um $x$ específico,
+      $z$ amostrado do prior quase nunca explica $x$, então
+      $p(x\mid z)$ é minúsculo na enorme maioria das amostras.
+    \end{itemize}
+    \begin{alertblock}{Estratégia}
+      Maximizamos um \textbf{limite inferior} da log-verossimilhança,
+      usando uma proposta inteligente para amostrar $z$.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: motivação do q via importance sampling ---
+  \begin{frame}{Por que precisamos de um \textit{encoder}?}
+    \textbf{Ideia}: ao invés de amostrar $z$ do prior, sortear $z$ de
+    uma distribuição que \emph{concentra massa onde $z$ explica $x$}.
+    \vspace{0.4em}
+    \begin{itemize}
+      \item Essa distribuição ideal é a posterior $p(z\mid x)$, mas ela
+      também é intratável.
+      \item \textbf{Solução}: aproximamos com uma proposta parametrizada
+      \[
+        q(z\mid x, \phi) \approx p(z\mid x),
+      \]
+      implementada por uma \textbf{segunda rede} com parâmetros $\phi$.
+      \item Essa rede é o \textcolor{EncRed}{\textit{encoder}} do VAE:
+      para cada $x$, produz uma distribuição sobre $z$.
+    \end{itemize}
+    \vspace{0.2em}
+    \begin{block}{O que ganhamos}
+      Com $q$ no lugar de $p(z)$, podemos derivar um \textbf{limite
+      inferior} (ELBO) que é \emph{apertado} quando $q$ aproxima bem a
+      posterior, vamos ver isso a seguir.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: prior amplo vs proposta concentrada ---
+  \begin{frame}{Amostrar do \textit{prior} é ineficiente}
+    \begin{columns}[c]
+      \begin{column}{0.58\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=1.0,>=latex]
+          % eixos latentes
+          \draw[->,black!45] (-2.9,0) -- (2.9,0) node[right,font=\tiny,black!55] {$z_1$};
+          \draw[->,black!45] (0,-2.6) -- (0,2.6) node[above,font=\tiny,black!55] {$z_2$};
+          % prior p(z) = N(0,I): massa espalhada
+          \fill[black!7] (0,0) circle (2.4);
+          \draw[black!45,dashed,thick] (0,0) circle (2.4);
+          \draw[black!30,dashed] (0,0) circle (1.5);
+          \node[font=\scriptsize,black!60] at (-1.55,-2.05) {$p(z)=\mathcal{N}(0,\mathbf{I})$};
+          % amostras do prior (massa espalhada)
+          \foreach \p in {%
+            (-2.0,0.3),(-1.6,1.1),(-1.7,-0.8),(-1.2,1.7),(-1.3,-1.5),%
+            (-0.9,0.6),(-0.7,-0.4),(-0.5,1.3),(-0.4,-1.6),(-0.2,0.2),%
+            (0.0,1.0),(0.1,-0.9),(0.3,1.8),(0.5,-1.4),(0.6,0.4),%
+            (0.8,-0.5),(0.9,1.5),(1.1,-1.1),(1.3,0.2),(1.5,-0.7),%
+            (1.8,-1.3),(2.0,0.6),(2.1,-0.2),(-2.2,-0.6),(-0.1,-1.9),%
+            (1.0,-1.8),(2.0,1.6),(-1.9,1.4)}
+            \fill[black!45] \p circle (1.6pt);
+          % proposta concentrada q(z|x,phi)
+          \fill[EncRed!22] (1.6,1.1) ellipse (0.5 and 0.42);
+          \draw[EncRed,thick] (1.6,1.1) ellipse (0.5 and 0.42);
+          % amostras que de fato explicam x (dentro de q)
+          \foreach \p in {(1.5,1.02),(1.72,1.18),(1.6,0.95)}
+            \fill[ReconGreen] \p circle (2.0pt);
+          \node[font=\scriptsize,EncRed,align=center] at (1.6,2.05)
+            {$q(z\mid x,\phi)$};
+        \end{tikzpicture}
+      \end{column}
+      \begin{column}{0.40\textwidth}
+        \footnotesize
+        \begin{itemize}
+          \item \textcolor{black!60}{\textbf{Cinza}}: amostras do
+          \textit{prior} $p(z)$. A massa fica \emph{espalhada} por todo
+          o espaço latente.
+          \item \textcolor{ReconGreen}{\textbf{Verde}}: as raras amostras
+          que caem onde $z$ realmente \emph{explica} $x$, isto é, onde
+          $p(x\mid z)$ é alto.
+          \item Acertar essa região por sorteio do \textit{prior} exige
+          um número \textbf{enorme} de amostras: $p(z)$ é pouco
+          informativo sobre um $x$ específico.
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{block}{Solução}
+          A proposta \textcolor{EncRed}{$q(z\mid x,\phi)$} já
+          \textbf{concentra} a massa nessa região.
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Jensen ---
+  \begin{frame}{Desigualdade de Jensen}
+    \begin{columns}[c]
+      \begin{column}{0.38\textwidth}
+        Para qualquer função \textbf{côncava} $g(\cdot)$:
+        \[
+          g\!\left(\mathbb{E}[x]\right) \geq \mathbb{E}\!\left[g(x)\right]
+        \]
+        Caso da função log (com $\log Y \sim \mathcal{N}(\mu,\sigma^2)$):
+        \[
+          \log\!\left(\mathbb{E}[Y]\right) \geq \mathbb{E}\!\left[\log Y\right]
+        \]
+        \footnotesize Aqui $\mu=0$, $\sigma=1$, então a folga
+        $\sigma^2/2 = 0.5$.
+      \end{column}
+      \begin{column}{0.60\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small,
+          declare function={
+            gauss(\x,\m,\s)=exp(-((\x-\m)^2)/(2*\s^2))/(\s*sqrt(2*pi));
+            lognorm(\y,\m,\s)=exp(-((ln(\y)-\m)^2)/(2*\s^2))/(\y*\s*sqrt(2*pi));
+          }]
+          % ---- ESQUERDA: Normal de log Y ----
+          \begin{axis}[
+            name=left,
+            width=5.4cm, height=4.3cm,
+            axis lines=left,
+            xmin=-3, xmax=3, ymin=0, ymax=0.58,
+            xlabel={$\log y$}, ylabel={densidade},
+            xtick=\empty, ytick=\empty,
+            title={\scriptsize $\log Y \sim$ Normal},
+            clip=false,
+          ]
+            \addplot[domain=-3:3, samples=140, black!55, thick,
+                     fill=black!8] {gauss(x,0,1)} \closedcycle;
+            \draw[ReconGreen, very thick] (axis cs:0,0) -- (axis cs:0,0.52);
+            \node[ReconGreen, font=\tiny, above] at (axis cs:0,0.52)
+              {$\mathbb{E}[\log Y]=0$};
+            \draw[EncRed, very thick, dashed] (axis cs:0.5,0) -- (axis cs:0.5,0.40);
+            \node[EncRed, font=\tiny, anchor=west] at (axis cs:0.62,0.36)
+              {$\log\mathbb{E}[Y]=0.5$};
+          \end{axis}
+          % ---- DIREITA: Log-normal de Y ----
+          \begin{axis}[
+            name=right,
+            at={(left.east)}, xshift=1.1cm, anchor=west,
+            width=5.4cm, height=4.3cm,
+            axis lines=left,
+            xmin=0, xmax=5, ymin=0, ymax=0.78,
+            xlabel={$y$}, ylabel={densidade},
+            xtick=\empty, ytick=\empty,
+            title={\scriptsize $Y \sim$ Log-normal},
+            clip=false,
+          ]
+            \addplot[domain=0.02:5, samples=200, black!55, thick,
+                     fill=black!8] {lognorm(x,0,1)} \closedcycle;
+            \draw[ReconGreen, very thick] (axis cs:1,0) -- (axis cs:1,0.70);
+            \node[ReconGreen, font=\tiny, above] at (axis cs:1,0.70)
+              {$e^{\mathbb{E}[\log Y]}=1$};
+            \draw[EncRed, very thick, dashed] (axis cs:1.65,0) -- (axis cs:1.65,0.56);
+            \node[EncRed, font=\tiny, anchor=west] at (axis cs:1.78,0.52)
+              {$\mathbb{E}[Y]\approx 1.65$};
+          \end{axis}
+        \end{tikzpicture}%
+        }\\
+        \vspace{0.2em}
+        \scriptsize A cauda da log-normal puxa a média aritmética
+        \textcolor{EncRed}{$\mathbb{E}[Y]$} à direita da geométrica
+        \textcolor{ReconGreen}{$e^{\mathbb{E}[\log Y]}$}; logo
+        $\log\mathbb{E}[Y] \geq \mathbb{E}[\log Y]$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: refresher ELBO ---
+  \begin{frame}{De onde vem o ELBO?}
+    O nome \textbf{ELBO} (\textit{Evidence Lower BOund}) é herdado de
+    \textbf{inferência variacional}.
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textbf{Evidência}: na linguagem bayesiana, $p(x\mid\thetav)
+      = \int p(x,z\mid\thetav)\,dz$ é a \emph{verossimilhança marginal},
+      a ``evidência'' que os dados dão sobre o modelo.
+      \item \textbf{Limite inferior}: como a integral é intratável,
+      construímos uma função $\mathcal{L}[\thetav,\phi]$ tal que
+      $\log p(x\mid\thetav) \geq \mathcal{L}[\thetav,\phi]$, e
+      maximizamos $\mathcal{L}$ no lugar de $\log p(x)$.
+    \end{itemize}
+    \begin{block}{Ingrediente que falta}
+      \textbf{Importance sampling}: para qualquer $q$ com suporte sobre
+      $z$,
+      $p(x\mid\thetav) = \mathbb{E}_{z\sim q}\!\left[p(x,z\mid\thetav)/q(z)\right]$.
+      O próximo slide combina esse passo com Jensen para obter o limite
+      inferior.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: derivação do limite inferior ---
+  \begin{frame}{Limite Inferior -- Derivação}
+    \small
+    Reescrevemos a integral como uma esperança sob $q$ e aplicamos
+    Jensen na concavidade do $\log$:
+    {\small
+    \begin{align*}
+      \log p(x \mid \thetav)
+      &= \log\!\left[\int p(x, z \mid \thetav)\, dz\right]
+         && \text{\scriptsize marginal} \\
+      &= \log\!\left[\int q(z)\,\frac{p(x, z \mid \thetav)}{q(z)}\, dz\right]
+         && \text{\scriptsize multiplica e divide por $q(z)$} \\
+      &= \log\!\left(\mathbb{E}_{z\sim q}\!\left[\frac{p(x, z \mid \thetav)}{q(z)}\right]\right)
+         && \text{\scriptsize integral ponderada por $q$ $=$ esperança} \\
+      &\geq \mathbb{E}_{z\sim q}\!\left[\log\frac{p(x, z \mid \thetav)}{q(z)}\right]
+         && \text{\scriptsize Jensen ($\log$ côncavo)} \\
+      &= \int q(z)\,\log\!\left(\frac{p(x, z \mid \thetav)}{q(z)}\right) dz
+         && \text{\scriptsize de volta à forma integral}
+    \end{align*}}
+    \begin{block}{ELBO}
+      \footnotesize O $q(z)$ \emph{externo} é a medida da esperança,
+      permanece como peso; apenas o $q(z)$ do denominador entra no
+      $\log$. Esse limite é o \textit{evidence lower bound}; na prática
+      $q$ é parametrizado: $q(z \mid x,\phi)$.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: ponte ELBO -> identidade ---
+  \begin{frame}{Limite Inferior -- Conexão com a posterior}
+    \small
+    A partir daqui escrevemos $q$ como $q(z\mid x,\phi)$ (o encoder
+    condiciona em $x$). Aplicando a regra do produto
+    $p(x,z\mid\thetav) = p(z\mid x,\thetav)\,p(x\mid\thetav)$ no ELBO:
+    {\small
+    \begin{align*}
+      \mathrm{ELBO}[\thetav,\phi]
+      &= \mathbb{E}_{q}\!\left[\log\tfrac{p(x,z\mid\thetav)}{q(z\mid x,\phi)}\right]
+         && \text{\scriptsize definição} \\
+      &= \mathbb{E}_{q}\!\left[\log\tfrac{p(z\mid x,\thetav)\,p(x\mid\thetav)}{q(z\mid x,\phi)}\right]
+         && \text{\scriptsize regra do produto} \\
+      &= \mathbb{E}_{q}\!\left[\log p(x\mid\thetav)\right]
+       + \mathbb{E}_{q}\!\left[\log\tfrac{p(z\mid x,\thetav)}{q(z\mid x,\phi)}\right]
+         && \text{\scriptsize separa o $\log$} \\
+      &= \log p(x\mid\thetav)
+       - \mathbb{E}_{q}\!\left[\log\tfrac{q(z\mid x,\phi)}{p(z\mid x,\thetav)}\right]
+         && \text{\scriptsize $\log p(x)$ sai da $\mathbb{E}$; troca o sinal} \\
+      &= \log p(x\mid\thetav)
+       - D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z\mid x,\thetav)\right]
+         && \text{\scriptsize definição de KL}
+    \end{align*}}
+    \begin{alertblock}{Rearranjando}
+      \footnotesize
+      $\log p(x\mid\thetav) = \mathrm{ELBO}[\thetav,\phi]
+       + D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z\mid x,\thetav)\right]$,
+      a identidade exata do próximo slide.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: identidade ELBO + KL ---
+  \begin{frame}{ELBO -- A identidade mestre}
+    Da derivação anterior, chega-se à \textbf{identidade exata}:
+    \vspace{0.3em}
+    \[
+      \boxed{\;\log p(x\mid\thetav)
+        = \underbrace{\int q(z\mid x,\phi)\,\log \tfrac{p(x,z\mid\thetav)}{q(z\mid x,\phi)}\, dz}_{\mathrm{ELBO}[\thetav,\phi]}
+        \;+\; \underbrace{D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z\mid x,\thetav)\right]}_{\geq 0}\;}
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item O \emph{gap} entre $\log p(x)$ e o ELBO é \textbf{exatamente}
+      a KL entre $q$ e a posterior verdadeira.
+      \item Bound \textbf{apertado} $\Leftrightarrow$ $q(z\mid x,\phi)
+      = p(z\mid x,\thetav)$.
+      \item Maximizar o ELBO faz \textbf{duas coisas ao mesmo tempo}:
+      sobe $\log p(x)$ (aprende o modelo) \emph{e} aperta $q$ contra a
+      posterior (aprende o encoder).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ELBO reorganizado ---
+  \begin{frame}{ELBO -- Reorganizando}
+    \[
+      \mathrm{ELBO}[\thetav, \phi] =
+      \int q(z \mid x,\phi) \log\!\left(\frac{p(x, z \mid \thetav)}{q(z \mid x,\phi)}\right) dz
+    \]
+    \vspace{0.2em}
+    Aplicando $p(x, z) = p(x \mid z)\,p(z)$ e separando a razão:
+    \begin{align*}
+      &= \int q(z \mid x,\phi) \log\!\left(\frac{p(x \mid z, \thetav)\,p(z)}{q(z \mid x,\phi)}\right) dz \\
+      &= \int q(z \mid x,\phi) \log p(x \mid z, \thetav)\, dz
+      - D_{KL}\!\left[q(z \mid x,\phi)\,\|\,p(z)\right]
+    \end{align*}
+  \end{frame}
+
+  %--- Slide: interpretação ELBO ---
+  \begin{frame}{ELBO -- Interpretação}
+    \[
+      \mathrm{ELBO}[\thetav, \phi] =
+      \underbrace{\int q(z \mid x,\phi) \log p(x \mid z, \thetav)\, dz}_{\textcolor{DecBlue}{\text{Reconstruction Loss}}}
+      \underbrace{- D_{KL}\!\left[q(z \mid x,\phi)\,\|\,p(z)\right]}_{\textcolor{EncRed}{\text{Regularização do latente}}}
+    \]
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textcolor{DecBlue}{\textbf{Primeiro termo}}:
+      log-verossimilhança esperada da reconstrução, sob $z$ amostrados
+      do encoder. Também chamado de \textit{reconstruction loss}.
+      \item \textcolor{EncRed}{\textbf{Segundo termo}}: avalia quão
+      perto a distribuição auxiliar $q(z \mid x,\phi)$ está do
+      \textit{prior} $p(z)$.
+    \end{itemize}
+    \vspace{0.2em}
+    \begin{alertblock}{Sinal}
+      O ELBO é \textbf{maximizado} (é um limite \emph{inferior} da
+      log-verossimilhança); a função de custo treinada é
+      $-\mathrm{ELBO}$, minimizada.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: Reconstruction loss = MSE ---
+  \begin{frame}{Termo de reconstrução $=$ MSE (caso gaussiano)}
+    Para $p(x\mid z,\thetav) = \mathcal{N}(f(z,\thetav),\,
+    \sigma^{2}\mathbf{I})$:
+    \vspace{0.2em}
+    \begin{align*}
+      \log p(x\mid z,\thetav)
+      &= \textcolor{ForestGreen}{-\tfrac{D_x}{2}\log(2\pi\sigma^{2})}
+       -\tfrac{1}{2\sigma^{2}}\,\lVert x - f(z,\thetav)\rVert^{2} \\[0.2em]
+      &= -\tfrac{1}{2\sigma^{2}}\,\lVert x - f(z,\thetav)\rVert^{2}
+       + \textcolor{ForestGreen}{\mathrm{const}}
+    \end{align*}
+    \vspace{0.1em}
+    \begin{block}{Ponte com o AE clássico}
+      Maximizar $\log p(x\mid z,\thetav)$ \textbf{é exatamente}
+      minimizar o erro quadrático $\lVert x - f(z,\thetav)\rVert^{2}$.
+      O ELBO se decompõe em
+      \[
+        -\mathrm{ELBO} \;=\;
+        \underbrace{\tfrac{1}{2\sigma^{2}}\mathbb{E}_{q}\!\left[\lVert x - f(z,\thetav)\rVert^{2}\right]}_{\textcolor{DecBlue}{\text{reconstrução (MSE)}}}
+        + \underbrace{D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z)\right]}_{\textcolor{EncRed}{\text{regularização}}}
+        + \mathrm{const}.
+      \]
+    \end{block}
+  \end{frame}
+
+  %--- Slide: KL entre gaussianas 1/2 ---
+  \begin{frame}{KL entre gaussianas (1/2) -- Partindo da definição}
+    A KL entre duas distribuições quaisquer é:
+    \vspace{0.3em}
+    \[
+      D_{KL}\!\left[q \,\|\, p\right]
+      = \int q(z)\,\log\!\left(\frac{q(z)}{p(z)}\right) dz
+      = \mathbb{E}_{q}\!\left[\log q(z)\right]
+      - \mathbb{E}_{q}\!\left[\log p(z)\right]
+    \]
+    \vspace{0.3em}
+    \visible<2->{
+      Para $q(z|x,\phi) = \mathcal{N}(\mu, \Sigma)$ e
+      $p(z) = \mathcal{N}(\mathbf{0}, \mathbf{I})$, o $\log$ de cada
+      densidade gaussiana é uma forma quadrática:
+      \[
+        \log p(z) = -\tfrac{D_z}{2}\log(2\pi) - \tfrac{1}{2}\,z^{\top}z
+      \]
+      \[
+        \log q(z) = -\tfrac{D_z}{2}\log(2\pi) - \tfrac{1}{2}\log|\Sigma| - \tfrac{1}{2}(z-\mu)^{\top}\Sigma^{-1}(z-\mu)
+      \]
+      \vspace{0.1em}
+      \footnotesize Os termos $-\tfrac{D_z}{2}\log(2\pi)$ cancelam.
+      No próximo slide usamos a identidade
+      $\mathbb{E}_q[zz^{\top}] = \Sigma + \mu\mu^{\top}$ (definição de
+      covariância: $\Sigma = \mathbb{E}_q[zz^{\top}] - \mu\mu^{\top}$).
+    }
+  \end{frame}
+
+  %--- Slide: KL entre gaussianas 2/2 ---
+  \begin{frame}{KL entre gaussianas (2/2) -- Forma fechada}
+    Tomando esperanças sob $q$ (usando
+    $\mathbb{E}_q[z] = \mu$ e $\mathbb{E}_q[zz^{\top}] = \Sigma + \mu\mu^{\top}$):
+    \vspace{0.3em}
+    \begin{align*}
+      \mathbb{E}_{q}\!\left[-\tfrac{1}{2}z^{\top}z\right]
+      &= -\tfrac{1}{2}\!\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu\right) \\[0.2em]
+      \mathbb{E}_{q}\!\left[-\tfrac{1}{2}(z-\mu)^{\top}\Sigma^{-1}(z-\mu)\right]
+      &= -\tfrac{1}{2}\,D_z
+    \end{align*}
+    \vspace{0.2em}
+    Substituindo na definição da KL:
+    \[
+      \boxed{
+        D_{KL}\!\left[\mathcal{N}(\mu,\Sigma)\,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\right]
+        = \tfrac{1}{2}\!\left(
+          \underbrace{\mathrm{Tr}[\Sigma]}_{\text{dispersão}}
+          + \underbrace{\mu^{\!\top}\mu}_{\text{desvio da origem}}
+          - \underbrace{D_{z}}_{\text{norm}}
+          - \underbrace{\log\det\Sigma}_{\text{volume}}
+        \right)
+      }
+    \]
+    \note{
+      Cada termo tem um papel pedagogicamente claro: $\mathrm{Tr}[\Sigma]$
+      penaliza variância grande, $\mu^{\top}\mu$ penaliza se afastar da
+      origem, $\log\det\Sigma$ penaliza variância pequena demais (evita
+      colapso), $D_z$ é só normalização.
+    }
+  \end{frame}
+
+  %--- Slide: Exemplo numérico KL ---
+  \begin{frame}{Exemplo Numérico: Calculando o Termo KL}
+    \footnotesize Imagine um VAE treinado em MNIST com latente 2D.
+    Para a imagem de um ``7'' específico, o \emph{encoder} produz uma
+    distribuição $q(z\mid x, \phi) = \mathcal{N}(\mu, \Sigma)$ sobre o
+    latente, compacta o suficiente para ``codificar 7'', mas com alguma
+    incerteza para suavizar o espaço. O termo KL mede quão longe essa
+    distribuição está do prior $\mathcal{N}(\mathbf{0}, \mathbf{I})$.
+
+    \normalsize
+    Encoder produz $\mu = (0.5,\, -0.8)$ e
+    $\Sigma = \mathrm{diag}(0.25,\, 1.5)$ (latente 2D, $D_z = 2$).
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Calculando cada termo:}
+        \begin{align*}
+          \mathrm{Tr}[\Sigma] &= 0.25 + 1.5 = 1.75 \\
+          \mu^{\top}\mu &= 0.25 + 0.64 = 0.89 \\
+          \log\det\Sigma &= \log(0.25) + \log(1.5) \\
+                          &\approx -1.386 + 0.405 \\
+                          &= -0.981 \\
+          D_z &= 2
+        \end{align*}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Substituindo}
+          \begin{align*}
+            D_{KL} &= \tfrac{1}{2}\bigl(1.75 + 0.89 - 2 + 0.981\bigr) \\
+                   &= \tfrac{1}{2}\,(1.621) \approx \mathbf{0.81}
+          \end{align*}
+        \end{block}
+        Os dois termos que dominam:
+        $\mu^{\top}\mu = 0.89$ (desvio da origem) e
+        $-\log\det\Sigma = +0.98$ (variância pequena $\sigma^{2}=0.25$
+        é penalizada para evitar colapso).
+      \end{column}
+    \end{columns}
+    \note{
+      Note que o termo $-\log\det\Sigma$ explode quando $\sigma_i^2 \to 0$:
+      o KL impede que o encoder colapse a distribuição num único ponto.
+      Esse é o efeito \emph{anti-colapso} do prior gaussiano isotrópico.
+    }
+  \end{frame}
+
+  %--- Slide: Monte Carlo sample ---
+  \begin{frame}{VAE -- Aproximação por \textit{Monte Carlo}}
+    O primeiro termo do ELBO ainda é uma integral intratável. Porém,
+    como é uma \textbf{esperança}, podemos aproximá-lo por
+    \textit{Monte Carlo}:
+    \vspace{0.3em}
+    \[
+      \int q(z \mid x, \phi)\,\log p(x \mid z, \thetav)\, dz
+      \approx \log p(x \mid z^{*}, \thetav),
+      \quad z^{*} \sim q(z \mid x, \phi)
+    \]
+    \vspace{0.3em}
+    \begin{block}{ELBO aproximado}
+      \[
+        \mathrm{ELBO}[\thetav, \phi] \approx
+        \log p(x \mid z^{*}, \thetav)
+        - D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]
+      \]
+    \end{block}
+    \note{
+      Uma amostra só já dá um estimador não-enviesado. Na prática usa-se
+      \emph{minibatch} + 1 amostra por instância, algo que o SGD tolera
+      bem.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: REPARAMETRIZATION TRICK
+  %======================================================================
+  \section{Reparametrization Trick}
+
+  %--- Slide: reparametrization trick motivação ---
+  \begin{frame}{\textit{Reparametrization Trick}}
+    \begin{itemize}
+      \item Como temos um \textbf{termo estocástico} no meio da rede
+      neural (a amostragem $z^{*} \sim q(z \mid x, \phi)$), é
+      \emph{inviável} computar \textit{backpropagation} diretamente.
+      \item \textbf{Solução}: reparametrizar a saída do \textit{encoder}
+      de modo a tirar a amostragem do caminho do gradiente:
+    \end{itemize}
+    \vspace{0.3em}
+    \[
+      z^{*} = \mu + \Sigma^{1/2}\,\epsilon^{*},
+      \qquad \epsilon^{*} \sim \mathcal{N}(0, \mathbf{I})
+    \]
+    \vspace{0.2em}
+    Para $\Sigma$ diagonal (caso usual), $\Sigma^{1/2}\,\epsilon^{*} = \sigma \odot \epsilon^{*}$ (forma elemento a elemento).
+    \begin{block}{Ideia chave}
+      O ruído $\epsilon^{*}$ é amostrado \emph{fora} da rede; $\mu$ e
+      $\Sigma$ permanecem no caminho diferenciável.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: reparametrization diagrama ---
+  \begin{frame}{\textit{Reparametrization Trick} -- Diagrama}
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+      every node/.style={font=\scriptsize},
+      block/.style={draw, thick, minimum width=1.1cm, minimum height=0.9cm,
+                    rounded corners=2pt},
+      enc/.style={block, draw=EncRed, fill=EncRed!10, text=EncRed},
+      dec/.style={block, draw=DecBlue, fill=DecBlue!10, text=DecBlue},
+      reparam/.style={draw=NoiseAmber, dashed, thick, rounded corners=3pt,
+                      fill=NoiseAmber!10, inner sep=5pt},
+      arrow/.style={->, thick, >=stealth},
+      ann/.style={font=\tiny, text=black!70, align=center},
+      callout/.style={draw, dashed, rounded corners=1pt, fill=white,
+                      inner sep=2pt, font=\tiny, align=center}
+    ]
+      % Main pipeline
+      \node (x) {$x$};
+      \node[enc, right=0.4cm of x] (g) {$g[x,\phi]$};
+      \node[right=0.55cm of g] (params) {$\mu,\,\Sigma^{1/2}$};
+      \node[reparam, right=0.55cm of params]
+        (rep) {$z^{*} = \mu + \Sigma^{1/2}\epsilon^{*}$};
+      \node[dec, right=0.55cm of rep] (f) {$f[z^{*},\thetav]$};
+      \node[right=0.4cm of f] (px) {$p(x\mid z^{*},\thetav)$};
+
+      % Noise source below
+      \node[draw, NoiseAmber, fill=NoiseAmber!20, rounded corners=2pt,
+            below=0.8cm of rep, minimum width=2.6cm, minimum height=0.7cm]
+        (eps) {$\epsilon^{*} \sim \mathcal{N}(\mathbf{0},\mathbf{I})$};
+
+      \draw[arrow] (x) -- (g);
+      \draw[arrow] (g) -- (params);
+      \draw[arrow] (params) -- (rep);
+      \draw[arrow, NoiseAmber] (eps) -- (rep);
+      \draw[arrow] (rep) -- (f);
+      \draw[arrow] (f) -- (px);
+
+      % Labels under boxes
+      \node[ann, below=0.08cm of x] {entrada};
+      \node[ann, below=0.08cm of g] {encoder};
+      \node[ann, below=0.08cm of params] {saída do encoder};
+      \node[ann, below=0.08cm of f] {decoder};
+      \node[ann, below=0.08cm of px] {verossimilhança};
+
+      % Callouts above
+      \node[callout, draw=NoiseAmber, text=NoiseAmber!80!black,
+            above=0.9cm of rep]
+        (note1) {ruído amostrado \emph{fora} da rede\\(determinístico em $\mu,\Sigma$)};
+      \node[callout, draw=EncRed, text=EncRed,
+            above=0.9cm of g, xshift=-0.2cm]
+        (note2) {gradiente flui até $\phi$\\via $\mu(\phi),\,\Sigma(\phi)$};
+      \node[callout, draw=DecBlue, text=DecBlue,
+            above=0.9cm of f, xshift=0.6cm]
+        (note3) {gradiente flui até $\thetav$\\via $f(z^{*},\thetav)$};
+
+      \draw[->, dashed, NoiseAmber!80, thin] (note1) -- (rep);
+      \draw[->, dashed, EncRed!70, thin] (note2) -- (g);
+      \draw[->, dashed, DecBlue!70, thin] (note3) -- (f);
+    \end{tikzpicture}}\\
+    \vspace{0.3em}
+    \tiny Adaptado de Prince (2023), Fig.~17.11.
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: VAE EM AÇÃO
+  %======================================================================
+  \section{VAE em ação}
+
+  %--- Slide: amostras e interpolação ---
+  %  Figuras geradas por scripts/train_vae_mnist.py
+  \begin{frame}{VAE em ação -- Amostras e interpolação}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \centering
+        \IfFileExists{slides/img/05-geradores/vae-samples.png}{%
+          \includegraphics[width=0.72\linewidth]{slides/img/05-geradores/vae-samples.png}%
+        }{%
+          \fbox{\parbox[c][3.6cm][c]{0.85\linewidth}{\centering
+            \textit{TODO: rode\\\texttt{scripts/train\_vae\_mnist.py}\\
+            para gerar \texttt{vae-samples.png}.}}}%
+        }\\
+        \vspace{0.3em}
+        \scriptsize \textbf{Amostragem}: $z\sim p(z)$, depois
+        $x = f(z,\thetav)$. Resultado reconhecível mas \emph{borrado}
+        (limite inferior não é apertado).
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \IfFileExists{slides/img/05-geradores/vae-interpolation.png}{%
+          \includegraphics[width=\linewidth]{slides/img/05-geradores/vae-interpolation.png}%
+        }{%
+          \fbox{\parbox[c][3.6cm][c]{0.85\linewidth}{\centering
+            \textit{TODO: rode\\\texttt{scripts/train\_vae\_mnist.py}\\
+            para gerar \texttt{vae-interpolation.png}.}}}%
+        }\\
+        \vspace{0.3em}
+        \scriptsize \textbf{Interpolação}: transição \emph{suave} entre
+        dois dígitos confirma que o latente é contínuo e semanticamente
+        organizado.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: posterior collapse ---
+  \begin{frame}{Patologia: \textit{posterior collapse}}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \begin{itemize}
+          \item Quando o decoder $f$ é \textbf{poderoso demais}, ele
+          consegue modelar $x$ \emph{ignorando} $z$.
+          \item O termo KL pressiona $q(z\mid x,\phi)\to p(z)$:
+          encoder colapsa para o prior. Latente vira \emph{inútil}.
+          \item Sintomas durante o treino:
+          \begin{itemize}
+            \item $D_{KL}\to 0$;
+            \item $\mu(x)\to 0$, $\Sigma(x)\to \mathbf{I}$ para todo $x$.
+          \end{itemize}
+          \item Mitigações:
+          \begin{itemize}
+            \item \textbf{KL annealing}: rampa do peso do KL de $0$ a $1$;
+            \item \textbf{Free bits}: troca $D_{KL}$ por
+            $\sum_i \max(\lambda,\, D_{KL,i})$. Cada dimensão tem
+            $\lambda$ nats ``grátis'' antes do KL pressionar;
+            \item reduzir capacidade do decoder.
+          \end{itemize}
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.43\textwidth}
+        \centering
+        \begin{tikzpicture}
+          \begin{axis}[
+            width=\linewidth, height=4.6cm,
+            xlabel={\scriptsize época}, ylabel={\scriptsize valor},
+            xtick=\empty, ytick=\empty,
+            ymin=0, ymax=2.2, xmin=0, xmax=10,
+            axis lines=left, no markers,
+            legend style={font=\tiny,at={(0.98,0.98)},anchor=north east,draw=none,fill=none},
+            domain=0:10, samples=80,
+          ]
+            \addplot[thick,EncRed] {1.5*exp(-0.6*x) + 0.05};
+            \addlegendentry{KL}
+            \addplot[thick,DecBlue] {1.8 - 0.6*exp(-0.4*x)};
+            \addlegendentry{reconstrução}
+          \end{axis}
+        \end{tikzpicture}\\
+        \vspace{0.2em}
+        \scriptsize KL cai a zero enquanto a reconstrução estagna: o
+        decoder ignora $z$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % PANORAMA
+  %======================================================================
+  \section{Panorama}
+
+  %--- Slide: trilema ---
+  \begin{frame}{Onde VAEs ficam no trilema?}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{itemize}
+          \item \textbf{Amostragem rápida}: $\checkmark$ (1 forward do
+          decoder).
+          \item \textbf{Cobertura / diversidade}: $\checkmark$
+          (maximização do ELBO cobre toda a distribuição).
+          \item \textbf{Qualidade visual}: $\times$ (imagens
+          tipicamente borradas; o limite inferior não é apertado).
+        \end{itemize}
+        \vspace{0.4em}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{\generativetrilemma[vaenf]}
+      \end{column}
+    \end{columns}
+    \begin{block}{Posicionamento}
+      VAEs ocupam o canto \emph{velocidade + cobertura} do trilema,
+      ao lado dos \textit{Normalizing Flows}. Para qualidade,
+      combine VAEs com modelos difusores, base da arquitetura
+      \textit{Latent Diffusion}.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % RESUMO
+  %======================================================================
+  \section*{Resumo}
+
+  \begin{frame}{Resumo}
+    \begin{itemize}
+      \item \textit{Autoencoders}: encoder $g$ e decoder $f$
+      reconstruindo a entrada; latente útil para representação.
+      \item \textit{Denoising AE}: entrada corrompida; rede aprende a
+      remover ruído.
+      \item Aplicação de AE: detecção de anomalias via erro de
+      reconstrução.
+      \item \textit{VAE}: \textit{autoencoder} probabilístico, latente
+      é uma distribuição $q(z\mid x,\phi)$.
+      \item Identidade mestre:
+      $\log p(x) = \mathrm{ELBO} + D_{KL}[q\|p(z\mid x)]$; bound
+      apertado quando $q$ aproxima a posterior.
+      \item ELBO $=$ reconstrução $-$ KL$[q(z\mid x,\phi)\|p(z)]$
+      (logo $-$ELBO $=$ reconstrução $+$ KL);
+      para $p(x\mid z)$ gaussiana, reconstrução $=$ MSE.
+      \item \textit{Reparametrization trick} permite backprop através
+      da amostragem.
+      \item \textit{Posterior collapse}: KL $\to 0$, latente vira
+      inútil; mitigado com KL annealing ou free bits.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % REFERÊNCIAS E LEITURAS
+  %======================================================================
+  \section*{Referências e Leituras}
+
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Capítulo 17: \fullcite{prince2023understanding}
+      \item \fullcite{kingma2014auto}
+      \item \fullcite{vincent2008denoising}
+      \item \fullcite{higgins2017beta}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de CLIP e modelos multimodais: similaridade do cosseno no espaço compartilhado, a matriz contrastiva S = UVᵀ, a perda InfoNCE com temperatura e a classificação zero-shot construída na inferência." />
+  <title>CLIP e Modelos Multimodais — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Cosseno</a></li>
+      <li><a href="#s2">Matriz S</a></li>
+      <li><a href="#s3">InfoNCE</a></li>
+      <li><a href="#s4">Zero-shot</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">CLIP e Modelos <span>Multimodais</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de CLIP e modelos multimodais</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: a similaridade do cosseno
+        <span class="formula">cosθ = (u·v)/(‖u‖‖v‖)</span> como medida de alinhamento no
+        espaço compartilhado, a matriz contrastiva
+        <span class="formula">S = UVᵀ</span> entre imagens e textos, a perda
+        <span class="formula">InfoNCE</span> com temperatura
+        <span class="formula">τ</span> e a classificação
+        <span class="formula">zero-shot</span>, onde o classificador é montado na hora da
+        inferência a partir dos prompts de texto.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Cosseno e o espaço compartilhado ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Cosseno e o espaço compartilhado</h2>
+      <p class="demo-text">
+        CLIP projeta imagens e textos num mesmo espaço e mede o alinhamento entre eles pela
+        similaridade do cosseno
+        <span class="formula">cosθ = (u·v)/(‖u‖‖v‖)</span>.
+        Como o cosseno só depende da direção, a comparação é feita sobre os vetores
+        normalizados <span class="formula">û = u/‖u‖</span> e
+        <span class="formula">v̂ = v/‖v‖</span>, que vivem na circunferência de raio 1.
+        Arraste as pontas de <span class="formula">u</span> (ciano) e
+        <span class="formula">v</span> (laranja): o arco mostra o ângulo
+        <span class="formula">θ</span> entre eles e os pontos na circunferência são
+        <span class="formula">û</span> e <span class="formula">v̂</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar vetores</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Plano com u, v, o arco do ângulo θ e os normalizados û, v̂ na circunferência (arraste as pontas)</p>
+            <canvas id="s1-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">cosθ na reta de −1 a 1: 1 é alinhamento total, 0 é ortogonal, −1 é oposto</p>
+            <canvas id="s1-cos"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Quando <span class="formula">u</span> e <span class="formula">v</span> apontam
+          para o mesmo lado, <span class="formula">cosθ</span> se aproxima de 1 e os pontos
+          <span class="formula">û</span>, <span class="formula">v̂</span> quase coincidem.
+          Em ângulo reto o produto interno zera (<span class="formula">cosθ = 0</span>) e em
+          direções opostas <span class="formula">cosθ = −1</span>. Aumentar o comprimento de um
+          vetor muda <span class="formula">‖u‖‖v‖</span> e <span class="formula">u·v</span> na
+          mesma proporção, então o cosseno não muda: o que importa é a direção.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Matriz de similaridade S = UVᵀ ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Matriz de similaridade S = UVᵀ</h2>
+      <p class="demo-text">
+        No treino contrastivo um lote traz <span class="formula">N</span> imagens e
+        <span class="formula">N</span> textos, codificados como vetores unitários
+        <span class="formula">û<sub>i</sub></span> e <span class="formula">v̂<sub>j</sub></span>.
+        A matriz de similaridade <span class="formula">S<sub>ij</sub> = û<sub>i</sub>·v̂<sub>j</sub></span>
+        guarda o cosseno de cada par. Os pares corretos ficam na diagonal
+        (os <span class="formula">N</span> positivos) e todo o resto são os
+        <span class="formula">N(N−1)</span> negativos. Arraste os pontos nas duas
+        circunferências para girar cada vetor e veja a matriz reagir.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">N = <span id="s2-n-val">4</span>
+            <input type="range" id="s2-n" min="2" max="6" value="4" step="1" />
+          </label>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Vetores unitários: imagens û<sub>i</sub> (ciano) e textos v̂<sub>j</sub> (laranja) nas duas circunferências (arraste)</p>
+            <canvas id="s2-circles"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Matriz S<sub>ij</sub> = û<sub>i</sub>·v̂<sub>j</sub>: linhas são imagens, colunas são textos, a diagonal (verde) são os positivos</p>
+            <canvas id="s2-heat"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 O objetivo do treino é deixar a diagonal alta (positivos com cosseno perto de 1)
+          e o resto baixo (negativos com cosseno perto de 0 ou negativo). Alinhe
+          <span class="formula">û<sub>1</sub></span> com <span class="formula">v̂<sub>1</sub></span>:
+          a célula <span class="formula">S<sub>11</sub></span> acende. Gire um texto para perto
+          de outra imagem e um negativo fora da diagonal vai brilhar, exatamente o que a perda
+          contrastiva quer evitar.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: InfoNCE e temperatura ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · InfoNCE e temperatura</h2>
+      <p class="demo-text">
+        A perda InfoNCE aplica um softmax sobre cada linha e cada coluna de
+        <span class="formula">S/τ</span>:
+        <span class="formula">p<sub>ij</sub> = exp(S<sub>ij</sub>/τ) / Σ<sub>k</sub> exp(S<sub>ik</sub>/τ)</span>.
+        Cada imagem deve escolher seu texto (softmax por linha) e cada texto deve escolher sua
+        imagem (softmax por coluna). As probabilidades alvo são as da diagonal, e a perda final
+        é <span class="formula">L<sub>CLIP</sub> = ½(L<sub>img→txt</sub> + L<sub>txt→img</sub>)</span>.
+        A temperatura <span class="formula">τ</span> controla o quão afiada fica a distribuição.
+        O controle de alinhamento gira cada texto na direção da sua imagem correspondente.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">τ = <span id="s3-tau-val">0.10</span>
+            <input type="range" id="s3-tau" min="0" max="100" value="50" step="1" />
+          </label>
+          <label class="slider-label">alinhamento = <span id="s3-align-val">0.30</span>
+            <input type="range" id="s3-align" min="0" max="100" value="30" step="1" />
+          </label>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Softmax por linha p<sup>linha</sup> (imagem → texto), diagonal em verde</p>
+            <canvas id="s3-row"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Softmax por coluna p<sup>coluna</sup> (texto → imagem), diagonal em verde</p>
+            <canvas id="s3-col"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Probabilidade da diagonal p<sub>ii</sub> (softmax por linha): afia conforme τ diminui</p>
+            <canvas id="s3-bar"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">τ</span> grande o softmax fica quase uniforme, as barras
+          da diagonal ficam baixas e a perda alta. Com <span class="formula">τ</span> pequeno a
+          distribuição afia: se a diagonal já é o maior valor da linha, sua probabilidade vai a 1
+          e a perda cai. Suba o alinhamento para empurrar cada texto na direção da sua imagem,
+          a diagonal de <span class="formula">S</span> sobe e
+          <span class="formula">L<sub>CLIP</sub></span> despenca.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Classificação zero-shot ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Classificação zero-shot</h2>
+      <p class="demo-text">
+        Na classificação zero-shot o classificador é montado na hora da inferência: cada classe
+        vira um prompt de texto (por exemplo "uma foto de um gato"), codificado num vetor
+        unitário <span class="formula">v̂<sub>k</sub></span>. Para uma imagem
+        <span class="formula">û</span> calculamos os escores
+        <span class="formula">s<sub>k</sub> = û·v̂<sub>k</sub></span> e aplicamos
+        <span class="formula">softmax(s<sub>k</sub>/τ)</span> para obter a probabilidade de
+        cada classe. A predição é o <span class="formula">argmax</span>. Arraste a imagem
+        <span class="formula">û</span> e os prompts e veja a predição mudar.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">τ = <span id="s4-tau-val">0.10</span>
+            <input type="range" id="s4-tau" min="0" max="100" value="50" step="1" />
+          </label>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Imagem û (ciano) e os prompts de classe v̂<sub>k</sub> na circunferência (arraste qualquer um)</p>
+            <canvas id="s4-circle"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Probabilidade de cada classe softmax(s<sub>k</sub>/τ): a classe vencedora fica em verde</p>
+            <canvas id="s4-bars"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Nenhum peso foi treinado para essas classes: o classificador surge das comparações
+          de cosseno na inferência. Aproxime <span class="formula">û</span> de um prompt e ele
+          vence; coloque a imagem entre dois prompts e baixe <span class="formula">τ</span> para
+          ver a decisão ficar mais agressiva, com quase toda a massa na classe mais próxima.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>CLIP e Modelos Multimodais</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-cosine.js"></script>
+  <script defer src="js/section2-similarity.js"></script>
+  <script defer src="js/section3-infonce.js"></script>
+  <script defer src="js/section4-zeroshot.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+\documentclass{dlproblemset}
+
+\title{LSTMs e GRUs}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\subsection*{Questões de Múltipla Escolha}
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% Q1 — Medium (contagem de parâmetros LSTM; distrator = GRU / sem bias)
+% ------------------------------------------------------------------
+\item Uma célula LSTM recebe entradas de dimensão $is = 10$ e mantém um estado oculto de
+dimensão $hs = 20$. Cada uma das quatro camadas densas internas tem pesos
+$\theta_\bullet \in \mathbb{R}^{(hs + is) \times hs}$ e \textit{bias}
+$b_\bullet \in \mathbb{R}^{hs}$. Quantos parâmetros treináveis (pesos e \textit{bias})
+a célula possui no total?
+
+\begin{enumerate}[a)]
+    \item $2480$.
+    \item $2400$.
+    \item $1860$.
+    \item $1240$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q2 — Medium (comportamento das gates na atualização de c_t)
+% ------------------------------------------------------------------
+\item Considere a atualização da memória $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$.
+Qual configuração das \textit{gates} faz a célula \textbf{preservar integralmente} a memória
+de longo prazo e \textbf{ignorar} a entrada do passo atual?
+
+\begin{enumerate}[a)]
+    \item $f_t \to 1$ e $i_t \to 0$.
+    \item $f_t \to 0$ e $i_t \to 1$.
+    \item $f_t \to 1$ e $i_t \to 1$.
+    \item $f_t \to 0$ e $i_t \to 0$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q3 — Medium (cálculo de h_t; distratores = erros comuns)
+% ------------------------------------------------------------------
+\item Em um passo de uma LSTM o \textit{output gate} resultou em $o_t = 0.6$ e a memória
+atualizada foi $c_t = 0.5$. Usando $h_t = o_t \odot \tanh(c_t)$, qual é o valor de $h_t$?
+
+\begin{enumerate}[a)]
+    \item $\approx 0.2773$.
+    \item $\approx 0.3000$.
+    \item $\approx 0.2913$.
+    \item $\approx 0.4621$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q4 — Medium (update gate da GRU; direção de z_t)
+% ------------------------------------------------------------------
+\item Na GRU, o estado oculto é atualizado por
+$h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t$. Quando o \textit{update gate}
+satisfaz $z_t \to 0$, o que ocorre com o estado oculto?
+
+\begin{enumerate}[a)]
+    \item $h_t \approx h_{t-1}$.
+    \item $h_t \approx \tilde{h}_t$.
+    \item $h_t \approx 0$.
+    \item $h_t \approx r_t \odot h_{t-1}$.
+\end{enumerate}
+% R: a
+
+\end{enumerate}
+
+\subsection*{Gabarito - Objetivas}
+\color{blue}
+\begin{enumerate}[I)]
+    \item \textbf{a.} Cada \textit{gate} tem $(hs+is)\cdot hs$ pesos mais $hs$ \textit{bias},
+    isto é, $(30)(20) + 20 = 620$ parâmetros. Com quatro camadas densas,
+    $4 \cdot 620 = 2480$. A alternativa (b) $2400$ esquece os \textit{bias}
+    ($4 \cdot 600$); (c) $1860$ usa apenas três camadas (é a conta de uma GRU); (d) $1240$
+    conta apenas duas camadas.
+    \item \textbf{a.} Para manter $c_{t-1}$ e bloquear a contribuição nova é preciso
+    $f_t \to 1$ (preserva a memória) e $i_t \to 0$ (zera $i_t \odot \tilde{c}_t$). As demais
+    ou apagam a memória ($f_t \to 0$) ou deixam a entrada atualizar o estado ($i_t \to 1$).
+    \item \textbf{a.} $h_t = 0.6 \cdot \tanh(0.5) = 0.6 \cdot 0.4621 \approx 0.2773$.
+    A alternativa (b) $0.3000$ esquece o $\tanh$; (c) $0.2913$ aplica $\tanh$ \emph{depois}
+    do produto, $\tanh(0.3)$; (d) $0.4621$ esquece de multiplicar por $o_t$.
+    \item \textbf{a.} Com $z_t \to 0$, $h_t = 1 \cdot h_{t-1} + 0 \cdot \tilde{h}_t = h_{t-1}$:
+    o estado anterior é copiado. A alternativa (b) corresponde a $z_t \to 1$; (c) e (d) não
+    correspondem à equação de atualização.
+\end{enumerate}
+\color{black}
+
+\newpage
+
+\subsection*{Questões Dissertativas}
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% D1 — Medium (forward pass escalar passo a passo)
+% ------------------------------------------------------------------
+\item Considere uma célula LSTM \emph{escalar} com estado inicial $c_0 = 0.2$,
+$h_0 = 0.5$ e entrada $x_0 = -0.4$, de modo que o vetor concatenado é
+$[h_0,\, x_0] = [0.5,\, -0.4]$. Cada camada densa interna tem pesos
+$\theta_\bullet = [\theta_h,\, \theta_x]$ que multiplicam $[h_{t-1},\, x_t]^T$:
+\[
+    \theta_f = [0.4,\, 0.6],\ b_f = -0.1; \qquad
+    \theta_i = [0.5,\, -0.2],\ b_i = 0.1;
+\]
+\[
+    \theta_c = [-0.3,\, 0.5],\ b_c = 0.4; \qquad
+    \theta_o = [0.2,\, 0.3],\ b_o = 0.
+\]
+Calcule, passo a passo (use 4 casas decimais):
+\begin{enumerate}[(a)]
+    \item o \textit{forget gate} $f_t$ e o \textit{input gate} $i_t$;
+    \item o candidato $\tilde{c}_t$;
+    \item a nova memória $c_t = f_t\, c_0 + i_t\, \tilde{c}_t$;
+    \item o \textit{output gate} $o_t$ e o estado oculto $h_t = o_t\, \tanh(c_t)$.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D2 — Hard (porquê do gradiente; paralelo LSTM/GRU)
+% ------------------------------------------------------------------
+\item A LSTM foi projetada para mitigar o \textit{vanishing gradient} das RNNs simples.
+\begin{enumerate}[(a)]
+    \item A partir da atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$, mostre que,
+    pelo \emph{caminho direto} no tempo, $\dfrac{\partial c_t}{\partial c_{t-1}} = f_t$.
+    Explique por que isso evita o desaparecimento do gradiente, comparando com a RNN
+    \textit{vanilla}, cujo gradiente acumula o produto
+    $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$.
+    \item \emoji{skull-and-crossbones} A GRU não mantém um estado de memória $c_t$ separado;
+    o estado é atualizado por $h_t = (1 - z_t)\, h_{t-1} + z_t\, \tilde{h}_t$. Identifique qual
+    termo desempenha, na GRU, o papel análogo ao do \textit{forget gate} da LSTM na preservação
+    do gradiente e diga sob qual condição do \textit{update gate} $z_t$ o gradiente é carregado
+    quase sem atenuação.
+\end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Gabarito}
+\color{blue}
+\begin{enumerate}[I)]
+
+\item \textit{Forward pass} escalar de um passo da LSTM.
+\begin{enumerate}[(a)]
+    \item \textit{Forget} e \textit{input gates}:
+    \begin{align*}
+        f_t &= \sigma\bigl(0.4 \cdot 0.5 + 0.6 \cdot (-0.4) - 0.1\bigr)
+            = \sigma(-0.14) \approx 0.4651 \\
+        i_t &= \sigma\bigl(0.5 \cdot 0.5 + (-0.2) \cdot (-0.4) + 0.1\bigr)
+            = \sigma(0.43) \approx 0.6059
+    \end{align*}
+    \item Candidato:
+    \[
+        \tilde{c}_t = \tanh\bigl(-0.3 \cdot 0.5 + 0.5 \cdot (-0.4) + 0.4\bigr)
+            = \tanh(0.05) \approx 0.0500
+    \]
+    \item Nova memória:
+    \[
+        c_t = 0.4651 \cdot 0.2 + 0.6059 \cdot 0.0500
+            \approx 0.0930 + 0.0303 = 0.1233
+    \]
+    \item \textit{Output gate} e estado oculto:
+    \begin{align*}
+        o_t &= \sigma\bigl(0.2 \cdot 0.5 + 0.3 \cdot (-0.4) + 0\bigr)
+            = \sigma(-0.02) \approx 0.4950 \\
+        h_t &= 0.4950 \cdot \tanh(0.1233) \approx 0.4950 \cdot 0.1227 \approx 0.0607
+    \end{align*}
+\end{enumerate}
+
+\item Por que o caminho da memória preserva o gradiente.
+\begin{enumerate}[(a)]
+    \item Derivando $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ em relação a $c_{t-1}$,
+    o termo direto $f_t \odot c_{t-1}$ contribui com $f_t$; os fatores $f_t$, $i_t$ e
+    $\tilde{c}_t$ dependem de $c_{t-1}$ apenas indiretamente, através de $h_{t-1}$, formando
+    caminhos secundários menores. Logo, pelo caminho direto,
+    $\partial c_t / \partial c_{t-1} = f_t$. Ao longo de $T$ passos esse caminho acumula
+    $\prod_k f_k$: são multiplicações por portas aprendidas e \textbf{somas}, sem $\tanh'$
+    repetido. Quando o \textit{forget gate} aprende $f_k \approx 1$, o produto permanece
+    $\approx 1$ e o gradiente é preservado (\textit{constant error carousel}). Na RNN
+    \textit{vanilla}, cada passo multiplica por $\theta_{hh}\,(1 - \tanh^2(z_k))$; como
+    $1 - \tanh^2 \le 1$, o produto tende a $0$ (\textit{vanishing}) ou, com $|\theta_{hh}|$
+    grande, explode.
+    \item Na GRU, o fator $(1 - z_t)$ multiplica $h_{t-1}$ no caminho direto, então
+    $\partial h_t / \partial h_{t-1} = (1 - z_t)$ por esse caminho, papel análogo ao $f_t$ da
+    LSTM. Quando $z_t \approx 0$ (\textit{update gate} ``fechado''), tem-se $(1 - z_t) \approx 1$
+    e o estado é carregado com gradiente $\approx 1$, preservando a informação ao longo do tempo.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

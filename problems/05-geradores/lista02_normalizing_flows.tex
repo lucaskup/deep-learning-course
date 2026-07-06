@@ -1,0 +1,294 @@
+\documentclass{dlproblemset}
+\usepackage{emoji}
+\usepackage{tikz}
+\providecommand{\thetav}{\theta}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\title{\textit{Normalizing Flows}}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $p_X(x)$ para a densidade modelada, $p_Z(z)$ para a distribuição base, $f$ para a transformação inversível com parâmetros $\thetav$, e $J = \partial f / \partial z$ para a Jacobiana. Em camadas \textit{coupling}, $\mathbf{x}^A$ é a metade copiada e $\mathbf{x}^B$ é a metade transformada. Questões marcadas com \emoji{skull-and-crossbones} são consideradas mais difíceis.
+
+\subsection*{Questões de Múltipla Escolha.}
+
+\begin{enumerate}[I)]
+
+    % --------------------------------------------------------------
+    % Q1 (easy) -- propriedades essenciais de um flow
+    % --------------------------------------------------------------
+    \item Quatro funções $f : \mathbb{R}^d \to \mathbb{R}^d$ são candidatas a compor uma camada de \textit{normalizing flow}. Para que a camada possa ser treinada por máxima verossimilhança e amostrada pela inversa, $f$ deve satisfazer simultaneamente um conjunto específico de propriedades. Qual conjunto abaixo é o mínimo necessário?
+    \begin{enumerate}[(a)]
+        \item Inversível, diferenciável, com Jacobiana cujo determinante seja eficiente de computar, e paramétrica.
+        \item Linear por partes, contínua, com determinante igual a 1, e paramétrica.
+        \item Estritamente convexa, suave, com Jacobiana ortogonal, e paramétrica.
+        \item Inversível, monótona crescente em cada coordenada, com gradiente limitado, e linear.
+        %a
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q2 (easy) -- log|det J| para affine coupling
+    % --------------------------------------------------------------
+    \item Considere uma camada \textit{affine coupling} aplicada a $\mathbf{x} \in \mathbb{R}^{6}$ com partição $\mathbf{x}^{A} \in \mathbb{R}^{3}$ e $\mathbf{x}^{B} \in \mathbb{R}^{3}$. A \textit{coupling network} produziu, a partir de $\mathbf{x}^{A}$, o vetor de log-escala $\mathbf{s} = (0.2,\; -0.5,\; 0.7)$. Qual é o valor de $\log\left|\det J\right|$ para essa camada?
+    \begin{enumerate}[(a)]
+        \item $1.4$.
+        \item $0.4$.
+        \item $\approx 1.49$.
+        \item $\approx 0.13$.
+        %b
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q3 (medium) -- comparativo VAE / GAN / NF
+    % --------------------------------------------------------------
+    \item Você precisa de um modelo gerador que, para qualquer ponto $x$ no espaço de dados, devolva o valor exato de $\log p_X(x)$ (e não apenas um limite inferior ou um sinal de discriminador). Considerando as famílias VAE, GAN e \textit{Normalizing Flow}, qual afirmação descreve corretamente o que cada uma oferece nesse aspecto?
+    \begin{enumerate}[(a)]
+        \item VAE fornece $\log p_X(x)$ exato pelo \textit{decoder}; GAN fornece um limite inferior; NF, apenas amostras.
+        \item GAN fornece $\log p_X(x)$ exato via discriminador; VAE fornece apenas amostras; NF, um limite inferior.
+        \item NF fornece $\log p_X(x)$ exato via mudança de variável; VAE fornece um limite inferior; GAN, apenas amostras.
+        \item As três famílias fornecem $\log p_X(x)$ exato, diferindo apenas na qualidade visual das amostras.
+        %c
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q4 (medium) -- forward pass numérico affine coupling
+    % --------------------------------------------------------------
+    \item Em uma camada \textit{affine coupling} aplicada a $\mathbf{x} = (x^A, x^B) = (2,\; 3)$, a \textit{coupling network} produz $s(x^A) = -0.5$ e $t(x^A) = 1.0$. Aplicando a regra \emph{forward} $\mathbf{y}^B = \mathbf{x}^B \odot \exp(\mathbf{s}) + \mathbf{t}$, $\mathbf{y}^A = \mathbf{x}^A$, qual é o valor de $\mathbf{y} = (y^A, y^B)$? Use $e^{-0.5} \approx 0.607$.
+    \begin{enumerate}[(a)]
+        \item $(2,\; 2.82)$.
+        \item $(2,\; 1.82)$.
+        \item $(2,\; 5.95)$.
+        \item $(2,\; 3.50)$.
+        %a
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q5 (medium) -- Jacobiana triangular por blocos
+    % --------------------------------------------------------------
+    \item Em uma camada \textit{coupling}, a Jacobiana tem a forma por blocos
+    \[
+        Df =
+        \begin{bmatrix}
+            \mathbf{I} & \mathbf{0} \\
+            \dfrac{\partial \hat{f}}{\partial \mathbf{x}^{A}} & \dfrac{\partial \hat{f}}{\partial \mathbf{x}^{B}}
+        \end{bmatrix}.
+    \]
+    Qual conclusão sobre $\det(Df)$ segue dessa estrutura?
+    \begin{enumerate}[(a)]
+        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{A})$, pois o bloco fora da diagonal domina.
+        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{B})$, pois o determinante de uma matriz triangular por blocos é o produto dos determinantes dos blocos diagonais e $\det(\mathbf{I}) = 1$.
+        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{A}) \cdot \det(\partial \hat{f}/\partial \mathbf{x}^{B})$.
+        \item $\det(Df) = 1$, pois o bloco superior é a identidade.
+        %b
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q6 (medium) -- NLL: quais termos dependem de theta
+    % --------------------------------------------------------------
+    \item A perda treinada por máxima verossimilhança num \textit{flow} tem a forma
+    \[
+        \mathcal{L}(\thetav) = \sum_{i=1}^{N}\left[\log\left|\det \tfrac{\partial f(z^{(i)},\thetav)}{\partial z^{(i)}}\right| - \log p_Z(z^{(i)})\right],
+    \]
+    onde $p_Z$ é a distribuição base (gaussiana padrão) e $z^{(i)} = f^{-1}(x^{(i)}, \thetav)$. Sobre os dois termos, qual afirmação é correta?
+    \begin{enumerate}[(a)]
+        \item O termo $\log|\det J|$ depende de $\thetav$; o termo $-\log p_Z(z^{(i)})$ é constante em $\thetav$ e pode ser omitido do gradiente sem alterar o treino.
+        \item Ambos os termos dependem de $\thetav$: o primeiro pela Jacobiana da rede e o segundo pelo ponto de avaliação $z^{(i)} = f^{-1}(x^{(i)}, \thetav)$.
+        \item O termo $-\log p_Z(z^{(i)})$ depende de $\thetav$ pela parametrização da média e variância da gaussiana base; $\log|\det J|$ permanece constante.
+        \item Nenhum dos dois termos depende de $\thetav$, pois ambos são avaliados em pontos $z^{(i)}$ fixados antes do treinamento começar.
+        %b
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q7 (medium) -- inverse pass numérico
+    % --------------------------------------------------------------
+    \item Uma camada \textit{affine coupling} produziu $\mathbf{y} = (y^A, y^B) = (1,\; 2.20)$ a partir da entrada $\mathbf{x}$. A \textit{coupling network} (reavaliada em $\mathbf{x}^A = y^A = 1$) devolve $s = 0.3$ e $t = -0.5$. Use $e^{-0.3} \approx 0.741$. Qual é o valor recuperado de $\mathbf{x}^B$ pela inversa?
+    \begin{enumerate}[(a)]
+        \item $2.00$.
+        \item $1.26$.
+        \item $3.64$.
+        \item $1.63$.
+        %a
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q8 (HARD, skull) -- change of variable 1D, valor de densidade
+    % --------------------------------------------------------------
+    \item \emoji{skull-and-crossbones} Seja $X \sim \mathcal{N}(0,1)$ e $Y = 2X + 3$. Pela fórmula de mudança de variável, qual é o valor de $p_Y(y)$ em $y = 3$? Use $1/\sqrt{2\pi} \approx 0.399$.
+    \begin{enumerate}[(a)]
+        \item $\approx 0.399$.
+        \item $\approx 0.200$.
+        \item $\approx 0.798$.
+        \item $\approx 0.133$.
+        %b
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q9 (medium) -- permutações entre coupling layers
+    % --------------------------------------------------------------
+    \item Em um \textit{Real NVP}, intercala-se \textbf{permutações} (ou \textit{linear flows} estruturados) entre camadas \textit{coupling} sucessivas. Qual é o motivo principal?
+    \begin{enumerate}[(a)]
+        \item Reduzir o custo computacional do cálculo do determinante, que cresceria com a profundidade.
+        \item Forçar a Jacobiana global a ser ortogonal, o que zera o termo de log-determinante na perda.
+        \item Estabilizar o treino normalizando a magnitude dos vetores $\mathbf{s}$ e $\mathbf{t}$ produzidos pela \textit{coupling network}.
+        \item Garantir que todas as dimensões da entrada sejam efetivamente transformadas ao longo da rede, e não apenas a metade $\mathbf{x}^B$ de uma única partição.
+        %d
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q10 (medium) -- por que estruturar a matriz em linear flow
+    % --------------------------------------------------------------
+    \item Em um \textit{linear flow} $f(\mathbf{x}) = \theta\mathbf{x} + \mathbf{b}$ com $\mathbf{x} \in \mathbb{R}^d$ e $\theta$ densa, calcular $\det(\theta)$ e $\theta^{-1}$ a cada passo de treino custa $\mathcal{O}(d^3)$. Estruturas como decomposição LU ou convoluções $1{\times}1$ (Glow) são adotadas porque:
+    \begin{enumerate}[(a)]
+        \item Aumentam a expressividade da camada, permitindo que ela modele relações não lineares entre as dimensões.
+        \item Garantem que o determinante seja sempre igual a $1$, eliminando o termo $\log|\det J|$ da perda.
+        \item Reduzem o custo de determinante e inversa para $\mathcal{O}(d)$ ou $\mathcal{O}(d^2)$, mantendo a inversibilidade exigida pelo \textit{flow}.
+        \item Eliminam a necessidade de uma distribuição base $p_Z$, pois a transformação fica isométrica.
+        %c
+    \end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Gabarito - Objetivas}
+\begin{enumerate}[I)]
+    \item a
+    \item b
+    \item c
+    \item a
+    \item b
+    \item b
+    \item a
+    \item b
+    \item d
+    \item c
+\end{enumerate}
+
+\newpage
+
+\subsection*{Questões Dissertativas.}
+
+\begin{enumerate}[I)]
+
+    % --------------------------------------------------------------
+    % D1 (medium) -- derivação NLL a partir da MLE
+    % --------------------------------------------------------------
+    \item (\textbf{Derivação da NLL para \textit{flows}}) Partindo do \textit{framework} de máxima verossimilhança
+    \[
+        \hat{\thetav} = \argmax_{\thetav}\prod_{i=1}^{N} p_X\!\left(x^{(i)} \mid \thetav\right),
+    \]
+    derive a perda treinada em \textit{normalizing flows} em três etapas explícitas:
+    \begin{enumerate}[(a)]
+        \item Transforme o $\argmax$ do produto em $\argmin$ de uma soma negativa de log-verossimilhanças. Justifique em uma frase a vantagem numérica dessa troca.
+        \item Substitua $p_X(x^{(i)} \mid \thetav)$ usando a fórmula de mudança de variável $p_X(x) = p_Z(z)\left|\partial f / \partial z\right|^{-1}$, com $z = f^{-1}(x, \thetav)$.
+        \item Apresente a forma final como soma de dois termos, explicando como cada um deles depende de $\thetav$. Comente o papel intuitivo do termo $\log|\det J|$ (qual comportamento da rede ele penaliza).
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % D2 (medium, sub-c skull) -- exemplo numérico 4D affine coupling
+    % --------------------------------------------------------------
+    \item (\textbf{Camada \textit{affine coupling} em 4D}) Considere $\mathbf{x} = (x_1, x_2, x_3, x_4) = (0.5,\; 1.0,\; -1.0,\; 2.0)$, com $\mathbf{x}^A = (x_1, x_2)$ e $\mathbf{x}^B = (x_3, x_4)$. A \textit{coupling network} produz, a partir de $\mathbf{x}^A$, os vetores $\mathbf{s} = (0.1,\; -0.2)$ e $\mathbf{t} = (0.3,\; -0.4)$.
+    \begin{enumerate}[(a)]
+        \item Calcule o \textit{forward pass} $\mathbf{y} = f(\mathbf{x})$ usando $\mathbf{y}^B = \mathbf{x}^B \odot \exp(\mathbf{s}) + \mathbf{t}$ e $\mathbf{y}^A = \mathbf{x}^A$. Use $e^{0.1} \approx 1.105$ e $e^{-0.2} \approx 0.819$.
+        \item Calcule $\log|\det J|$ para essa camada. Mostre que o resultado depende apenas de $\mathbf{s}$.
+        \item Recupere $\mathbf{x}^B$ aplicando a inversa $\mathbf{x}^B = (\mathbf{y}^B - \mathbf{t}) \odot \exp(-\mathbf{s})$. Confirme que os valores originais $(-1.0,\; 2.0)$ são reconstruídos.
+        \item \emoji{skull-and-crossbones} Suponha que a \textit{coupling network} fosse uma rede neural arbitrária, possivelmente não inversível (por exemplo, com camadas ReLU que descartam informação). Explique por que isso \textbf{não} compromete a inversibilidade da camada \textit{coupling} como um todo. Em que sentido o "preço" da inversibilidade global recai apenas sobre a função elemento a elemento $\hat{f}$, e não sobre a sub-rede que produz $(\mathbf{s}, \mathbf{t})$?
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % D3 (medium) -- comparativo NF / VAE / GAN no trilema
+    % --------------------------------------------------------------
+    \item (\textbf{NF, VAE e GAN no trilema}) Considere três eixos para avaliar uma família de modelos geradores: (i) \emph{avaliação} de $p_X(x)$ para um ponto dado, (ii) custo computacional de \emph{amostragem}, (iii) \emph{qualidade visual} típica em datasets de imagens naturais. Para cada um dos três modelos abaixo, indique em que ponto do espaço (eixos i, ii, iii) ele se posiciona e justifique a partir do mecanismo de treino e da arquitetura:
+    \begin{enumerate}[(a)]
+        \item GAN.
+        \item VAE.
+        \item \textit{Normalizing Flow}.
+    \end{enumerate}
+    Conclua identificando qual canto do trilema é ocupado pelos NFs e cite uma aplicação prática em que esse canto é preferível ao dos GANs ou modelos difusores.
+
+    % --------------------------------------------------------------
+    % D4 (HARD, skull) -- derivação log-normal via mudança de variável
+    % --------------------------------------------------------------
+    \item \emoji{skull-and-crossbones} (\textbf{Mudança de variável 1D}) Seja $X \sim \mathcal{N}(0,1)$ e defina $Z = \exp(X)$. O objetivo é derivar a densidade $p_Z(z)$.
+    \begin{enumerate}[(a)]
+        \item Escreva $p_X(x)$ explicitamente.
+        \item Determine a função inversa $x = f^{-1}(z)$ e calcule $\left|d x / d z\right|$.
+        \item Aplique a fórmula $p_Z(z) = p_X(f^{-1}(z)) \left|d x / d z\right|$ e escreva $p_Z(z)$ em forma fechada. Indique o suporte ($z > 0$) e o nome dessa distribuição.
+        \item Calcule numericamente $p_Z(z = 1)$. Use $1/\sqrt{2\pi} \approx 0.399$.
+    \end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Gabarito}
+\color{blue}
+
+\paragraph{Múltipla Escolha.}
+\begin{enumerate}[I)]
+    \item \textbf{(a)} As quatro propriedades essenciais discutidas em aula são: paramétrica (para haver o que aprender), inversível (para suportar amostragem e avaliação), diferenciável (para \textit{backprop}) e Jacobiana com determinante eficiente (para tornar a NLL tratável). A alternativa (b) impõe $\det = 1$, perdendo a deformação de volume que é justamente o que carrega a densidade. (c) e (d) acrescentam restrições gratuitas (ortogonalidade, monotonicidade coordenada a coordenada, linearidade) que limitam fortemente a expressividade.
+
+    \item \textbf{(b)} Para \textit{affine coupling}, $\log|\det J| = \sum_i s_i = 0.2 + (-0.5) + 0.7 = 0.4$. A alternativa (a) seria $\sum_i |s_i| = 1.4$, um erro comum de quem aplica módulo a cada $s_i$. A (c) corresponde a $\prod_i \exp(s_i) \approx \exp(0.4) \approx 1.49$, ou seja, devolve $|\det J|$ em vez de seu log. A (d) é a média dos $s_i$.
+
+    \item \textbf{(c)} \textit{Normalizing flows} fornecem $\log p_X(x)$ exato porque a mudança de variável devolve uma fórmula fechada em função de $p_Z(z)$ e do log-determinante. VAEs maximizam o ELBO, que é apenas um limite inferior de $\log p_X(x)$, não o valor exato. GANs treinam por jogo entre gerador e discriminador e não dão acesso a uma densidade.
+
+    \item \textbf{(a)} $y^A = x^A = 2$. $y^B = 3 \cdot e^{-0.5} + 1 \approx 3 \cdot 0.607 + 1 = 1.82 + 1 = 2.82$. A (b) esquece o termo $+t$ ($3 \cdot 0.607 \approx 1.82$). A (c) usa $\exp(+0.5) \approx 1.649$ no lugar de $\exp(-0.5)$, dando $3 \cdot 1.649 + 1 \approx 5.95$. A (d) aplica $x^B + s + t = 3 - 0.5 + 1 = 3.5$, somando em vez de escalar por $\exp(s)$.
+
+    \item \textbf{(b)} Para uma matriz triangular inferior por blocos $\begin{bmatrix}A & 0 \\ C & D\end{bmatrix}$, o determinante é $\det(A)\det(D)$. Como o bloco superior é $\mathbf{I}$ (com $\det = 1$), sobra $\det(\partial \hat{f}/\partial \mathbf{x}^{B})$. O bloco fora da diagonal $\partial \hat{f}/\partial \mathbf{x}^{A}$ é exatamente o que \emph{não importa} para o determinante. As alternativas (a) e (c) trocam essa propriedade.
+
+    \item \textbf{(b)} Ambos os termos recebem gradiente. O $\log|\det J|$ depende de $\thetav$ diretamente, pela Jacobiana da rede, e penaliza camadas que contraem volume de forma exagerada para "trapacear" empurrando toda a massa para uma região pequena. O termo $-\log p_Z(z)$ tem forma fechada fixa (gaussiana padrão), mas o ponto de avaliação $z^{(i)} = f^{-1}(x^{(i)}, \thetav)$ se move quando $\thetav$ muda; é esse termo que puxa os latentes para a região de alta densidade da base. A (a) é o erro clássico: se o termo da base fosse omitido do gradiente, a rede minimizaria a perda apenas contraindo volume, sem ajustar a distribuição aos dados. A (c) inverte os papéis, a base é fixa e a Jacobiana não é constante. A (d) é falsa, $z^{(i)}$ é recalculado a cada passo de treino.
+
+    \item \textbf{(a)} $x^B = (y^B - t) \cdot e^{-s} = (2.20 - (-0.5)) \cdot e^{-0.3} = 2.70 \cdot 0.741 \approx 2.00$. A (b) usa $(y^B - 0.5) \cdot 0.741 = 1.70 \cdot 0.741 \approx 1.26$, esquecendo que $t = -0.5$ e portanto $y^B - t = y^B + 0.5$. A (c) aplica $e^{+s}$ em vez de $e^{-s}$, dando $2.70 \cdot 1.350 \approx 3.64$. A (d) usa $y^B \cdot e^{-s} = 2.20 \cdot 0.741 \approx 1.63$, omitindo $t$ por completo.
+
+    \item \textbf{(b)} $Y = aX + b$ com $a = 2$, $b = 3$ é a transformação afim padrão. Pela mudança de variável, $p_Y(y) = p_X((y - b)/a) \cdot |1/a|$. Em $y = 3$, $(y - b)/a = 0$, então $p_X(0) = 1/\sqrt{2\pi} \approx 0.399$. Multiplicando por $|1/a| = 1/2$, $p_Y(3) \approx 0.200$. A (a) esquece o fator Jacobiano $1/|a|$ e devolve $p_X(0)$ direto. A (c) multiplica por $|a| = 2$ no lugar de dividir, obtendo $\approx 0.798$. A (d) divide por $|a + b| = 3$ no lugar de $|a|$, confundindo a estrutura da fórmula.
+
+    \item \textbf{(d)} Uma única camada \textit{coupling} mantém $\mathbf{x}^A$ idêntico, então nada acontece com essas dimensões. Alternar permutações entre camadas faz com que diferentes subconjuntos de coordenadas alternem entre o papel de "$A$" (copiadas) e "$B$" (transformadas), garantindo que toda dimensão seja eventualmente afetada. As demais alternativas descrevem efeitos que não correspondem ao papel da permutação.
+
+    \item \textbf{(c)} A inversibilidade é uma exigência da família \textit{flow}, então estruturas como LU ou convoluções $1{\times}1$ não a comprometem. O ganho é puramente computacional: matrizes estruturadas têm determinante e inversa em tempo subcúbico (LU custa $\mathcal{O}(d)$ no determinante depois de fatorada; $1{\times}1$ convolução tem custo proporcional ao número de canais). A (a) é falsa, transformações lineares continuam lineares mesmo estruturadas. A (b) zera o termo da NLL e perde expressividade. A (d) confunde com mapas isométricos.
+\end{enumerate}
+
+\paragraph{Dissertativas.}
+\begin{enumerate}[I)]
+    \item
+    \begin{enumerate}[(a)]
+        \item Tomando o logaritmo e trocando o sinal, $\hat{\thetav} = \argmin_{\thetav}\sum_{i=1}^{N}\left[-\log p_X(x^{(i)} \mid \thetav)\right]$. A vantagem é numérica: o produto de $N$ probabilidades pequenas sofre \textit{underflow} rapidamente em ponto flutuante; somar logaritmos é estável e produz gradientes bem condicionados.
+        \item Pela mudança de variável, $p_X(x) = p_Z(f^{-1}(x, \thetav))\left|\partial f / \partial z\right|^{-1}$. Aplicando $-\log$, obtém-se $-\log p_X(x) = -\log p_Z(z) + \log|\partial f / \partial z|$, com $z = f^{-1}(x, \thetav)$.
+        \item Soma final:
+        \[
+            \mathcal{L}(\thetav) = \sum_{i=1}^{N}\left[\log\left|\tfrac{\partial f(z^{(i)},\thetav)}{\partial z^{(i)}}\right| - \log p_Z(z^{(i)})\right].
+        \]
+        O termo $\log|\det J|$ depende de $\thetav$ diretamente (via a Jacobiana da rede $f$) e penaliza configurações que comprimem volume excessivamente, que de outra forma deixariam a verossimilhança artificialmente alta. O termo $-\log p_Z(z)$ tem densidade em forma fechada e fixa (gaussiana padrão, em geral), mas também depende de $\thetav$, através do ponto de avaliação $z = f^{-1}(x, \thetav)$; é ele que puxa os latentes para a região de alta densidade da base.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item $\mathbf{y}^A = (0.5,\; 1.0)$. Para $\mathbf{y}^B$: $y_3 = x_3 \cdot e^{s_1} + t_1 = (-1.0)(1.105) + 0.3 = -1.105 + 0.3 = -0.805$. $y_4 = x_4 \cdot e^{s_2} + t_2 = (2.0)(0.819) + (-0.4) = 1.638 - 0.4 = 1.238$. Logo $\mathbf{y} \approx (0.5,\; 1.0,\; -0.805,\; 1.238)$.
+        \item $\log|\det J| = \sum_i s_i = 0.1 + (-0.2) = -0.1$. Como a Jacobiana é triangular por blocos com bloco superior $\mathbf{I}$ e bloco inferior-direito diagonal $\mathrm{diag}(e^{s_1}, e^{s_2})$, o determinante é $\prod_i e^{s_i}$ e seu log é $\sum_i s_i$. Os elementos do bloco inferior-esquerdo (derivadas de $\hat{f}$ em $\mathbf{x}^A$ via $\mathbf{s}$ e $\mathbf{t}$) não aparecem.
+        \item $x_3 = (y_3 - t_1) \cdot e^{-s_1} = (-0.805 - 0.3) \cdot e^{-0.1} = (-1.105)(0.905) \approx -1.000$. $x_4 = (y_4 - t_2) \cdot e^{-s_2} = (1.238 - (-0.4)) \cdot e^{0.2} = (1.638)(1.221) \approx 2.000$. Os valores originais são reconstruídos, confirmando que a inversa é exata.
+        \item A inversibilidade da camada \textit{coupling} depende de duas coisas: $\mathbf{x}^A$ ser copiada para $\mathbf{y}^A$ (portanto recuperável trivialmente) e $\hat{f}(\cdot \mid \theta(\mathbf{x}^A))$ ser inversível como função de $\mathbf{x}^B$ \textbf{dado} $\theta(\mathbf{x}^A)$. A sub-rede que produz $(\mathbf{s}, \mathbf{t})$ a partir de $\mathbf{x}^A$ \emph{nunca é invertida}, ela é apenas reavaliada na passagem inversa (note que $\mathbf{x}^A = \mathbf{y}^A$ está disponível em ambas as direções). Assim, o "preço" da inversibilidade global recai apenas sobre a forma fechada de $\hat{f}$ (no caso afim, exponencial mais translação, trivialmente inversível), e a \textit{coupling network} pode ser qualquer MLP/CNN com ReLU, \textit{batch norm}, etc.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item \textbf{GAN}: (i) avaliação inviável (não há densidade explícita, apenas um discriminador que aproxima razões de probabilidades); (ii) amostragem rápida (uma passagem pelo gerador); (iii) qualidade visual historicamente alta em imagens naturais, ao custo de \textit{mode collapse} e cobertura ruim da distribuição.
+        \item \textbf{VAE}: (i) avaliação aproximada via ELBO (limite inferior de $\log p_X(x)$, não o valor exato); (ii) amostragem rápida (uma passagem pelo \textit{decoder}); (iii) qualidade visual em geral inferior à de GANs e modelos difusores, com tendência a amostras borradas devido à perda de reconstrução pixel a pixel.
+        \item \textbf{Normalizing Flow}: (i) avaliação exata de $\log p_X(x)$ pela fórmula de mudança de variável; (ii) amostragem rápida (uma passagem direta pelo \textit{flow}); (iii) qualidade visual inferior a GANs e modelos difusores em \textit{datasets} grandes como ImageNet/FFHQ, em parte pela restrição arquitetural (inversibilidade) que limita a expressividade por parâmetro.
+
+        Conclusão: NFs ocupam o canto \emph{velocidade $+$ cobertura} (com avaliação exata) do trilema. Aplicações em que esse canto é preferível: detecção de anomalias (precisamos de $\log p_X(x)$ para definir limiar), inferência variacional (substituir $q(z\mid x)$ por uma distribuição expressiva e ainda tratável), física computacional e \textit{Boltzmann generators} (amostragem em equilíbrio com densidade exata para reponderação).
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item $p_X(x) = \dfrac{1}{\sqrt{2\pi}} \exp\!\left(-\dfrac{x^2}{2}\right)$.
+        \item Como $z = \exp(x)$, então $x = \ln(z)$, definido para $z > 0$. A derivada é $dx/dz = 1/z$, e como $z > 0$, $|dx/dz| = 1/z$.
+        \item Aplicando a fórmula:
+        \[
+            p_Z(z) = p_X(\ln z) \cdot \frac{1}{z} = \frac{1}{z\sqrt{2\pi}} \exp\!\left(-\frac{(\ln z)^2}{2}\right), \quad z > 0.
+        \]
+        Essa é a distribuição \textbf{log-normal} (com parâmetros $\mu = 0$, $\sigma = 1$).
+        \item Em $z = 1$: $\ln(1) = 0$, então $\exp(-0/2) = 1$ e $p_Z(1) = (1/1) \cdot (1/\sqrt{2\pi}) \cdot 1 \approx 0.399$.
+    \end{enumerate}
+\end{enumerate}
+
+\color{black}
+
+\end{document}

@@ -1,0 +1,308 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\newcommand{\Nc}{\mathcal{N}}
+
+% Cabeçalho de bloco temático
+\newcommand{\bloco}[1]{%
+  \par\vspace{0.3em}%
+  {\bfseries\large #1}\par%
+  \vspace{-0.4em}{\color{gray!60}\rule{\linewidth}{0.4pt}}\par%
+}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Formulário, Unidades 4 e 5}\\
+Prof. Lucas S. Kupssinskü \hfill Transformers e Modelos Geradores
+
+\rule{\linewidth}{0.8pt}
+
+\textit{Este formulário reúne as principais expressões das unidades 4 e 5 e resultados matemáticos de apoio. Notação: $\Nc(\mu,\Sigma)$ denota a gaussiana de média $\mu$ e covariância $\Sigma$; $\odot$ é o produto elemento a elemento; $\sigma(\cdot)$ é a função sigmoide.}
+
+%% =============================================================
+%%  Matemática básica
+%% =============================================================
+\bloco{Matemática Básica}
+
+\textbf{Sigmoide e derivada:}
+\[
+  \sigma(a) = \frac{1}{1 + e^{-a}},
+  \qquad
+  \sigma'(a) = \sigma(a)\bigl(1 - \sigma(a)\bigr).
+\]
+
+\textbf{Softmax} (sobre \textit{logits} $\mathbf{z} \in \mathbb{R}^{K}$, com temperatura $\tau$; $\tau = 1$ recupera a forma padrão):
+\[
+  \mathrm{softmax}(\mathbf{z}/\tau)_i = \frac{e^{z_i/\tau}}{\sum_{j=1}^{K} e^{z_j/\tau}}.
+\]
+
+\textbf{Logaritmos:}
+\[
+  \ln(ab) = \ln a + \ln b, \qquad
+  \ln\frac{a}{b} = \ln a - \ln b, \qquad
+  \ln a^{b} = b \ln a.
+\]
+
+\textbf{Divergência de Kullback-Leibler} (caso contínuo):
+\[
+  D_{KL}[P\,\|\,Q] = \int P(x)\,\ln\frac{P(x)}{Q(x)}\,dx.
+\]
+
+\textbf{Traço} (soma da diagonal principal) \textbf{e determinante de matriz diagonal:}
+\[
+  \mathrm{Tr}\!\left[\mathrm{diag}(d_1, \dots, d_n)\right] = \sum_{i=1}^{n} d_i,
+  \qquad
+  \det\!\left[\mathrm{diag}(d_1, \dots, d_n)\right] = \prod_{i=1}^{n} d_i,
+  \qquad
+  \log\det = \sum_{i=1}^{n} \log d_i.
+\]
+
+\textbf{Determinante de matriz $2 \times 2$ geral:}
+\[
+  \det\!\begin{bmatrix} a & b \\ c & d \end{bmatrix} = ad - bc.
+\]
+
+%% =============================================================
+%%  Atenção e Transformers
+%% =============================================================
+\bloco{Atenção e Transformers}
+
+\textbf{Projeções} (entrada $X$ com um \textit{token} por linha; $d$ é a dimensão das projeções):
+\[
+  Q = X W_q, \qquad K = X W_k, \qquad V = X W_v.
+\]
+
+\textbf{Scaled dot-product attention:}
+\[
+  \mathrm{attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{Q K^{\top}}{\sqrt{d}}\right) V.
+\]
+
+\textbf{Máscara causal} (aplicada aos \textit{scores} antes do \textit{softmax}; posições com $-\infty$ recebem peso $0$):
+\[
+  \text{score}_{ij} \leftarrow -\infty \quad \text{se } j > i.
+\]
+
+\textbf{Multi-head attention} ($H$ cabeças em paralelo, cada uma com dimensão $d_{\text{model}}/H$; concatenação seguida da projeção de saída $W_O$):
+\[
+  \mathrm{MultiHead}(Q, K, V) = \mathrm{Concat}\bigl(\mathrm{head}_1, \dots, \mathrm{head}_H\bigr)\, W_O,
+  \qquad
+  \mathrm{head}_i = \mathrm{attention}\bigl(Q W_Q^{i},\, K W_K^{i},\, V W_V^{i}\bigr).
+\]
+
+\textbf{Complexidade da \textit{self-attention}} no comprimento de sequência $n$: $O(n^{2} d)$.
+
+\textbf{Layer normalization e conexão residual} (média e desvio padrão sobre a dimensão das \textit{features}; $\gamma$ e $\beta$ treináveis):
+\[
+  \mathrm{LayerNorm}(x) = \gamma\,\frac{x - \mu}{\sigma + \epsilon} + \beta,
+  \qquad
+  \text{output} = \mathrm{LayerNorm}\bigl(x + \mathrm{Subblock}(x)\bigr).
+\]
+
+\textbf{Positional encoding sinusoidal} (posição $i$, dimensões $2k$ e $2k{+}1$; somado ao \textit{embedding}):
+\[
+  \mathrm{PE}(i, 2k) = \sin\!\left(\frac{i}{10000^{2k/d}}\right),
+  \qquad
+  \mathrm{PE}(i, 2k{+}1) = \cos\!\left(\frac{i}{10000^{2k/d}}\right).
+\]
+
+%% =============================================================
+%%  Treinamento de LLMs
+%% =============================================================
+\bloco{Treinamento e Inferência de LLMs}
+
+\textbf{Loss de modelagem de linguagem} (entropia cruzada autorregressiva sobre $m$ \textit{tokens}):
+\[
+  \mathcal{L} = -\sum_{t=1}^{m} \log P\bigl(y_t \mid y_{<t}\bigr).
+\]
+
+\textbf{Lei de escala de Chinchilla} (volume ótimo de dados $D^{*}$, em \textit{tokens}, para um modelo de $N$ parâmetros):
+\[
+  D^{*} \approx 20\,N.
+\]
+
+\textbf{LoRA} (matriz congelada $W_0 \in \mathbb{R}^{d \times k}$; apenas $B \in \mathbb{R}^{d \times r}$ e $A \in \mathbb{R}^{r \times k}$ são treináveis):
+\[
+  h = W_0\,x + \frac{\alpha}{r}\,B A\,x,
+  \qquad
+  \#\text{params treináveis} = r\,(d + k).
+\]
+
+\textbf{Decodificação especulativa} (rascunho $q$, alvo $p$; \textit{token} proposto $\tilde{x}$):
+\[
+  P(\text{aceitar } \tilde{x}) = \min\!\left(1,\ \frac{p(\tilde{x})}{q(\tilde{x})}\right);
+  \qquad
+  \text{se rejeitado, reamostrar de } (p - q)_{+} = \max(0,\, p - q) \text{ normalizada}.
+\]
+
+%% =============================================================
+%%  Alinhamento
+%% =============================================================
+\bloco{Alinhamento por Preferências}
+
+\textbf{Reward model} (perda de Bradley-Terry sobre o par preferido $y_w$ e preterido $y_l$):
+\[
+  \mathcal{L}_{RM} = -\log \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right).
+\]
+
+\textbf{RLHF com PPO} (objetivo da política com penalização KL em relação ao modelo de referência):
+\[
+  J(\theta) = \mathbb{E}_{x,\,y \sim \pi_\theta}\!\left[\, r_\phi(x, y) - \beta\,\mathrm{KL}\bigl(\pi_\theta \,\|\, \pi_{\text{ref}}\bigr) \right].
+\]
+
+\textbf{DPO} (otimiza diretamente sobre os pares de preferência, sem \textit{reward model} explícito):
+\[
+  \mathcal{L}_{DPO} = -\log \sigma\!\left(\beta\left[\log\frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log\frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right]\right).
+\]
+
+%% =============================================================
+%%  GANs
+%% =============================================================
+\bloco{GANs}
+
+\textbf{Loss original do gerador} (saturante), com discriminador $f[\cdot,\phi]$ e gerador $g[\cdot,\thetav]$:
+\[
+  L[\thetav] = \sum_{j} \ln\!\left[\, 1 - \sigma\!\left(f\!\left[\,g[z^{(j)},\thetav],\,\phi\,\right]\right)\right].
+\]
+
+\textbf{Loss não-saturante} do gerador:
+\[
+  L_{\text{ns}}[\thetav] = -\sum_{j} \ln\,\sigma\!\left(f\!\left[\,g[z^{(j)},\thetav],\,\phi\,\right]\right).
+\]
+
+\textbf{Discriminador ótimo} ($P$ é a densidade dos dados reais e $P^{*}$ a dos gerados):
+\[
+  D^{*}(x) = \frac{P(x)}{P(x) + P^{*}(x)}.
+\]
+
+\textbf{Divergência de Jensen-Shannon} e sua decomposição (com $M = \tfrac{1}{2}(P + P^{*})$):
+\[
+  D_{JS}[P^{*}\,\|\,P]
+  = \underbrace{\tfrac{1}{2}\,D_{KL}[P^{*}\,\|\,M]}_{\text{qualidade}}
+  + \underbrace{\tfrac{1}{2}\,D_{KL}[P\,\|\,M]}_{\text{cobertura}},
+  \qquad 0 \le D_{JS} \le \ln 2.
+\]
+
+\textbf{WGAN-GP} (\textit{gradient penalty} adicionada à \emph{loss} do crítico, em pontos interpolados $\hat{x}$):
+\[
+  \lambda\left(\bigl\lVert \nabla_{\hat{x}}\, f[\hat{x},\phi]\bigr\rVert_{2} - 1\right)^{2}.
+\]
+
+%% =============================================================
+%%  Normalizing Flows
+%% =============================================================
+\bloco{Normalizing Flows}
+
+\textbf{Mudança de variáveis} (bijeção $z = f(x)$, $\dim \mathbf{z} = \dim \mathbf{x}$):
+\[
+  p_x(\mathbf{x}) = p_z\bigl(f(\mathbf{x})\bigr)\,\bigl|\det J_f(\mathbf{x})\bigr|,
+  \qquad
+  \log p_x(\mathbf{x}) = \log p_z\bigl(f(\mathbf{x})\bigr) + \log\bigl|\det J_f(\mathbf{x})\bigr|.
+\]
+
+\textbf{Linear flow:} $\quad f(\mathbf{x}) = \boldsymbol{\theta}\mathbf{x} + \mathbf{b}$.
+
+\textbf{Affine coupling} (particiona a entrada em $\mathbf{x}^{A}, \mathbf{x}^{B}$; a \textit{coupling network} produz $(\mathbf{s},\mathbf{t}) = \mathrm{NN}(\mathbf{x}^{A})$):
+\begin{align*}
+  \text{forward:}\quad
+  &\mathbf{y}^{A} = \mathbf{x}^{A}, \qquad
+  \mathbf{y}^{B} = \mathbf{x}^{B} \odot \exp(\mathbf{s}) + \mathbf{t}, \\[0.2em]
+  \text{inversa:}\quad
+  &\mathbf{x}^{A} = \mathbf{y}^{A}, \qquad
+  \mathbf{x}^{B} = \bigl(\mathbf{y}^{B} - \mathbf{t}\bigr) \odot \exp(-\mathbf{s}),
+  \qquad (\mathbf{s},\mathbf{t}) = \mathrm{NN}(\mathbf{y}^{A}).
+\end{align*}
+
+\textbf{Log-determinante} da camada \textit{affine coupling}:
+\[
+  \log\bigl|\det J\bigr| = \sum_i s_i.
+\]
+
+%% =============================================================
+%%  VAE
+%% =============================================================
+\bloco{Autoencoders Variacionais (VAE)}
+
+\textbf{KL em forma fechada} entre o posterior $\Nc(\mu,\Sigma)$ e o \textit{prior} $\Nc(\mathbf{0},\mathbf{I})$, com latente de dimensão $D_z$:
+\[
+  D_{KL}\!\left[\Nc(\mu,\Sigma)\,\big\|\,\Nc(\mathbf{0},\mathbf{I})\right]
+  = \tfrac{1}{2}\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\right).
+\]
+
+\textbf{Reparametrization trick} (com $\epsilon^{*} \sim \Nc(\mathbf{0},\mathbf{I})$; para $\Sigma$ diagonal, $\Sigma^{1/2}\epsilon^{*} = \sigma \odot \epsilon^{*}$):
+\[
+  z^{*} = \mu + \Sigma^{1/2}\,\epsilon^{*}.
+\]
+
+\textbf{Termo de reconstrução} (\textit{decoder} gaussiano $p(x \mid z,\thetav) = \Nc_x\!\left(f[z,\thetav],\,\mathbf{I}\right)$):
+\[
+  \tfrac{1}{2}\bigl\lVert x - f[z^{*},\thetav]\bigr\rVert^{2}.
+\]
+
+\textbf{Objetivo} (ELBO; a otimização minimiza $-\mathrm{ELBO}$):
+\[
+  -\mathrm{ELBO} \approx \underbrace{\tfrac{1}{2}\bigl\lVert x - f[z^{*},\thetav]\bigr\rVert^{2}}_{\text{reconstrução}}
+  + \underbrace{D_{KL}\!\left[q(z \mid x,\phi)\,\|\,p(z)\right]}_{\text{regularização}}.
+\]
+
+%% =============================================================
+%%  Modelos Difusores
+%% =============================================================
+\bloco{Modelos Difusores}
+
+\textbf{Noise schedule} (produto acumulado a partir de $\boldsymbol{\beta} = (\beta_1, \dots, \beta_T)$):
+\[
+  \alpha_t = \prod_{s=1}^{t}\left(1 - \beta_s\right).
+\]
+
+\textbf{Processo forward} (um passo, cadeia de Markov gaussiana, $\epsilon_{t-1} \sim \Nc(\mathbf{0},\mathbf{I})$):
+\[
+  z_t = \sqrt{1 - \beta_t}\; z_{t-1} + \sqrt{\beta_t}\; \epsilon_{t-1}.
+\]
+
+\textbf{Kernel de difusão} (amostra direta do passo $t$ a partir de $x$ e $\epsilon \sim \Nc(\mathbf{0},\mathbf{I})$):
+\[
+  z_t = \sqrt{\alpha_t}\; x + \sqrt{1 - \alpha_t}\; \epsilon.
+\]
+
+\textbf{Objetivo de treino} (a U-Net $g_t[\cdot,\thetav_t]$ estima o ruído):
+\[
+  L_t = \bigl\lVert\, g_t[z_t, \thetav_t] - \epsilon \,\bigr\rVert^{2}.
+\]
+
+\textbf{Amostragem reversa} (passo de \textit{denoising}, com $\epsilon \sim \Nc(\mathbf{0},\mathbf{I})$ e $\sigma_t$ do \textit{schedule}):
+\[
+  z_{t-1} = \frac{1}{\sqrt{1 - \beta_t}}\left(z_t - \frac{\beta_t}{\sqrt{1 - \alpha_t}}\; g_t[z_t,\thetav_t]\right) + \sigma_t\, \epsilon.
+\]
+
+\textbf{Classifier-free guidance} (predição condicionada $g_t[z_t, c]$ e sem condição $g_t[z_t, \varnothing]$; peso $w \geq 0$):
+\[
+  \tilde{g}_t = (1 + w)\, g_t[z_t, c] - w\, g_t[z_t, \varnothing].
+\]
+
+\end{document}

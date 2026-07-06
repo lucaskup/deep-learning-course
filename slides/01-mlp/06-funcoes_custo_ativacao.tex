@@ -1,0 +1,1183 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Funções de Ativação e Funções de Custo}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  \section{Onde as ativações entram no MLP}
+  %======================================================================
+
+  %--- Slide: anatomia do neurônio ---
+  \begin{frame}{Pré-ativação $z$ vs ativação $a$}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Cada unidade computa uma soma ponderada das entradas (\textit{pré-ativação}).
+          \item O resultado passa por uma função $\varphi$ (\textit{ativação}) que determina a saída.
+          \item Toda a riqueza de comportamento da rede depende da escolha de $\varphi$.
+        \end{itemize}
+        \[
+          z = \thetav^\top \mathbf{x},\qquad a = \varphi(z)
+        \]
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}[>=Latex]
+            % inputs
+            \fill (-2,1.3) circle[radius=0.10]; \node[anchor=east] at (-2.2,1.3) {$x_0=1$};
+            \fill (-2,0.6) circle[radius=0.10]; \node[anchor=east] at (-2.2,0.6) {$x_1$};
+            \fill (-2,-0.1) circle[radius=0.10]; \node[anchor=east] at (-2.2,-0.1) {$x_2$};
+            \fill (-2,-1.0) circle[radius=0.10]; \node[anchor=east] at (-2.2,-1.0) {$x_m$};
+            \node at (-2,-0.55) {$\vdots$};
+            % weights
+            \draw[->,thick] (-1.85,1.3) -- (0,0); \node[font=\small] at (-1.0,1.0) {$\theta_0$};
+            \draw[->,thick] (-1.85,0.6) -- (0,0); \node[font=\small] at (-1.0,0.4) {$\theta_1$};
+            \draw[->,thick] (-1.85,-0.1) -- (0,0); \node[font=\small] at (-1.0,-0.2) {$\theta_2$};
+            \draw[->,thick] (-1.85,-1.0) -- (0,0); \node[font=\small] at (-1.0,-0.9) {$\theta_m$};
+            % sum and activation as separate circles linked by an arrow
+            \draw[fill=PastelBlue] (0,0) circle (0.5);
+            \node at (0,0) {$\Sigma$};
+            \draw[->,thick] (0.55,0) -- (1.45,0);
+            \draw[fill=cyan!40] (2,0) circle (0.5);
+            \node at (2,0) {$\varphi$};
+            % outputs
+            \draw[->,thick] (2.55,0) -- (3.4,0);
+            \node[anchor=west,font=\small] at (3.45,0) {$\hat{y}$};
+            % labels of z (between the two circles) and a (after phi)
+            \draw[->,red,thick] (0.6,-1.6) -- (1,-0.1);
+            \node[red,font=\small,anchor=north] at (0.6,-1.6) {pré-ativação $z$};
+            \draw[->,Green!60!black,thick] (3.3,-1.6) -- (2.85,-0.1);
+            \node[Green!60!black,font=\small,anchor=north] at (3.3,-1.6) {ativação $a$};
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: onde aplicamos ---
+  \begin{frame}{Camadas ocultas vs camada de saída}
+    \begin{itemize}
+      \item Em \textbf{camadas ocultas}, $\varphi$ adiciona não-linearidade: sem ela, qualquer
+        rede colapsa em uma transformação afim.
+      \item Em \textbf{camada de saída}, $\varphi$ é escolhida conforme a tarefa (regressão,
+        classificação binária, multiclasse, multilabel).
+      \item As ativações de saída interagem diretamente com a função de custo.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: requisitos ---
+  \begin{frame}{O que esperamos de uma boa ativação}
+    \begin{itemize}
+      \item Contínua e diferenciável (quase em todo lugar): a descida de gradiente exige $\varphi'$.
+      \item $\varphi'(z)$ não nula em uma faixa ampla, para que o gradiente não se anule.
+      \item Computação barata: avaliada milhões de vezes por iteração.
+      \item Idealmente sem saturação severa: gradientes preservam ordem de magnitude entre camadas.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Ativações ponto-a-ponto}
+  %======================================================================
+
+  %--- Slide: Sigmoid ---
+  \begin{frame}{Sigmoid}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \sigma(z) = \frac{1}{1+e^{-z}}
+        \]
+        \[
+          \sigma'(z) = \sigma(z)\,(1-\sigma(z))
+        \]
+        \begin{itemize}
+          \item Imagem em $(0,1)$.
+          \item Derivada máxima $0.25$ em $z=0$.
+          \item Histórica em redes rasas; saturação atrapalha em redes profundas.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-6:6, samples=120,
+              ymin=-0.05, ymax=1.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]   {1/(1+exp(-x))};
+              \addlegendentry{$\sigma(z)$}
+              \addplot[thick,Green!70!black,dashed] {exp(-x)/((1+exp(-x))^2)};
+              \addlegendentry{$\sigma'(z)$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: tanh ---
+  \begin{frame}{Tangente hiperbólica}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \tanh(z) = \frac{e^{z}-e^{-z}}{e^{z}+e^{-z}}
+        \]
+        \[
+          \tanh'(z) = 1 - \tanh^2(z)
+        \]
+        \begin{itemize}
+          \item Imagem em $(-1,1)$, centrada em zero.
+          \item Mais simétrica que a sigmoid.
+          \item Sofre do mesmo problema de saturação.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-3:3, samples=120,
+              ymin=-1.1, ymax=1.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]    {tanh(x)};
+              \addlegendentry{$\tanh(z)$}
+              \addplot[thick,Green!70!black,dashed] {1 - (tanh(x))^2};
+              \addlegendentry{$\tanh'(z)$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: saturação e dissipação de gradiente ---
+  \begin{frame}{Saturação: dissipação de gradiente}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Para $|z|$ grande, $\sigma'(z)\to 0$ e $\tanh'(z)\to 0$.
+          \item A regra da cadeia em uma rede profunda multiplica essas derivadas
+            camada a camada.
+          \item Resultado: gradientes vão a zero, camadas iniciais quase não aprendem.
+          \item Esse fenômeno é o \textit{vanishing gradient problem}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=7cm,height=4.5cm,
+              xlabel={$z$}, ylabel={$\varphi'(z)$},
+              axis lines=middle,
+              domain=-6:6, samples=120,
+              ymin=0, ymax=1.05,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]    {exp(-x)/((1+exp(-x))^2)};
+              \addlegendentry{$\sigma'(z)$}
+              \addplot[thick,Green!70!black] {1 - (tanh(x))^2};
+              \addlegendentry{$\tanh'(z)$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: ReLU ---
+  \begin{frame}{ReLU\footfullcite{nair2010relu}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \mathrm{ReLU}(z) = \max(0,z)
+        \]
+        \[
+          \mathrm{ReLU}'(z) =
+            \begin{cases}
+              0 & z < 0 \\
+              1 & z > 0
+            \end{cases}
+        \]
+        \begin{itemize}
+          \item \textit{Rectified Linear Unit}.
+          \item Não satura no lado positivo: gradiente preservado.
+          \item Esparsidade natural (zera o lado negativo).
+          \item Padrão em redes profundas modernas.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-3:3, samples=120,
+              ymin=-0.3, ymax=3.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]              {max(0,x)};
+              \addlegendentry{$\mathrm{ReLU}(z)$}
+              \addplot[thick,Green!70!black,dashed,samples=2,domain=-3:0]   {0};
+              \addplot[thick,Green!70!black,dashed,samples=2,domain=0.0001:3] {1};
+              \addlegendentry{$\mathrm{ReLU}'(z)$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: dying ReLU ---
+  \begin{frame}{O problema do \textit{dying ReLU}}
+    \begin{itemize}
+      \item Se uma unidade entra em $z<0$ para todos os exemplos do dataset, $\mathrm{ReLU}'(z)=0$
+        sempre.
+      \item Sem gradiente passando, os pesos não atualizam: a unidade fica \alert{morta}.
+      \item Em redes muito largas, é comum uma fração significativa das unidades estar morta
+        em algum momento do treinamento.
+      \item Causas usuais: taxa de aprendizado muito alta, inicialização ruim.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Leaky ReLU / PReLU ---
+  \begin{frame}{Leaky ReLU e PReLU}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \varphi(z)=\max(\alpha z,\, z),\quad \alpha\in(0,1)
+        \]
+        \[
+          \varphi'(z) =
+            \begin{cases}
+              \alpha & z<0 \\
+              1 & z>0
+            \end{cases}
+        \]
+        \begin{itemize}
+          \item Leaky ReLU: $\alpha$ fixo (tipicamente $0.01$).
+          \item PReLU: $\alpha$ é treinável.
+          \item Mata o problema do \textit{dying ReLU} ao manter gradiente $\alpha$ no lado negativo.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-3:3, samples=120,
+              ymin=-0.7, ymax=3.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]      {max(0.1*x, x)};
+              \addlegendentry{Leaky ReLU ($\alpha{=}0.1$)}
+              \addplot[thick,red,dashed]    {max(0.01*x, x)};
+              \addlegendentry{Leaky ReLU ($\alpha{=}0.01$)}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: ELU ---
+  \begin{frame}{ELU\footfullcite{clevert2016elu}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \varphi(z) =
+            \begin{cases}
+              z & z\ge 0 \\
+              \alpha(e^{z}-1) & z<0
+            \end{cases}
+        \]
+        \[
+          \varphi'(z) =
+            \begin{cases}
+              1 & z>0 \\
+              \alpha\,e^{z} & z<0
+            \end{cases}
+        \]
+        \begin{itemize}
+          \item \textit{Exponential Linear Unit}.
+          \item Suave em torno de 0; sai do regime de unidade morta exponencialmente.
+          \item Empurra a média das ativações para perto de zero.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-4:3, samples=120,
+              ymin=-1.2, ymax=3.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue,domain=-4:0]   {1*(exp(x)-1)};
+              \addplot[thick,blue,domain=0:3]    {x};
+              \addlegendentry{ELU ($\alpha{=}1$)}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: SELU ---
+  \begin{frame}{SELU\footfullcite{klambauer2017selu}}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \[
+          \varphi(z) = \lambda
+            \begin{cases}
+              z & z\ge 0 \\
+              \alpha(e^{z}-1) & z<0
+            \end{cases}
+        \]
+        \begin{itemize}
+          \item \textit{Scaled ELU}: ELU multiplicada por uma constante $\lambda$.
+          \item Constantes $\alpha\approx 1.6733$ e $\lambda\approx 1.0507$ são escolhidas
+            para que a estatística das ativações se auto-normalize ao longo das camadas.
+          \item Útil quando não usamos \textit{batch norm}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-4:3, samples=120,
+              ymin=-1.9, ymax=3.4,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue,domain=-4:0]   {1.0507*1.6733*(exp(x)-1)};
+              \addplot[thick,blue,domain=0:3]    {1.0507*x};
+              \addlegendentry{SELU}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Swish ---
+  \begin{frame}{Swish\footfullcite{ramachandran2017swish}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \[
+          \varphi(z) = z\,\sigma(\beta z)
+        \]
+        \begin{itemize}
+          \item Não monotônica: passa por um pequeno mínimo negativo antes de subir.
+          \item Diferenciável em todo o domínio.
+          \item Limite $\beta\to 0$: $\varphi(z)\approx z/2$ (linear).
+          \item Limite $\beta\to\infty$: $\varphi(z)\to\mathrm{ReLU}(z)$.
+          \item Com $\beta=1$ é a \textbf{SiLU} (\textit{Sigmoid Linear Unit}), \texttt{nn.SiLU} no PyTorch.
+          \item Descoberta por busca automática de ativações.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-5:5, samples=120,
+              ymin=-1.5, ymax=5.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]              {x/(1+exp(-1*x))};
+              \addlegendentry{$\beta=1$}
+              \addplot[thick,red,dashed]    {x/(1+exp(-10*x))};
+              \addlegendentry{$\beta=10$}
+              \addplot[thick,Green!70!black,dotted] {x/(1+exp(-0.1*x))};
+              \addlegendentry{$\beta=0.1$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: GELU ---
+  \begin{frame}{GELU\footfullcite{hendrycks2016gelu}}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \[
+          \varphi(z) = z\,\Phi(z),\quad \Phi(z)=\Pr(Z\le z),\;Z\sim\mathcal{N}(0,1)
+        \]
+        \begin{itemize}
+          \item \textit{Gaussian Error Linear Unit}.
+          \item Multiplica $z$ pela probabilidade acumulada gaussiana $\Phi(z)$.
+          \item Aproximação prática: $\varphi(z)\approx z\,\sigma(1.702\,z)$ (próxima de Swish).
+          \item Padrão em \textit{transformers} modernos (BERT, GPT-2/3, ViT).
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-4:4, samples=120,
+              ymin=-0.8, ymax=4.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue]      {x/(1+exp(-1.702*x))};
+              \addlegendentry{GELU (aprox.)}
+              \addplot[thick,red,dashed]    {max(0,x)};
+              \addlegendentry{ReLU}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: SwiGLU ---
+  \begin{frame}{SwiGLU\footfullcite{shazeer2020swiglu}}
+    \begin{itemize}
+      \item Não é uma ativação ponto-a-ponto: combina duas projeções lineares com gating.
+      \[
+        \mathrm{SwiGLU}(\mathbf{x})
+          = \mathrm{Swish}_{\beta}(\mathbf{x}\mathbf{W}_1+\mathbf{b}_1)\;\odot\;(\mathbf{x}\mathbf{W}_2+\mathbf{b}_2)
+      \]
+      \item $\odot$ é o produto elemento a elemento; uma das projeções faz \textit{gating} sobre a outra.
+      \item Substitui o bloco \textit{feed-forward} típico em arquiteturas modernas como
+        LLaMA, Mistral e PaLM.
+      \item Empiricamente: melhora qualidade do modelo com mesmo orçamento de parâmetros e cálculo.
+    \end{itemize}
+    \vfill
+    \begin{exampleblock}{Custo}
+      Adiciona uma terceira projeção ao bloco FFN (duas projeções de entrada em vez de uma),
+      cerca de $50\%$ mais parâmetros; na prática reduz-se a dimensão oculta para manter o orçamento.
+    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: Linear ---
+  \begin{frame}{Identity (Linear)}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \[
+          \varphi(z) = z,\qquad \varphi'(z) = 1.
+        \]
+        \begin{itemize}
+          \item Sem domínio limitado: $\varphi(z)\in\mathbb{R}$.
+          \item Não adiciona não-linearidade: usar Linear em camadas ocultas faz a rede colapsar.
+          \item Faz sentido apenas na \textbf{camada de saída}, em tarefas de regressão sem
+            restrição de sinal.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=7cm,height=4.5cm,
+              xlabel={$z$},
+              axis lines=middle,
+              domain=-3:3, samples=2,
+              ymin=-3.2, ymax=3.2
+            ]
+              \addplot[thick,blue] {x};
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Orientação prática}
+  %======================================================================
+
+  %--- Slide: orientação prática ---
+  \begin{frame}{Qual usar em uma camada oculta?}
+    \begin{itemize}
+      \item \textbf{Default moderno}: ReLU para CNNs e MLPs simples; GELU para
+        \textit{transformers}.
+      \item \textbf{Quando precisa de saída centrada em zero}: tanh em redes recorrentes
+        clássicas.
+      \item \textbf{Quando o \textit{dying ReLU} aparece}: trocar para Leaky ReLU ou ELU.
+      \item \textbf{Em LLMs grandes}: blocos FFN passam a usar SwiGLU.
+      \item \textbf{Sigmoid em camada oculta}: praticamente nunca em redes profundas.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Ativações na camada de saída}
+  %======================================================================
+
+  %--- Slide: visão geral ---
+  \begin{frame}{A camada de saída define a interface com a tarefa}
+    \begin{itemize}
+      \item Regressão real: queremos $\hat y\in\mathbb{R}$ → \textbf{Linear}.
+      \item Classificação binária: queremos $\hat y\in[0,1]$ (probabilidade) → \textbf{Sigmoid}.
+      \item Multilabel: $K$ rótulos independentes, cada um com probabilidade própria
+        → \textbf{$K$ unidades Sigmoid}.
+      \item Multiclasse exclusiva: $K$ classes mutuamente exclusivas, distribuição categórica
+        → \textbf{Softmax} (atua sobre a camada inteira).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Sigmoid na saída ---
+  \begin{frame}{Sigmoid na camada de saída}
+    \begin{itemize}
+      \item Combinada com BCE (binary cross-entropy) na função de custo.
+      \item Domínio do alvo: $y\in\{0,1\}$.
+      \item Saída: $\hat y = \sigma(z) = \Pr(y=1\mid x)$.
+      \item Para multilabel basta uma sigmoid por classe; cada uma se comporta como
+        um classificador binário independente.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Softmax intro ---
+  \begin{frame}{Softmax: ativação que age na camada inteira}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \[
+          \mathrm{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
+        \]
+        \begin{itemize}
+          \item Cada saída $i$ depende de todas as pré-ativações, não só de $z_i$.
+          \item Saídas são positivas e somam 1: distribuição de probabilidade.
+          \item Combina com a \textit{categorical cross-entropy} na loss.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \begin{tabular}{cc}
+          \toprule
+          $z_i$ & $\mathrm{softmax}(\mathbf{z})_i$ \\
+          \midrule
+          $1.8$  & $0.7500$ \\
+          $0.7$  & $0.2497$ \\
+          $-6.0$ & $0.0003$ \\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.4em}
+        \[
+          \mathrm{softmax}\!\begin{pmatrix}1.8\\0.7\\-6.0\end{pmatrix}
+          \approx
+          \begin{pmatrix}0.7500\\0.2497\\0.0003\end{pmatrix}
+        \]
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Construindo funções de custo via MLE}
+  %======================================================================
+
+  %--- Slide: mudança de paradigma ---
+  \begin{frame}{Mudança de paradigma}
+    \begin{itemize}
+      \item Até aqui: a rede $f(\mathbf{x};\thetav)$ produz uma saída $\hat y$.
+      \item A partir de agora: a rede produz \alert{parâmetros $\phi$ de uma distribuição
+        de probabilidade} sobre $y$.
+      \item Loss vai medir o quão bem essa distribuição predita explica os dados observados.
+      \item Esse é o ponto de partida da família de \textit{maximum likelihood estimators}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: visualização da Pr(y|x) - regressão ---
+  \begin{frame}{$\Pr(y\mid x)$ em uma tarefa contínua}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Tarefa de regressão: $y\in\mathbb{R}$.
+          \item Para cada $x$, a rede estima a média de uma gaussiana sobre $y$.
+          \item As gaussianas verticais à direita ilustram $\Pr(y\mid x{=}2)$ e $\Pr(y\mid x{=}7)$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[height=0.78\textheight,keepaspectratio]{slides/img/01-mlp/al-pry-regression.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: visualização da Pr(y|x) - classificação ---
+  \begin{frame}{$\Pr(y\mid x)$ em uma tarefa discreta}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Tarefa de classificação multiclasse: $y\in\{1,2,3,4\}$.
+          \item Para cada $x$, a rede estima as probabilidades de cada classe.
+          \item Distribuição categórica (Bernoulli generalizada).
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[height=0.78\textheight,keepaspectratio]{slides/img/01-mlp/al-pry-classification.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: MLE ---
+  \begin{frame}{Estimador de máxima verossimilhança}
+    \[
+      \hat\thetav = \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \;\big|\; f(x^{(i)};\thetav)\right)
+    \]
+    \vfill
+    \begin{itemize}
+      \item Maximiza a probabilidade conjunta dos rótulos observados, dada a entrada.
+      \item Hipóteses implícitas:
+        \begin{itemize}
+          \item As amostras $(x^{(i)}, y^{(i)})$ são \textbf{identicamente distribuídas}.
+          \item São \textbf{independentes} entre si (justifica o produto).
+        \end{itemize}
+      \item Em uma frase: \textit{i.i.d.}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: log monotonia ---
+  \begin{frame}{Por que aplicar log à verossimilhança?}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item $\log$ é monotônica crescente: preserva o ponto de máximo.
+          \item Transforma produto em soma, que é estável numericamente.
+          \item Soma de log-probabilidades $\le 0$, fácil de manipular.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/al-log-monotonic.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: log-verossimilhança ---
+  \begin{frame}{Log-verossimilhança}
+    \begin{align*}
+      \hat\thetav
+        &= \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right) \\
+        &= \argmax_{\thetav}\;\log\!\left[\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)\right] \\
+        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)
+    \end{align*}
+  \end{frame}
+
+  %--- Slide: NLL ---
+  \begin{frame}{Convenção: minimizar a \textit{Negative Log-Likelihood}}
+    \begin{align*}
+      \hat\thetav
+        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right) \\
+        &= \argmin_{\thetav}\;\left[-\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)\right] \\
+        &= \argmin_{\thetav}\;\mathcal{L}(\thetav)
+    \end{align*}
+    \vfill
+    \begin{itemize}
+      \item $\mathcal{L}(\thetav)$ é a \textbf{Negative Log-Likelihood} (NLL).
+      \item Diferentes escolhas de distribuição $\Pr(y\mid \cdot)$ produzem diferentes
+        funções de custo conhecidas.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: receita geral ---
+  \begin{frame}{Receita geral para construir uma loss}
+    \begin{enumerate}
+      \item Escolher uma distribuição $\Pr(y\mid \phi)$ apropriada ao domínio de $y$.
+      \item Fazer a rede $f(\mathbf{x};\thetav)$ predizer os parâmetros $\phi$ dessa distribuição.
+      \item Substituir e simplificar a NLL para obter uma loss $\mathcal{L}(\thetav)$.
+      \item Treinar minimizando $\mathcal{L}$ via descida de gradiente.
+    \end{enumerate}
+    \vfill
+    \begin{exampleblock}{O que vem agora}
+      Vamos aplicar essa receita em três casos canônicos: regressão (gaussiana),
+      classificação binária (Bernoulli) e classificação multiclasse (categórica).
+    \end{exampleblock}
+  \end{frame}
+
+  %======================================================================
+  \section{Exemplo 1: regressão}
+  %======================================================================
+
+  %--- Slide: distribuição gaussiana ---
+  \begin{frame}{Passo 1: escolher a distribuição}
+    Para $y\in\mathbb{R}$ a escolha natural é a gaussiana univariada:
+    \[
+      \Pr(y\mid \mu,\sigma^{2}) = \frac{1}{\sqrt{2\pi\sigma^{2}}}\,
+        \exp\!\left[-\frac{(y-\mu)^{2}}{2\sigma^{2}}\right].
+    \]
+    \begin{itemize}
+      \item $\mu$ é a média (centro da distribuição).
+      \item $\sigma^{2}$ é a variância (largura).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: rede prediz a média ---
+  \begin{frame}{Passo 2: rede prediz a média}
+    \[
+      \Pr\!\big(y \mid \alert{f(\mathbf{x};\thetav)},\sigma^{2}\big) =
+        \frac{1}{\sqrt{2\pi\sigma^{2}}}\,
+        \exp\!\left[-\frac{(y-\alert{f(\mathbf{x};\thetav)})^{2}}{2\sigma^{2}}\right].
+    \]
+    \begin{itemize}
+      \item A rede passa a estimar $\mu = f(\mathbf{x};\thetav)$.
+      \item A variância $\sigma^{2}$ é tratada como hiperparâmetro (constante).
+      \item A camada de saída é \textbf{Linear} (média pode assumir qualquer valor real).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: simplificação ---
+  \begin{frame}{Passo 3: substituir na NLL e simplificar}
+    \begin{align*}
+      \mathcal{L}(\thetav)
+        &= -\sum_{i=1}^{N}\log\!\left[\frac{1}{\sqrt{2\pi\sigma^{2}}}\,\exp\!\left(-\frac{(y^{(i)}-f(x^{(i)};\thetav))^{2}}{2\sigma^{2}}\right)\right] \\
+        &= -\sum_{i=1}^{N}\log\!\left(\frac{1}{\sqrt{2\pi\sigma^{2}}}\right) + \sum_{i=1}^{N}\frac{(y^{(i)}-f(x^{(i)};\thetav))^{2}}{2\sigma^{2}} \\
+        &\propto \sum_{i=1}^{N}\big(y^{(i)}-f(x^{(i)};\thetav)\big)^{2}
+    \end{align*}
+    \begin{itemize}
+      \item O primeiro termo não depende de $\thetav$; a divisão por $2\sigma^{2}$ é constante.
+      \item Sobra exatamente o erro quadrático.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: resultado MSE ---
+  \begin{frame}{Resultado: erro quadrático médio}
+    \[
+      \boxed{\hat\thetav = \argmin_{\thetav}\;\sum_{i=1}^{N}\big(y^{(i)}-f(x^{(i)};\thetav)\big)^{2}}
+    \]
+    \begin{itemize}
+      \item Esta é a \textbf{$L_2$ loss} (também chamada de MSE quando dividida por $N$).
+      \item Sai naturalmente de duas hipóteses: instâncias \textit{i.i.d.} amostradas de uma
+        gaussiana univariada com variância fixa.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: visual ---
+  \begin{frame}{Visual: ajuste e gaussianas verticais}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=.9\linewidth,height=0.62\textheight,keepaspectratio]{slides/img/01-mlp/al-mse-residuals.png}\\
+        \footnotesize Soma dos quadrados dos resíduos.
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=.9\linewidth,height=0.62\textheight,keepaspectratio]{slides/img/01-mlp/al-mse-gaussians.png}\\
+        \footnotesize $-\sum_i \log\Pr(y_i\mid f(x_i;\thetav),\sigma^{2})$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Exemplo 2: classificação binária}
+  %======================================================================
+
+  %--- Slide: Bernoulli ---
+  \begin{frame}{Passo 1: distribuição Bernoulli}
+    Para $y\in\{0,1\}$ usamos a Bernoulli($\lambda$):
+    \[
+      \Pr(y\mid \lambda) =
+        \begin{cases}
+          1-\lambda & y=0 \\
+          \lambda & y=1
+        \end{cases}
+        \;=\; (1-\lambda)^{1-y}\,\lambda^{y}.
+    \]
+    \begin{itemize}
+      \item $\lambda\in[0,1]$ é a probabilidade da classe positiva.
+      \item Forma compacta usando expoentes evita o uso explícito de cases.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: rede prediz lambda ---
+  \begin{frame}{Passo 2: rede prediz $\lambda$ via sigmoid}
+    \begin{itemize}
+      \item Saída crua da rede $f(\mathbf{x};\thetav)\in\mathbb{R}$ não respeita $\lambda\in[0,1]$.
+      \item Aplicamos sigmoid na saída: $\lambda = \sigma(f(\mathbf{x};\thetav))$.
+      \[
+        \Pr(y\mid \mathbf{x};\thetav) =
+          \big(1-\sigma(f(\mathbf{x};\thetav))\big)^{1-y}\,
+          \big(\sigma(f(\mathbf{x};\thetav))\big)^{y}.
+      \]
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: NLL e BCE ---
+  \begin{frame}{Passo 3: NLL e simplificação}
+    \begin{align*}
+      \mathcal{L}(\thetav)
+        &= -\sum_{i=1}^{N}\log\!\left[\big(1-\sigma(f(x^{(i)};\thetav))\big)^{1-y^{(i)}}\,
+                                       \big(\sigma(f(x^{(i)};\thetav))\big)^{y^{(i)}}\right] \\
+        &= \sum_{i=1}^{N}\Big[-\big(1-y^{(i)}\big)\log\!\big(1-\sigma(f(x^{(i)};\thetav))\big)
+                              -y^{(i)}\log\!\big(\sigma(f(x^{(i)};\thetav))\big)\Big]
+    \end{align*}
+    \begin{block}{Resultado: Entropia Cruzada Binária (BCE)}
+      \[
+        \boxed{\mathcal{L}_{\text{BCE}}(\thetav) = -\sum_{i=1}^{N}
+          \Big[ y^{(i)}\log\hat\lambda^{(i)} + (1-y^{(i)})\log\!\big(1-\hat\lambda^{(i)}\big) \Big]}
+      \]
+    \end{block}
+  \end{frame}
+
+  %--- Slide: visualização sigmoid → Pr(y|x) ---
+  \begin{frame}{Visual: \textit{piecewise} linear $\to$ sigmoid $\to$ $\Pr(y\mid x)$}
+    \begin{columns}
+      \begin{column}{.33\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/al-piecewise-linear.png}\\
+        \footnotesize $f(x;\thetav)$
+      \end{column}
+      \begin{column}{.33\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=4cm,height=4cm,
+              xlabel={$z$}, axis lines=middle,
+              xtick=\empty, ytick=\empty,
+              domain=-6:6, samples=80, ymin=-0.05, ymax=1.05
+            ]
+              \addplot[thick,red!70!black] {1/(1+exp(-x))};
+            \end{axis}
+          \end{tikzpicture}
+        }\\
+        \footnotesize $\sigma(\cdot)$
+      \end{column}
+      \begin{column}{.33\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/al-pry-binary.png}\\
+        \footnotesize $\Pr(y{=}1\mid x)$
+      \end{column}
+    \end{columns}
+    \vspace{0.4em}
+    \begin{itemize}
+      \item A pré-ativação da camada de saída é uma função \textit{piecewise} linear.
+      \item Após a sigmoid, a saída fica em $[0,1]$ e oscila como uma probabilidade.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Exemplo 3: classificação multiclasse}
+  %======================================================================
+
+  %--- Slide: distribuição categórica ---
+  \begin{frame}{Passo 1: distribuição categórica}
+    Para $y\in\{1,2,\ldots,K\}$ (exclusivo), a generalização da Bernoulli é a
+    \textbf{categórica}:
+    \[
+      \Pr(y\mid \boldsymbol\lambda) = \prod_{k=1}^{K}\lambda_{k}^{[y=k]}
+        \quad\text{com}\quad
+        \sum_{k=1}^{K}\lambda_{k} = 1,\;\lambda_{k}\ge 0.
+    \]
+    \begin{itemize}
+      \item $[y=k]$ vale 1 se $y=k$ e 0 caso contrário (Iverson).
+      \item Cada $\lambda_k\in[0,1]$ e $\sum_k \lambda_k = 1$ formam um vetor de probabilidades.
+      \item Outras notações comuns na literatura: $\pi_k$ ou $p_k$ no lugar de $\lambda_k$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: rede prediz lambda via softmax ---
+  \begin{frame}{Passo 2: rede prediz $\boldsymbol\lambda$ via softmax}
+    \begin{itemize}
+      \item Saída crua da rede: $\mathbf{z} = f(\mathbf{x};\thetav)\in\mathbb{R}^{K}$ (logits).
+      \item Aplicamos softmax para obter probabilidades:
+        \[
+          \lambda_{k} = \mathrm{softmax}(\mathbf{z})_k = \frac{e^{z_k}}{\sum_{j=1}^{K}e^{z_j}}.
+        \]
+      \item Por construção, $\boldsymbol\lambda$ é um vetor de probabilidades válido.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: NLL multiclasse ---
+  \begin{frame}{Passo 3: NLL e simplificação}
+    \begin{align*}
+      \mathcal{L}(\thetav)
+        &= -\sum_{i=1}^{N}\log\!\left[\prod_{k=1}^{K}\lambda_{k}(\mathbf{x}^{(i)};\thetav)^{[y^{(i)}=k]}\right] \\
+        &= -\sum_{i=1}^{N}\sum_{k=1}^{K} [y^{(i)}=k]\,\log\lambda_{k}(\mathbf{x}^{(i)};\thetav).
+    \end{align*}
+    Em forma vetorial com $\mathbf{y}^{(i)}$ \textit{one-hot}:
+    \[
+      \boxed{\mathcal{L}_{\text{CCE}}(\thetav) = -\sum_{i=1}^{N}\sum_{k=1}^{K} y^{(i)}_{k}\,
+        \log\!\big(\mathrm{softmax}(f(\mathbf{x}^{(i)};\thetav))_k\big)}
+    \]
+    Esta é a \textbf{Categorical Cross-Entropy} (CCE).
+  \end{frame}
+
+  %--- Slide: substituindo softmax ---
+  \begin{frame}{Forma equivalente: log-softmax}
+    Como em cada amostra apenas a classe correta $k^{*} = y^{(i)}$ contribui (one-hot):
+    \[
+      \mathcal{L}_{\text{CCE}}(\thetav)
+        = -\sum_{i=1}^{N}\log\!\left[\frac{e^{z_{k^{*}}^{(i)}}}{\sum_{j=1}^{K} e^{z_{j}^{(i)}}}\right]
+        = -\sum_{i=1}^{N}\!\left[z_{k^{*}}^{(i)} - \log\!\sum_{j=1}^{K} e^{z_{j}^{(i)}}\right].
+    \]
+    \begin{itemize}
+      \item $\log\sum e^{z_j}$ é o \textit{log-sum-exp}, calculado de forma estável em \textit{frameworks}.
+      \item A derivada de softmax + log será desenvolvida na aula 08 (grafo computacional).
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Loss e ativação no PyTorch}
+  %======================================================================
+
+  %--- Slide: BCEWithLogitsLoss ---
+  \begin{frame}[fragile,containsverbatim]{\texttt{nn.BCEWithLogitsLoss}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Recebe \alert{logits} (pré-ativação).
+          \item Aplica sigmoid + BCE em uma operação numericamente estável (\textit{log-sum-exp trick}).
+          \item Forma recomendada para classificação binária e multilabel.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox*{\linewidth}{!}{
+          \lstinputlisting[style=vscode-light]{slides/code/05_bce_with_logits.py}%
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: BCELoss ---
+  \begin{frame}[fragile,containsverbatim]{\texttt{nn.BCELoss}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Recebe \alert{probabilidades} (saída já passada por sigmoid).
+          \item Mais propenso a instabilidade numérica em logits extremos.
+          \item Falha silenciosamente se a entrada não está em $(0,1)$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \resizebox*{\linewidth}{!}{
+          \lstinputlisting[style=vscode-light]{slides/code/05_bce_loss.py}%
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Tarefa, camada de saída e função de custo}
+  %======================================================================
+
+  %--- Slide: Multiclass vs Multilabel ---
+  \begin{frame}{Multiclasse vs Multilabel}
+    \begin{itemize}
+      \item \textbf{Multiclasse exclusiva}: o exemplo pertence a \alert{exatamente} uma classe.
+      \item \textbf{Multilabel}: o exemplo pode receber \alert{vários} rótulos simultaneamente.
+    \end{itemize}
+    \vfill
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}
+          \node[draw,fill=PastelBlue,minimum width=4cm,minimum height=2.4cm] {Imagem cachorro};
+          \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
+          \node[anchor=west,font=\small] at (2.4,0.15) {2. Gato};
+          \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
+          \node[anchor=west,font=\small] at (2.4,-0.65) {4. Humano};
+          \node[font=\small] at (0,-1.7) {\textbf{Multiclasse}: única label correta};
+        \end{tikzpicture}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}
+          \node[draw,fill=PastelGreen,minimum width=4cm,minimum height=2.4cm] {Imagem cão+gato};
+          \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
+          \node[anchor=west,font=\small] at (2.4,0.15) {\textbf{2. Gato}};
+          \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
+          \node[anchor=west,font=\small] at (2.4,-0.65) {4. Humano};
+          \node[font=\small] at (0,-1.7) {\textbf{Multilabel}: várias labels possíveis};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: tabela de combinações ---
+  \begin{frame}{Cheat sheet: tarefa $\to$ camada $\to$ loss}
+    \centering
+    \begin{tabular}{@{}llll@{}}
+      \toprule
+      Tarefa & Saída esperada & Camada de saída & Função de custo \\
+      \midrule
+      Regressão           & $\hat y\in\mathbb{R}$            & 1 unidade Linear            & MSE ($L_2$)        \\
+      Classificação binária & $\hat y\in[0,1]$              & 1 unidade Sigmoid           & BCE                \\
+      Multilabel ($K$ rótulos) & $\hat{\mathbf y}\in[0,1]^K$ & $K$ unidades Sigmoid        & BCE somada       \\
+      Multiclasse ($K$ classes) & $\hat{\mathbf y}\in[0,1]^{K},\;\sum_k\hat y_k=1$ & Softmax ($K$ logits)  & CCE                \\
+      \bottomrule
+    \end{tabular}
+    \vfill
+    \begin{itemize}
+      \item Em PyTorch: \texttt{BCEWithLogitsLoss} (binária e multilabel) e
+        \texttt{CrossEntropyLoss} (multiclasse) já incorporam softmax/sigmoid.
+      \item Para regressão com restrições (ex.: $\hat y\ge 0$), pode-se trocar a Linear
+        por uma SoftPlus na saída e usar uma Poisson (derivação como exercício, ver \textit{lista 02} \textsection{} ``Funções de Custo'').
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Métricas de Avaliação}
+  %======================================================================
+
+  %--- Slide: métricas vs loss ---
+  \begin{frame}{Métricas $\ne$ função de custo}
+    \begin{itemize}
+      \item A função de custo é otimizada durante o treinamento; precisa ser diferenciável
+        e numericamente estável.
+      \item A métrica é interpretável pelo usuário final; pode ser não diferenciável
+        (acurácia, F1) ou dependente de um \textit{threshold}.
+      \item Quase sempre, a loss é uma \alert{aproximação suave} do que de fato queremos
+        otimizar (a métrica).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: regressão ---
+  \begin{frame}{Métricas de regressão}
+    \begin{itemize}
+      \item \textbf{MSE}: $\dfrac{1}{N}\sum_{i=1}^{N}(\hat y^{(i)}-y^{(i)})^{2}$.
+      \item \textbf{MAE}: $\dfrac{1}{N}\sum_{i=1}^{N}|\hat y^{(i)}-y^{(i)}|$.
+      \item \textbf{$R^{2}$}: $1-\dfrac{\sum_i (y^{(i)}-\hat y^{(i)})^{2}}{\sum_i (y^{(i)}-\bar y)^{2}}$,
+        onde $\bar y$ é a média dos rótulos.
+      \item MSE pune grandes desvios mais fortemente; MAE é mais robusto a \textit{outliers};
+        $R^{2}$ é interpretável como variância explicada.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: classificação ---
+  \begin{frame}{Métricas de classificação}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item \textbf{Acurácia}: $\dfrac{TP+TN}{TP+TN+FP+FN}$.
+          \item \textbf{Recall}: $\dfrac{TP}{TP+FN}$.
+          \item \textbf{Precision}: $\dfrac{TP}{TP+FP}$.
+          \item \textbf{$F_\beta$-score}: $(1+\beta^{2})\dfrac{P\cdot R}{\beta^{2}P+R}$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tabular}{ll|cc}
+            \toprule
+              & & \multicolumn{2}{c}{\textbf{Predito}} \\
+              & & Sim & Não \\
+            \midrule
+            \textbf{Real} & Sim & TP & FN \\
+                          & Não & FP & TN \\
+            \bottomrule
+          \end{tabular}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: worked example ---
+  \begin{frame}{Métricas de classificação: exemplo numérico}
+    \begin{columns}
+      \begin{column}{.42\linewidth}
+        \centering
+        \textbf{Matriz de confusão}\\[0.3em]
+        \begin{tabular}{ll|cc}
+          \toprule
+            & & \multicolumn{2}{c}{\textbf{Predito}} \\
+            & & Sim & Não \\
+          \midrule
+          \textbf{Real} & Sim & $8$ & $2$ \\
+                        & Não & $3$ & $87$ \\
+          \bottomrule
+        \end{tabular}\\[0.3em]
+        {\footnotesize $100$ instâncias, $10$ positivas.}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \begin{align*}
+          \text{Acurácia} &= \tfrac{8+87}{100} = 0.95 \\
+          \text{Recall}   &= \tfrac{8}{8+2} = 0.80 \\
+          \text{Precision}&= \tfrac{8}{8+3} \approx 0.727 \\
+          F_1             &= 2\cdot\tfrac{0.727 \cdot 0.80}{0.727 + 0.80} \approx 0.762
+        \end{align*}
+        {\footnotesize Acurácia alta esconde recall mais baixo: classe positiva rara é mais difícil.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: quando usar cada uma ---
+  \begin{frame}{Escolhendo a métrica certa}
+    \begin{itemize}
+      \item \textbf{Datasets balanceados}: acurácia é razoável.
+      \item \textbf{Datasets desbalanceados}: acurácia engana; prefira F1 ou recall específico.
+      \item \textbf{Quando o custo do FN é alto} (medicina, fraude): priorize \textbf{recall}.
+      \item \textbf{Quando o custo do FP é alto} (spam): priorize \textbf{precision}.
+      \item \textbf{Multiclasse}: macro/micro-F1, matriz de confusão por classe.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: leituras ---
+  \section*{Referências e Leituras}
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Capítulos 5 e 6 de \fullcite{prince2023understanding}
+      \item Capítulo 6 de \fullcite{goodfellow2016deep}
+      \item ReLU: \fullcite{nair2010relu}
+      \item GELU: \fullcite{hendrycks2016gelu}
+      \item Swish: \fullcite{ramachandran2017swish}
+      \item SwiGLU: \fullcite{shazeer2020swiglu}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,1414 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+% Bibliotecas TikZ adicionais usadas neste deck
+\usetikzlibrary{matrix}
+
+% Cores locais para consistência com o material original
+\definecolor{qcolor}{RGB}{139,76,177}      % roxo (queries)
+\definecolor{kcolor}{RGB}{218,165,32}      % dourado (keys)
+\definecolor{vcolor}{RGB}{52,152,219}      % azul (values)
+\definecolor{embcolor}{RGB}{120,180,90}    % verde (embeddings)
+\definecolor{lightyellow}{RGB}{255,252,220}
+\definecolor{lightblue}{RGB}{220,235,252}
+\definecolor{lightgreen}{RGB}{220,245,220}
+\definecolor{lightred}{RGB}{255,225,225}
+\definecolor{lightpurple}{RGB}{230,220,255}
+\definecolor{lightorange}{RGB}{255,237,210}
+\definecolor{darkgreen}{RGB}{0,120,0}
+\definecolor{encblock}{RGB}{215,238,210}
+\definecolor{decblock}{RGB}{255,225,210}
+\definecolor{mhablock}{RGB}{255,235,180}
+\definecolor{ffblock}{RGB}{210,225,250}
+\definecolor{normblock}{RGB}{250,235,200}
+
+% Atalhos para destacar Q, K, V em fórmulas
+\newcommand{\Qc}{\textcolor{qcolor}{Q}}
+\newcommand{\Kc}{\textcolor{kcolor}{K}}
+\newcommand{\Vc}{\textcolor{vcolor}{V}}
+
+% Título
+\title{Deep Learning}
+\subtitle{Transformers: Da Atenção em RNNs à Arquitetura Completa}
+\author{Lucas Silveira Kupssinskü}
+\institute{Machine Learning Theory and Applications Laboratory \\ PUCRS}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+% ============================================================
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% ============================================================
+\begin{frame}{Visão Geral}
+    \tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Atenção em RNNs}
+% ============================================================
+
+\begin{frame}{O Problema do Gargalo (Encoder-Decoder)}
+
+Em arquiteturas \textit{seq2seq} clássicas com RNNs, o \textbf{encoder} comprime toda a sequência de entrada em um único vetor de estado.
+
+\vspace{6pt}
+
+\begin{block}{O gargalo}
+\begin{itemize}
+    \item Frases longas precisam caber em um vetor de tamanho fixo
+    \item O \textbf{decoder} acessa apenas o último estado oculto do encoder
+    \item Informação inicial da sequência tende a se perder
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Solução: mecanismo de \textit{atenção}}
+A \textbf{atenção} é um bloco da rede que conecta encoder e decoder e atribui \textit{scores} a cada etapa do encoder. Interpretamos esses scores como uma decisão de quais partes da sequência de entrada são mais relevantes para gerar o próximo token.
+\end{exampleblock}
+
+\vspace{2pt}
+\centering
+\footnotesize Bahdanau et al., 2014. \textit{Neural machine translation by jointly learning to align and translate.}
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Encoder-Decoder com Atenção (Esquema)}
+
+\begin{center}
+\begin{tikzpicture}[
+    >=Stealth, font=\small,
+    enc/.style={draw, fill=encblock, minimum width=0.7cm, minimum height=1.0cm},
+    dec/.style={draw, fill=decblock, minimum width=0.7cm, minimum height=1.0cm},
+    tok/.style={font=\scriptsize, anchor=north},
+]
+    % Encoder cells
+    \foreach \i/\w in {1/I, 2/saw, 3/cat, 4/on, 5/mat} {
+        \node[enc] (e\i) at (\i*1.0, 0) {};
+        \node[tok] at (e\i.south) {\w};
+    }
+    % EOS
+    \node[enc] (e6) at (6.0, 0) {};
+    \node[tok] at (e6.south) {\textless eos\textgreater};
+
+    % Encoder arrows
+    \foreach \i/\j in {1/2, 2/3, 3/4, 4/5, 5/6} {
+        \draw[->, darkgreen!70] (e\i.east) -- (e\j.west);
+    }
+
+    % Encoder label
+    \node[font=\small\bfseries, darkgreen] at (3.5, -1.4) {Encoder (RNN)};
+
+    % Decoder cells
+    \foreach \i/\w in {1/{\textless bos\textgreater}, 2/I, 3/saw, 4/a} {
+        \node[dec] (d\i) at (8.0 + \i*1.0, 0) {};
+        \node[tok] at (d\i.south) {\w};
+    }
+
+    % Decoder arrows
+    \foreach \i/\j in {1/2, 2/3, 3/4} {
+        \draw[->, red!70] (d\i.east) -- (d\j.west);
+    }
+
+    % Decoder label
+    \node[font=\small\bfseries, red!70!black] at (10.5, -1.4) {Decoder};
+
+    % Attention: from current decoder step to all encoder cells
+    \foreach \i in {1,...,6} {
+        \draw[->, gray, thin, opacity=0.7] (d3.north) to[bend left=10] (e\i.north);
+    }
+
+    % Context node
+    \node[draw, fill=lightblue, rounded corners, minimum width=1.6cm, minimum height=0.5cm, font=\scriptsize] (ctx) at (3.5, 2.2) {contexto $c^{(t)}$};
+
+    \draw[->, thick] (ctx.east) -- ++(2,0) -| (d3.north);
+
+    \node[font=\scriptsize, anchor=west] at (ctx.east) {\hspace{2cm}};
+
+    % Score arrows
+    \foreach \i in {1,...,6} {
+        \draw[->, gray, dotted, opacity=0.6] (e\i.north) -- (ctx.south);
+    }
+
+\end{tikzpicture}
+\end{center}
+
+\vspace{4pt}
+
+A cada passo $t$ do decoder calculamos um \textbf{contexto} $c^{(t)}$, uma soma ponderada dos estados do encoder, com pesos dados pela atenção.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Atenção: Scores, Pesos e Contexto}
+
+A cada passo $t$ do decoder com estado $h_t$ e estados do encoder $s_1, \dots, s_m$:
+
+\vspace{4pt}
+
+\begin{block}{Pipeline}
+\begin{enumerate}
+    \item \textbf{Score} entre o estado atual e cada estado da fonte:
+    \[
+        \mathrm{score}(h_t, s_k), \quad k = 1, 2, \dots, m
+    \]
+    \item \textbf{Pesos da atenção} (softmax sobre os scores):
+    \[
+        a_k^{(t)} = \frac{\exp\bigl(\mathrm{score}(h_t, s_k)\bigr)}{\sum_{i=1}^{m} \exp\bigl(\mathrm{score}(h_t, s_i)\bigr)}
+    \]
+    \item \textbf{Contexto} (soma ponderada dos estados da fonte):
+    \[
+        c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, s_k
+    \]
+\end{enumerate}
+\end{block}
+
+\vspace{4pt}
+
+O contexto $c^{(t)}$ é então combinado ao estado do decoder para produzir a próxima saída.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Como Calcular os Scores}
+
+Existem várias formas de definir $\mathrm{score}(h_t, s_k)$:
+
+\vspace{6pt}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{lcl}
+\toprule
+\textbf{Variante} & \textbf{Fórmula} & \textbf{Referência} \\
+\midrule
+Dot-product   & $\mathrm{score}(h_t, s_k) = h_t^{\top} s_k$ & --- \\
+Bilinear      & $\mathrm{score}(h_t, s_k) = h_t^{\top} W \, s_k$ & Luong et al., 2015 \\
+MLP (aditiva) & $\mathrm{score}(h_t, s_k) = w_2^{\top} \tanh\bigl(W_1 [h_t; s_k]\bigr)$ & Bahdanau et al., 2014 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{8pt}
+
+\begin{itemize}
+    \item \textbf{Dot-product:} mais simples, sem parâmetros adicionais
+    \item \textbf{Bilinear:} adiciona uma matriz de pesos $W$ aprendida
+    \item \textbf{MLP:} mais expressiva, mas mais cara computacionalmente
+\end{itemize}
+
+\vspace{4pt}
+\centering
+A versão \textbf{dot-product} domina as arquiteturas modernas (transformers).
+
+\end{frame}
+
+% ============================================================
+\section{Scaled Dot Product Attention}
+% ============================================================
+
+\begin{frame}{Por que ``scaled''?}
+
+Treinar redes com \textit{dot product attention} pode causar \textbf{vanishing gradient} quando as dimensões dos vetores são grandes.
+
+\vspace{6pt}
+
+\begin{block}{Intuição}
+Para vetores de dimensão $d$ grande, $h_t^{\top} s_k$ tende a ter magnitudes grandes. A softmax sobre esses scores satura, fazendo com que quase todos os pesos da atenção fiquem próximos de 0 ou de 1.
+\end{block}
+
+\vspace{6pt}
+
+\textbf{Vamos quantificar:} suponha $s_i, h_i \sim \mathcal{N}(0, 1)$ i.i.d., componentes dos vetores $S, H \in \mathbb{R}^d$.
+
+\vspace{4pt}
+Calcule $\mathbb{E}[S \cdot H]$ e $\mathrm{var}[S \cdot H]$.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Esperança e Variância do Produto Escalar}
+
+\begin{columns}[T]
+\begin{column}{0.42\textwidth}
+\textbf{Esperança:}
+\begin{align*}
+\mathbb{E}[S \cdot H]
+&= \mathbb{E}\!\left[\sum_{i=1}^{d} s_i h_i\right] \\
+&= \sum_{i=1}^{d} \mathbb{E}[s_i]\,\mathbb{E}[h_i] = 0
+\end{align*}
+\onslide<2->{%
+\vspace{6pt}
+{\footnotesize Para $s_i, h_i \sim \mathcal{N}(0, 1)$ i.i.d., $\mathbb{E}[s_i^2] = \mathrm{var}(s_i) = 1$ (pois $\mathbb{E}[s_i] = 0$), o que justifica os dois últimos passos.}
+
+\vspace{6pt}
+\textbf{Conclusão:} $\mathrm{var}[S \cdot H]$ cresce linearmente com $d$.
+}
+\end{column}
+\begin{column}{0.58\textwidth}
+\onslide<2->{%
+\textbf{Variância:} por independência,
+\begin{align*}
+\mathrm{var}[S \cdot H]
+&= \sum_{i=1}^{d} \mathrm{var}[s_i h_i] \\[2pt]
+&= \sum_{i=1}^{d} \Bigl(\mathbb{E}[s_i^2 h_i^2] - \mathbb{E}[s_i h_i]^2\Bigr) \\[2pt]
+&= \sum_{i=1}^{d} \mathbb{E}[s_i^2]\,\mathbb{E}[h_i^2] \\[2pt]
+&= \sum_{i=1}^{d} \mathrm{var}(s_i)\,\mathrm{var}(h_i) = d
+\end{align*}
+}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Scaled Dot Product Attention}
+
+Para evitar \textit{scores} com magnitude crescente em $d$, normalizamos por $\sqrt{d}$:
+
+\vspace{6pt}
+
+\begin{exampleblock}{Scaled Dot Product Attention}
+\[
+\mathrm{score}(h_t, s_k) = \frac{h_t^{\top} s_k}{\sqrt{d}}, \quad k = 1, 2, \dots, m
+\]
+\[
+a_k^{(t)} = \frac{\exp(\mathrm{score}(h_t, s_k))}{\sum_{i=1}^{m} \exp(\mathrm{score}(h_t, s_i))}, \qquad
+c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} s_k
+\]
+\end{exampleblock}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item Escalar por $\sqrt{d}$ mantém a variância dos scores em $\mathcal{O}(1)$
+    \item A softmax recebe valores em uma faixa estável: gradientes mais saudáveis
+    \item Componente fundamental do transformer (Vaswani et al., 2017)
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+\section{Self-Attention}
+% ============================================================
+
+\begin{frame}{E se Aplicarmos Atenção da Sequência sobre Ela Mesma?}
+
+Até aqui usamos atenção entre o estado do decoder e os estados do encoder (RNN).
+
+\vspace{6pt}
+
+\begin{block}{Ideia central de \textit{self-attention}}
+E se utilizarmos \textit{Dot Product Attention} nos \textbf{tokens de entrada contra eles mesmos}?
+\begin{itemize}
+    \item Poderíamos codificar as relações entre tokens da entrada
+    \item Não precisaríamos mais de RNNs como encoder
+\end{itemize}
+\end{block}
+
+\vspace{8pt}
+
+\begin{exampleblock}{Por exemplo, considere a frase}
+\centering
+\texttt{"The animal didn't cross the street because \textcolor{red}{it} was tired"}
+\end{exampleblock}
+
+\vspace{6pt}
+
+A palavra \texttt{it} se refere a quais outras palavras da frase? Podemos usar \textit{attention} para descobrir.
+
+\vspace{2pt}
+\centering
+\footnotesize Vaswani et al., 2017. \textit{Attention is All You Need.}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Intuição: atenção como um dicionário ``suave''}
+
+No tipo \textbf{dicionário}, cada \textbf{chave} (\textit{key}) tem um \textbf{valor} (\textit{value}), e uma \textbf{consulta} (\textit{query}) devolve o valor da chave correspondente.
+
+\vspace{6pt}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\begin{block}{Dicionário comum}
+\centering
+\texttt{dic = \{1: 10, 2: 50, 3: 100\}}
+\begin{itemize}
+    \item \texttt{dic[2]} $\rightarrow$ \texttt{50} (chave exata)
+    \item \texttt{dic[1.5]} $\rightarrow$ \textcolor{red}{\texttt{KeyError}}
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.5\textwidth}
+\onslide<2->{%
+\begin{exampleblock}{Dicionário ``suave''}
+Não dá erro: devolve uma \textbf{média dos valores ponderada pela proximidade} às chaves.
+\begin{center}
+\texttt{dic[1.5]} $\rightarrow$ \texttt{30} \quad {\scriptsize $\left(\tfrac{10+50}{2}\right)$}
+\end{center}
+\end{exampleblock}
+}
+\end{column}
+\end{columns}
+
+\vspace{6pt}
+\onslide<2->{%
+\begin{block}{É exatamente o \textit{self-attention}}
+A \textcolor{qcolor}{\textbf{query}} é comparada a todas as \textcolor{kcolor}{\textbf{keys}}; quanto maior a similaridade (o \textit{score}), mais peso o \textcolor{vcolor}{\textbf{value}} correspondente recebe na média final.
+\end{block}
+}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Self-Attention: a Forma ``Crua'' Não Funciona}
+
+Aplicar dot product attention diretamente sobre os tokens da entrada $x_1, \dots, x_m$:
+
+\vspace{4pt}
+
+\[
+\mathrm{score}(x_t, x_k) = \frac{x_t^{\top} x_k}{\sqrt{d}}, \qquad
+a_k^{(t)} = \mathrm{softmax}_k\bigl(\mathrm{score}(x_t, x_k)\bigr)
+\]
+\[
+c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, x_k
+\]
+
+\vspace{6pt}
+
+\begin{alertblock}{Problema}
+Não há \textbf{nada para aprender} aqui: o cálculo é determinístico nas entradas. Sem parâmetros treináveis, \textit{backpropagation} não tem o que ajustar.
+\end{alertblock}
+
+\vspace{6pt}
+
+\textbf{Solução:} introduzir três projeções lineares aprendidas para cada token, gerando \textbf{queries}, \textbf{keys} e \textbf{values}.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Queries, Keys e Values}
+
+Para cada token $x_t$, projetamos em três vetores via matrizes aprendidas:
+
+\vspace{6pt}
+
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\[
+\textcolor{qcolor}{q_t} = x_t \, W_q + b_q
+\]
+\[
+\textcolor{kcolor}{k_t} = x_t \, W_k + b_k
+\]
+\[
+\textcolor{vcolor}{v_t} = x_t \, W_v + b_v
+\]
+\end{column}
+\begin{column}{0.50\textwidth}
+\textbf{Analogia (recuperação de informação):}
+\begin{itemize}
+    \item \textcolor{qcolor}{\textbf{Query}}: vetor que codifica uma consulta
+    \item \textcolor{kcolor}{\textbf{Key}}: chaves de busca, comparadas às queries
+    \item \textcolor{vcolor}{\textbf{Value}}: valor retornado quando query e key são similares
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{6pt}
+
+A atenção passa a ser:
+\[
+\mathrm{score}(q_t, k_i) = \frac{q_t^{\top} k_i}{\sqrt{d}}, \qquad
+a_i^{(t)} = \mathrm{softmax}_i(\mathrm{score}(q_t, k_i))
+\]
+\[
+c^{(t)} = \sum_{i=1}^{m} a_i^{(t)} \, v_i
+\]
+
+\textbf{Agora há parâmetros aprendidos:} $W_q, W_k, W_v$.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Self-Attention: Exemplo Numérico (Setup)}
+
+\textbf{Embeddings de entrada} (dois tokens, $d_{\text{emb}}=3$):
+\[
+x_1 = [1,\ -3,\ 2], \qquad x_2 = [2,\ -1,\ 1]
+\]
+
+\textbf{Matrizes de pesos} (todas com bias $0$, projeção para $d=2$):
+\[
+W_q = \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}, \quad
+W_k = \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}, \quad
+W_v = \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
+\]
+
+\vspace{4pt}
+\centering
+Projetamos cada token aplicando $W_q, W_k, W_v$; os cálculos completos vêm a seguir.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções}
+
+Cada token ($x_1 = [1,-3,2]$, $x_2 = [2,-1,1]$) é projetado por $W_q, W_k, W_v$:
+
+\vspace{2pt}
+\textcolor{qcolor}{\textbf{Queries}} ($q_i = x_i W_q$):
+\begin{align*}
+q_1 &= [\,1(1){+}(-3)(1){+}2(0),\ \ 1(0){+}(-3)(-1){+}2(-2)\,] = [-2,\ -1] \\
+q_2 &= [\,2(1){+}(-1)(1){+}1(0),\ \ 2(0){+}(-1)(-1){+}1(-2)\,] = [1,\ -1]
+\end{align*}
+
+\textcolor{kcolor}{\textbf{Keys}} ($k_i = x_i W_k$):
+\begin{align*}
+k_1 &= [\,1(1){+}(-3)(0){+}2(0),\ \ 1(1){+}(-3)(-1){+}2(0)\,] = [1,\ 4] \\
+k_2 &= [\,2(1){+}(-1)(0){+}1(0),\ \ 2(1){+}(-1)(-1){+}1(0)\,] = [2,\ 3]
+\end{align*}
+
+\textcolor{vcolor}{\textbf{Values}} ($v_i = x_i W_v$):
+\begin{align*}
+v_1 &= [\,1(-2){+}(-3)(0){+}2(0),\ \ 1(1){+}(-3)(1){+}2(2)\,] = [-2,\ 2] \\
+v_2 &= [\,2(-2){+}(-1)(0){+}1(0),\ \ 2(1){+}(-1)(1){+}1(2)\,] = [-4,\ 3]
+\end{align*}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=15]{Self-Attention: Exemplo Numérico (Cálculo)}
+
+\textbf{Foco no token 1:} usamos $\textcolor{qcolor}{q_1 = [-2, -1]}$ contra todas as keys.
+
+\vspace{6pt}
+
+\textbf{Scores não normalizados:}
+\[
+q_1 \cdot k_1 = (-2)(1) + (-1)(4) = -6, \qquad
+q_1 \cdot k_2 = (-2)(2) + (-1)(3) = -7
+\]
+
+\vspace{4pt}
+
+\textbf{Normalização por $\sqrt{d}$ (com $d=2$):}
+\[
+-6 / \sqrt{2} \approx -4.24, \qquad -7 / \sqrt{2} \approx -4.95
+\]
+
+\vspace{4pt}
+
+\textbf{Softmax sobre os scores normalizados:}
+\[
+a_1^{(1)} \approx 0.67, \qquad a_2^{(1)} \approx 0.33
+\]
+
+\vspace{4pt}
+
+\textbf{Soma ponderada dos values:}
+\[
+c^{(1)} = 0.67 \cdot [-2, 2] + 0.33 \cdot [-4, 3] \approx [-2.66,\ 2.33]
+\]
+
+\vspace{4pt}
+\centering
+O token 1 atende \textbf{principalmente} a si mesmo (0.67), mas incorpora uma fração do token 2 (0.33): a saída é uma média ponderada.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Forma Matricial: Processar Toda a Sequência de uma Vez}
+
+A implementação anterior processa cada query \textbf{de forma independente}. Como o resultado de cada query não depende das demais (no mesmo passo), podemos vetorizar tudo:
+
+\vspace{4pt}
+
+\begin{exampleblock}{Scaled Dot Product Attention (forma matricial)}
+\[
+\boxed{\;
+\mathrm{attention}(\Qc, \Kc, \Vc) = \mathrm{softmax}\!\left(\frac{\Qc \, \Kc^{\top}}{\sqrt{d}}\right) \Vc
+\;}
+\]
+\end{exampleblock}
+
+\vspace{6pt}
+
+\textbf{Com:}
+\begin{itemize}
+    \item $\Qc = X W_q$, $\quad$ shape: \texttt{seq\_size $\times$ d}
+    \item $\Kc = X W_k$, $\quad$ shape: \texttt{seq\_size $\times$ d}
+    \item $\Vc = X W_v$, $\quad$ shape: \texttt{seq\_size $\times$ value\_size}
+\end{itemize}
+
+\vspace{4pt}
+
+A matriz $\mathrm{softmax}(\Qc \Kc^{\top} / \sqrt{d})$ tem shape \texttt{seq\_size $\times$ seq\_size}: contém os \textbf{pesos da atenção} de cada token sobre cada token.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Forma Matricial: Projeções $\Qc, \Kc, \Vc$}
+
+Empilhando os dois embeddings nas linhas de $X$ ($2\times3$) e projetando com $W_q, W_k, W_v$ ($3\times2$), cada projeção fica $2\times2$:
+
+\vspace{2pt}
+\[
+\Qc = X W_q =
+\begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
+= \begin{bmatrix} -2 & -1 \\ 1 & -1 \end{bmatrix}
+\]
+\[
+\Kc = X W_k =
+\begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
+= \begin{bmatrix} 1 & 4 \\ 2 & 3 \end{bmatrix}
+\]
+\[
+\Vc = X W_v =
+\begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
+= \begin{bmatrix} -2 & 2 \\ -4 & 3 \end{bmatrix}
+\]
+
+\vspace{2pt}
+\centering
+Cada \textbf{linha} de $\Qc, \Kc, \Vc$ é o vetor projetado de um token.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Forma Matricial: Pipeline Completo}
+
+Com as projeções do slide anterior:
+\[
+\Qc = \begin{bmatrix} -2 & -1 \\ 1 & -1 \end{bmatrix}, \quad
+\Kc = \begin{bmatrix} 1 & 4 \\ 2 & 3 \end{bmatrix}, \quad
+\Vc = \begin{bmatrix} -2 & 2 \\ -4 & 3 \end{bmatrix}
+\]
+
+\vspace{6pt}
+
+\textbf{Scores e normalização:}
+\[
+\Qc \, \Kc^{\top} = \begin{bmatrix} -6 & -7 \\ -3 & -1 \end{bmatrix}, \qquad
+\frac{\Qc \, \Kc^{\top}}{\sqrt{2}} \approx \begin{bmatrix} -4.24 & -4.95 \\ -2.12 & -0.71 \end{bmatrix}
+\]
+
+\vspace{4pt}
+
+\textbf{Softmax (por linha):}
+\[
+\mathrm{softmax} \approx \begin{bmatrix} 0.67 & 0.33 \\ 0.20 & 0.80 \end{bmatrix}
+\]
+
+\vspace{4pt}
+
+\textbf{Saída final:}
+\[
+\mathrm{attention}(\Qc, \Kc, \Vc) \approx \begin{bmatrix} -2.66 & 2.33 \\ -3.61 & 2.80 \end{bmatrix}
+\]
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Refletindo sobre Self-Attention}
+
+\begin{block}{É não linear?}
+\textbf{Sim:} $Q K^{\top} V$ é polinomial de grau 3 nos parâmetros; a softmax já é não-linear.
+\end{block}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Vantagem em relação a um MLP}
+O número de parâmetros \textbf{não escala} com o tamanho da sequência. Os mesmos $W_q, W_k, W_v$ atendem qualquer comprimento.
+\end{block}
+
+\column{0.48\textwidth}
+\begin{block}{Vantagem em relação a RNNs}
+\begin{itemize}
+    \item Muito mais fácil de \textbf{paralelizar}: tudo é matricial
+    \item Lida melhor com \textbf{sequências longas}: dependências de longo alcance em um único passo
+\end{itemize}
+\end{block}
+\end{columns}
+
+\vspace{3pt}
+
+\begin{exampleblock}{Bônus: explicabilidade}
+Os pesos da atenção formam uma matriz interpretável: dá para plotar e ver quais tokens a rede ``olha''.
+\end{exampleblock}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{O Calcanhar de Aquiles: Falta Informação Posicional}
+
+\begin{alertblock}{Problema}
+Da forma como definimos, \textit{self-attention} \textbf{não tem informação sobre a posição} dos tokens na sequência.
+\end{alertblock}
+
+\vspace{6pt}
+
+Em RNNs e CNNs, a informação posicional está integrada ao \textit{viés indutivo} dos modelos, então não demandavam atenção especial. Em self-attention, não.
+
+\vspace{8pt}
+
+\begin{exampleblock}{Consequência absurda}
+\centering
+\texttt{"lucas comeu pastel no jantar"} $=$ \texttt{"jantar comeu pastel no lucas"}
+
+\vspace{4pt}
+
+Para o modelo, ambas as frases produzem o mesmo conjunto de pesos da atenção.
+\end{exampleblock}
+
+\vspace{6pt}
+
+\centering
+Precisamos adaptar os embeddings para que carreguem informação sobre a \textbf{posição do token} na sequência.
+
+\end{frame}
+
+% ============================================================
+\section{Positional Encoding}
+% ============================================================
+
+\begin{frame}{Ideia Geral do Positional Encoding}
+
+\textbf{Ideia:} criar uma codificação para a posição e \textbf{somá-la} ao embedding do token.
+
+\vspace{8pt}
+
+\begin{center}
+\begin{tikzpicture}[
+    >=Stealth, font=\small,
+    box/.style={draw, minimum width=1.6cm, minimum height=1.0cm},
+]
+    \node[box, fill=lightpurple] (we) at (0, 0) {word emb.};
+    \node[font=\Large] at (2.0, 0) {$+$};
+    \node[box, fill=lightyellow] (pe) at (4.0, 0) {position emb.};
+    \node[font=\Large] at (6.0, 0) {$=$};
+    \node[box, fill=lightred] (out) at (8.4, 0) {input do transformer};
+
+    \node[font=\scriptsize, anchor=north] at (we.south) {tamanho $d$};
+    \node[font=\scriptsize, anchor=north] at (pe.south) {tamanho $d$};
+    \node[font=\scriptsize, anchor=north] at (out.south) {tamanho $d$};
+\end{tikzpicture}
+\end{center}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item Existem várias formas de definir/aprender embeddings posicionais
+    \item No paper original, Vaswani et al.\ (2017) observaram que \textbf{embeddings posicionais aprendidos não melhoraram} resultados em relação a embeddings posicionais \textbf{fixos} (sinusoidal)
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Propriedades Desejadas}
+
+Precisamos de uma matriz de posições que codifique adequadamente posições \textbf{absolutas} e \textbf{relativas} dos tokens em uma sequência.
+
+\vspace{8pt}
+
+\begin{block}{Requisitos}
+\begin{itemize}
+    \item \textbf{Único por posição:} cada posição da sequência tem uma codificação distinta
+    \item \textbf{Distâncias relativas consistentes:} o deslocamento entre duas posições é codificado de forma consistente, independentemente do tamanho da sequência
+    \item \textbf{Generaliza para qualquer tamanho:} a codificação tem limite superior e inferior bem definidos
+    \item \textbf{Determinística:} sem aleatoriedade na inferência
+\end{itemize}
+\end{block}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Ideia 1: Usar o Índice da Posição}
+
+\textbf{Proposta:} codificar a posição $i$ pelo próprio número $i$ (ou $i / N$).
+
+\vspace{6pt}
+
+\begin{alertblock}{Problemas}
+\begin{itemize}
+    \item Sem limite superior bem definido (para sequências arbitrárias)
+    \item Os valores ficam grandes para sequências longas, dominando o embedding do token
+    \item Normalizar por $N$ resolve o limite, mas a mesma posição relativa passa a depender do tamanho da sequência
+\end{itemize}
+\end{alertblock}
+
+\vspace{6pt}
+
+\centering
+Não funciona.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Ideia 2: Usar Números Binários}
+
+\textbf{Proposta:} usar a representação binária da posição em $\lceil \log_2 N \rceil$ bits.
+
+\vspace{4pt}
+
+\begin{columns}[T]
+\column{0.55\textwidth}
+\begin{itemize}
+    \item Existe um \textbf{comportamento periódico} natural nos bits binários
+    \item Bits menos significativos alternam rápido (período 2), mais significativos alternam devagar
+    \item Isso é desejável para codificar posições
+\end{itemize}
+
+\vspace{6pt}
+
+\begin{alertblock}{Problema}
+Redes neurais usam matemática \textbf{contínua}. Interpolar entre representações binárias não preserva a noção de distância. Também não funciona.
+\end{alertblock}
+
+\column{0.40\textwidth}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{r|cccc}
+$0$ & 0 & 0 & 0 & 0 \\
+$1$ & 0 & 0 & 0 & 1 \\
+$2$ & 0 & 0 & 1 & 0 \\
+$3$ & 0 & 0 & 1 & 1 \\
+$4$ & 0 & 1 & 0 & 0 \\
+$5$ & 0 & 1 & 0 & 1 \\
+$6$ & 0 & 1 & 1 & 0 \\
+$7$ & 0 & 1 & 1 & 1 \\
+$8$ & 1 & 0 & 0 & 0 \\
+$\vdots$ &  &  &  &  \\
+$15$ & 1 & 1 & 1 & 1 \\
+\end{tabular}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Ideia 3: Senos e Cossenos de Frequências Variadas}
+
+\textbf{Proposta:} usar uma combinação de senos e cossenos de diferentes frequências para indicar a posição.
+
+\vspace{2pt}
+
+\begin{block}{Por que funciona}
+\begin{itemize}
+    \item \textbf{Limite máximo e mínimo bem definidos:} $\sin, \cos \in [-1, 1]$
+    \item \textbf{Periodicidade multiescala:} cada dimensão tem sua própria frequência, gerando códigos únicos
+    \item \textbf{Linearidade da rotação:} a posição (ângulo) pode ser modificada por uma transformação linear
+\end{itemize}
+\end{block}
+
+\vspace{2pt}
+
+\[
+\begin{pmatrix} \cos(\theta + \phi) \\ \sin(\theta + \phi) \end{pmatrix}
+=
+\begin{pmatrix} \cos\phi & -\sin\phi \\ \sin\phi & \cos\phi \end{pmatrix}
+\begin{pmatrix} \cos\theta \\ \sin\theta \end{pmatrix}
+\]
+
+\vspace{2pt}
+
+Isso significa que o modelo consegue ``rotacionar'' as posições por uma matriz de pesos aprendida, capturando deslocamentos relativos.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Positional Encoding Sinusoidal: Fórmula}
+
+\begin{exampleblock}{Definição (Vaswani et al., 2017)}
+\[
+P_{i,j} =
+\begin{cases}
+\sin\!\left(\dfrac{i}{n^{(2k/d)}}\right), & \text{se } j = 2k \\[12pt]
+\cos\!\left(\dfrac{i}{n^{(2k/d)}}\right), & \text{se } j = 2k + 1
+\end{cases}
+\]
+\end{exampleblock}
+
+\vspace{4pt}
+
+\textbf{Onde:}
+\begin{itemize}
+    \item $i$: índice da posição na sequência
+    \item $j$: índice da dimensão do embedding ($j = 0, \dots, d-1$)
+    \item $d$: dimensão do embedding
+    \item $n$: hiperparâmetro de escala (no paper, $n = 10000$)
+\end{itemize}
+
+\vspace{4pt}
+
+Cada par de dimensões $(2k, 2k+1)$ usa uma frequência diferente, gerando uma assinatura única para cada posição.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Positional Encoding: Comportamento do Produto Escalar}
+
+Uma propriedade interessante: o produto escalar entre dois positional encodings tem um pico claro na posição central e decai suavemente.
+
+\vspace{4pt}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    width=10cm, height=5cm,
+    xlabel={Posição},
+    ylabel={\scriptsize $\frac{\text{dot product}}{\max(\text{dot product})}$},
+    domain=0:256, samples=400,
+    ymin=0.3, ymax=1.05,
+    xmin=0, xmax=256,
+    grid=both, grid style={gray!20},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+]
+% Curva real: produto escalar de PEs sinusoidais (d=128, n=10000) entre a
+% posição 128 e todas as demais, normalizado pelo valor em 128.
+\addplot[thick, blue] coordinates {
+(0,0.333) (4,0.415) (8,0.422) (12,0.460) (16,0.363) (20,0.426) (24,0.423) (28,0.477) (32,0.384) (36,0.430) (40,0.501) (44,0.402) (48,0.452) (52,0.501) (56,0.417) (60,0.500) (64,0.477) (68,0.469) (72,0.509) (76,0.498) (80,0.495) (84,0.542) (88,0.509) (92,0.548) (96,0.557) (100,0.559) (104,0.589) (108,0.608) (112,0.620) (116,0.662) (120,0.714) (124,0.759) (128,1.000) (132,0.759) (136,0.714) (140,0.662) (144,0.620) (148,0.608) (152,0.589) (156,0.559) (160,0.557) (164,0.548) (168,0.509) (172,0.542) (176,0.495) (180,0.498) (184,0.509) (188,0.469) (192,0.477) (196,0.500) (200,0.417) (204,0.501) (208,0.452) (212,0.402) (216,0.501) (220,0.430) (224,0.384) (228,0.477) (232,0.423) (236,0.426) (240,0.363) (244,0.460) (248,0.422) (252,0.415) (256,0.333)
+};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\vspace{4pt}
+
+\begin{itemize}
+    \item \textbf{Pico em 1} quando comparamos uma posição com ela mesma
+    \item \textbf{Decaimento suave} para posições próximas
+    \item \textbf{Padrão oscilatório} característico das senoides combinadas
+\end{itemize}
+
+Isso permite ao modelo perceber proximidade relativa entre tokens.
+
+\end{frame}
+
+% ============================================================
+\section{Arquitetura Transformer}
+% ============================================================
+
+\begin{frame}{A Arquitetura Completa}
+
+Finalmente estamos prontos para abrir o transformer. Na prática, já vimos quase todos os componentes.
+
+\vspace{2pt}
+
+\begin{center}
+\begin{tikzpicture}[
+    >=Stealth, font=\scriptsize,
+    transform shape, scale=0.72,
+    block/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.55cm, align=center},
+    arrow/.style={->, thick, gray!70!black},
+]
+    % Encoder column (lifted by 1.5 to align with decoder upper blocks)
+    \node[block, fill=lightred]   (ein)  at (0, 1.0) {Input Embedding};
+    \node[block, fill=mhablock]   (emha) at (0, 2.0) {Multi-Head Attention};
+    \node[block, fill=normblock]  (en1)  at (0, 2.7) {Add \& Norm};
+    \node[block, fill=ffblock]    (eff)  at (0, 3.4) {Feed Forward};
+    \node[block, fill=normblock]  (en2)  at (0, 4.1) {Add \& Norm};
+
+    % N x marker for encoder, placed to the LEFT to avoid the cross-attn arrow
+    \node[font=\scriptsize, left=0.05cm of en1] {$N\!\times$};
+
+    % Decoder column
+    \node[block, fill=lightred]   (din)  at (6.0, 0.0) {Output Embedding};
+    \node[block, fill=mhablock]   (dmha1) at (6.0, 1.0) {Masked Multi-Head};
+    \node[block, fill=normblock]  (dn1)   at (6.0, 1.7) {Add \& Norm};
+    \node[block, fill=mhablock]   (dmha2) at (6.0, 2.7) {Multi-Head (cross)};
+    \node[block, fill=normblock]  (dn2)   at (6.0, 3.4) {Add \& Norm};
+    \node[block, fill=ffblock]    (dff)   at (6.0, 4.1) {Feed Forward};
+    \node[block, fill=normblock]  (dn3)   at (6.0, 4.8) {Add \& Norm};
+
+    % N x marker for decoder, placed to the RIGHT
+    \node[font=\scriptsize, right=0.05cm of dn1] {$N\!\times$};
+
+    % Output head
+    \node[block, fill=lightblue]   (lin) at (6.0, 5.7) {Linear};
+    \node[block, fill=lightyellow] (sm)  at (6.0, 6.4) {Softmax};
+    \node[font=\scriptsize, anchor=south] at (sm.north) {output prob.};
+
+    % Vertical arrows encoder
+    \draw[arrow] (ein)  -- (emha);
+    \draw[arrow] (emha) -- (en1);
+    \draw[arrow] (en1)  -- (eff);
+    \draw[arrow] (eff)  -- (en2);
+
+    % Vertical arrows decoder
+    \draw[arrow] (din)   -- (dmha1);
+    \draw[arrow] (dmha1) -- (dn1);
+    \draw[arrow] (dn1)   -- (dmha2);
+    \draw[arrow] (dmha2) -- (dn2);
+    \draw[arrow] (dn2)   -- (dff);
+    \draw[arrow] (dff)   -- (dn3);
+    \draw[arrow] (dn3)   -- (lin);
+    \draw[arrow] (lin)   -- (sm);
+
+    % Cross-attention K, V from encoder top to decoder cross-attention block
+    \draw[arrow, dashed, red!70!black] (en2.east) to[bend left=15] node[pos=0.55, above, font=\scriptsize, fill=white, inner sep=1pt]{$K, V$} (dmha2.west);
+
+    % Positional encoding annotations
+    \node[font=\scriptsize, anchor=east] at ([xshift=-0.1cm]ein.west) {PE $\bigoplus$};
+    \node[font=\scriptsize, anchor=west] at ([xshift=0.1cm]din.east)  {$\bigoplus$ PE};
+\end{tikzpicture}
+\end{center}
+
+\vspace{2pt}
+\centering
+\footnotesize Vaswani et al., 2017. \textit{Attention is All You Need.}
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Multi-Head Attention}
+
+\begin{columns}[T]
+\column{0.58\textwidth}
+\textbf{Ideia:} separar a computação do self-attention em $H$ ``cabeças'' paralelas.
+
+\vspace{6pt}
+
+\begin{block}{Por exemplo, com $D = 512$ e $H = 8$}
+\begin{itemize}
+    \item Cada cabeça trabalha com dimensão $D/H = 64$
+    \item As $H$ cabeças computam atenção em paralelo
+    \item As saídas são \textbf{concatenadas}
+    \item Aplicamos uma projeção linear final
+\end{itemize}
+\end{block}
+
+\vspace{4pt}
+
+\begin{exampleblock}{Fórmula}
+\small
+\[
+\mathrm{MultiHead}(\Qc, \Kc, \Vc) = \mathrm{Concat}(\mathrm{head}_1, \dots, \mathrm{head}_H) W_O
+\]
+\[
+\mathrm{head}_i = \mathrm{attention}(\Qc W_Q^i, \Kc W_K^i, \Vc W_V^i)
+\]
+\end{exampleblock}
+
+\column{0.40\textwidth}
+\begin{center}
+\begin{tikzpicture}[
+    >=Stealth, font=\scriptsize,
+    box/.style={draw, rounded corners, minimum width=1.1cm, minimum height=0.5cm, align=center},
+]
+    \node[box, fill=lightblue] (lq) at (-1.6, 0) {Linear};
+    \node[box, fill=lightblue] (lk) at (0.0,  0) {Linear};
+    \node[box, fill=lightblue] (lv) at (1.6,  0) {Linear};
+
+    \node[font=\scriptsize, anchor=north] at (lq.south) {Q};
+    \node[font=\scriptsize, anchor=north] at (lk.south) {K};
+    \node[font=\scriptsize, anchor=north] at (lv.south) {V};
+
+    \node[box, fill=lightpurple, minimum width=4.6cm] (sdpa) at (0, 1.1) {Scaled Dot Product Attn (h vezes)};
+    \node[box, fill=lightyellow, minimum width=4.6cm] (cc) at (0, 2.0) {Concat};
+    \node[box, fill=lightblue,   minimum width=4.6cm] (lo) at (0, 2.9) {Linear};
+
+    \draw[->] (lq) -- (sdpa.south -| lq);
+    \draw[->] (lk) -- (sdpa.south -| lk);
+    \draw[->] (lv) -- (sdpa.south -| lv);
+    \draw[->] (sdpa) -- (cc);
+    \draw[->] (cc) -- (lo);
+\end{tikzpicture}
+\end{center}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Skip Connections (Residuais)}
+
+Note no diagrama do transformer que existe uma seta passando \textbf{ao redor} do bloco \textit{Multi-Head Attention} (e do bloco Feed Forward). Isso é uma \textbf{skip connection}.
+
+\vspace{6pt}
+
+\begin{exampleblock}{Add \& Norm}
+\centering
+\[
+\text{output} = \mathrm{LayerNorm}\bigl(x + \mathrm{Subblock}(x)\bigr)
+\]
+\end{exampleblock}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item Mantém o gradiente fluindo (mesma motivação da ResNet)
+    \item Permite empilhar muitos blocos sem que o sinal se degrade
+    \item ``\textit{Add}'' é a soma residual; ``\textit{Norm}'' é a normalização (LayerNorm)
+\end{itemize}
+
+\vspace{4pt}
+\centering
+Sem skip connections, o transformer não treinaria em profundidade.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Layer Normalization}
+
+\begin{itemize}
+    \item Similar ao \textbf{batch norm} visto anteriormente (ResNet), mas as estatísticas são computadas \textbf{por token} (não por mini-batch)
+    \item Introduz dois parâmetros aprendidos por dimensão (escala e deslocamento)
+\end{itemize}
+
+\vspace{8pt}
+\begin{exampleblock}{Forma fechada}
+Para um \textit{token} $x_i \in \mathbb{R}^{d}$,
+\[
+    \mathrm{LN}(x_i) = \gamma \odot \frac{x_i - \mu_i}{\sigma_i} + \beta, \qquad
+    \mu_i = \frac{1}{d}\sum_{k=1}^{d} x_{i,k}, \quad
+    \sigma_i^2 = \frac{1}{d}\sum_{k=1}^{d}(x_{i,k} - \mu_i)^2.
+\]
+\end{exampleblock}
+
+\vspace{8pt}
+\centering
+\footnotesize Layer Norm é mais adequada para sequências de comprimento variável.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Layer Norm vs. Batch Norm}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize, >=Stealth]
+    % Batch Norm panel
+    \node[font=\small\bfseries] at (0, 2.4) {Batch Norm};
+    \draw[red!70, dashed, thick, rounded corners] (-1.6, 1.0) rectangle (-0.7, 2.0);
+    \draw[red!70, dashed, thick, rounded corners] (-1.6, -0.4) rectangle (-0.7, 0.6);
+
+    \node at (-1.15, 1.5) {col};
+    \node at (-1.15, 0.1) {col};
+    \node[anchor=west, font=\scriptsize, align=left] at (-0.5, 0.8) {normaliza\\por coluna\\(feature)};
+
+    % Layer Norm panel
+    \node[font=\small\bfseries] at (5.0, 2.4) {Layer Norm};
+    \draw[darkgreen, dashed, thick, rounded corners] (3.4, 1.5) rectangle (5.6, 2.0);
+    \draw[darkgreen, dashed, thick, rounded corners] (3.4, 0.5) rectangle (5.6, 1.0);
+    \draw[darkgreen, dashed, thick, rounded corners] (3.4, -0.5) rectangle (5.6, 0.0);
+
+    \node at (4.5, 1.75) {linha (token)};
+    \node at (4.5, 0.75) {linha (token)};
+    \node at (4.5, -0.25) {linha (token)};
+    \node[anchor=west, font=\scriptsize, align=left] at (5.8, 0.75) {normaliza\\por linha\\(por token)};
+\end{tikzpicture}
+\end{center}
+
+\vspace{6pt}
+\begin{itemize}
+    \item \textbf{Batch Norm}: normaliza cada \textbf{coluna} (feature) com estatísticas do mini-batch.
+    \item \textbf{Layer Norm}: normaliza cada \textbf{linha} (token) com as estatísticas das próprias features, independente do batch.
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Feed-Forward Network}
+
+Após o bloco \textit{Multi-Head Attention} e o \textit{Add \& Norm}, o transformer aplica um pequeno MLP a cada posição.
+
+\vspace{6pt}
+
+\begin{exampleblock}{Estrutura}
+\[
+\mathrm{FFN}(x) = \mathrm{ReLU}(x \, W_1 + b_1) \, W_2 + b_2
+\]
+\end{exampleblock}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item No paper original, são duas camadas com ReLU no meio
+    \item A entrada do MLP \textbf{depende do tamanho da sequência}? Não: aplicado posição a posição (\textit{pointwise})
+    \item Após interagir com os outros tokens via atenção, cada posição ``pensa'' por si mesma
+    \item Geralmente expande a dimensão (ex.: $d \to 4d \to d$)
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{O Bloco do Encoder e a Pilha $N\times$}
+
+Cada \textbf{bloco do encoder} é a sequência:
+
+\vspace{4pt}
+\begin{center}
+Multi-Head Attention $\to$ Add \& Norm $\to$ Feed Forward $\to$ Add \& Norm
+\end{center}
+
+\vspace{6pt}
+
+\begin{block}{Empilhamento}
+Replicamos esse bloco $N$ vezes (no paper original, $N = 6$). Cada bloco refina a representação dos tokens, integrando informação dos demais via self-attention.
+\end{block}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item A entrada do encoder é \texttt{Input Embedding $+$ Positional Encoding}
+    \item A saída do encoder é uma sequência de vetores que, conjuntamente, codificam o significado da entrada \textbf{contextualizada}
+    \item Essa saída será consumida pelo decoder via \textbf{cross-attention}
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{O Decoder: Masked Self-Attention}
+
+O primeiro bloco de atenção do decoder é praticamente igual ao do encoder, com uma diferença crítica: aplica uma \textbf{máscara} para olhar apenas tokens anteriores.
+
+\vspace{6pt}
+
+\begin{block}{Por que mascarar?}
+Durante o treinamento (tarefa de tradução, por exemplo), o decoder vê toda a sequência de saída. Sem máscara, ele \textit{trapacearia}, atendendo a tokens futuros que ainda não deveriam ter sido gerados. A máscara garante que cada posição $t$ só atende a posições $\leq t$.
+\end{block}
+
+\vspace{8pt}
+
+\centering
+A máscara é o que torna o decoder \textbf{autoregressivo}: cada token é gerado condicionado apenas no que já foi produzido.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[fragile]{Mecânica da Máscara}
+
+\begin{columns}[T]
+\column{0.55\textwidth}
+\textbf{Como aplicar a máscara:}
+
+\vspace{4pt}
+
+\begin{enumerate}
+    \item Calcule os scores $\Qc \Kc^{\top} / \sqrt{d}$ (matriz \texttt{seq $\times$ seq})
+    \item Some uma matriz de máscara $M$:
+    \begin{itemize}
+        \item $M_{ij} = 0$ para $j \leq i$ (válido)
+        \item $M_{ij} = -\infty$ para $j > i$ (futuro)
+    \end{itemize}
+    \item Aplique a softmax: posições com $-\infty$ recebem peso $0$
+\end{enumerate}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Resultado}
+O modelo nunca olha para tokens à direita: a atenção é estritamente \textbf{causal}.
+\end{exampleblock}
+
+\column{0.40\textwidth}
+\centering
+\begin{tikzpicture}[font=\scriptsize]
+\matrix (m) [matrix of nodes,
+    nodes={draw, minimum size=0.55cm, anchor=center},
+    column sep=-\pgflinewidth, row sep=-\pgflinewidth,
+] {
+|[fill=lightgreen]| 0 & |[fill=lightred]| {\tiny$-\infty$} & |[fill=lightred]| {\tiny$-\infty$} & |[fill=lightred]| {\tiny$-\infty$} \\
+|[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 & |[fill=lightred]| {\tiny$-\infty$} & |[fill=lightred]| {\tiny$-\infty$} \\
+|[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 & |[fill=lightred]| {\tiny$-\infty$} \\
+|[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 & |[fill=lightgreen]| 0 \\
+};
+\end{tikzpicture}
+
+\vspace{4pt}
+\footnotesize Máscara causal triangular.
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{O Decoder: Cross-Attention}
+
+Após o masked self-attention, o decoder aplica um \textbf{segundo} bloco de Multi-Head Attention. Aqui há uma assimetria importante.
+
+\vspace{6pt}
+
+\begin{block}{Cross-Attention (encoder-decoder attention)}
+\begin{itemize}
+    \item \textcolor{qcolor}{\textbf{Query}}: vem dos estados \textbf{do decoder} (o que estou gerando agora)
+    \item \textcolor{kcolor}{\textbf{Key}} e \textcolor{vcolor}{\textbf{Value}}: vêm dos estados \textbf{do encoder} (o que está na entrada)
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+
+Em outras palavras: o token alvo ``olha'' para a sequência de origem para decidir o que atender.
+
+\vspace{6pt}
+
+\begin{exampleblock}{Em tradução}
+Ao gerar a palavra ``cat'', a query do decoder consulta as keys do encoder e descobre que deve dar mais peso ao value associado ao token original que representa ``gato'' na sequência de origem.
+\end{exampleblock}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{O Decoder: Feed-Forward e Saída}
+
+\begin{block}{Bloco completo do decoder}
+\begin{enumerate}
+    \item Masked Multi-Head Attention $\to$ Add \& Norm
+    \item Cross-Attention (Q do decoder, K/V do encoder) $\to$ Add \& Norm
+    \item Feed Forward $\to$ Add \& Norm
+\end{enumerate}
+Replicado $N$ vezes (no paper, $N = 6$).
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Cabeça final}
+Após a pilha de blocos do decoder:
+\begin{itemize}
+    \item Uma \textbf{Linear} projeta cada vetor de saída para a dimensão do vocabulário $|V|$
+    \item Uma \textbf{Softmax} produz uma distribuição de probabilidade sobre o próximo token
+\end{itemize}
+\end{exampleblock}
+
+\vspace{4pt}
+
+\centering
+A geração ocorre token a token: amostramos (ou pegamos o argmax) do próximo token, adicionamos à entrada do decoder, e repetimos.
+
+\end{frame}
+
+% ============================================================
+\section{Interpretabilidade}
+% ============================================================
+
+\begin{frame}[fragile]{A Matriz de Atenção como Janela para o Modelo}
+
+Os mecanismos de atenção são \textbf{especialmente fáceis de inspecionar}: podemos plotar os pesos da atenção e ver o que o modelo está ``olhando''.
+
+\vspace{8pt}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize]
+\matrix (m) [matrix of nodes,
+    nodes={draw, minimum size=0.45cm, anchor=center, font=\tiny},
+    column sep=-\pgflinewidth, row sep=-\pgflinewidth,
+] {
+|[fill=black!80]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  \\
+|[fill=black!10]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!75]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
+};
+\end{tikzpicture}
+\end{center}
+
+\vspace{6pt}
+
+\textbf{Exemplo (tradução):} a diagonal predominante mostra que, em uma tarefa de tradução, cada token alvo tende a atender ao token correspondente da fonte.
+
+\vspace{2pt}
+\centering
+\footnotesize Voita et al., 2019. \textit{Analyzing multi-head self-attention.}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Cabeças Especializadas}
+
+Pesquisas (Voita et al., 2019; entre outros) mostram que algumas \textbf{attention heads} se especializam em fenômenos linguísticos conhecidos.
+
+\vspace{6pt}
+
+\begin{block}{Exemplos de especialização observada}
+\begin{itemize}
+    \item \textbf{Posicional:} a cabeça atende sempre ao token na mesma posição relativa
+    \item \textbf{Concordância verbo-sujeito:} liga formas conjugadas ao seu sujeito
+    \item \textbf{Objeto-verbo:} liga objetos diretos ao verbo correspondente
+    \item \textbf{Palavras raras:} cabeças que ``buscam'' tokens raros para resolver ambiguidade
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Conclusão}
+Não basta empilhar atenção: as cabeças aprendem \textbf{papéis distintos}. Algumas podem ser podadas com perda mínima, sugerindo redundância controlável.
+\end{exampleblock}
+
+\end{frame}
+
+% ============================================================
+\section{Referências}
+% ============================================================
+
+\begin{frame}[shrink=10]{Referências}
+
+\small
+
+\textbf{Artigos principais:}
+\begin{itemize}
+    \item Vaswani, A. et al.\ (2017). Attention is All You Need. \textit{Advances in Neural Information Processing Systems}, v.\ 30.
+    \item Bahdanau, D., Cho, K., \& Bengio, Y. (2014). Neural Machine Translation by Jointly Learning to Align and Translate. \textit{arXiv:1409.0473}.
+    \item Luong, M.-T., Pham, H., \& Manning, C. D. (2015). Effective Approaches to Attention-based Neural Machine Translation. \textit{arXiv:1508.04025}.
+\end{itemize}
+
+\vspace{4pt}
+
+\textbf{Análise e interpretabilidade:}
+\begin{itemize}
+    \item Voita, E., Talbot, D., Moiseev, F., Sennrich, R., \& Titov, I. (2019). Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned. \textit{arXiv:1905.09418}.
+\end{itemize}
+
+\vspace{4pt}
+
+\textbf{Material complementar:}
+\begin{itemize}
+    \item Kazemnejad, A. \textit{Transformer Architecture: The Positional Encoding}. \texttt{\footnotesize kazemnejad.com/blog/transformer\_architecture\_positional\_encoding/}
+    \item Alammar, J. \textit{The Illustrated Transformer}. \texttt{\footnotesize jalammar.github.io/illustrated-transformer/}
+\end{itemize}
+
+\end{frame}
+
+\end{document}

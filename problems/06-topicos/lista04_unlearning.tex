@@ -1,0 +1,235 @@
+\documentclass{dlproblemset}
+\usepackage{booktabs}
+
+\title{\textit{Machine Unlearning} para Modelos de Linguagem}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $D = D_r \cup D_f$ para o corpus de treino dividido em \textit{retain set} $D_r$ e \textit{forget set} $D_f$, $\theta = \mathcal{A}(D)$ para o modelo original, $\theta^\star = \mathcal{A}(D_r)$ para o \textit{oracle} retreinado do zero, $\theta_u = U(\theta, D_f, D_r)$ para o modelo \textit{unlearned} e $\mathcal{L}_{\text{NLL}}$ para a perda de \textit{next-token prediction}. Use a vírgula como separador decimal.
+
+\subsection*{Questões de Múltipla Escolha.}
+
+\begin{enumerate}[I)]
+
+    \item Um modelo já treinado contém o texto integral de uma obra protegida e o titular dos direitos exige sua remoção sob o GDPR. A equipe considera retreinar o modelo do zero apenas com o corpus sem a obra. Por que, na prática, essa rota raramente é adotada quando chegam novos pedidos de remoção?
+    \begin{enumerate}[(a)]
+        \item Retreinar exige reanotar manualmente todo o corpus restante antes de reiniciar o treino.
+        \item O custo de \textit{compute} se repete por inteiro a cada pedido, sendo da ordem de centenas de milhares de GPU-horas para um modelo de 7B.
+        \item O modelo retreinado deixaria de responder qualquer pergunta sobre o universo da obra, violando o pedido.
+        \item A remoção de um único documento altera a tokenização do corpus inteiro, inviabilizando o reaproveitamento de dados.
+        %b
+    \end{enumerate}
+
+    \item Uma colega afirma que o objetivo do \textit{unlearning} é fazer com que $\theta_u$ passe a \textbf{acertar} todas as perguntas sobre $D_f$ de forma diferente do modelo original. Considerando a definição de objetivo vista em aula, qual correção é adequada?
+    \begin{enumerate}[(a)]
+        \item O objetivo é aproximar a distribuição de saída de $\theta_u$ da de $\theta^\star$ em consultas relacionadas a $D_f$, e o \textit{oracle} também não acerta essas perguntas.
+        \item O objetivo é igualar $\theta_u$ a $\theta^\star$ em todos os parâmetros, garantindo respostas idênticas.
+        \item O objetivo é maximizar a probabilidade da resposta correta sobre $D_f$, reduzindo a perda nesse conjunto.
+        \item O objetivo é zerar a probabilidade de qualquer saída do modelo em consultas sobre $D_f$, recusando-se a responder.
+        %a
+    \end{enumerate}
+
+    \item Considere a distinção entre \textit{unlearning} exato e aproximado discutida em aula. Onde se situa o retreino do zero apenas em $D_r$ e por que os métodos práticos para LLMs não o utilizam?
+    \begin{enumerate}[(a)]
+        \item É um método aproximado, pois nunca reproduz exatamente o comportamento desejado, e é evitado por ser numericamente instável.
+        \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo proibitivo de \textit{compute}.
+        \item É um método aproximado de baixo custo, preferido em produção por rodar em uma única GPU-hora por pedido.
+        \item É um método exato e barato, raramente usado apenas por falta de bibliotecas que o automatizem.
+        %b
+    \end{enumerate}
+
+    \item No caso \textit{Harry Potter}, deseja-se que o modelo deixe de reproduzir o parágrafo de abertura do livro mas continue capaz de dizer que ``Hogwarts é uma escola fictícia de magia''. Como esse requisito se reflete na escolha de $D_f$ e $D_r$?
+    \begin{enumerate}[(a)]
+        \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material sobre o universo, como FanWiki e resenhas.
+        \item $D_f$ recebe tanto o texto literal quanto o material sobre o universo, e $D_r$ fica vazio.
+        \item $D_f$ recebe apenas os nomes próprios da saga e $D_r$ recebe os parágrafos completos dos livros.
+        \item $D_f$ e $D_r$ recebem cópias idênticas do corpus, deixando a separação para a função de perda.
+        %a
+    \end{enumerate}
+
+    \item Em uma pergunta de \textit{forget set} sobre HP, a paráfrase da resposta correta $\tilde{a}$ tem probabilidade por \textit{token} $0{,}40$ e as três paráfrases erradas têm $\{0{,}30,\, 0{,}45,\, 0{,}60\}$. Calcule o \textit{truth ratio} $R_{\text{truth}}$ e interprete o resultado quanto ao esquecimento.
+    \begin{enumerate}[(a)]
+        \item $R_{\text{truth}} \approx 0{,}40$, indicando que o modelo ainda lembra fortemente da resposta.
+        \item $R_{\text{truth}} \approx 1{,}13$, sugerindo esquecimento compatível com o \textit{oracle}.
+        \item $R_{\text{truth}} \approx 0{,}45$, indicando memorização residual elevada.
+        \item $R_{\text{truth}} \approx 2{,}25$, sugerindo que o modelo prefere as respostas erradas.
+        %b
+    \end{enumerate}
+
+    \item Aplica-se o teste de Kolmogorov--Smirnov de duas amostras entre os \textit{truth ratios} de $\theta_u$ e de $\theta^\star$ sobre as perguntas de $D_f$. Em um caso obtém-se estatística $D$ pequena e $p$-valor alto; em outro, $D$ grande e $p$-valor baixo. Qual interpretação está correta quanto à \textit{Forget Quality}?
+    \begin{enumerate}[(a)]
+        \item $p$-valor alto indica \textit{Forget Quality} alta, pois não se distingue $\theta_u$ do \textit{oracle}.
+        \item $p$-valor alto indica \textit{Forget Quality} baixa, pois as distribuições foram consideradas diferentes.
+        \item $p$-valor baixo indica \textit{Forget Quality} alta, pois rejeitar $H_0$ confirma o esquecimento.
+        \item O $p$-valor não informa sobre \textit{Forget Quality}, que depende apenas da acurácia em $D_f$.
+        %a
+    \end{enumerate}
+
+    \item Aplicando \textit{Gradient Ascent} puro sobre $D_f$, sem o termo $\lambda\,\mathcal{L}_{\text{NLL}}(D_r,\theta)$, observa-se que após poucas épocas o modelo passa a gerar texto incoerente até para entradas de $D_r$. Qual mecanismo explica esse comportamento?
+    \begin{enumerate}[(a)]
+        \item A sigmoide da perda satura cedo demais, anulando o gradiente antes do esquecimento.
+        \item A perda $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente, então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e degrada todo o modelo.
+        \item O termo de \textit{retain} ausente faria a perda divergir para $-\infty$ apenas nas entradas de $D_r$.
+        \item O modelo de referência $p_{\text{ref}}$ deixa de calibrar o gradiente quando $D_r$ não é usado.
+        %b
+    \end{enumerate}
+
+    \item A NPO foi proposta a partir da DPO descartando um de seus termos. Qual termo é descartado e por que isso é coerente com o objetivo de \textit{unlearning}?
+    \begin{enumerate}[(a)]
+        \item Descarta-se o termo da resposta negativa $y_l$, pois em \textit{unlearning} só interessam respostas positivas.
+        \item Descarta-se o modelo de referência $p_{\text{ref}}$, pois ele introduz viés nas amostras raras de $D_f$.
+        \item Descarta-se o termo da resposta positiva $y_w$, pois o objetivo é rebaixar negativos e não há positivos a elevar.
+        \item Descarta-se a normalização por comprimento $1/|y|$, pois respostas longas devem dominar o gradiente.
+        %c
+    \end{enumerate}
+
+    \item A vantagem central da NPO sobre o \textit{Gradient Ascent} é que a sigmoide $\sigma$ na perda satura quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$. Que consequência prática essa saturação produz durante o \textit{fine-tuning}?
+    \begin{enumerate}[(a)]
+        \item O gradiente das amostras já esquecidas tende a zero, evitando o \textit{catastrophic collapse}.
+        \item O gradiente cresce indefinidamente nas amostras já esquecidas, acelerando a convergência.
+        \item A perda passa a depender apenas de $D_r$, dispensando o conjunto de esquecimento.
+        \item A utility é maximizada porque a sigmoide ignora as amostras de $D_f$ desde o início.
+        %a
+    \end{enumerate}
+
+    \item Em um \textit{forget set} heterogêneo, a NPO atribui peso de gradiente proporcional a $1/p_{\text{ref}}(y\mid x)$ a cada amostra. Considere dois trechos a esquecer: $A$, típico do corpus, com $p_{\text{ref}} = 0{,}40$; e $B$, raro, com $p_{\text{ref}} = 0{,}02$. Qual é o efeito desse \textit{reference-model bias}?
+    \begin{enumerate}[(a)]
+        \item $A$ recebe peso vinte vezes maior que $B$, concentrando o esquecimento nos trechos típicos.
+        \item Ambos recebem peso semelhante, pois a sigmoide compensa a diferença de $p_{\text{ref}}$.
+        \item $B$ recebe peso vinte vezes maior que $A$, então trechos raros dominam o gradiente em vez dos típicos.
+        \item O peso independe de $p_{\text{ref}}$, sendo fixado pela temperatura $\beta$ da perda.
+        %c
+    \end{enumerate}
+
+    \item A SimNPO modifica a NPO trocando a razão $p_\theta/p_{\text{ref}}$ por uma \textit{log-prob} normalizada por comprimento, $-\frac{\beta}{|y|}\log p_\theta(y\mid x)$, descartando o modelo de referência. Quais consequências decorrem dessa escolha?
+    \begin{enumerate}[(a)]
+        \item Reintroduz o viés de referência, mas reduz o uso de memória pela metade durante o \textit{fine-tuning}.
+        \item Elimina o viés de referência e dispensa armazenar $p_{\text{ref}}$, reduzindo a memória de \textit{fine-tuning}.
+        \item Elimina o viés de referência, porém exige manter duas cópias do modelo em memória.
+        \item Mantém o modelo de referência, mas adiciona a margem $\gamma$ para acelerar o colapso controlado.
+        %b
+    \end{enumerate}
+
+    \item \emoji{skull-and-crossbones} Em um ataque de \textit{membership inference} sobre $\theta_u$, ordenam-se quatro \textit{in-members} (de $D_f$) e quatro \textit{out-members} pela \textit{loss}. Da menor para a maior, os grupos ficam: \textit{out}, \textit{in}, \textit{in}, \textit{out}, \textit{out}, \textit{in}, \textit{in}, \textit{out}. A AUC do atacante é a fração de pares (\textit{in}, \textit{out}) com \textit{loss}(\textit{in}) $<$ \textit{loss}(\textit{out}), sobre $4\times 4$ pares. Qual é a AUC e o que ela indica?
+    \begin{enumerate}[(a)]
+        \item AUC $\approx 0{,}50$, indicando vazamento de privacidade próximo ao ideal.
+        \item AUC $\approx 0{,}88$, indicando vazamento alto pois \textit{members} têm \textit{loss} menor.
+        \item AUC $\approx 0{,}25$, indicando que o atacante erra sistematicamente.
+        \item AUC $\approx 1{,}00$, indicando separação perfeita entre os grupos.
+        %a
+    \end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Questões Dissertativas.}
+
+\begin{enumerate}[I)]
+
+    \item (\textbf{Exato vs.\ aproximado e o \textit{oracle}}) Uma empresa precisa atender a um pedido de remoção sob o GDPR para um modelo de 7B parâmetros cujo retreino do zero custaria cerca de $184\,000$ GPU-horas, enquanto o \textit{unlearning} aproximado roda em torno de $1$ GPU-hora por pedido.
+    \begin{enumerate}[(a)]
+        \item Defina, com a notação da aula, o \textit{oracle} $\theta^\star$ e explique por que ele é tratado como referência de qualidade do esquecimento mesmo não sendo usado em produção.
+        \item Calcule o fator de aceleração aproximado do \textit{unlearning} aproximado sobre o retreino e comente por que esse ganho não vem de graça, citando a propriedade do esquecimento que se troca por custo.
+        \item Explique por que ``aproximado'' não significa que $\theta_u$ deva acertar as perguntas sobre $D_f$, relacionando sua resposta ao fato de que $\theta^\star$ também não as acerta.
+    \end{enumerate}
+
+    \item \emoji{skull-and-crossbones} (\textbf{Métricas MUSE em um relatório}) Após aplicar um método de \textit{unlearning} ao corpus de HP, um relatório MUSE traz: VerbMem $= 0{,}05$, KnowMem(\textit{forget}) $= 0{,}18$, Utility (KnowMem no \textit{retain}) $= 0{,}93$ e PrivLeak (AUC) $= 0{,}87$.
+    \begin{enumerate}[(a)]
+        \item Para VerbMem, KnowMem(\textit{forget}), Utility e PrivLeak, indique a direção desejável de cada métrica (alto ou próximo de um alvo) e diga se o valor observado é bom ou ruim.
+        \item O contraste entre KnowMem(\textit{forget}) $= 0{,}18$ e Utility $= 0{,}93$ é considerado o ponto-chave do MUSE. Explique, em termos de texto versus universo da obra, o que esse contraste demonstra.
+        \item O PrivLeak observado contradiz as três métricas \textit{deployer-side}. Explique o que um AUC de $0{,}87$ revela sobre a \textit{loss} dos \textit{in-members} e por que esse modelo ainda não pode ser considerado privado.
+    \end{enumerate}
+
+    \item (\textbf{Diagnóstico de \textit{scalability} e \textit{sustainability}}) Considere os dados abaixo, reportados para um mesmo método.
+
+    \begin{center}
+    \begin{tabular}{@{}rccc@{}}
+        \toprule
+        $|D_f|$ & \textit{Forget Quality} & Utility & FQ $\times$ Utility \\
+        \midrule
+        $50$   & $0{,}90$ & $0{,}85$ & $0{,}77$ \\
+        $500$  & $0{,}72$ & $0{,}71$ & $0{,}51$ \\
+        $5000$ & $0{,}41$ & $0{,}48$ & $0{,}20$ \\
+        \bottomrule
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item Usando a coluna FQ $\times$ Utility, argumente se o método é escalável segundo o critério de \textit{scalability} visto em aula (queda sublinear no logaritmo de $|D_f|$) e traduza o resultado para a operação: o que é fácil e o que é difícil de apagar.
+        \item Suponha agora cinco pedidos sequenciais de $|D_{f,i}| = 50$ em que a Utility cai de $0{,}90$ ($t=1$) para $0{,}41$ ($t=5$). Calcule a taxa média de degradação de Utility por pedido e relacione esse resultado à propriedade de \textit{sustainability} e à realidade de pedidos contínuos sob o GDPR.
+    \end{enumerate}
+
+    \item (\textbf{Cenário: identificar a falha e remediar}) Para cada situação, identifique o modo de falha e proponha uma correção coerente com os métodos vistos em aula.
+    \begin{enumerate}[(a)]
+        \item Uma equipe aplica \textit{Gradient Ascent} puro sobre $D_f$ e, em poucas épocas, a Utility despenca para perto de zero enquanto o modelo gera texto incoerente em qualquer entrada. Nomeie a falha e indique a modificação na função de perda que a evita.
+        \item Outra equipe usa o método IDK, treinando o modelo a responder ``\textit{I don't know}'' a perguntas sobre $D_f$. As perguntas diretas passam a ser recusadas, mas quando um atacante fornece um prefixo literal de um capítulo, o modelo completa o trecho memorizado. Explique por que isso ocorre e por que um método baseado em otimização sobre a \textit{log-prob} de $D_f$ ataca melhor a causa.
+        \item Um modelo aprovado em VerbMem e KnowMem volta a reproduzir o conteúdo esquecido após poucas centenas de \textit{tokens} de \textit{fine-tuning} numa amostra residual. Nomeie a propriedade violada e o tipo de ataque, e indique qual dos métodos vistos foi reportado como mais resistente a ele.
+    \end{enumerate}
+
+\end{enumerate}
+
+\newpage
+\subsection*{Gabarito}
+\color{blue}
+
+\paragraph{Múltipla Escolha.}
+\begin{enumerate}[I)]
+    \item \textbf{(b)} Retreinar do zero é o \textit{oracle}, mas seu custo de \textit{compute} se paga por inteiro a cada pedido (da ordem de $184\,000$ GPU-horas para um modelo de 7B), o que inviabiliza atender a um fluxo de remoções. A alternativa (a) inventa uma reanotação manual; (c) confunde esquecer o texto com esquecer o universo, e o \textit{oracle} treinado em $D_r$ pode preservar conhecimento de fontes legítimas; (d) inventa um efeito sobre a tokenização.
+
+    \item \textbf{(a)} O objetivo é tornar $\theta_u$ comportamentalmente indistinguível de $\theta^\star$ nas distribuições de saída sobre consultas relacionadas a $D_f$, e o \textit{oracle}, que nunca viu $D_f$, também não acerta essas perguntas. A alternativa (b) exige igualdade em parâmetros, que não é requerida; (c) descreve o oposto do esquecimento; (d) descreve uma política de recusa, não o objetivo distribucional.
+
+    \item \textbf{(b)} O retreino em $D_r$ é o \textit{oracle}: exato por construção, pois nunca viu $D_f$. Os métodos práticos o evitam apenas pelo custo de \textit{compute}, não por instabilidade. A alternativa (a) o chama de aproximado; (c) o trata como barato; (d) afirma que é barato e só falta automação.
+
+    \item \textbf{(a)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (b) coloca o universo em $D_f$, o que apagaria também o conceito; (c) e (d) invertem ou anulam a separação.
+
+    \item \textbf{(b)} A média das paráfrases erradas é $(0{,}30 + 0{,}45 + 0{,}60)/3 = 0{,}45$, e $R_{\text{truth}} = 0{,}45/0{,}40 \approx 1{,}13$. Como $R_{\text{truth}} \to 1$ indica esquecimento compatível com o \textit{oracle}, o valor é bom. A alternativa (a) usa só a probabilidade da resposta correta; (c) usa só a média do numerador; (d) inverte numerador e denominador.
+
+    \item \textbf{(a)} \textit{Forget Quality} alta significa não distinguir $\theta_u$ de $\theta^\star$, ou seja, $D$ pequeno e $p$-valor alto (não rejeitar $H_0$). A alternativa (b) inverte a leitura do $p$-valor; (c) confunde rejeitar $H_0$ com sucesso de esquecimento; (d) ignora que a métrica é distribucional, não de acurácia.
+
+    \item \textbf{(b)} A $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente (quando $p_\theta(y\mid x)\to 0$ ela vai a $+\infty$), então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e o modelo desmorona para todas as entradas: o \textit{catastrophic collapse}. A alternativa (a) descreve a NPO, não o GA puro; (c) erra o sinal e o conjunto; (d) cita $p_{\text{ref}}$, que não faz parte do GA.
+
+    \item \textbf{(c)} A DPO usa pares $(y_w, y_l)$; em \textit{unlearning} só há negativos, então a NPO descarta o termo da resposta positiva $y_w$, coerente com o objetivo de rebaixar negativos e não elevar positivos. A alternativa (a) inverte qual termo é descartado; (b) descreve a SimNPO; (d) cita a normalização por comprimento, ausente na NPO.
+
+    \item \textbf{(a)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o método ``para sozinho'' e evita o \textit{catastrophic collapse}. A alternativa (b) inverte o efeito da saturação; (c) e (d) descrevem comportamentos que a NPO não tem.
+
+    \item \textbf{(c)} O peso é proporcional a $1/p_{\text{ref}}$, logo $B$ ($1/0{,}02 = 50$) recebe peso vinte e cinco vezes maior que $A$ ($1/0{,}40 = 2{,}5$), e os trechos raros dominam o gradiente em vez dos típicos que de fato queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
+
+    \item \textbf{(b)} Trocar a razão por uma \textit{log-prob} normalizada por comprimento e remover $p_{\text{ref}}$ elimina o viés de referência e dispensa armazenar o modelo de referência, reduzindo a memória de \textit{fine-tuning}. A alternativa (a) afirma que o viés é reintroduzido; (c) afirma que ainda são precisas duas cópias; (d) afirma que $p_{\text{ref}}$ é mantido.
+
+    \item \textbf{(a)} Listando os pares (\textit{in}, \textit{out}) e contando aqueles em que a \textit{loss} do \textit{in} é menor que a do \textit{out}, obtém-se $8$ de $16$, logo AUC $= 0{,}50$. Um atacante que chuta atinge $0{,}5$, então o vazamento está próximo do ideal. A alternativa (b) corresponde ao exemplo do \textit{slide} (ordem diferente); (c) e (d) não correspondem à contagem. Detalhe: com a ordem dada, os \textit{in} ocupam posições $2,3,6,7$ e os \textit{out} posições $1,4,5,8$, e a contagem de pares favoráveis resulta em $8/16$.
+
+\end{enumerate}
+
+\paragraph{Dissertativas.}
+\begin{enumerate}[I)]
+    \item
+    \begin{enumerate}[(a)]
+        \item O \textit{oracle} é $\theta^\star = \mathcal{A}(D_r)$, o modelo hipotético retreinado do zero apenas no \textit{retain set}, sem nunca ter visto $D_f$. Ele é a referência de qualidade porque define o comportamento ``correto'' de quem nunca leu $D_f$: o sucesso de $\theta_u$ é medido pela proximidade de suas distribuições de saída às de $\theta^\star$ em consultas relacionadas a $D_f$. Em produção ele não é usado por ser caro de obter.
+        \item O fator de aceleração é $184\,000/1 = 184\,000$, ou seja, da ordem de $10^5$. O ganho não vem de graça porque o \textit{unlearning} aproximado abre mão da \textit{Forget Quality} exata do \textit{oracle}: o resultado é próximo segundo critérios estatísticos (equivalência distribucional medida por KS, AUC, etc.), não idêntico. Trocamos garantia de esquecimento por custo.
+        \item ``Aproximado'' qualifica o quão perto $\theta_u$ fica de $\theta^\star$, e $\theta^\star$ é um modelo que nunca leu $D_f$, portanto também não responde corretamente perguntas que exigiriam ter lido $D_f$. Acertar essas perguntas seria, na verdade, evidência de que o conteúdo não foi esquecido. O alvo é a indistinguibilidade distribucional em relação ao \textit{oracle}, não a acurácia sobre $D_f$.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item VerbMem (memorização literal) e KnowMem(\textit{forget}) devem ser \textbf{baixos}: $0{,}05$ e $0{,}18$ são bons. Utility (KnowMem no \textit{retain}) deve ser \textbf{alto}: $0{,}93$ é bom. PrivLeak é uma AUC de \textit{membership inference} cujo alvo é $\approx 0{,}5$: $0{,}87$ está longe do alvo, portanto ruim.
+        \item KnowMem(\textit{forget}) baixo mostra que o modelo deixou de responder o que exigia ter lido o \textbf{texto} dos livros, enquanto Utility alto mostra que ele preservou o conhecimento do \textbf{universo} (FanWiki, personagens, magia). O contraste demonstra que é possível esquecer o texto sem apagar o conceito, que era exatamente o objetivo da separação $D_f$ versus $D_r$.
+        \item AUC $= 0{,}87$ significa que, na maioria dos pares (\textit{in}, \textit{out}), o \textit{in-member} (trecho que estava em $D_f$) ainda tem \textit{loss} sistematicamente menor que um \textit{out-member}, então o modelo continua ``reconhecendo'' o que deveria ter esquecido. As métricas \textit{deployer-side} mostram que o comportamento visível mudou (não há mais regurgitação literal nem QA correto), mas o vazamento de pertencimento persiste no nível da \textit{loss}: o esquecimento foi superficial, não profundo, e o modelo não é privado.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item O produto FQ $\times$ Utility cai de $0{,}77$ para $0{,}20$ quando $|D_f|$ cresce de $50$ para $5000$, ou seja, em cerca de duas ordens de grandeza de log o produto cai por um fator $\approx 3{,}9$. A queda é mais que linear no logaritmo de $|D_f|$, logo o método \textbf{não é escalável} segundo o critério da aula. Em produção, isso significa que apagar trechos pequenos (capítulos individuais) é fácil, mas apagar conjuntos grandes (livros inteiros) é difícil.
+        \item A taxa média de degradação de Utility por pedido é $(0{,}90 - 0{,}41)/4 \approx 0{,}12$ por pedido. Isso indica \textbf{sustainability} baixa: a cada pedido o modelo perde utilidade, e a degradação tende a ser sobreaditiva ao longo da sequência. Como o GDPR implica um fluxo contínuo de pedidos, um operador em produção precisa de \textit{sustainability} alta (próxima de manter a Utility estável), o que este método não oferece.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[(a)]
+        \item A falha é o \textit{catastrophic collapse}: como $-\mathcal{L}_{\text{NLL}}(D_f,\theta)$ é ilimitada inferiormente, o \textit{ascent} sem freio empurra os \textit{logits} de $D_f$ para $-\infty$ e degrada o modelo em qualquer entrada. A correção mais direta é acoplar o termo de \textit{retain}, usando $\mathcal{L}_{\text{GA}}(\theta) = -\mathcal{L}_{\text{NLL}}(D_f,\theta) + \lambda\,\mathcal{L}_{\text{NLL}}(D_r,\theta)$ com $\lambda$ típico em $[1,10]$, que penaliza a perda de utility em $D_r$. Métodos com perda autorregulada (NPO, SimNPO), em que a sigmoide satura e o gradiente vai a zero quando o item já foi esquecido, evitam o colapso de forma mais robusta.
+        \item O IDK é uma \textbf{política de resposta}: o modelo aprende a \textit{frase} ``\textit{I don't know}'' para perguntas, mas o conteúdo memorizado dos livros continua nos pesos. Por isso é vulnerável a \textit{prefix-leak attacks}: quando o atacante força a continuação de um trecho literal em vez de fazer uma pergunta, a memorização vaza. Um método que otimiza diretamente a \textit{log-prob} de $D_f$ (GA com \textit{retain}, NPO, SimNPO) ataca a causa, reduzindo a probabilidade do próprio conteúdo, em vez de apenas trocar a resposta às perguntas.
+        \item A propriedade violada é a \textbf{robustness} (esquecimento durável), e o ataque é o \textit{relearning attack}: poucos passos de \textit{fine-tuning} numa amostra residual trazem o conhecimento de volta. Entre os métodos vistos, a SimNPO foi reportada como mais resistente a \textit{relearning} que NPO e GA.
+    \end{enumerate}
+\end{enumerate}
+
+\color{black}
+
+\end{document}

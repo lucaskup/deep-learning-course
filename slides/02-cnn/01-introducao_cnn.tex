@@ -1,0 +1,1375 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+\usetikzlibrary{spy}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Introdução a Redes Convolucionais}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    \tableofcontents
+\end{frame}
+
+%========================================================================
+\section{Motivação}
+%========================================================================
+
+\begin{frame}{Motivação Histórica}
+\begin{columns}
+    \begin{column}{.6\linewidth}
+        \begin{itemize}
+            \item David Hubel e Torsten Wiesel realizaram experimentos implantando eletrodos no córtex visual de gatos\footfullcite{hubel1962receptive}.
+            \item Aparentemente o processamento começa identificando padrões simples, como arestas.
+            \begin{itemize}
+                \item \href{https://www.youtube.com/watch?v=jw6nBWo21Zk}{Vídeo}
+            \end{itemize}
+            \item Camadas seguintes combinam esses padrões em estruturas mais complexas.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.4\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/02-cnn/hubel_wiesel.jpeg}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Redes Convolucionais}
+\begin{itemize}
+    \item São redes que incluem operações de convolução.
+    \begin{itemize}
+        \item Usadas principalmente em imagens.
+    \end{itemize}
+    \item Criadas em 1989 por Yann LeCun, com a LeNet\footfullcite{lecun1989backprop}.
+    \item Explodiram em popularidade após 2012, com a AlexNet\footfullcite{krizhevsky2012imagenet}.
+    \begin{itemize}
+        \item Treinamento em GPUs.
+        \item Mais dados.
+        \item Mais poder computacional.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Problemas com MLP}
+\begin{columns}[T]
+    \begin{column}{.52\linewidth}
+        Imagens têm \textbf{três propriedades} que sugerem o uso de
+        arquiteturas específicas:
+        \medskip
+
+        \only<1>{%
+          \textbf{1.~Alta dimensionalidade}
+          \begin{itemize}
+            \item Uma imagem $512\times 512$ resulta em $262.144$ pixels.
+            \item Com 100 unidades na primeira camada oculta de um MLP,
+            teríamos $26.214.400$ pesos.
+            \item Em \texttt{float32} (4 bytes por peso), $\approx 100$ MB
+            \textbf{só} na primeira camada.
+          \end{itemize}}
+        \only<2>{%
+          \textbf{2.~Alta coesão espacial}
+          \begin{itemize}
+            \item Pixels próximos têm valores \textbf{altamente
+            correlacionados} (veja o \textit{zoom} ao lado).
+            \item Uma mesma característica (ex.: uma orelha) pode aparecer
+            em \textbf{vários locais} da imagem.
+          \end{itemize}}
+        \only<3>{%
+          \textbf{3.~Semântica estável a transformações geométricas}
+          \begin{itemize}
+            \item Translações, rotações e deformações \textbf{não mudam}
+            o conteúdo: continua sendo um gato.
+          \end{itemize}}
+    \end{column}
+    \begin{column}{.46\linewidth}
+        \centering
+        \only<1>{%
+          \includegraphics[height=5.0cm]{slides/img/02-cnn/mlp_diagram.png}\\[3pt]
+          {\scriptsize MLP totalmente conectado: milhões de pesos.}}
+        \only<2>{%
+          \begin{tikzpicture}[spy using outlines={rectangle, magnification=4,
+              size=2.3cm, connect spies}]
+            \node[inner sep=0] (dog)
+              {\includegraphics[width=4.3cm]{slides/img/02-cnn/mlp_dog.jpeg}};
+            \spy[BrickRed, very thick] on (0,-0.55) in node at (3.05,-0.2);
+          \end{tikzpicture}\\[3pt]
+          {\scriptsize Vizinhança quase uniforme $\to$ valores semelhantes.}}
+        \only<3>{%
+          \includegraphics[height=2.0cm]{slides/img/02-cnn/mlp_cat.jpeg}\hspace{0.25cm}%
+          \rotatebox{15}{\includegraphics[height=2.0cm]{slides/img/02-cnn/mlp_cat.jpeg}}\\[6pt]
+          {\scriptsize Original e rotacionado: ainda é ``gato''.}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Camadas Convolucionais}
+\begin{block}{Camadas convolucionais trazem diversos benefícios:}
+\begin{itemize}
+    \item Processam regiões da imagem separadamente, compartilhando pesos.
+    \item Usam menos parâmetros do que camadas totalmente conectadas.
+    \item Exploram a correlação entre pixels próximos.
+    \item Não precisam reaprender padrões em locais diferentes da imagem.
+\end{itemize}
+\end{block}
+\end{frame}
+
+%========================================================================
+\section{Invariância e Equivariância}
+%========================================================================
+
+\begin{frame}{Invariância}
+\begin{itemize}
+    \item Uma função $f$ aplicada a uma imagem $x$ é dita \textbf{invariante} a uma transformação $t$ se:
+\end{itemize}
+\begin{equation*}
+    f\bigl[t[x]\bigr] = f[x]
+\end{equation*}
+\begin{itemize}
+    \item Ou seja, independente da transformação aplicada na entrada, o resultado é o mesmo.
+    \item Exemplo: classificar a imagem como ``gato'' não deveria depender de o gato estar à esquerda ou à direita do quadro.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Equivariância}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Uma função $f$ aplicada a uma imagem $x$ é dita \textbf{equivariante} a uma transformação $t$ se:
+        \end{itemize}
+        \begin{equation*}
+            f\bigl[t[x]\bigr] = t\bigl[f[x]\bigr]
+        \end{equation*}
+        \begin{itemize}
+            \item Ou seja, aplicar a transformação na entrada equivale a aplicá-la na saída.
+            \item Exemplo: transladar a imagem de entrada deve resultar na mesma segmentação transladada.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/02-cnn/equivariance_rooms.png}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Convolução}
+%========================================================================
+
+\begin{frame}{Convolução 2D}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item A convolução transforma uma imagem de entrada $x$ em uma imagem de saída $z$. Cada posição $(i,j)$ resulta de uma combinação linear de uma janela $3\times 3$ ao redor:
+        \end{itemize}
+        \begin{equation*}
+            z_{i,j} = \sum_{m=1}^{3}\sum_{n=1}^{3} w_{m,n}\, x_{i+m-2,\, j+n-2}
+        \end{equation*}
+        \begin{itemize}
+            \item Os pesos são \textbf{compartilhados} por toda a entrada.
+            \item Esse conjunto de pesos é chamado de \textit{kernel} ou \textit{filtro}.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
+            % Entrada 5x5 com janela 3x3 destacada
+            \fill[black!22] (0.5,0.5) rectangle (2.0,2.0);
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,2.5);
+            \draw[thick, BrickRed] (0.5,0.5) rectangle (2.0,2.0);
+            \node[font=\tiny, anchor=south] at (1.25,2.6) {Entrada $5\!\times\!5$};
+            % Kernel 3x3 (grid colorido)
+            \fill[PastelBlue2!25] (3.5,0.25) rectangle (5.0,1.75);
+            \draw[step=0.5, gray!50] (3.5,0.25) grid (5.0,1.75);
+            \draw[thick, PastelBlue2!80!black] (3.5,0.25) rectangle (5.0,1.75);
+            \node[font=\tiny, anchor=south] at (4.25,1.85) {Kernel};
+            % Saida 3x3 com celula destacada
+            \fill[black!22] (6.5,1.0) rectangle (7.0,1.5);
+            \draw[step=0.5, gray!50] (6.0,0.5) grid (7.5,2.0);
+            \draw[thick, BrickRed] (6.5,1.0) rectangle (7.0,1.5);
+            \node[font=\tiny, anchor=center] at (6.75,1.25) {$z_{ij}$};
+            \node[font=\tiny, anchor=south] at (6.75,2.1) {Saída $3\!\times\!3$};
+            % Setas
+            \draw[->, BrickRed, thick] (2.55,1.25) -- (3.45,1.0);
+            \draw[->, BrickRed, thick] (5.05,1.0) -- (6.45,1.25);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Compartilhamento de Pesos}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item \textbf{O mesmo kernel} $w_{m,n}$ é deslizado por toda a entrada.
+            \item O diagrama anterior mostrava apenas \emph{uma} aplicação do kernel; aqui ilustramos a aplicação em duas posições distintas.
+            \item Para qualquer posição $(i,j)$:
+            \begin{equation*}
+                z_{i,j} = \sum_{m,n} w_{m,n}\, x_{i+m-2,\, j+n-2}
+            \end{equation*}
+            \item Não existem pesos próprios por $x_{i,j}$, os mesmos nove valores reaparecem em cada janela.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
+            % Entrada 5x5 com duas janelas 3x3 destacadas
+            \fill[BrickRed!25] (0.0,2.0) rectangle (1.5,3.5);
+            \fill[PastelBlue2!35] (1.0,0.0) rectangle (2.5,1.5);
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,3.5);
+            \draw[thick, BrickRed] (0.0,2.0) rectangle (1.5,3.5);
+            \draw[thick, PastelBlue2!80!black] (1.0,0.0) rectangle (2.5,1.5);
+            \node[font=\tiny, anchor=south] at (1.25,3.6) {Entrada $5\!\times\!5$};
+            % Kernel (mesmo, grid colorido)
+            \fill[PastelBlue2!25] (3.5,1.0) rectangle (5.0,2.5);
+            \draw[step=0.5, gray!50] (3.5,1.0) grid (5.0,2.5);
+            \draw[thick, PastelBlue2!80!black] (3.5,1.0) rectangle (5.0,2.5);
+            \node[font=\tiny, anchor=south] at (4.25,2.6) {Mesmo kernel};
+            % Saida 3x3 com duas celulas destacadas
+            \fill[BrickRed!25] (6.5,2.0) rectangle (7.0,2.5);
+            \fill[PastelBlue2!35] (7.5,0.5) rectangle (8.0,1.0);
+            \draw[step=0.5, gray!50] (6.5,0.5) grid (8.0,2.5);
+            \draw[thick, BrickRed] (6.5,2.0) rectangle (7.0,2.5);
+            \draw[thick, PastelBlue2!80!black] (7.5,0.5) rectangle (8.0,1.0);
+            \node[font=\tiny, anchor=south] at (7.25,2.6) {Saída $3\!\times\!3$};
+            % Setas
+            \draw[->, BrickRed, thick] (1.55,2.75) -- (3.45,2.25);
+            \draw[->, BrickRed, thick] (5.05,2.25) -- (6.45,2.25);
+            \draw[->, PastelBlue2!80!black, thick] (2.55,0.75) -- (3.45,1.25);
+            \draw[->, PastelBlue2!80!black, thick] (5.05,1.25) -- (7.45,0.75);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Padding}}
+\begin{columns}[T]
+    \begin{column}{.45\linewidth}
+        \begin{itemize}
+            \item Como lidar com os extremos da entrada?
+            \begin{itemize}
+                \item \textit{Zero padding}: completar a entrada com zeros.
+                \item \textit{Valid padding}: aplicar a convolução apenas onde o \textit{kernel} cabe inteiramente.
+                \item Entrada ``circular'' ou periódica (pouco utilizado).
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.45]
+            % Zero padding: entrada 5x5 com borda de zeros (visual 7x7), saida 5x5
+            \node[font=\tiny, anchor=south] at (1.75,3.7) {\textit{Zero padding}};
+            \fill[black!10] (0,0) rectangle (3.5,3.5);
+            \fill[white] (0.5,0.5) rectangle (3.0,3.0);
+            \fill[black!22] (0.0,2.0) rectangle (1.5,3.5);
+            \draw[step=0.5, gray!50] (0,0) grid (3.5,3.5);
+            \draw[thick, BrickRed] (0.0,2.0) rectangle (1.5,3.5);
+            % Saida 5x5
+            \fill[black!22] (5.0,2.5) rectangle (5.5,3.0);
+            \draw[step=0.5, gray!50] (5.0,0.5) grid (7.5,3.0);
+            \draw[thick, BrickRed] (5.0,2.5) rectangle (5.5,3.0);
+            \node[font=\tiny, anchor=south] at (6.25,3.7) {Saída $5\!\times\!5$};
+            \draw[->, BrickRed, thick] (3.55,2.75) -- (4.95,2.75);
+            % Valid padding: entrada 5x5 -> saida 3x3
+            \node[font=\tiny, anchor=south] at (1.25,-1.1) {\textit{Valid padding}};
+            \fill[black!22] (0.0,-3.0) rectangle (1.5,-1.5);
+            \draw[step=0.5, gray!50] (0,-4) grid (2.5,-1.5);
+            \draw[thick, BrickRed] (0.0,-3.0) rectangle (1.5,-1.5);
+            % Saida 3x3
+            \fill[black!22] (5.0,-2.5) rectangle (5.5,-2.0);
+            \draw[step=0.5, gray!50] (5.0,-3.5) grid (6.5,-2.0);
+            \draw[thick, BrickRed] (5.0,-2.5) rectangle (5.5,-2.0);
+            \node[font=\tiny, anchor=south] at (5.75,-1.1) {Saída $3\!\times\!3$};
+            \draw[->, BrickRed, thick] (2.55,-2.25) -- (4.95,-2.25);
+            \node[font=\tiny, align=center, anchor=north] at (3.25,-4.1) {Size$=3$, Stride$=1$, Dilation$=1$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Stride}}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item \textit{Stride} é o deslocamento do \textit{kernel} a cada passo.
+            \item Pode ser interpretado como \textit{downsampling} quando maior que 1.
+            \item Exemplo: Size$=3$, Stride$=2$ produz uma saída com aproximadamente metade da resolução da entrada em cada dimensão.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
+            % Entrada 5x5 com duas janelas 3x3 destacadas (stride=2)
+            \fill[BrickRed!25] (0.0,1.0) rectangle (1.5,2.5);
+            \fill[PastelBlue2!35] (1.0,1.0) rectangle (2.5,2.5);
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,2.5);
+            \draw[thick, BrickRed] (0.0,1.0) rectangle (1.5,2.5);
+            \draw[thick, PastelBlue2!80!black, dashed] (1.0,1.0) rectangle (2.5,2.5);
+            \node[font=\tiny, anchor=south] at (1.25,2.6) {Entrada $5\!\times\!5$};
+            % Saida 2x2
+            \fill[BrickRed!25] (4.5,1.5) rectangle (5.0,2.0);
+            \fill[PastelBlue2!35] (5.0,1.5) rectangle (5.5,2.0);
+            \draw[step=0.5, gray!50] (4.5,1.0) grid (5.5,2.0);
+            \draw[thick, BrickRed] (4.5,1.5) rectangle (5.0,2.0);
+            \draw[thick, PastelBlue2!80!black, dashed] (5.0,1.5) rectangle (5.5,2.0);
+            \node[font=\tiny, anchor=south] at (5.0,2.1) {Saída $2\!\times\!2$};
+            % Setas
+            \draw[->, BrickRed, thick] (1.55,1.9) -- (4.45,1.85);
+            \draw[->, PastelBlue2!80!black, thick, dashed] (2.55,1.6) -- (5.05,1.6);
+            \node[font=\tiny, align=center, anchor=north] at (2.75,-0.1) {Size$=3$, Stride$=2$, Dilation$=1$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Kernel Size}}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item \textit{Kernel size} é o tamanho do filtro.
+            \item Permite integrar informações espaciais mais distantes.
+            \begin{itemize}
+                \item Mas aumenta o número de pesos a aprender.
+            \end{itemize}
+            \item Exemplo: Size$=5$, Stride$=1$ olha uma janela $5\times 5$ ao redor de cada posição para produzir cada saída.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.5]
+            % Entrada 7x7 com janela 5x5 destacada
+            \fill[black!22] (0.5,0.5) rectangle (3.0,3.0);
+            \draw[step=0.5, gray!50] (0,0) grid (3.5,3.5);
+            \draw[thick, BrickRed] (0.5,0.5) rectangle (3.0,3.0);
+            \node[font=\tiny, anchor=south] at (1.75,3.6) {Entrada $7\!\times\!7$};
+            % Kernel 5x5 (alinhado a grade da entrada: y=0.5..3.0)
+            \fill[PastelBlue2!25] (4.5,0.5) rectangle (7.0,3.0);
+            \draw[step=0.5, gray!50] (4.5,0.5) grid (7.0,3.0);
+            \draw[thick, PastelBlue2!80!black] (4.5,0.5) rectangle (7.0,3.0);
+            \node[font=\tiny, anchor=south] at (5.75,3.1) {Kernel $5\!\times\!5$};
+            % Saida 3x3 (alinhada: y=1.0..2.5)
+            \fill[black!22] (8.0,1.5) rectangle (8.5,2.0);
+            \draw[step=0.5, gray!50] (7.5,1.0) grid (9.0,2.5);
+            \draw[thick, BrickRed] (8.0,1.5) rectangle (8.5,2.0);
+            \node[font=\tiny, anchor=south] at (8.25,2.6) {Saída $3\!\times\!3$};
+            % Setas
+            \draw[->, BrickRed, thick] (3.55,1.75) -- (4.45,1.75);
+            \draw[->, BrickRed, thick] (7.05,1.75) -- (7.95,1.75);
+            \node[font=\tiny, align=center, anchor=north] at (4.5,-0.2) {Size$=5$, Stride$=1$, Dilation$=1$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Dilation}}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item \textit{Dilation} integra informações mais distantes \textbf{sem} aumento do número de parâmetros.
+            \begin{itemize}
+                \item Equivalente a aumentar o \textit{kernel} deixando alguns pesos zerados.
+            \end{itemize}
+            \item Exemplo (convenção dos frameworks como PyTorch): Size$=3$, Stride$=1$, Dilation$=2$ olha posições $(i{\pm}2,\, j{\pm}2)$ em vez de $(i{\pm}1,\, j{\pm}1)$.
+            \begin{itemize}
+                \item Nessa convenção, Dilation$=1$ corresponde ao kernel denso (sem dilatação) e Dilation$=d$ insere $d-1$ zeros entre os pesos em cada eixo.
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
+            % Entrada 5x5 com 9 posicoes ativas (dilation=2)
+            \foreach \i in {0,2,4} {
+                \foreach \j in {0,2,4} {
+                    \fill[black!22] ({\j*0.5},{\i*0.5}) rectangle ({\j*0.5+0.5},{\i*0.5+0.5});
+                }
+            }
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,2.5);
+            \foreach \i in {0,2,4} {
+                \foreach \j in {0,2,4} {
+                    \draw[thick, BrickRed] ({\j*0.5},{\i*0.5}) rectangle ({\j*0.5+0.5},{\i*0.5+0.5});
+                }
+            }
+            \node[font=\tiny, anchor=south] at (1.25,2.6) {Entrada (área $5\!\times\!5$)};
+            % Kernel logico 3x3 (alinhado: y=0.5..2.0)
+            \fill[PastelBlue2!25] (3.5,0.5) rectangle (5.0,2.0);
+            \draw[step=0.5, gray!50] (3.5,0.5) grid (5.0,2.0);
+            \draw[thick, PastelBlue2!80!black] (3.5,0.5) rectangle (5.0,2.0);
+            \node[font=\tiny, anchor=south, align=center] at (4.25,2.1) {Kernel $3\!\times\!3$\\dilatado};
+            % Saida (alinhada: y=1.0..1.5)
+            \fill[black!22] (6.0,1.0) rectangle (6.5,1.5);
+            \draw[step=0.5, gray!50] (5.5,0.5) grid (7.0,2.0);
+            \draw[thick, BrickRed] (6.0,1.0) rectangle (6.5,1.5);
+            \node[font=\tiny, anchor=south] at (6.25,2.1) {Saída};
+            % Setas
+            \draw[->, BrickRed, thick] (2.55,1.25) -- (3.45,1.25);
+            \draw[->, BrickRed, thick] (5.05,1.25) -- (5.95,1.25);
+            \node[font=\tiny, align=center, anchor=north] at (4.0,-0.2) {Size$=3$, Stride$=1$, Dilation$=2$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Camada Convolucional}
+%========================================================================
+
+\begin{frame}{Camada Convolucional}
+\begin{itemize}
+    \item Uma camada convolucional computa a convolução, soma o \textit{bias} e aplica uma função de ativação:
+\end{itemize}
+\begin{equation*}
+    h_{i,j} = \varphi\!\left[b + \sum_{m=1}^{3}\sum_{n=1}^{3} w_{m,n}\, x_{i+m-2,\, j+n-2}\right]
+\end{equation*}
+\begin{itemize}
+    \item $b$ e os nove pesos $w_{m,n}$ do \textit{kernel} são os parâmetros aprendidos.
+    \item A soma cobre toda a janela $K\times K$ ao redor de $(i,j)$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Camada Convolucional vs Totalmente Conectada}
+\begin{itemize}
+    \item A camada convolucional é um caso especial de camada totalmente conectada.
+\end{itemize}
+\vspace{0.4em}
+\begin{columns}
+    \begin{column}{.6\linewidth}
+        \centering
+        \begin{equation*}
+            h_{i,j} = \varphi\!\left[b + \sum_{m=1}^{3}\sum_{n=1}^{3} w_{m,n}\, x_{i+m-2,\, j+n-2}\right]
+        \end{equation*}
+    \end{column}
+    \begin{column}{.4\linewidth}
+        \begin{tikzpicture}
+            \node[draw, fill=PastelBlue2, text=white, rounded corners, inner sep=4pt] {\small Convolucional};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\vspace{0.6em}
+\begin{columns}
+    \begin{column}{.6\linewidth}
+        \centering
+        \begin{equation*}
+            h_i = \varphi\!\left[b_i + \sum_{j=1}^{D} w_{ij}\, x_{j}\right]
+        \end{equation*}
+    \end{column}
+    \begin{column}{.4\linewidth}
+        \begin{tikzpicture}
+            \node[draw, fill=PastelBlue2, text=white, rounded corners, inner sep=4pt] {\small Totalmente Conectada};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\vspace{0.6em}
+\begin{itemize}
+    \item Na camada totalmente conectada, $x$ é a imagem achatada em um vetor de $D$ elementos.
+    \item A convolução é uma camada totalmente conectada com pesos compartilhados e a maior parte dos pesos zerados (esparsa e estruturada).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Múltiplos Canais e \textit{Feature Maps}}
+\begin{itemize}
+    \item Tipicamente temos diversos canais de entrada e saída em uma camada convolucional.
+    \item As ativações resultantes de um filtro são armazenadas em unidades ocultas tipicamente denominadas \textit{feature maps} (ou canais).
+    \item A aplicação de filtros diferentes na mesma entrada gera \textit{feature maps} diferentes.
+    \item Em camadas posteriores, cada nova convolução atua sobre todos os \textit{feature maps} simultaneamente.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Parâmetros Treináveis}
+\begin{itemize}
+    \item Considerando $C_i$ canais de entrada e $C_o$ canais de saída, com \textit{kernels} $K\times K$:
+\end{itemize}
+\begin{equation*}
+    w \in \mathbb{R}^{C_i \times C_o \times K \times K}, \qquad b \in \mathbb{R}^{C_o}
+\end{equation*}
+\begin{block}{Exemplo}
+Para 3 canais de entrada, 5 canais de saída e \textit{kernels} $3\times 3$ temos $3 \cdot 5 \cdot 3 \cdot 3 = 135$ pesos nos \textit{kernels}, mais 5 \textit{bias}.
+\end{block}
+\end{frame}
+
+%========================================================================
+\section{Campos Receptivos}
+%========================================================================
+
+\begin{frame}{Campo Receptivo (\textit{Receptive Field})}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Ao realizar uma convolução, cada unidade oculta do \textit{feature map} é gerada levando em conta apenas algumas das entradas.
+            \begin{itemize}
+                \item Damos o nome de \textbf{Campo Receptivo} à região da entrada considerada por uma unidade oculta.
+            \end{itemize}
+            \item Para um \textit{kernel} $3\times 3$, cada unidade de $\mathbf{H}_1$ enxerga uma janela $3\times 3$ da entrada.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.65]
+            % Entrada 5x5 com janela 3x3 destacada
+            \fill[black!25] (0.5,1.0) rectangle (2.0,2.5);
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,2.5);
+            \draw[thick, BrickRed] (0.5,1.0) rectangle (2.0,2.5);
+            \node[font=\tiny, anchor=south] at (1.25,2.6) {Entrada, $\mathbf{x}$};
+            % H1 (3x3) com uma celula ativa
+            \fill[black!25] (4.5,1.5) rectangle (5.0,2.0);
+            \draw[step=0.5, gray!50] (4.0,1.0) grid (5.5,2.5);
+            \draw[thick, BrickRed] (4.5,1.5) rectangle (5.0,2.0);
+            \node[font=\tiny, anchor=south] at (4.75,2.6) {$\mathbf{H}_1$};
+            % Cone conectando a janela 3x3 ao ponto ativo
+            \fill[gray!25, opacity=0.6] (2.0,2.5) -- (2.0,1.0) -- (4.5,1.75) -- cycle;
+            \node[font=\tiny] at (3.3,2.4) {$\Omega\!\in\!\mathbb{R}^{3\times 3}$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[shrink=5]{Crescimento do Campo Receptivo}
+\begin{columns}[T]
+    \begin{column}{.45\linewidth}
+        \begin{itemize}
+            \item Empilhando convoluções sucessivas, o campo receptivo cresce camada a camada.
+            \begin{itemize}
+                \item Cada unidade de $\mathbf{H}_2$ enxerga uma janela $3\times 3$ de $\mathbf{H}_1$, que por sua vez vem de uma janela $5\times 5$ na entrada.
+                \item Isso permite construir representações cada vez mais ``globais'' da imagem.
+            \end{itemize}
+            \item Um campo receptivo pequeno pode perder informações relevantes.
+            \item Convoluções com \textit{stride} maior que 1 aceleram esse crescimento, ao custo de reduzir a resolução espacial.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
+            % Entrada 7x7 com janela 5x5 ativa
+            \fill[black!25] (0.5,0.5) rectangle (3.0,3.0);
+            \draw[step=0.5, gray!50] (0,0) grid (3.5,3.5);
+            \draw[thick, BrickRed] (0.5,0.5) rectangle (3.0,3.0);
+            \node[font=\tiny, anchor=south] at (1.75,3.6) {$\mathbf{x}$};
+            % H1 5x5 com janela 3x3 ativa
+            \fill[black!25] (5.0,1.0) rectangle (6.5,2.5);
+            \draw[step=0.5, gray!50] (4.5,0.5) grid (7.0,3.0);
+            \draw[thick, BrickRed] (5.0,1.0) rectangle (6.5,2.5);
+            \node[font=\tiny, anchor=south] at (5.75,3.6) {$\mathbf{H}_1$};
+            % H2 3x3 com 1 celula ativa
+            \fill[black!25] (8.5,1.5) rectangle (9.0,2.0);
+            \draw[step=0.5, gray!50] (8.0,1.0) grid (9.5,2.5);
+            \draw[thick, BrickRed] (8.5,1.5) rectangle (9.0,2.0);
+            \node[font=\tiny, anchor=south] at (8.75,3.6) {$\mathbf{H}_2$};
+            % Cones
+            \fill[gray!25, opacity=0.6] (3.0,3.0) -- (3.0,0.5) -- (5.0,1.0) -- (5.0,2.5) -- cycle;
+            \fill[gray!25, opacity=0.6] (6.5,2.5) -- (6.5,1.0) -- (8.5,1.75) -- cycle;
+            \node[font=\tiny] at (4.0,3.2) {$\Omega\!:\!3\!\times\!3$};
+            \node[font=\tiny] at (7.5,2.8) {$\Omega\!:\!3\!\times\!3$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Fórmula do Campo Receptivo}
+\begin{itemize}
+    \item Para uma sequência de camadas com tamanho de kernel $K_l$ e \textit{stride} $S_l$, o campo receptivo $RF_l$ na camada $l$ obedece à recursão:
+\end{itemize}
+\begin{equation*}
+    RF_l = RF_{l-1} + (K_l - 1) \prod_{i<l} S_i, \qquad RF_0 = 1.
+\end{equation*}
+\begin{itemize}
+    \item Cada nova camada acrescenta $K_l - 1$ posições do espaço original, multiplicadas pelo produto acumulado dos \textit{strides} anteriores.
+    \item \textbf{Exemplo}, três convoluções $3\times 3$ com $S=1$:
+    \begin{itemize}
+        \item $RF_1 = 1 + (3-1)\cdot 1 = 3$.
+        \item $RF_2 = 3 + (3-1)\cdot 1 = 5$.
+        \item $RF_3 = 5 + (3-1)\cdot 1 = 7$.
+    \end{itemize}
+    \item Se a segunda camada usa $S_2 = 2$, então $RF_3 = 3 + (3-1)\cdot 1 + (3-1)\cdot 2 = 9$, \textit{stride} acelera o crescimento do campo receptivo.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Duas $3\times 3$ ou uma $5\times 5$?}
+\begin{columns}[T]
+    \begin{column}{.6\linewidth}
+        \begin{itemize}
+            \item Mesmo campo receptivo, diferentes propriedades.
+            \item Resposta: \textbf{duas convoluções $3\times 3$}\footfullcite{simonyan2014vgg}.
+            \begin{itemize}
+                \item Menos parâmetros: $2 \cdot (3 \cdot 3) = 18$ pesos contra $5 \cdot 5 = 25$.
+                \item Mais não linearidade: duas ativações em vez de uma.
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.4\linewidth}
+        \centering
+        \begin{tikzpicture}[scale=0.55, every node/.style={font=\tiny}]
+            % Two successive 3x3 convolutions (blue/layered prism)
+            % Bottom layer (input, 5x5)
+            \def\bx{0}\def\by{0}\def\bw{2.5}\def\bd{1.0}
+            \fill[blue!15] (\bx,\by) -- (\bx+\bw,\by) -- (\bx+\bw+\bd,\by+\bd) -- (\bx+\bd,\by+\bd) -- cycle;
+            \draw[blue!60] (\bx,\by) -- (\bx+\bw,\by) -- (\bx+\bw+\bd,\by+\bd) -- (\bx+\bd,\by+\bd) -- cycle;
+            % Grid lines on bottom layer
+            \foreach \gx in {0.6,1.2,1.8,2.4}{ \draw[blue!40, very thin] (\bx+\gx,\by) -- (\bx+\gx+\bd,\by+\bd); }
+            \foreach \gy in {0.5,1.0}{ \draw[blue!40, very thin] (\bx,\by+\gy*\bd/1) -- (\bx+\bw,\by+\gy*\bd/1); }
+            % Middle layer (3x3 from first conv)
+            \def\mx{0.5}\def\my{1.4}
+            \fill[blue!25] (\mx,\my) -- (\mx+1.5,\my) -- (\mx+1.5+\bd,\my+\bd) -- (\mx+\bd,\my+\bd) -- cycle;
+            \draw[BrickRed!70] (\mx,\my) -- (\mx+1.5,\my) -- (\mx+1.5+\bd,\my+\bd) -- (\mx+\bd,\my+\bd) -- cycle;
+            % Top layer (1x1 from second conv)
+            \def\tx{1.0}\def\ty{2.8}
+            \fill[blue!40] (\tx,\ty) -- (\tx+0.5,\ty) -- (\tx+0.5+\bd,\ty+\bd) -- (\tx+\bd,\ty+\bd) -- cycle;
+            \draw[BrickRed!90] (\tx,\ty) -- (\tx+0.5,\ty) -- (\tx+0.5+\bd,\ty+\bd) -- (\tx+\bd,\ty+\bd) -- cycle;
+            % Label
+            \node[align=center] at (1.8,-0.5) {duas $3\!\times\!3$\\sucessivas};
+        \end{tikzpicture}
+        \hspace{10pt}
+        \begin{tikzpicture}[scale=0.55, every node/.style={font=\tiny}]
+            % Single 5x5 convolution (orange prism)
+            \def\bx{0}\def\by{0}\def\bw{2.5}\def\bd{1.0}
+            \fill[orange!15] (\bx,\by) -- (\bx+\bw,\by) -- (\bx+\bw+\bd,\by+\bd) -- (\bx+\bd,\by+\bd) -- cycle;
+            \draw[orange!70] (\bx,\by) -- (\bx+\bw,\by) -- (\bx+\bw+\bd,\by+\bd) -- (\bx+\bd,\by+\bd) -- cycle;
+            % Grid lines
+            \foreach \gx in {0.5,1.0,1.5,2.0}{ \draw[orange!50, very thin] (\bx+\gx,\by) -- (\bx+\gx+\bd,\by+\bd); }
+            \foreach \gy in {0.33,0.66}{ \draw[orange!50, very thin] (\bx,\by) -- (\bx+\bw,\by); }
+            % Top layer (1x1)
+            \def\tx{1.0}\def\ty{1.4}
+            \fill[orange!30] (\tx,\ty) -- (\tx+0.5,\ty) -- (\tx+0.5+\bd,\ty+\bd) -- (\tx+\bd,\ty+\bd) -- cycle;
+            \draw[orange!90] (\tx,\ty) -- (\tx+0.5,\ty) -- (\tx+0.5+\bd,\ty+\bd) -- (\tx+\bd,\ty+\bd) -- cycle;
+            % Label
+            \node[align=center] at (1.8,-0.5) {uma $5\!\times\!5$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Treinamento}
+%========================================================================
+
+\begin{frame}{Treinamento}
+\begin{itemize}
+    \item \textit{Backprop} funciona naturalmente para convoluções.
+    \begin{itemize}
+        \item As derivadas parciais com relação a cada peso compartilhado precisam ser \textbf{acumuladas} (somadas) sobre todas as posições onde esse peso atua.
+    \end{itemize}
+\end{itemize}
+\vspace{0.4em}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \footnotesize
+        Para um \textit{kernel} $2\times 2$ com pesos $W_{m,n}$ aplicado a uma entrada $X_{i,j}$, a contribuição do gradiente é:
+        \begin{align*}
+            \partial W_{1,1} &= \sum_{i,j} X_{i,j}\,\partial h_{i,j}\\
+            \partial W_{1,2} &= \sum_{i,j} X_{i,j+1}\,\partial h_{i,j}\\
+            \partial W_{2,1} &= \sum_{i,j} X_{i+1,j}\,\partial h_{i,j}\\
+            \partial W_{2,2} &= \sum_{i,j} X_{i+1,j+1}\,\partial h_{i,j}
+        \end{align*}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\small}]
+            \node[circle, draw, minimum size=24pt] (conv) at (0,0) {CONV};
+            \draw[->, thick] (-2.0,0.7) node[left]{$x$} -- (conv);
+            \draw[->, thick] (-2.0,0) node[left]{$w$} -- (conv);
+            \draw[->, thick] (-2.0,-0.7) node[left]{$b$} -- (conv);
+            \draw[->, thick] (conv) -- (1.8,0) node[right]{$y$};
+            \node[BrickRed, font=\scriptsize] at (-1.6,0.95) {$\partial x$};
+            \node[BrickRed, font=\scriptsize] at (-1.6,0.25) {$\partial w$};
+            \node[BrickRed, font=\scriptsize] at (-1.6,-0.45) {$\partial b$};
+            \node[BrickRed, font=\scriptsize] at (1.4,0.25) {$\partial y$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{O Resultado do Treinamento}
+\begin{itemize}
+    \item Os \textit{feature maps} das primeiras camadas mostram arestas, cantos e formas primitivas.
+    \item Em camadas mais internas vemos formas mais complexas: olhos, narizes, partes de objetos.
+    \begin{itemize}
+        \item Repare que aumenta também o campo receptivo.
+    \end{itemize}
+    \item Esse comportamento hierárquico não é programado: emerge naturalmente do treinamento.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Downsampling e Upsampling}
+%========================================================================
+
+\begin{frame}{\textit{Downsampling}}
+\begin{columns}[T]
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Subamostrar espacialmente a imagem pode ter o efeito de aumentar o campo receptivo de uma unidade oculta.
+            \item As principais formas de subamostragem em CNN são:
+            \begin{enumerate}
+                \item Usar \textit{stride} maior que 1 na convolução.
+                \item \textit{Max pooling}: mantém apenas o maior valor de cada janela.
+                \item \textit{Average pooling}: usa a média dos valores de cada janela.
+            \end{enumerate}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.42]
+            % --- Max pooling ---
+            \fill[PastelBlue2!40] (0,2) rectangle (2,4);
+            \fill[orange!30]      (2,2) rectangle (4,4);
+            \fill[green!25]       (0,0) rectangle (2,2);
+            \fill[BrickRed!25]    (2,0) rectangle (4,2);
+            \draw[gray!60] (0,0) rectangle (4,4);
+            \draw[gray!60] (1,0) -- (1,4);
+            \draw[gray!60] (2,0) -- (2,4);
+            \draw[gray!60] (3,0) -- (3,4);
+            \draw[gray!60] (0,1) -- (4,1);
+            \draw[gray!60] (0,2) -- (4,2);
+            \draw[gray!60] (0,3) -- (4,3);
+            \draw[thick, PastelBlue2!70!black] (0,2) rectangle (2,4);
+            \draw[thick, orange!70!black]      (2,2) rectangle (4,4);
+            \draw[thick, green!50!black]       (0,0) rectangle (2,2);
+            \draw[thick, BrickRed!80]          (2,0) rectangle (4,2);
+            \node at (0.5,3.5) {$1$};   \node at (1.5,3.5) {$3$};
+            \node at (0.5,2.5) {$2$};   \node at (1.5,2.5) {$\mathbf{8}$};
+            \node at (2.5,3.5) {$\mathbf{9}$};   \node at (3.5,3.5) {$4$};
+            \node at (2.5,2.5) {$1$};   \node at (3.5,2.5) {$5$};
+            \node at (0.5,1.5) {$4$};   \node at (1.5,1.5) {$2$};
+            \node at (0.5,0.5) {$\mathbf{7}$};   \node at (1.5,0.5) {$1$};
+            \node at (2.5,1.5) {$3$};   \node at (3.5,1.5) {$\mathbf{6}$};
+            \node at (2.5,0.5) {$2$};   \node at (3.5,0.5) {$5$};
+            \node[font=\tiny, anchor=south] at (2,4.05) {entrada};
+            \draw[->, gray!70, thick] (4.2,2) -- (5.4,2);
+            \node[font=\tiny, anchor=south] at (4.8,2.1) {max};
+            \fill[PastelBlue2!40] (5.7,3) rectangle (6.7,4);
+            \fill[orange!30]      (6.7,3) rectangle (7.7,4);
+            \fill[green!25]       (5.7,2) rectangle (6.7,3);
+            \fill[BrickRed!25]    (6.7,2) rectangle (7.7,3);
+            \draw[gray!60] (5.7,2) rectangle (7.7,4);
+            \draw[gray!60] (6.7,2) -- (6.7,4);
+            \draw[gray!60] (5.7,3) -- (7.7,3);
+            \node at (6.2,3.5) {$8$};
+            \node at (7.2,3.5) {$9$};
+            \node at (6.2,2.5) {$7$};
+            \node at (7.2,2.5) {$6$};
+            \node[font=\tiny, anchor=south] at (6.7,4.05) {saída};
+
+            % --- Average pooling, deslocado para baixo ---
+            \begin{scope}[yshift=-5cm]
+            \fill[PastelBlue2!40] (0,2) rectangle (2,4);
+            \fill[orange!30]      (2,2) rectangle (4,4);
+            \fill[green!25]       (0,0) rectangle (2,2);
+            \fill[BrickRed!25]    (2,0) rectangle (4,2);
+            \draw[gray!60] (0,0) rectangle (4,4);
+            \draw[gray!60] (1,0) -- (1,4);
+            \draw[gray!60] (2,0) -- (2,4);
+            \draw[gray!60] (3,0) -- (3,4);
+            \draw[gray!60] (0,1) -- (4,1);
+            \draw[gray!60] (0,2) -- (4,2);
+            \draw[gray!60] (0,3) -- (4,3);
+            \draw[thick, PastelBlue2!70!black] (0,2) rectangle (2,4);
+            \draw[thick, orange!70!black]      (2,2) rectangle (4,4);
+            \draw[thick, green!50!black]       (0,0) rectangle (2,2);
+            \draw[thick, BrickRed!80]          (2,0) rectangle (4,2);
+            \node at (0.5,3.5) {$2$};   \node at (1.5,3.5) {$4$};
+            \node at (0.5,2.5) {$0$};   \node at (1.5,2.5) {$2$};
+            \node at (2.5,3.5) {$6$};   \node at (3.5,3.5) {$8$};
+            \node at (2.5,2.5) {$4$};   \node at (3.5,2.5) {$6$};
+            \node at (0.5,1.5) {$1$};   \node at (1.5,1.5) {$3$};
+            \node at (0.5,0.5) {$3$};   \node at (1.5,0.5) {$5$};
+            \node at (2.5,1.5) {$5$};   \node at (3.5,1.5) {$7$};
+            \node at (2.5,0.5) {$7$};   \node at (3.5,0.5) {$9$};
+            \node[font=\tiny, anchor=south] at (2,4.05) {entrada};
+            \draw[->, gray!70, thick] (4.2,2) -- (5.4,2);
+            \node[font=\tiny, anchor=south] at (4.8,2.1) {avg};
+            \fill[PastelBlue2!40] (5.7,3) rectangle (6.7,4);
+            \fill[orange!30]      (6.7,3) rectangle (7.7,4);
+            \fill[green!25]       (5.7,2) rectangle (6.7,3);
+            \fill[BrickRed!25]    (6.7,2) rectangle (7.7,3);
+            \draw[gray!60] (5.7,2) rectangle (7.7,4);
+            \draw[gray!60] (6.7,2) -- (6.7,4);
+            \draw[gray!60] (5.7,3) -- (7.7,3);
+            \node at (6.2,3.5) {$2$};
+            \node at (7.2,3.5) {$6$};
+            \node at (6.2,2.5) {$3$};
+            \node at (7.2,2.5) {$7$};
+            \node[font=\tiny, anchor=south] at (6.7,4.05) {saída};
+            \end{scope}
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Upsampling}}
+\begin{columns}[T]
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Sobreamostrar espacialmente pode ser útil quando a saída da rede também é uma imagem (segmentação, super resolução, geração).
+            \item As principais formas de sobreamostragem em CNN são:
+            \begin{enumerate}
+                \item Duplicar os valores conhecidos.
+                \item \textit{Max unpooling}: insere o valor na posição original do \textit{max pooling} e zera as demais.
+                \item Interpolação bilinear.
+                \item Convolução transposta.
+            \end{enumerate}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.42]
+            % --- Duplicação de valores (nearest neighbor) ---
+            \fill[PastelBlue2!40] (0,2) rectangle (1,3);
+            \fill[orange!30]      (1,2) rectangle (2,3);
+            \fill[green!25]       (0,1) rectangle (1,2);
+            \fill[BrickRed!25]    (1,1) rectangle (2,2);
+            \draw[gray!60] (0,1) rectangle (2,3);
+            \draw[gray!60] (1,1) -- (1,3);
+            \draw[gray!60] (0,2) -- (2,2);
+            \node at (0.5,2.5) {$8$};
+            \node at (1.5,2.5) {$9$};
+            \node at (0.5,1.5) {$7$};
+            \node at (1.5,1.5) {$6$};
+            \node[font=\tiny, anchor=south] at (1,3.05) {entrada};
+            \draw[->, gray!70, thick] (2.2,2) -- (5.2,2);
+            \node[font=\tiny, anchor=south] at (3.7,2.1) {duplicar};
+            \fill[PastelBlue2!40] (5.5,2) rectangle (7.5,4);
+            \fill[orange!30]      (7.5,2) rectangle (9.5,4);
+            \fill[green!25]       (5.5,0) rectangle (7.5,2);
+            \fill[BrickRed!25]    (7.5,0) rectangle (9.5,2);
+            \draw[gray!60] (5.5,0) rectangle (9.5,4);
+            \draw[gray!60] (6.5,0) -- (6.5,4);
+            \draw[gray!60] (7.5,0) -- (7.5,4);
+            \draw[gray!60] (8.5,0) -- (8.5,4);
+            \draw[gray!60] (5.5,1) -- (9.5,1);
+            \draw[gray!60] (5.5,2) -- (9.5,2);
+            \draw[gray!60] (5.5,3) -- (9.5,3);
+            \node at (6.0,3.5) {$8$}; \node at (7.0,3.5) {$8$};
+            \node at (8.0,3.5) {$9$}; \node at (9.0,3.5) {$9$};
+            \node at (6.0,2.5) {$8$}; \node at (7.0,2.5) {$8$};
+            \node at (8.0,2.5) {$9$}; \node at (9.0,2.5) {$9$};
+            \node at (6.0,1.5) {$7$}; \node at (7.0,1.5) {$7$};
+            \node at (8.0,1.5) {$6$}; \node at (9.0,1.5) {$6$};
+            \node at (6.0,0.5) {$7$}; \node at (7.0,0.5) {$7$};
+            \node at (8.0,0.5) {$6$}; \node at (9.0,0.5) {$6$};
+            \node[font=\tiny, anchor=south] at (7.5,4.05) {saída};
+
+            % --- Interpolação bilinear, deslocada para baixo ---
+            \begin{scope}[yshift=-5cm]
+            % Entrada 2x2
+            \fill[PastelBlue2!40] (0,2) rectangle (1,3);
+            \fill[orange!30]      (1,2) rectangle (2,3);
+            \fill[green!25]       (0,1) rectangle (1,2);
+            \fill[BrickRed!25]    (1,1) rectangle (2,2);
+            \draw[gray!60] (0,1) rectangle (2,3);
+            \draw[gray!60] (1,1) -- (1,3);
+            \draw[gray!60] (0,2) -- (2,2);
+            \node at (0.5,2.5) {$0$};
+            \node at (1.5,2.5) {$3$};
+            \node at (0.5,1.5) {$6$};
+            \node at (1.5,1.5) {$9$};
+            \node[font=\tiny, anchor=south] at (1,3.05) {entrada};
+            \draw[->, gray!70, thick] (2.2,2) -- (5.2,2);
+            \node[font=\tiny, anchor=south] at (3.7,2.1) {bilinear};
+            % Saída 4x4 (valores interpolados, cantos mantêm os 4 originais)
+            \fill[PastelBlue2!40] (5.5,2) rectangle (7.5,4);
+            \fill[orange!30]      (7.5,2) rectangle (9.5,4);
+            \fill[green!25]       (5.5,0) rectangle (7.5,2);
+            \fill[BrickRed!25]    (7.5,0) rectangle (9.5,2);
+            \draw[gray!60] (5.5,0) rectangle (9.5,4);
+            \draw[gray!60] (6.5,0) -- (6.5,4);
+            \draw[gray!60] (7.5,0) -- (7.5,4);
+            \draw[gray!60] (8.5,0) -- (8.5,4);
+            \draw[gray!60] (5.5,1) -- (9.5,1);
+            \draw[gray!60] (5.5,2) -- (9.5,2);
+            \draw[gray!60] (5.5,3) -- (9.5,3);
+            \node at (6.0,3.5) {$0$}; \node at (7.0,3.5) {$1$};
+            \node at (8.0,3.5) {$2$}; \node at (9.0,3.5) {$3$};
+            \node at (6.0,2.5) {$2$}; \node at (7.0,2.5) {$3$};
+            \node at (8.0,2.5) {$4$}; \node at (9.0,2.5) {$5$};
+            \node at (6.0,1.5) {$4$}; \node at (7.0,1.5) {$5$};
+            \node at (8.0,1.5) {$6$}; \node at (9.0,1.5) {$7$};
+            \node at (6.0,0.5) {$6$}; \node at (7.0,0.5) {$7$};
+            \node at (8.0,0.5) {$8$}; \node at (9.0,0.5) {$9$};
+            \node[font=\tiny, anchor=south] at (7.5,4.05) {saída};
+            \end{scope}
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Convolução Transposta}
+\begin{itemize}
+    \item Operação aprendível para aumentar a resolução espacial.
+    \item Cada elemento da entrada multiplica o \textit{kernel} inteiro e o resultado é depositado em uma região da saída, com sobreposições somadas.
+    \item Parâmetros: \textit{kernel size}, \textit{padding}, \textit{stride}. \textit{Stride} maior que 1 \textbf{expande} a saída.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Convolução Transposta: Exemplo}
+\begin{itemize}
+    \item Filtro $3\times 3$, \textit{padding} $=1$, \textit{stride} $=2$. Cada célula da entrada projeta o \textit{kernel} inteiro multiplicado por seu valor; sobreposições são somadas.
+\end{itemize}
+\vspace{0.2em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.62,
+    cory/.style={fill=orange!40},
+    cpbb/.style={fill=PastelBlue2!45},
+    cgrb/.style={fill=green!35},
+    cbrb/.style={fill=BrickRed!35},
+    tory/.style={text=orange!70!black},
+    tpbb/.style={text=PastelBlue2!60!black},
+    tgrb/.style={text=green!45!black},
+    tbrb/.style={text=BrickRed},
+    every cellnode/.style={font=\footnotesize}
+]
+    % Entrada 2x2
+    \fill[cory] (0,1) rectangle (1,2);
+    \fill[cpbb] (1,1) rectangle (2,2);
+    \fill[cgrb] (0,0) rectangle (1,1);
+    \fill[cbrb] (1,0) rectangle (2,1);
+    \draw[step=1.0, gray!60] (0,0) grid (2,2);
+    \node at (0.5,1.5) {$2$}; \node at (1.5,1.5) {$1$};
+    \node at (0.5,0.5) {$3$}; \node at (1.5,0.5) {$2$};
+    \node[font=\tiny, anchor=south] at (1,2.05) {entrada $\mathbf{X}$};
+    \only<1>{\draw[ultra thick, purple] (0,1) rectangle (1,2);}
+    \only<2>{\draw[ultra thick, purple] (1,1) rectangle (2,2);}
+    \only<3>{\draw[ultra thick, purple] (0,0) rectangle (1,1);}
+    \only<4>{\draw[ultra thick, purple] (1,0) rectangle (2,1);}
+
+    % Kernel 3x3
+    \fill[PastelBlue2!15] (3.0,-0.5) rectangle (6.0,2.5);
+    \draw[gray!60] (3.0,-0.5) rectangle (6.0,2.5);
+    \draw[gray!60] (4.0,-0.5) -- (4.0,2.5);
+    \draw[gray!60] (5.0,-0.5) -- (5.0,2.5);
+    \draw[gray!60] (3.0,0.5) -- (6.0,0.5);
+    \draw[gray!60] (3.0,1.5) -- (6.0,1.5);
+    \node at (3.5,2.0) {$1$}; \node at (4.5,2.0) {$2$}; \node at (5.5,2.0) {$1$};
+    \node at (3.5,1.0) {$2$}; \node at (4.5,1.0) {$0$}; \node at (5.5,1.0) {$1$};
+    \node at (3.5,0.0) {$0$}; \node at (4.5,0.0) {$2$}; \node at (5.5,0.0) {$1$};
+    \node[font=\tiny, anchor=south] at (4.5,2.55) {kernel $\mathbf{w}$};
+
+    % Resultado 4x4 (com padding-1 visualmente sombreado fora)
+    \draw[step=1.0, gray!60] (7.0,-1.0) grid (11.0,3.0);
+    \node[font=\tiny, anchor=south] at (9.0,3.05) {resultado $4\!\times\!4$};
+
+    % --- Conteudo das celulas (um node por celula, conteudo cumulativo) ---
+    % Cada celula compoe contribuicoes de input cells em ordem: yellow, blue, green, red
+    % Row 1 (top, y=2.5)
+    \node[font=\tiny] at (7.5,2.5) {\only<1->{\textcolor{orange!70!black}{$0$}}};
+    \node[font=\tiny] at (8.5,2.5) {\only<1->{\textcolor{orange!70!black}{$2$}}\only<2->{\textcolor{PastelBlue2!60!black}{$\!+\!2$}}};
+    \node[font=\tiny] at (9.5,2.5) {\only<2->{\textcolor{PastelBlue2!60!black}{$0$}}};
+    \node[font=\tiny] at (10.5,2.5) {\only<2->{\textcolor{PastelBlue2!60!black}{$1$}}};
+    % Row 2 (y=1.5)
+    \node[font=\tiny] at (7.5,1.5) {\only<1->{\textcolor{orange!70!black}{$4$}}\only<3->{\textcolor{green!45!black}{$\!+\!6$}}};
+    \node[font=\tiny] at (8.5,1.5) {\only<1->{\textcolor{orange!70!black}{$2$}}\only<2->{\textcolor{PastelBlue2!60!black}{$\!+\!0$}}\only<3->{\textcolor{green!45!black}{$\!+\!3$}}\only<4->{\textcolor{BrickRed}{$\!+\!2$}}};
+    \node[font=\tiny] at (9.5,1.5) {\only<2->{\textcolor{PastelBlue2!60!black}{$2$}}\only<4->{\textcolor{BrickRed}{$\!+\!4$}}};
+    \node[font=\tiny] at (10.5,1.5) {\only<2->{\textcolor{PastelBlue2!60!black}{$1$}}\only<4->{\textcolor{BrickRed}{$\!+\!2$}}};
+    % Row 3 (y=0.5)
+    \node[font=\tiny] at (7.5,0.5) {\only<3->{\textcolor{green!45!black}{$0$}}};
+    \node[font=\tiny] at (8.5,0.5) {\only<3->{\textcolor{green!45!black}{$3$}}\only<4->{\textcolor{BrickRed}{$\!+\!4$}}};
+    \node[font=\tiny] at (9.5,0.5) {\only<4->{\textcolor{BrickRed}{$0$}}};
+    \node[font=\tiny] at (10.5,0.5) {\only<4->{\textcolor{BrickRed}{$2$}}};
+    % Row 4 (y=-0.5)
+    \node[font=\tiny] at (7.5,-0.5) {\only<3->{\textcolor{green!45!black}{$6$}}};
+    \node[font=\tiny] at (8.5,-0.5) {\only<3->{\textcolor{green!45!black}{$3$}}\only<4->{\textcolor{BrickRed}{$\!+\!0$}}};
+    \node[font=\tiny] at (9.5,-0.5) {\only<4->{\textcolor{BrickRed}{$4$}}};
+    \node[font=\tiny] at (10.5,-0.5) {\only<4->{\textcolor{BrickRed}{$2$}}};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Convolução $1\times 1$}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Algumas vezes queremos mudar o número de canais sem agrupamento espacial.
+            \begin{itemize}
+                \item Nesses casos podemos aplicar a convolução $1\times 1$.
+            \end{itemize}
+            \item Cada posição espacial é independente: cada saída $h'_{i,j,c}$ é uma combinação linear dos canais de entrada $h_{i,j,1\dots C_i}$.
+            \item Útil para reduzir ou expandir a profundidade do tensor sem alterar largura e altura.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.5]
+            % 3 canais de entrada empilhados (offset diagonal)
+            \foreach \k/\clr/\dx/\dy in {3/PastelBlue2!15/0.5/0.5, 2/PastelBlue2!25/0.25/0.25, 1/PastelBlue2!40/0/0} {
+                \fill[\clr] (\dx,\dy) rectangle (\dx+2.0,\dy+2.0);
+                \draw[step=0.5, gray!50] (\dx,\dy) rectangle (\dx+2.0,\dy+2.0);
+                \draw[gray!50] (\dx+0.5,\dy) -- (\dx+0.5,\dy+2.0);
+                \draw[gray!50] (\dx+1.0,\dy) -- (\dx+1.0,\dy+2.0);
+                \draw[gray!50] (\dx+1.5,\dy) -- (\dx+1.5,\dy+2.0);
+                \draw[gray!50] (\dx,\dy+0.5) -- (\dx+2.0,\dy+0.5);
+                \draw[gray!50] (\dx,\dy+1.0) -- (\dx+2.0,\dy+1.0);
+                \draw[gray!50] (\dx,\dy+1.5) -- (\dx+2.0,\dy+1.5);
+                \draw[thick, PastelBlue2!80!black] (\dx,\dy) rectangle (\dx+2.0,\dy+2.0);
+            }
+            \node[font=\tiny, anchor=south] at (1.25,3.0) {entrada (3 canais)};
+
+            % Kernel 1x1 x 3 (coluna estreita de 3 celulas, cores empilhadas, centralizada no eixo do stack)
+            \fill[BrickRed!45] (4.0,1.75) rectangle (4.5,2.25);
+            \fill[BrickRed!30] (4.0,1.25) rectangle (4.5,1.75);
+            \fill[BrickRed!15] (4.0,0.75) rectangle (4.5,1.25);
+            \draw[gray!50] (4.0,0.75) rectangle (4.5,2.25);
+            \draw[gray!50] (4.0,1.25) -- (4.5,1.25);
+            \draw[gray!50] (4.0,1.75) -- (4.5,1.75);
+            \draw[thick, BrickRed] (4.0,0.75) rectangle (4.5,2.25);
+            \node[font=\tiny, anchor=north, align=center] at (4.25,0.70) {kernel\\$1\!\times\!1\!\times\!3$};
+
+            % Canal de saida (1 canal)
+            \fill[orange!25] (5.7,0.5) rectangle (7.7,2.5);
+            \draw[step=0.5, gray!50] (5.7,0.5) grid (7.7,2.5);
+            \draw[thick, orange!70!black] (5.7,0.5) rectangle (7.7,2.5);
+            \node[font=\tiny, anchor=south] at (6.7,2.55) {saída (1 canal)};
+
+            % Setas
+            \draw[->, gray!70, thick] (3.05,1.5) -- (3.95,1.5);
+            \draw[->, gray!70, thick] (4.55,1.5) -- (5.65,1.5);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Implementação de Convolução}
+%========================================================================
+
+\begin{frame}[fragile]{Implementação: Versão Ingênua}
+\begin{itemize}
+    \item Itera explicitamente por linhas, colunas, canais e \textit{kernel}:
+\end{itemize}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+# Versao com um unico canal de saida (C_o = 1).
+# Para multiplos canais de saida bastaria envolver tudo
+# em mais um loop sobre co e indexar feat_map_out[m, n, co].
+for m in range(0, M):           # linhas
+    for n in range(0, N):       # colunas
+        for c in range(0, C):   # canais de entrada
+            for i in range(0, K):     # tamanho kernel
+                for j in range(0, K): # tamanho kernel
+                    feat_map_out[m, n] += kernel[i, j, c] * feat_map_in[m+i, n+j, c]
+        feat_map_out[m, n] += bias
+\end{lstlisting}
+\begin{itemize}
+    \item Simples de entender, mas extremamente lenta e sem aproveitar paralelismo de hardware.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Implementação: via Transformada de Fourier}
+\begin{itemize}
+    \item Versão complexa e raramente utilizada na prática.
+    \item Convolução no domínio espacial é equivalente a multiplicação no domínio da frequência:
+\end{itemize}
+\begin{equation*}
+    g(x) = f(x) * h(x) \qquad \Longleftrightarrow \qquad G(u) = F(u)\,H(u)
+\end{equation*}
+\vspace{-0.4em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\scriptsize},
+    box/.style={draw, rounded corners=2pt, minimum width=1.6cm, minimum height=0.55cm, inner sep=1pt},
+    sig/.style={draw, rounded corners=2pt, minimum width=0.9cm, minimum height=0.55cm, inner sep=1pt},
+    op/.style={draw, circle, minimum size=0.45cm, inner sep=0pt},
+    >=stealth
+]
+    \node[sig, fill=pink!50] (f) at (0,0.6) {$f(x)$};
+    \node[sig, fill=yellow!40] (h) at (0,-0.6) {$h(x)$};
+    \node[box, fill=gray!20] (ff) at (1.8,0.6) {FFT};
+    \node[box, fill=gray!20] (fh) at (1.8,-0.6) {FFT};
+    \node[sig, fill=pink!80] (F) at (3.6,0.6) {$F(u)$};
+    \node[sig, fill=yellow!80] (H) at (3.6,-0.6) {$H(u)$};
+    \node[op, fill=PastelBlue2!30] (mul) at (5.0,0) {$\times$};
+    \node[box, fill=gray!20] (ifft) at (6.8,0) {IFFT};
+    \node[sig, fill=green!40, minimum width=1.2cm] (out) at (8.6,0) {$f * h$};
+    \draw[->] (f) -- (ff);
+    \draw[->] (h) -- (fh);
+    \draw[->] (ff) -- (F);
+    \draw[->] (fh) -- (H);
+    \draw[->] (F.east) -- (mul);
+    \draw[->] (H.east) -- (mul);
+    \draw[->] (mul) -- (ifft);
+    \draw[->] (ifft) -- (out);
+\end{tikzpicture}
+\end{center}
+\begin{itemize}
+    \item Útil para convoluções com \textit{kernels} grandes (acima de $11\times 11$)\footfullcite{vasilache2014fbfft}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Implementação: \texttt{im2col} e Matriz de Toeplitz}
+\begin{itemize}
+    \item Versão utilizada na prática em GPUs e bibliotecas otimizadas.
+    \item Existe uma forma inteligente de organizar a matriz de pesos para obter o resultado da convolução com uma única multiplicação de matrizes.
+    \item Uma \textbf{matriz de Toeplitz} é uma matriz cujas diagonais principal e subdiagonais são constantes:
+\end{itemize}
+\begin{equation*}
+\begin{bmatrix}
+5 & 27 & 2 & -56 & 0 & 1 \\
+-3 & 5 & 27 & 2 & -56 & 0 \\
+8 & -3 & 5 & 27 & 2 & -56 \\
+1 & 8 & -3 & 5 & 27 & 2 \\
+-9 & 1 & 8 & -3 & 5 & 27 \\
+3 & -9 & 1 & 8 & -3 & 5
+\end{bmatrix}
+\end{equation*}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 1 -- Entrada e filtro}
+\begin{itemize}
+    \item Definimos a entrada $X$ ($3\times 3$) e o filtro $w$ ($2\times 2$):
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\footnotesize}, scale=0.8]
+    % X 3x3 azul
+    \node at (-0.7,1.5) {$X = $};
+    \fill[PastelBlue2!35] (0,0) rectangle (3,3);
+    \draw[step=1, gray!60] (0,0) grid (3,3);
+    \node at (0.5,2.5) {$x_{1,1}$}; \node at (1.5,2.5) {$x_{1,2}$}; \node at (2.5,2.5) {$x_{1,3}$};
+    \node at (0.5,1.5) {$x_{2,1}$}; \node at (1.5,1.5) {$x_{2,2}$}; \node at (2.5,1.5) {$x_{2,3}$};
+    \node at (0.5,0.5) {$x_{3,1}$}; \node at (1.5,0.5) {$x_{3,2}$}; \node at (2.5,0.5) {$x_{3,3}$};
+    % w 2x2 laranja
+    \node at (5.3,1.5) {$w = $};
+    \fill[orange!40] (6.0,0.5) rectangle (8.0,2.5);
+    \draw[gray!60] (6.0,0.5) rectangle (8.0,2.5);
+    \draw[gray!60] (7.0,0.5) -- (7.0,2.5);
+    \draw[gray!60] (6.0,1.5) -- (8.0,1.5);
+    \node at (6.5,2.0) {$w_{1,1}$}; \node at (7.5,2.0) {$w_{1,2}$};
+    \node at (6.5,1.0) {$w_{2,1}$}; \node at (7.5,1.0) {$w_{2,2}$};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 2 -- Tamanho da saída}
+\begin{itemize}
+    \item Modo \textit{full}: $(X_h + w_h - 1)\times(X_w + w_w - 1)$. Para $X$ $3\times 3$ e $w$ $2\times 2$:
+\end{itemize}
+\begin{equation*}
+    (3 + 2 - 1) \times (3 + 2 - 1) = 4 \times 4
+\end{equation*}
+\begin{itemize}
+    \item Convenções de tamanho:
+    \begin{itemize}
+        \item \textbf{full} (\textit{signal processing}): saída maior que a entrada; considera todas as janelas em que entrada e kernel se sobrepõem em pelo menos um pixel.
+        \item \textbf{valid} (típico em CNNs): saída $(X_h - w_h + 1) \times (X_w - w_w + 1)$; considera apenas janelas inteiramente dentro da entrada.
+        \item \textbf{same}: com \textit{padding} adequado, mantém o tamanho original da entrada.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 3 -- Zero padding do filtro}
+\begin{itemize}
+    \item Aplicamos \textit{zero padding} no filtro até atingir o tamanho da saída $4\times 4$:
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\footnotesize}, scale=0.8]
+    \node at (-0.9,2.0) {$w = $};
+    % Padded 4x4: zeros no topo e a direita, pesos no canto inferior-esquerdo
+    \fill[gray!15] (0,0) rectangle (4,4);
+    \fill[orange!40] (0,0) rectangle (2,2);
+    \draw[step=1, gray!60] (0,0) grid (4,4);
+    \node at (0.5,3.5) {$0$}; \node at (1.5,3.5) {$0$}; \node at (2.5,3.5) {$0$}; \node at (3.5,3.5) {$0$};
+    \node at (0.5,2.5) {$0$}; \node at (1.5,2.5) {$0$}; \node at (2.5,2.5) {$0$}; \node at (3.5,2.5) {$0$};
+    \node at (0.5,1.5) {$w_{1,1}$}; \node at (1.5,1.5) {$w_{1,2}$};
+    \node at (2.5,1.5) {$0$};       \node at (3.5,1.5) {$0$};
+    \node at (0.5,0.5) {$w_{2,1}$}; \node at (1.5,0.5) {$w_{2,2}$};
+    \node at (2.5,0.5) {$0$};       \node at (3.5,0.5) {$0$};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 4 -- Matrizes de Toeplitz por linha}
+\begin{itemize}
+    \item Para cada linha do filtro paddado, construímos uma matriz de Toeplitz $F_k$ (tamanho saída$_h \times$ entrada$_w = 4\times 3$). Começamos pela última linha.
+\end{itemize}
+\vspace{0.3em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\tiny}, scale=0.55]
+    % F0 azul (da linha 4 do padded: w_{2,1}, w_{2,2}, 0, 0)
+    \node[anchor=south, font=\scriptsize] at (1.5,4.2) {$F_0$};
+    \fill[PastelBlue2!35] (0,0) rectangle (3,4);
+    \draw[step=1, gray!60] (0,0) grid (3,4);
+    \node at (0.5,3.5) {$w_{2,1}$}; \node at (1.5,3.5) {$0$}; \node at (2.5,3.5) {$0$};
+    \node at (0.5,2.5) {$w_{2,2}$}; \node at (1.5,2.5) {$w_{2,1}$}; \node at (2.5,2.5) {$0$};
+    \node at (0.5,1.5) {$0$}; \node at (1.5,1.5) {$w_{2,2}$}; \node at (2.5,1.5) {$w_{2,1}$};
+    \node at (0.5,0.5) {$0$}; \node at (1.5,0.5) {$0$}; \node at (2.5,0.5) {$w_{2,2}$};
+    % F1 cinza (linha 3: w_{1,1}, w_{1,2}, 0, 0)
+    \node[anchor=south, font=\scriptsize] at (5.5,4.2) {$F_1$};
+    \fill[black!15] (4,0) rectangle (7,4);
+    \draw[step=1, gray!60] (4,0) grid (7,4);
+    \node at (4.5,3.5) {$w_{1,1}$}; \node at (5.5,3.5) {$0$}; \node at (6.5,3.5) {$0$};
+    \node at (4.5,2.5) {$w_{1,2}$}; \node at (5.5,2.5) {$w_{1,1}$}; \node at (6.5,2.5) {$0$};
+    \node at (4.5,1.5) {$0$}; \node at (5.5,1.5) {$w_{1,2}$}; \node at (6.5,1.5) {$w_{1,1}$};
+    \node at (4.5,0.5) {$0$}; \node at (5.5,0.5) {$0$}; \node at (6.5,0.5) {$w_{1,2}$};
+    % F2 laranja (linha 2: zeros)
+    \node[anchor=south, font=\scriptsize] at (9.5,4.2) {$F_2$};
+    \fill[orange!30] (8,0) rectangle (11,4);
+    \draw[step=1, gray!60] (8,0) grid (11,4);
+    \foreach \r in {0.5,1.5,2.5,3.5} \foreach \c in {8.5,9.5,10.5} \node at (\c,\r) {$0$};
+    % F3 verde (linha 1: zeros)
+    \node[anchor=south, font=\scriptsize] at (13.5,4.2) {$F_3$};
+    \fill[green!25] (12,0) rectangle (15,4);
+    \draw[step=1, gray!60] (12,0) grid (15,4);
+    \foreach \r in {0.5,1.5,2.5,3.5} \foreach \c in {12.5,13.5,14.5} \node at (\c,\r) {$0$};
+\end{tikzpicture}
+\vspace{0.3em}
+\begin{itemize}
+    \item $F_0$ vem da última linha do filtro paddado, $F_1$ da penúltima, e assim por diante.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 5 -- Matriz de bloco Toeplitz}
+\begin{itemize}
+    \item Empilhamos as $F_k$ em uma matriz por blocos. O tamanho final é $16 \times 9$.
+\end{itemize}
+\vspace{0.4em}
+\begin{columns}[T]
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{equation*}
+        \text{Bloco Toeplitz} =
+        \begin{bmatrix}
+        \textcolor{PastelBlue2!60!black}{F_0} & 0 & 0 \\
+        \textcolor{black!50}{F_1} & \textcolor{PastelBlue2!60!black}{F_0} & 0 \\
+        \textcolor{orange!70!black}{F_2} & \textcolor{black!50}{F_1} & \textcolor{PastelBlue2!60!black}{F_0} \\
+        \textcolor{green!50!black}{F_3} & \textcolor{orange!70!black}{F_2} & \textcolor{black!50}{F_1}
+        \end{bmatrix}
+        \end{equation*}
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \centering
+        \begin{tikzpicture}[scale=0.28, every node/.style={font=\tiny}]
+            % 16x9 grid: 4 block rows x 3 block cols, each block 4x3
+            % Block (br, bc) at position (bc*3, (3-br)*4)
+            % br=0 -> top, br=3 -> bottom
+            % Top row: F_0, 0, 0
+            \fill[PastelBlue2!35] (0,12) rectangle (3,16);
+            \fill[gray!10] (3,12) rectangle (6,16);
+            \fill[gray!10] (6,12) rectangle (9,16);
+            % Second row: F_1, F_0, 0
+            \fill[black!15] (0,8) rectangle (3,12);
+            \fill[PastelBlue2!35] (3,8) rectangle (6,12);
+            \fill[gray!10] (6,8) rectangle (9,12);
+            % Third: F_2, F_1, F_0
+            \fill[orange!30] (0,4) rectangle (3,8);
+            \fill[black!15] (3,4) rectangle (6,8);
+            \fill[PastelBlue2!35] (6,4) rectangle (9,8);
+            % Bottom: F_3, F_2, F_1
+            \fill[green!25] (0,0) rectangle (3,4);
+            \fill[orange!30] (3,0) rectangle (6,4);
+            \fill[black!15] (6,0) rectangle (9,4);
+            \draw[step=1, gray!50] (0,0) grid (9,16);
+            \draw[very thick, gray!80] (0,0) rectangle (9,16);
+            \draw[very thick, gray!80] (3,0) -- (3,16);
+            \draw[very thick, gray!80] (6,0) -- (6,16);
+            \draw[very thick, gray!80] (0,4) -- (9,4);
+            \draw[very thick, gray!80] (0,8) -- (9,8);
+            \draw[very thick, gray!80] (0,12) -- (9,12);
+            \node[anchor=east] at (-0.3,8) {\scriptsize $16$};
+            \node[anchor=north] at (4.5,-0.3) {\scriptsize $9$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\vspace{0.3em}
+\begin{itemize}
+    \item Colunas $=$ linhas da imagem original ($3$); linhas $=$ linhas da imagem de saída vezes a largura ($4 \cdot 4 = 16$).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 6 -- Vetorização da entrada}
+\begin{itemize}
+    \item Vetorizamos $X$ concatenando as linhas \textbf{de baixo para cima}:
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\footnotesize}, scale=0.7]
+    % X 3x3 azul
+    \node at (-0.7,1.5) {$X = $};
+    \fill[PastelBlue2!35] (0,0) rectangle (3,3);
+    \draw[step=1, gray!60] (0,0) grid (3,3);
+    \node at (0.5,2.5) {$x_{1,1}$}; \node at (1.5,2.5) {$x_{1,2}$}; \node at (2.5,2.5) {$x_{1,3}$};
+    \node at (0.5,1.5) {$x_{2,1}$}; \node at (1.5,1.5) {$x_{2,2}$}; \node at (2.5,1.5) {$x_{2,3}$};
+    \node at (0.5,0.5) {$x_{3,1}$}; \node at (1.5,0.5) {$x_{3,2}$}; \node at (2.5,0.5) {$x_{3,3}$};
+    % Arrow
+    \draw[->, gray!70, thick] (3.4,1.5) -- (5.1,1.5);
+    % Vector 9x1
+    \fill[PastelBlue2!35] (5.5,-3.0) rectangle (6.5,6.0);
+    \draw[gray!60] (5.5,-3.0) rectangle (6.5,6.0);
+    \foreach \y in {-2,-1,0,1,2,3,4,5}{
+        \draw[gray!60] (5.5,\y) -- (6.5,\y);
+    }
+    \node at (6.0,5.5) {$x_{3,1}$};
+    \node at (6.0,4.5) {$x_{3,2}$};
+    \node at (6.0,3.5) {$x_{3,3}$};
+    \node at (6.0,2.5) {$x_{2,1}$};
+    \node at (6.0,1.5) {$x_{2,2}$};
+    \node at (6.0,0.5) {$x_{2,3}$};
+    \node at (6.0,-0.5) {$x_{1,1}$};
+    \node at (6.0,-1.5) {$x_{1,2}$};
+    \node at (6.0,-2.5) {$x_{1,3}$};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{\texttt{im2col}: Passo 7 -- Multiplicação e \textit{reshape}}
+\begin{itemize}
+    \item Multiplicamos a matriz de bloco Toeplitz pelo vetor de entrada e fazemos \textit{reshape} para a forma da saída:
+\end{itemize}
+\begin{equation*}
+    \underbrace{T}_{16 \times 9} \cdot \underbrace{\vec{X}}_{9 \times 1} = \underbrace{\vec{y}}_{16 \times 1}
+    \;\;\xrightarrow{\;\text{reshape}\;}\;\;
+    \underbrace{Y}_{4 \times 4}
+\end{equation*}
+\begin{itemize}
+    \item Cada linha do produto $T\vec{X}$ já contém o resultado de uma posição da convolução; basta reorganizar em uma matriz $4\times 4$.
+    \item O resultado é exatamente igual ao da convolução tradicional, calculado em \textbf{uma única multiplicação de matrizes}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Por que \texttt{im2col} é a escolha prática}
+\begin{itemize}
+    \item Reduz a convolução a uma multiplicação de matrizes (\texttt{GEMM}), o tipo de operação que GPUs e bibliotecas BLAS otimizam ao máximo.
+    \item Permite usar a mesma rotina para qualquer combinação de \textit{kernel}, \textit{stride} e \textit{padding}, alterando apenas o layout dos dados.
+    \item Custa memória extra para armazenar as ``cópias'' das janelas, mas o ganho em velocidade compensa em larga escala.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Referências}
+%========================================================================
+
+\begin{frame}[allowframebreaks]{Referências}
+\begin{itemize}
+    \item Sugere se \textbf{fortemente} a leitura do Capítulo 10 de \textit{Understanding Deep Learning}\footfullcite{prince2023understanding}.
+    \begin{itemize}
+        \item Disponível em \url{https://udlbook.github.io/udlbook/}.
+    \end{itemize}
+    \item Aula baseada também nos seguintes materiais:
+    \begin{itemize}
+        \item Capítulo 10 de \textit{Understanding Deep Learning}, Simon J. D. Prince.
+        \item \textit{Machine Learning} @ Berkeley.
+        \item \url{https://github.com/alisaaalehi/convolution_as_multiplication}.
+        \item \url{https://github.com/vdumoulin/conv_arithmetic}.
+    \end{itemize}
+\end{itemize}
+\printbibliography
+\end{frame}
+
+\end{document}

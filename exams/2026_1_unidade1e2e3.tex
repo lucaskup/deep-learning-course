@@ -1,0 +1,302 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidades 1, 2 e 3}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1  & & & & & & & & \\\hline
+2  & & & & & & & & \\\hline
+3  & & & & & & & & \\\hline
+4  & & & & & & & & \\\hline
+5  & & & & & & & & \\\hline
+6  & & & & & & & & \\\hline
+7  & & & & & & & & \\\hline
+8  & & & & & & & & \\\hline
+9  & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1.0 = 10.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ====================== UNIDADE 1 (MLP) ======================
+
+%% ---------- Q1: passo único de Adam com correção de viés ----------
+\item (1.0) Um único parâmetro $\theta$ é otimizado com Adam (hiperparâmetros $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\eta = 0.01$, $\epsilon \approx 10^{-8}$). Os acumuladores começam zerados ($m_0 = v_0 = 0$). Na primeira iteração ($t = 1$) o gradiente é $g_1 = 3$. Lembrando que Adam aplica correção de viés $\hat{m} = m / (1 - \beta_1^{t})$ e $\hat{v} = v / (1 - \beta_2^{t})$ e atualiza $\theta \leftarrow \theta - \eta\,\hat{m}/(\sqrt{\hat{v}} + \epsilon)$, qual é, aproximadamente, o módulo da atualização $|\Delta\theta| = |\theta_1 - \theta_0|$ neste primeiro passo?
+
+\begin{enumerate}[a)]
+    \item $0.0316$
+    \item $0.03$
+    \item $0.01$
+    \item $0.003$
+    \item $0.1$
+    \item $0.3$
+    \item $0.0001$
+    \item $1.0$
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q2: forward/backward numérico com unidade ReLU morta ----------
+\item (1.0) Considere o MLP abaixo, com duas unidades ocultas de ativações $a_1$ e $a_2$ (ReLU) e uma unidade de saída $\hat{y}$ com ativação linear (todos os vieses são nulos). As entradas são $X_1 = 1$ e $X_2 = 2$, a saída esperada é $y = 4$ e a função de custo é $J = \tfrac{1}{2}(y - \hat{y})^2$. Os pesos iniciais são
+$\theta^{(1)}_{11} = 1,\ \theta^{(1)}_{12} = -1$ (de $X_1, X_2$ para $a_1$),
+$\theta^{(1)}_{21} = 1,\ \theta^{(1)}_{22} = 1$ (de $X_1, X_2$ para $a_2$),
+$\theta^{(2)}_{1} = 1,\ \theta^{(2)}_{2} = 2$ (de $a_1, a_2$ para $\hat{y}$).
+Após \textbf{uma} atualização de descida de gradiente estocástica com $\eta = 0.1$, quais os novos valores de $\theta^{(1)}_{11}$ e $\theta^{(1)}_{21}$?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+    \node[circle, draw] (x1) at (0, 1.2)  {$X_1$};
+    \node[circle, draw] (x2) at (0, -1.2) {$X_2$};
+    \node[circle, draw] (h1) at (3, 1.2)  {$a_1$};
+    \node[circle, draw] (h2) at (3, -1.2) {$a_2$};
+    \node[circle, draw] (y)  at (6, 0)    {$\hat{y}$};
+    \draw[->] (x1) -- node[above, font=\footnotesize]{$\theta^{(1)}_{11}$} (h1);
+    \draw[->] (x1) -- node[pos=0.3, above, font=\footnotesize]{$\theta^{(1)}_{21}$} (h2);
+    \draw[->] (x2) -- node[pos=0.3, below, font=\footnotesize]{$\theta^{(1)}_{12}$} (h1);
+    \draw[->] (x2) -- node[below, font=\footnotesize]{$\theta^{(1)}_{22}$} (h2);
+    \draw[->] (h1) -- node[above, font=\footnotesize]{$\theta^{(2)}_{1}$} (y);
+    \draw[->] (h2) -- node[below, font=\footnotesize]{$\theta^{(2)}_{2}$} (y);
+    \node[below=0.15cm of h1, font=\footnotesize] {ReLU};
+    \node[below=0.15cm of h2, font=\footnotesize] {ReLU};
+    \node[below=0.15cm of y, font=\footnotesize] {linear};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item $\theta^{(1)}_{11} = 0.8$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+    \item $\theta^{(1)}_{11} = 0.6$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+    \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.8$
+    \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+    \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 1.0$
+    \item $\theta^{(1)}_{11} = 0.6$ \quad e \quad $\theta^{(1)}_{21} = 0.8$
+    \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.4$
+    \item $\theta^{(1)}_{11} = 0.96$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+\end{enumerate}
+
+%% ---------- Q3: multi-assertiva otimizadores ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre otimização em MLPs:
+
+\textbf{I.} Na descida de gradiente em lote (\textit{batch GD}), cada iteração usa o gradiente médio sobre \emph{todo} o conjunto de treinamento; já no SGD, cada iteração usa o gradiente de uma \emph{única} instância.
+
+\textbf{II.} O momentum acumula uma média móvel exponencial dos gradientes; com $\beta = 0$, a atualização reduz-se à descida de gradiente padrão.
+
+\textbf{III.} No AdaGrad, o acumulador de gradientes ao quadrado cresce monotonicamente, de modo que a taxa de aprendizado efetiva por parâmetro tende a diminuir ao longo do treinamento.
+
+\textbf{IV.} O momentum de Nesterov avalia o gradiente na posição atual $\theta_t$.
+
+\textbf{V.} Em Adam, a correção de viés ($\hat{m}_t = m_t/(1-\beta_1^{t})$ e $\hat{v}_t = v_t/(1-\beta_2^{t})$) torna-se progressivamente mais relevante à medida que $t$ cresce, pois os denominadores $1-\beta_1^{t}$ e $1-\beta_2^{t}$ se afastam cada vez mais de $1$.
+
+\begin{enumerate}[a)]
+    \item Apenas I, III e V estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, II e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas III e V estão corretas.
+\end{enumerate}
+
+%% ---------- Q4: contagem de parâmetros ----------
+\item (1.0) Um MLP totalmente conectado recebe entradas com $10$ atributos e possui três camadas ocultas com $20$, $20$ e $10$ unidades (todas com ReLU e \textbf{com} viés), seguidas de uma camada de saída com $5$ unidades (também com viés). Qual o número total de parâmetros \emph{treináveis} da rede?
+
+\begin{enumerate}[a)]
+    \item $1810$
+    \item $850$
+    \item $900$
+    \item $855$
+    \item $760$
+    \item $925$
+    \item $905$
+    \item $705$
+\end{enumerate}
+
+%% ---------- Q5: multi-assertiva custos/MLE/ativações ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre funções de custo, verossimilhança e ativações:
+
+\textbf{I.} A entropia cruzada binária corresponde à máxima verossimilhança sob a hipótese $y \mid \mathbf{x} \sim \mathrm{Bernoulli}(\hat{y})$, enquanto o erro quadrático médio corresponde à máxima verossimilhança sob hipótese Gaussiana com variância fixa.
+
+\textbf{II.} A derivada da sigmoide atinge seu valor máximo em $z = 0$, com $\sigma'(0) = \tfrac{1}{4}$, enquanto a da tangente hiperbólica atinge $\tanh'(0) = 1$.
+
+\textbf{III.} Sendo $S_i = \mathrm{softmax}(\mathbf{z})_i$, a matriz Jacobiana da \textit{softmax} em relação aos seus \textit{logits} é diagonal, isto é, $\partial S_i / \partial z_j = 0$ para todo $i \neq j$.
+
+\textbf{IV.} O erro quadrático médio não pode, em hipótese alguma, ser usado como função de custo em classificação binária: a rede não treina.
+
+\textbf{V.} A ReLU satisfaz $\mathrm{ReLU}'(z) = 1$ para $z > 0$ e $\mathrm{ReLU}'(z) = 0$ para $z < 0$; portanto, ao contrário da sigmoide, não satura para entradas positivas grandes, o que ajuda a mitigar o desaparecimento do gradiente.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e V estão corretas.
+    \item Apenas I e II estão corretas.
+    \item Apenas I, II, IV e V estão corretas.
+    \item Apenas II, III e V estão corretas.
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, IV e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas III e IV estão corretas.
+\end{enumerate}
+
+%% ====================== UNIDADE 2 (CNN) ======================
+
+%% ---------- Q6: dimensão espacial de saída ----------
+\item (1.0) Uma imagem de entrada $64 \times 64$ passa, em sequência, pelas seguintes camadas (todas quadradas):
+
+\begin{enumerate}[(i)]
+    \item convolução $K = 5$, \textit{stride} $S = 1$, \textit{padding} $P = 0$;
+    \item \textit{max pooling} $2 \times 2$, \textit{stride} $S = 2$, \textit{padding} $P = 0$;
+    \item convolução $K = 3$, \textit{stride} $S = 1$, \textit{padding} $P = 1$;
+    \item \textit{max pooling} $2 \times 2$, \textit{stride} $S = 2$, \textit{padding} $P = 0$;
+    \item convolução $K = 3$, \textit{stride} $S = 2$, \textit{padding} $P = 1$.
+\end{enumerate}
+
+Qual a dimensão espacial (em \textit{pixels}) do mapa de ativação (\textit{feature map}) na saída da camada (v)?
+
+\begin{enumerate}[a)]
+    \item $9 \times 9$
+    \item $7 \times 7$
+    \item $16 \times 16$
+    \item $15 \times 15$
+    \item $6 \times 6$
+    \item $8 \times 8$
+    \item $4 \times 4$
+    \item $30 \times 30$
+\end{enumerate}
+
+%% ---------- Q7: multi-assertiva CNN ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre redes convolucionais:
+
+\textbf{I.} O número de parâmetros de uma camada convolucional independe das dimensões espaciais $H \times W$ da entrada, dependendo apenas de $K$, $C_{\text{in}}$, $C_{\text{out}}$ (e dos vieses).
+
+\textbf{II.} A convolução é equivariante à translação, enquanto o \textit{pooling} (por exemplo, \textit{max pooling}) introduz um grau de invariância a pequenas translações locais.
+
+\textbf{III.} Durante a inferência, a \textit{batch normalization} normaliza cada ativação usando a média e a variância calculadas sobre o próprio \textit{mini-batch} de teste corrente.
+
+\textbf{IV.} Duas convoluções $3 \times 3$ empilhadas têm o mesmo campo receptivo de uma única convolução $5 \times 5$, porém usam \emph{mais} parâmetros do que a $5 \times 5$.
+
+\textbf{V.} Uma convolução $1 \times 1$ preserva as dimensões espaciais e serve, entre outras coisas, para alterar o número de canais (combinação linear entre canais em cada posição).
+
+\begin{enumerate}[a)]
+    \item Apenas I e V estão corretas.
+    \item Apenas I, II, IV e V estão corretas.
+    \item Apenas II, III e V estão corretas.
+    \item Apenas I, II e V estão corretas.
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, III e IV estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas II e V estão corretas.
+\end{enumerate}
+
+%% ---------- Q8: campo receptivo com dilatação e stride ----------
+\item (1.0) Considere três camadas convolucionais em sequência, com os valores de \textit{kernel} $K$, \textit{stride} $S$ e dilatação $D$ indicados abaixo:
+
+\begin{itemize}
+    \item camada 1: $K_1 = 3$, $S_1 = 1$, $D_1 = 2$;
+    \item camada 2: $K_2 = 3$, $S_2 = 2$, $D_2 = 1$;
+    \item camada 3: $K_3 = 3$, $S_3 = 1$, $D_3 = 1$.
+\end{itemize}
+
+Qual a dimensão (em \textit{pixels}) do campo receptivo de uma unidade na saída da camada 3?
+
+\begin{enumerate}[a)]
+    \item $9 \times 9$
+    \item $11 \times 11$
+    \item $13 \times 13$
+    \item $7 \times 7$
+    \item $15 \times 15$
+    \item $5 \times 5$
+    \item $17 \times 17$
+    \item $8 \times 8$
+\end{enumerate}
+
+%% ====================== UNIDADE 3 (RNN) ======================
+
+%% ---------- Q9: perplexidade ----------
+\item (1.0) Um modelo de linguagem atribui, a uma sequência de $m = 4$ \textit{tokens}, as seguintes probabilidades condicionais $P(y_t \mid y_{<t})$, na ordem: $\tfrac{1}{2}$, $\tfrac{1}{4}$, $\tfrac{1}{4}$, $\tfrac{1}{8}$. Usando a definição $\text{Perplexidade} = 2^{-\frac{1}{m}\sum_{t=1}^{m}\log_2 P(y_t \mid y_{<t})}$, qual o valor da perplexidade dessa sequência?
+
+\begin{enumerate}[a)]
+    \item $1$
+    \item $8$
+    \item $16$
+    \item $2$
+    \item $256$
+    \item $2.83$
+    \item $5.66$
+    \item $4$
+\end{enumerate}
+
+%% ---------- Q10: multi-assertiva RNN/LSTM ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre redes recorrentes:
+
+\textbf{I.} Na RNN \textit{vanilla}, o gradiente retropropagado no tempo carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2(z_k)| \le 1$, esse produto tende a zero em sequências longas, caracterizando o desaparecimento do gradiente.
+
+\textbf{II.} Na LSTM, com o \textit{forget gate} $f_t \to 1$ e o \textit{input gate} $i_t \to 0$, a atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ reduz-se a $c_t \approx c_{t-1}$, preservando a memória de longo prazo (\textit{constant error carousel}).
+
+\textbf{III.} Na LSTM, todos os quatro portões e candidatos ($f_t$, $i_t$, $o_t$ e o candidato $\tilde{c}_t$) são obtidos por ativação sigmoide.
+
+\textbf{IV.} A LSTM faz circular dois estados ao longo do tempo: o estado oculto $h_t$ e o estado de célula (memória) $c_t$, ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$.
+
+\textbf{V.} Um modelo de linguagem extremamente confiante e sempre correto pode atingir perplexidade inferior a $1$.
+
+\begin{enumerate}[a)]
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I, II, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I e IV estão corretas.
+    \item Apenas I, II e V estão corretas.
+    \item Apenas I, III e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas II e IV estão corretas.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,394 @@
+name: Compile LaTeX Course Materials
+
+on:
+  push:
+    # Restrict to branches so tag pushes don't trigger a duplicate compile
+    # (GitHub ignores `paths` filters entirely for tag pushes; the release
+    # event below already covers builds for published releases).
+    branches:
+      - main
+    paths:
+      - 'problems/**'
+      - 'slides/**'
+      - 'exams/**'
+      - 'docs/**'
+      - 'latexmkrc'
+      - '.github/workflows/latex-ci.yml'
+      - '!**.md'
+  pull_request:
+    paths:
+      - 'problems/**'
+      - 'slides/**'
+      - 'exams/**'
+      - 'docs/**'
+      - 'latexmkrc'
+      - '.github/workflows/latex-ci.yml'
+      - '!**.md'
+  # Publishing to gh-pages happens only when a GitHub release is published;
+  # pushes and PRs just compile to validate the sources.
+  release:
+    types: [published]
+
+jobs:
+  compile-problems:
+    runs-on: ubuntu-latest
+    # Vanilla TeX Live (full scheme) instead of Ubuntu's apt texlive-full: the
+    # apt package lags years behind (TL2023 ships pgf 3.1.10, whose FPU breaks
+    # on the fillbetween plots in slides/01-mlp) and the container keeps CI on
+    # the same TeX Live the course is authored against. The image bundles
+    # latexmk, biber, and Pygments (for minted).
+    #
+    # Pinned by digest for reproducible builds (texlive/texlive:latest as of
+    # 2026-07-06, TeX Live 2026, pgf 3.1.11a, pgfplots 1.18.2). To bump: pull
+    # the current tag, validate the full compile locally in that image, then
+    # update this digest (docker image inspect --format '{{index .RepoDigests 0}}').
+    container: texlive/texlive@sha256:20fa06486e76ebc91b93422153e22d8bca7d4e5366f4baf11693feea47d7ecde
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write
+    # Container jobs default to plain sh; the compile step relies on bash
+    # features (process substitution, PIPESTATUS).
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The container runs as root while the runner checks out the workspace
+      # under a different UID, so git refuses to operate on it ("dubious
+      # ownership") until the path is explicitly marked safe.
+      - name: Mark workspace as safe for git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Create build directory
+        run: mkdir -p build deploy/slides deploy/problems deploy/exams
+
+      - name: Diagnose checkout contents
+        run: |
+          echo "=== Working directory ==="
+          pwd
+          echo "=== Top-level contents ==="
+          ls -la
+          echo "=== problems/ contents ==="
+          ls problems/ 2>/dev/null || echo "problems/ NOT FOUND"
+          echo "=== problems/ subdirs ==="
+          find problems/ -maxdepth 2 -name '*.tex' | sort 2>/dev/null || echo "find failed"
+          echo "=== slides/ .tex files ==="
+          find slides/ -name '*.tex' | sort 2>/dev/null || echo "find failed"
+          echo "=== git ls-files tex count ==="
+          git ls-files problems/ slides/ | grep -c '\.tex$'
+          echo ""
+          echo "=== find+grep output (what compilation step sees) ==="
+          find problems/ slides/ -name '*.tex' -print0 \
+            | xargs -0 grep -l '\\documentclass' | sort
+          echo "EXIT: $?"
+          echo ""
+          echo "=== locale ==="
+          locale
+
+      # Problem sets use \documentclass{dlproblemset} (the class file lives at
+      # problems/style/dlproblemset.cls and is found via the TEXINPUTS extension
+      # set in latexmkrc). latexmk must NOT cd into each file's directory so
+      # the TEXINPUTS path stays correct. latexmkrc sets $out_dir = 'build' and
+      # enables -shell-escape via lualatex.
+      - name: Compile all course materials
+        run: |
+          FAILED=0
+          COMPILED=0
+          LATEXMK_LOG="build/latexmk-run.log"
+          SUMMARY_ROWS=""
+
+          # Use fd 3 for the file list so that lualatex (which reads stdin on
+          # errors in interactive mode) cannot accidentally consume filenames
+          # from the process substitution and truncate the loop early.
+          while IFS= read -r -u3 texfile; do
+            echo "--- Compiling: $texfile ---" | tee -a "$LATEXMK_LOG"
+            # minted v2 writes its Pygments cache to build/_minted-<jobname>/.
+            # Create that directory now so minted doesn't fail if its own
+            # mkdir shell-escape runs after Pygments is invoked.
+            mkdir -p "build/_minted-$(basename "${texfile%.tex}")"
+            # Redirect latexmk stdin from /dev/null as a second guard, and
+            # disable pipefail temporarily so a non-zero latexmk exit does not
+            # abort the step before we can record the failure.
+            set +o pipefail
+            timeout 300 latexmk -lualatex -cd- -interaction=nonstopmode "$texfile" \
+                </dev/null 2>&1 | tee -a "$LATEXMK_LOG"
+            latexmk_exit=${PIPESTATUS[0]}
+            set -o pipefail
+            if [ "$latexmk_exit" -eq 0 ]; then
+              pdffile="build/$(basename "${texfile%.tex}").pdf"
+              if [ -f "$pdffile" ]; then
+                echo "OK: $pdffile" | tee -a "$LATEXMK_LOG"
+                COMPILED=$((COMPILED + 1))
+                SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Compiled |"$'\n'
+                # Stage PDF for gh-pages deployment while source path is known.
+                # Problems are organised by module to keep basenames unique.
+                if [[ "$texfile" == slides/* ]]; then
+                  cp "$pdffile" "deploy/slides/$(basename "$pdffile")"
+                elif [[ "$texfile" == problems/* ]]; then
+                  module=$(echo "$texfile" | cut -d'/' -f2)
+                  mkdir -p "deploy/problems/${module}"
+                  cp "$pdffile" "deploy/problems/${module}/$(basename "$pdffile")"
+                elif [[ "$texfile" == exams/* ]]; then
+                  cp "$pdffile" "deploy/exams/$(basename "$pdffile")"
+                fi
+              else
+                echo "FAIL: PDF not produced at expected path $pdffile" | tee -a "$LATEXMK_LOG"
+                FAILED=$((FAILED + 1))
+                SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | PDF missing |"$'\n'
+              fi
+            else
+              echo "FAIL: latexmk returned non-zero for $texfile" | tee -a "$LATEXMK_LOG"
+              FAILED=$((FAILED + 1))
+              SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Compilation error |"$'\n'
+            fi
+          done 3< <(find problems/ slides/ exams/ -name '*.tex' -print0 \
+                    | xargs -0 grep -l '\\documentclass' \
+                    | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
+                    | grep -Ev '_gabarito\.tex$')
+
+          echo "" | tee -a "$LATEXMK_LOG"
+          echo "Results: $COMPILED compiled successfully, $FAILED failed" | tee -a "$LATEXMK_LOG"
+
+          # Write compilation summary to GitHub Step Summary
+          {
+            echo "## LaTeX Course Material Compilation Results"
+            echo ""
+            if [ -n "$SUMMARY_ROWS" ]; then
+              echo "| File | Status |"
+              echo "|------|--------|"
+              printf '%s' "$SUMMARY_ROWS"
+              echo ""
+            fi
+            echo "**${COMPILED} compiled successfully, ${FAILED} failed**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAILED" -gt 0 ]; then
+            exit 1
+          fi
+
+          # Copy the entire static website (index, style, shared assets and
+          # every interactive demo folder) into the deployment staging area.
+          # Copying docs/. wholesale means new demos deploy automatically
+          # without having to extend an allowlist here.
+          cp -r docs/. deploy/
+
+      # Parse every .log file produced by latexmk and surface semantic LaTeX
+      # issues as GitHub Actions annotations.  Runs even when compilation fails
+      # so that partial builds still get their logs checked.
+      #
+      # Severity policy (all advisory — this step never blocks the PR):
+      #   undefined reference  → ::warning (advisory only)
+      #   undefined citation   → ::warning (advisory only)
+      #   overfull \hbox       → ::warning (advisory only)
+      #
+      # Blocking happens only when latexmk itself exits non-zero, which is
+      # detected by the "Compile all problem sets" step above.
+      #
+      # Also writes build/lint-summary.md so the subsequent PR comment step
+      # can embed the results without re-parsing.
+      - name: Parse LaTeX log warnings
+        if: always()
+        shell: bash
+        run: |
+          TOTAL_WARNINGS=0
+          SUMMARY_ROWS=""
+
+          shopt -s nullglob
+          logfiles=(build/*.log)
+          shopt -u nullglob
+
+          if [ ${#logfiles[@]} -eq 0 ]; then
+            echo "No .log files found in build/ — skipping lint check"
+            echo "No issues found." > build/lint-summary.md
+            exit 0
+          fi
+
+          for logfile in "${logfiles[@]}"; do
+            # Skip the latexmk run log — it is not a TeX engine log file and
+            # should not be scanned for LaTeX semantic issues.
+            [ "$(basename "$logfile")" = "latexmk-run.log" ] && continue
+
+            basename_only="$(basename "${logfile%.log}")"
+
+            # Locate the .tex source whose filename (without path) matches the log.
+            texfile=$(find problems/ slides/ exams/ -name '*.tex' -print0 \
+              | xargs -0 grep -l '\\documentclass' \
+              | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
+              | grep -Ev '_gabarito\.tex$' \
+              | awk -F/ -v name="${basename_only}.tex" '$NF == name {print; exit}')
+            [ -z "$texfile" ] && texfile="${basename_only}.tex"
+
+            echo "=== Scanning ${logfile} (source: ${texfile}) ==="
+
+            # ── Undefined references ──────────────────────────────────────────
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              echo "::warning file=${texfile},title=Undefined Reference::${line} [${logfile}]"
+              TOTAL_WARNINGS=$((TOTAL_WARNINGS + 1))
+              SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Undefined Reference | \`${line}\` |"$'\n'
+            done < <(grep -F "LaTeX Warning: Reference '" "${logfile}" \
+                       | grep " undefined" || true)
+
+            # ── Undefined citations ───────────────────────────────────────────
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              echo "::warning file=${texfile},title=Undefined Citation::${line} [${logfile}]"
+              TOTAL_WARNINGS=$((TOTAL_WARNINGS + 1))
+              SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Undefined Citation | \`${line}\` |"$'\n'
+            done < <(grep -F "LaTeX Warning: Citation '" "${logfile}" \
+                       | grep " undefined" || true)
+
+            # ── Overfull hboxes ───────────────────────────────────────────────
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              echo "::warning file=${texfile},title=Overfull hbox::${line} [${logfile}]"
+              TOTAL_WARNINGS=$((TOTAL_WARNINGS + 1))
+              SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Overfull hbox | \`${line}\` |"$'\n'
+            done < <(grep -F 'Overfull \hbox' "${logfile}" || true)
+
+          done
+
+          # ── Build the lint summary block (shared by Step Summary and PR comment) ──
+          LINT_SUMMARY_BODY="$(
+            echo "## LaTeX Lint Results"
+            echo ""
+            if [ "$TOTAL_WARNINGS" -eq 0 ]; then
+              echo "No issues found."
+            else
+              echo "| File | Issue type | Detail |"
+              echo "|------|------------|--------|"
+              printf '%s' "$SUMMARY_ROWS"
+              echo ""
+              echo "**${TOTAL_WARNINGS} advisory issue(s)** (undefined refs/citations, overfull hboxes)"
+            fi
+          )"
+
+          # ── GitHub Step Summary ───────────────────────────────────────────────
+          echo "$LINT_SUMMARY_BODY" >> "$GITHUB_STEP_SUMMARY"
+
+          # ── Persist for the PR comment step ──────────────────────────────────
+          echo "$LINT_SUMMARY_BODY" > build/lint-summary.md
+
+          echo ""
+          echo "LaTeX lint: ${TOTAL_WARNINGS} advisory issue(s) found — all warnings are informational only."
+
+      # Post (or update) a PR comment summarising latexmk warnings/errors so
+      # reviewers see lint results inline without navigating to the Actions tab.
+      # The comment is idempotent: a hidden marker is used to find and update an
+      # existing comment rather than creating a new one on each run.
+      - name: Post PR lint comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- latex-ci-lint-report -->';
+
+            // Read the lint summary written by the Parse step.
+            let summary = '';
+            try {
+              summary = fs.readFileSync('build/lint-summary.md', 'utf8').trim();
+            } catch (_) {
+              summary = '## LaTeX Lint Results\n\nNo summary available.';
+            }
+
+            // Read the full latexmk run log for the collapsible block.
+            // Truncate to ~60 kB to stay within GitHub comment limits.
+            let fullLog = '';
+            try {
+              fullLog = fs.readFileSync('build/latexmk-run.log', 'utf8');
+              if (fullLog.length > 60000) {
+                fullLog =
+                  fullLog.slice(0, 60000) +
+                  '\n\n\u2026 (output truncated \u2014 download the `latex-logs` artifact for the complete log)';
+              }
+            } catch (_) {
+              fullLog = 'Log not available.';
+            }
+
+            const body = [
+              marker,
+              summary,
+              '',
+              '<details>',
+              '<summary>Full latexmk log</summary>',
+              '',
+              '```',
+              fullLog,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated existing lint comment (id: ${existing.id})`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+              core.info('Posted new lint comment');
+            }
+
+      - name: Upload compiled PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: course-material-pdfs
+          path: build/*.pdf
+          if-no-files-found: warn
+
+      - name: Upload LaTeX log files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latex-logs
+          path: build/*.log
+          if-no-files-found: ignore
+
+      - name: Upload gh-pages staging content
+        if: github.event_name == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-pages-content
+          path: deploy/
+          if-no-files-found: warn
+
+  deploy:
+    needs: compile-problems
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gh-pages-content
+          path: deploy/
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          publish_branch: gh-pages

@@ -1,0 +1,215 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 1}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (5 x 1.2 = 6.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (6.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-A concept identification (Perceptron + gradient descent) ----------
+\item (1.2) Por que uma rede de Perceptrons de Rosenblatt, na sua formulação original com saída $\hat{y} = \mathrm{sign}(\mathbf{x}^\top \boldsymbol{\theta})$, não pode ser organizada em uma rede multicamadas treinada por descida de gradiente e \textit{backpropagation}?
+\begin{enumerate}[a)]
+    \item Porque o produto escalar $\mathbf{x}^\top \boldsymbol{\theta}$ não é diferenciável em relação aos pesos $\boldsymbol{\theta}$.
+    \item Porque a derivada de $\mathrm{sign}(z)$ é zero em $z \neq 0$ e indefinida em $z = 0$, bloqueando a regra da cadeia.
+    \item Porque o Perceptron tem como limitação modelar apenas problemas linearmente separáveis; com função de ativação contínua, esse problema desapareceria automaticamente.
+    \item Porque a função $\mathrm{sign}$ é descontínua, o que impede que a função de custo de entropia cruzada seja calculada.
+    \item Porque a regra de atualização original do PLA (\textit{Perceptron Learning Algorithm}) é incompatível com descida de gradiente; basta substituir o PLA pelo SGD para o problema desaparecer.
+    \item Porque o número de parâmetros do Perceptron é grande demais para ser otimizado por descida de gradiente em hardware atual.
+    \item Porque o Perceptron já realiza descida de gradiente internamente; encadeá-los em rede multicamadas dobraria a operação e levaria a divergência.
+    \item Porque a saída $\hat{y} \in \{-1, +1\}$ não é interpretável como probabilidade, e a descida de gradiente exige saídas probabilísticas.
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q2: OBJ-B I/II/III analysis (Activation functions) ----------
+\item (1.2) Sobre as asserções abaixo a respeito de funções de ativação:
+
+\textbf{I.} A função sigmoide $\sigma(z) = 1/(1 + e^{-z})$ satura para entradas com módulo grande, fazendo com que a sua derivada tenda a zero. Em redes profundas, isso contribui para o problema do desaparecimento do gradiente nas camadas iniciais.
+
+\textbf{II.} A função ReLU é estritamente positiva para qualquer entrada, garantindo que nenhuma unidade da rede possa ``morrer'' (deixar permanentemente de produzir saída diferente de zero) durante o treinamento.
+
+\textbf{III.} A derivada da função tanh tem magnitude máxima maior do que a da sigmoide ($\tanh'(0) = 1$ contra $\sigma'(0) = 0.25$), de modo que, em regiões não saturadas, o gradiente propagado é tipicamente maior, o que costuma permitir uma convergência mais rápida do treinamento em comparação com a sigmoide.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-C scenario diagnostic (Vanishing gradient) ----------
+\item (1.2) Você está treinando um MLP profundo com 10 camadas ocultas para um problema de classificação binária. Optou por sigmoide em todas as camadas ocultas, sigmoide na camada de saída, função de custo entropia cruzada binária, otimizador SGD com taxa de aprendizado padrão e inicialização $\mathcal{N}(0, 1)$ para todos os pesos. Após muitas épocas, o erro de treino permanece alto e os gradientes em relação aos pesos das primeiras camadas são extremamente próximos de zero. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+\begin{enumerate}[a)]
+    \item A taxa de aprendizado está baixa demais; aumentá-la em duas ordens de grandeza compensa os gradientes pequenos e resolve o problema.
+    \item O modelo está sofrendo \textit{overfitting}; reduzir o número de camadas para uma única camada oculta resolve o problema.
+    \item Os gradientes nas camadas iniciais ficam próximos de zero devido à saturação da sigmoide nas camadas profundas; trocar a sigmoide das ocultas por ReLU com inicialização de He resolve.
+    \item A função de custo entropia cruzada binária é inadequada para classificação; substituí-la por L2 loss resolve o problema.
+    \item Os pesos devem ser inicializados em zero para evitar que comecem em regiões saturadas da sigmoide.
+    \item Trocar a sigmoide da camada de saída por SoftMax resolve o desaparecimento do gradiente nas camadas iniciais.
+    \item Adicionar Dropout com probabilidade alta nas camadas iniciais aumenta o gradiente nessas camadas.
+    \item O problema decorre exclusivamente do otimizador SGD; substituí-lo por Adam, sem outras alterações, é suficiente para que o erro caia.
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q4: OBJ-D architectural-purpose recall (output activation + loss pairing) ----------
+\item (1.2) Por que, na prática, a função de ativação da camada de saída de uma rede neural é escolhida \emph{em conjunto} com a função de custo (por exemplo, sigmoide com entropia cruzada binária; SoftMax com entropia cruzada multinomial)?
+\begin{enumerate}[a)]
+    \item Porque é a única forma de evitar \textit{overfitting} na camada de saída.
+    \item Porque sem essa combinação a rede é incapaz, em princípio, de produzir saídas no intervalo correto (por exemplo, $[0, 1]$ para sigmoide).
+    \item Porque o algoritmo de \textit{backpropagation} só funciona quando função de custo e ativação da saída são compostas algebricamente.
+    \item Porque o teorema da aproximação universal exige especificamente esse pareamento para garantir convergência da descida de gradiente.
+    \item Porque essa combinação é o único caso em que a função de custo é convexa em relação aos pesos da rede como um todo.
+    \item Porque essa combinação simplifica o gradiente em relação aos \textit{logits}, resultando em $\partial \mathcal{L} / \partial z = \hat{y} - y$.
+    \item Porque essa combinação reduz o número de parâmetros treináveis na última camada.
+    \item Porque, sem ela, a derivada da função de custo em relação aos pesos da última camada é sempre zero.
+\end{enumerate}
+
+%% ---------- Q5: OBJ extra concept identification (Weight init for ReLU) ----------
+\item (1.2) Sobre a inicialização dos pesos de uma rede neural profunda com função de ativação ReLU, qual afirmação é correta?
+\begin{enumerate}[a)]
+    \item Inicializar todos os pesos com zero é adequado para ReLU; o gradiente assimétrico da ReLU faz com que diferentes unidades aprendam características distintas mesmo partindo de pesos idênticos.
+    \item Inicializar todos os pesos com a mesma constante não-nula é adequado, desde que a constante seja calibrada em função do número de camadas.
+    \item A inicialização de Xavier (variância $1/n_{\text{in}}$ ou $2/(n_{\text{in}} + n_{\text{out}})$) é a recomendada para ReLU, pois assume que a função de ativação se comporta de forma aproximadamente linear.
+    \item A inicialização de He (variância $2/n_{\text{in}}$) é recomendada para ReLU, compensando o fato de cerca de metade das pré-ativações serem zeradas.
+    \item Qualquer inicialização aleatória uniforme em $[-1, 1]$ funciona igualmente bem, independentemente da profundidade da rede e da função de ativação utilizada.
+    \item Para ReLU, recomenda-se uma inicialização determinística baseada na projeção PCA do conjunto de treinamento sobre os pesos da primeira camada.
+    \item A inicialização aleatória dos pesos é desnecessária; basta inicializar os vieses (\textit{biases}) com valores aleatórios para quebrar a simetria.
+    \item Pesos amostrados de $\mathcal{N}(0, 1)$ (variância 1, sem reescala) são apropriados para qualquer arquitetura com ReLU, desde que a taxa de aprendizado seja suficientemente pequena.
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions  (4.0 pts)
+%% =============================================================
+\pagebreak
+\section*{Questões Dissertativas (4.0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{5}
+
+%% ---------- Q6: DISS-A T/F with non-trivial modification ----------
+\item (2.0) Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+
+\begin{enumerate}[a)]
+    \item ( )\,V \quad ( )\,F \quad Um MLP com $1$ unidade de entrada, $K$ camadas ocultas com $D$ unidades cada (todas com viés) e $1$ unidade de saída possui exatamente $3D + 1 + (K - 1)\,D^2$ parâmetros treináveis.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad A descida de gradiente em lote (\textit{batch gradient descent}) calcula o gradiente sobre uma única instância (ou um \textit{mini-batch} pequeno) a cada iteração; já a SGD (\textit{Stochastic Gradient Descent}) calcula o gradiente da função de custo sobre todo o conjunto de treinamento a cada iteração.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad O problema do desaparecimento do gradiente é particularmente severo com a função de ativação sigmoide em redes profundas, pois a derivada $\sigma'(z) = \sigma(z)(1-\sigma(z))$ tem valor máximo $0.25$ e tende a zero quando a sigmoide satura (i.e., para $|z|$ grande), fazendo com que o gradiente decaia multiplicativamente ao longo das camadas.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad A função de custo de entropia cruzada binária pode ser obtida a partir da estimação por máxima verossimilhança dos rótulos $y_i \in \{0, 1\}$ assumindo que cada rótulo segue uma distribuição \emph{Gaussiana} de média $\hat{y}_i$ e variância fixa.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Inicializar todos os pesos de uma camada oculta com zero é adequado, pois o algoritmo de \textit{backpropagation} naturalmente quebra a simetria entre as unidades nas primeiras iterações da descida de gradiente.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q7: DISS-B forward / backward / SGD update ----------
+\item (2.0) Considere o MLP abaixo, com função de ativação ReLU na camada oculta (1 unidade) e saída linear. As entradas são $X_1 = 1$ e $X_2 = 2$, e a saída esperada é $y = 5$. Os pesos iniciais são $\theta^{(1)}_1 = 1$, $\theta^{(1)}_2 = 1$ e $\theta^{(2)} = 2$ (todos sem viés). A função de custo é $J(\theta) = \tfrac{1}{2}(y - \hat{y})^2$.
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+    \node[circle, draw] (x1) at (0, 0.7) {$X_1$};
+    \node[circle, draw] (x2) at (0, -0.7) {$X_2$};
+    \node[circle, draw] (h)  at (3, 0)   {$a^{(1)}$};
+    \node[circle, draw] (y)  at (6, 0)   {$\hat{y}$};
+    \draw[->] (x1) -- node[above]{$\theta^{(1)}_1$} (h);
+    \draw[->] (x2) -- node[below]{$\theta^{(1)}_2$} (h);
+    \draw[->] (h)  -- node[above]{$\theta^{(2)}$}   (y);
+    \node[below=0.2cm of h, font=\footnotesize] {ReLU};
+    \node[below=0.2cm of y, font=\footnotesize] {linear};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item (0.5) Compute o \textit{forward pass} e indique o valor de $\hat{y}$.
+    \vspace{1.5cm}
+
+    \item (0.5) Compute o valor da função de custo $J(\theta)$.
+    \vspace{1.5cm}
+
+    \item (0.5) Compute os gradientes $\dfrac{\partial J}{\partial \theta^{(2)}}$, $\dfrac{\partial J}{\partial \theta^{(1)}_1}$ e $\dfrac{\partial J}{\partial \theta^{(1)}_2}$.
+    \vspace{3cm}
+
+    \item (0.5) Realize uma atualização dos três parâmetros usando descida de gradiente estocástica $\theta_{t+1} = \theta_t - \eta \nabla_\theta J$ com taxa de aprendizado $\eta = 0.1$.
+    \vspace{2cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

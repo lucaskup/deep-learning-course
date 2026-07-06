@@ -1,0 +1,502 @@
+\documentclass{dlproblemset}
+
+\usepackage{booktabs}
+
+\title{Modelagem de Linguagem, Decodificação e Atenção}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\subsection*{Questões de Múltipla Escolha}
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% Q1 — Easy (regra da cadeia; distrator = soma / termo esquecido)
+% ------------------------------------------------------------------
+\item Um \textit{Language Model} atribui $P(\text{The}) = 0.5$,
+$P(\text{dog} \mid \text{The}) = 0.4$ e $P(\text{runs} \mid \text{The dog}) = 0.3$.
+Qual é a probabilidade conjunta da frase \texttt{The dog runs}?
+
+\begin{enumerate}[a)]
+    \item $0.06$.
+    \item $0.12$.
+    \item $1.20$.
+    \item $0.20$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q2 — Medium (parâmetros da camada de saída; distrator = sem bias)
+% ------------------------------------------------------------------
+\item A camada de saída de um LM calcula $\text{logits} = W h + b$ a partir de um vetor de
+contexto $h \in \mathbb{R}^{d}$, com $W \in \mathbb{R}^{|V| \times d}$. Para $d = 8$ e
+vocabulário $|V| = 50$, quantos parâmetros treináveis (pesos e \textit{bias}) essa camada possui?
+
+\begin{enumerate}[a)]
+    \item $450$.
+    \item $400$.
+    \item $408$.
+    \item $58$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q3 — Medium (cross-entropy de um passo; distrator = log2 / sinal)
+% ------------------------------------------------------------------
+\item Em um passo de treino, o modelo atribui probabilidade $p(y_t \mid y_{<t}) = 0.25$ ao
+\textit{token} correto. Usando $\mathcal{L} = -\ln\bigl(p(y_t \mid y_{<t})\bigr)$, qual é o valor
+da \textit{cross-entropy} nesse passo?
+
+\begin{enumerate}[a)]
+    \item $\approx 1.386$.
+    \item $2$.
+    \item $\approx -1.386$.
+    \item $0.25$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q4 — Medium (beam search escolhe a melhor sequência conjunta)
+% ------------------------------------------------------------------
+\item Aplicando \textit{Beam Search} com \textit{beam size} $b = 2$ a partir de \texttt{The}, com
+as probabilidades abaixo (o \textit{token} \texttt{car} é podado no primeiro passo):
+
+\begin{center}
+\begin{tabular}{lcl}
+    \toprule
+    1º passo & & 2º passo \\
+    \midrule
+    \texttt{nice} \;($0.6$) & $\rightarrow$ & \texttt{woman} ($0.4$), \texttt{guy} ($0.3$), \texttt{house} ($0.3$) \\
+    \texttt{dog} \;\;($0.3$) & $\rightarrow$ & \texttt{has} ($0.9$), \texttt{runs} ($0.05$), \texttt{and} ($0.05$) \\
+    \texttt{car} \;\;($0.1$) & & (podado) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+Qual sequência o \textit{Beam Search} seleciona como a mais provável?
+
+\begin{enumerate}[a)]
+    \item \texttt{The dog has}.
+    \item \texttt{The nice woman}.
+    \item \texttt{The nice guy}.
+    \item \texttt{The dog runs}.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q5 — Medium (temperatura na softmax; distrator = multiplicar por tau)
+% ------------------------------------------------------------------
+\item Um vocabulário de dois \textit{tokens} produz \textit{logits} $z = [\,2,\; 1\,]$. Aplicando
+temperatura $\tau = 0.5$ na \textit{softmax}, qual é a probabilidade do \textit{token} de maior
+\textit{logit}?
+
+\begin{enumerate}[a)]
+    \item $\approx 0.881$.
+    \item $\approx 0.731$.
+    \item $\approx 0.622$.
+    \item $\approx 0.500$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q6 — Easy/Medium (núcleo do top-p; distrator = parar cedo / incluir todos)
+% ------------------------------------------------------------------
+\item Em \textit{Top-P} (\textit{nucleus}) \textit{sampling}, a distribuição do próximo
+\textit{token} é, em ordem decrescente:
+
+\begin{center}
+\begin{tabular}{lccccc}
+    \toprule
+    \textit{token}    & $w_1$   & $w_2$    & $w_3$    & $w_4$    & $w_5$ \\
+    $P$               & $0.50$ & $0.25$ & $0.15$ & $0.07$ & $0.03$ \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+Para $p = 0.90$, quantos \textit{tokens} compõem o núcleo do qual se amostra?
+
+\begin{enumerate}[a)]
+    \item $3$.
+    \item $2$.
+    \item $4$.
+    \item $5$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q7 — Medium (perplexidade; distrator = soma / exemplo dos slides / expoente)
+% ------------------------------------------------------------------
+\item Um modelo avalia uma sentença de $m = 3$ \textit{tokens}, atribuindo probabilidades
+$p(y_t \mid y_{<t}) = 0.5,\; 0.5,\; 0.125$. Usando
+$\text{Perplexidade} = 2^{-\frac{1}{m} L}$ com $L = \sum_{t} \log_2 p(y_t \mid y_{<t})$, qual é a
+perplexidade?
+
+\begin{enumerate}[a)]
+    \item $\approx 3.17$.
+    \item $\approx 5.00$.
+    \item $\approx 2.38$.
+    \item $\approx 1.67$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q8 — Medium (peso de atenção via softmax; distrator = normalização linear)
+% ------------------------------------------------------------------
+\item Em um passo do \textit{decoder}, os \textit{scores} de atenção para três estados do
+\textit{encoder} são $\text{score}(h_t, s_k) = [\,3,\; 1,\; 0\,]$. Usando
+$a_k^{(t)} = \dfrac{\exp(\text{score}(h_t, s_k))}{\sum_i \exp(\text{score}(h_t, s_i))}$, qual é o
+peso de atenção $a_1^{(t)}$ do primeiro estado?
+
+\begin{enumerate}[a)]
+    \item $\approx 0.844$.
+    \item $\approx 0.750$.
+    \item $\approx 0.114$.
+    \item $\approx 0.333$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q9 — Medium (context vector como soma ponderada; distrator = sem pesos)
+% ------------------------------------------------------------------
+\item Os pesos de atenção de um passo são $a^{(t)} = [\,0.6,\; 0.3,\; 0.1\,]$ e os estados do
+\textit{encoder} são $s_1 = (2;\, 0)$, $s_2 = (0;\, 4)$ e $s_3 = ({-}2;\, {-}2)$. Qual é o
+\textit{context vector} $c^{(t)} = \sum_k a_k^{(t)}\, s_k$?
+
+\begin{enumerate}[a)]
+    \item $(1.0;\; 1.0)$.
+    \item $(1.2;\; 1.2)$.
+    \item $(0.0;\; 0.67)$.
+    \item $(0.0;\; 2.0)$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q10 — Hard (penalidade por comprimento no beam search)
+% ------------------------------------------------------------------
+\item \emoji{skull-and-crossbones} Para reduzir o viés do \textit{Beam Search} a favor de
+sequências curtas, usa-se o \textit{score} normalizado
+$\dfrac{1}{n^{\alpha}} \sum_{t=1}^{n} \log\bigl(P(y_t \mid y_{<t})\bigr)$. Um candidato $B$ tem
+$n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha = 1$, qual é o
+\textit{score} normalizado de $B$?
+
+\begin{enumerate}[a)]
+    \item $-0.40$.
+    \item $-0.80$.
+    \item $-1.60$.
+    \item $-6.40$.
+\end{enumerate}
+% R: a
+
+\end{enumerate}
+
+\subsection*{Gabarito - Objetivas}
+\color{blue}
+\begin{enumerate}[I)]
+    \item \textbf{a.} Pela regra da cadeia, $P = 0.5 \cdot 0.4 \cdot 0.3 = 0.06$. A
+    alternativa (b) $0.12$ esquece o primeiro fator $P(\text{The})$; (c) $1.20$ soma as
+    probabilidades em vez de multiplicar; (d) $0.20$ usa apenas os dois primeiros fatores.
+    \item \textbf{a.} A matriz $W$ tem $|V| \cdot d = 50 \cdot 8 = 400$ pesos e o \textit{bias}
+    $b \in \mathbb{R}^{|V|}$ acrescenta $50$, totalizando $450$. A alternativa (b) $400$ ignora o
+    \textit{bias}; (c) $408$ usa um \textit{bias} de dimensão $d$ (entrada) em vez de $|V|$
+    (saída); (d) $58$ soma $|V| + d$ em vez de multiplicar.
+    \item \textbf{a.} $\mathcal{L} = -\ln(0.25) \approx 1.386$. A alternativa (b) $2$ usa
+    $-\log_2(0.25)$ em vez de logaritmo natural; (c) $-1.386$ esquece o sinal negativo da
+    \textit{cross-entropy}; (d) $0.25$ devolve a própria probabilidade sem aplicar $-\ln$.
+    \item \textbf{a.} Com $b = 2$ sobrevivem \texttt{nice} e \texttt{dog}. As melhores expansões
+    dão $P(\texttt{The dog has}) = 0.3 \cdot 0.9 = 0.27$ e
+    $P(\texttt{The nice woman}) = 0.6 \cdot 0.4 = 0.24$, logo \texttt{The dog has} vence. A
+    alternativa (b) escolhe pelo \textit{token} localmente mais provável (\texttt{nice}), erro do
+    \textit{greedy search}; (c) $0.6 \cdot 0.3 = 0.18$ e (d) $0.3 \cdot 0.05 = 0.015$
+    têm probabilidade conjunta menor.
+    \item \textbf{a.} Dividir os \textit{logits} por $\tau = 0.5$ equivale a multiplicá-los por
+    $2$: $z/\tau = [\,4,\; 2\,]$. Então
+    $\frac{e^{4}}{e^{4} + e^{2}} = \frac{54.60}{54.60 + 7.39} \approx 0.881$. A
+    alternativa (b) $0.731$ usa $\tau = 1$ (sem temperatura); (c) $0.622$ multiplica os
+    \textit{logits} por $\tau$ em vez de dividir, obtendo $[\,1;\, 0.5\,]$; (d) $0.500$
+    supõe distribuição uniforme.
+    \item \textbf{a.} As probabilidades acumuladas são $0.50,\; 0.75,\; 0.90,\; 0.97,\;
+    1.00$. O menor conjunto cuja massa acumulada atinge $0.90$ é $\{w_1, w_2, w_3\}$, isto é,
+    $3$ \textit{tokens}. A alternativa (b) $2$ para em $0.75$, antes de atingir $p$; (c) $4$ e
+    (d) $5$ incluem \textit{tokens} além do necessário para alcançar $0.90$.
+    \item \textbf{a.} $\log_2 p = [\,-1,\; -1,\; -3\,]$, então $L = -5$ e
+    $-\frac{1}{m} L = \frac{5}{3} \approx 1.667$; logo
+    $\text{Perplexidade} = 2^{1.667} \approx 3.17$. A alternativa (b) $5.00$ devolve
+    $|L|$ sem exponenciar; (c) $2.38$ é o resultado do exemplo dos slides ($m = 4$, expoente
+    $1.25$), com parâmetros diferentes; (d) $1.67$ devolve apenas o expoente $-\frac{1}{m}L$.
+    \item \textbf{a.} $\exp(\text{scores}) = [\,20.09;\; 2.72;\; 1.00\,]$, com soma
+    $\approx 23.80$; então $a_1^{(t)} = 20.09 / 23.80 \approx 0.844$. A alternativa (b)
+    $0.750$ normaliza os \textit{scores} linearmente ($3/(3+1+0)$) em vez de aplicar
+    \textit{softmax}; (c) $0.114$ é o peso $a_2^{(t)}$ do segundo estado; (d) $0.333$ supõe
+    pesos uniformes.
+    \item \textbf{a.}
+    $c^{(t)} = 0.6 (2;\, 0) + 0.3 (0;\, 4) + 0.1 ({-}2;\, {-}2)
+    = (1.2 - 0.2;\; 1.2 - 0.2) = (1.0;\; 1.0)$. A alternativa (b) $(1.2;\, 1.2)$
+    ignora a contribuição de $s_3$; (c) $(0.0;\, 0.67)$ faz a média simples dos vetores sem
+    os pesos; (d) $(0.0;\, 2.0)$ soma os vetores sem ponderar.
+    \item \textbf{a.} $\frac{1}{n^{\alpha}} \sum_t \log P = \frac{1}{4^{1}} (-1.6) = -0.40$.
+    A alternativa (b) $-0.80$ divide por $2$ (comprimento errado); (c) $-1.60$ não aplica
+    normalização alguma; (d) $-6.40$ multiplica por $n$ em vez de dividir. Como o candidato $B$
+    fica com $-0.40$, ele pode superar uma sequência curta como $A$ ($n = 2$,
+    $\sum \log P = -1.0$, \textit{score} $-0.50$), que venceria sem a normalização.
+\end{enumerate}
+\color{black}
+
+\newpage
+
+\subsection*{Questões Dissertativas}
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% D1 — Medium (passo completo de atenção: scores, pesos, contexto)
+% ------------------------------------------------------------------
+\item No mecanismo de atenção de \textit{Bahdanau}, o estado do \textit{decoder} é
+$h_t = (1;\, 2)$ e há três estados do \textit{encoder}: $s_1 = (2;\, 0)$, $s_2 = (0;\, 2)$ e
+$s_3 = ({-}1;\, 1)$. Use $\text{score}(h_t, s_k) = h_t^{\top} s_k$ e
+$a_k^{(t)} = \dfrac{\exp(\text{score}(h_t, s_k))}{\sum_i \exp(\text{score}(h_t, s_i))}$.
+Calcule, passo a passo (use 4 casas decimais quando necessário):
+\begin{enumerate}[(a)]
+    \item os três \textit{scores} $\text{score}(h_t, s_k)$;
+    \item os pesos de atenção $a_k^{(t)}$;
+    \item o \textit{context vector} $c^{(t)} = \sum_k a_k^{(t)}\, s_k$.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D2 — Medium/Hard (perplexidade: cálculo, interpretação, limite superior)
+% ------------------------------------------------------------------
+\item Considere a perplexidade $\text{Perplexidade}(y_{1:m}) = 2^{-\frac{1}{m} L}$, com
+$L = \sum_{t=1}^{m} \log_2 p(y_t \mid y_{<t})$.
+\begin{enumerate}[(a)]
+    \item Para uma sentença de $m = 4$ \textit{tokens} com
+    $p(y_t \mid y_{<t}) = 0.25,\; 0.5,\; 0.5,\; 0.25$, calcule $L$ e a perplexidade.
+    \item Interprete o valor obtido em termos do ``número médio efetivo de \textit{tokens}''
+    entre os quais o modelo está em dúvida.
+    \item \emoji{skull-and-crossbones} Mostre que um modelo que atribui distribuição
+    \textbf{uniforme} sobre o vocabulário ($p = 1/|V|$ em todos os passos) tem perplexidade
+    exatamente igual a $|V|$, justificando assim o limite superior $\text{Perplexidade} \le |V|$.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D3 — Medium (greedy vs beam: por que a decisão local falha)
+% ------------------------------------------------------------------
+\item Um \textit{decoder} parte de \texttt{The} e atribui as seguintes probabilidades:
+
+\begin{center}
+\begin{tabular}{lcl}
+    \toprule
+    1º passo & & 2º passo \\
+    \midrule
+    \texttt{nice} \;($0.6$) & $\rightarrow$ & \texttt{woman} ($0.45$), \texttt{house} ($0.30$), \texttt{guy} ($0.25$) \\
+    \texttt{dog} \;\;($0.3$) & $\rightarrow$ & \texttt{has} ($0.95$), \texttt{runs} ($0.03$), \texttt{and} ($0.02$) \\
+    \texttt{car} \;\;($0.1$) & & $\cdots$ \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[(a)]
+    \item Determine a sequência de duas palavras gerada por \textit{Greedy Search} e sua
+    probabilidade conjunta.
+    \item Determine a sequência escolhida por \textit{Beam Search} com $b = 2$ e sua
+    probabilidade conjunta.
+    \item Explique por que as duas estratégias divergem, relacionando o resultado com a natureza
+    \emph{local} da decisão do \textit{Greedy Search}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D4 — Medium/Hard (temperatura, tradeoff, top-k vs top-p)
+% ------------------------------------------------------------------
+\item Um modelo produz \textit{logits} $z = [\,2,\; 1,\; 0\,]$ para três \textit{tokens}.
+\begin{enumerate}[(a)]
+    \item Calcule a distribuição \textit{softmax} com $\tau = 1$ e com $\tau = 2$, e mostre
+    numericamente que a temperatura maior torna a distribuição mais \emph{plana}.
+    \item Explique o \textit{tradeoff} entre coerência e diversidade controlado por $\tau$,
+    descrevendo o comportamento limite quando $\tau \to 0$ e quando $\tau \to \infty$.
+    \item \emoji{skull-and-crossbones} O \textit{Top-K} amostra sempre dos $K$ \textit{tokens}
+    mais prováveis, enquanto o \textit{Top-P} amostra do menor conjunto cuja massa acumulada
+    atinge $p$. Explique por que o \textit{Top-P} se adapta melhor quando a distribuição varia
+    entre passos muito \emph{nítidos} e passos muito \emph{planos}, citando uma situação em que
+    um $K$ fixo seria inadequado.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D5 — Medium/Hard (BLEU: precisoes modificadas e brevity penalty)
+% ------------------------------------------------------------------
+\item A métrica \textbf{BLEU} compara uma tradução candidata a uma referência usando a
+precisão modificada com contagens clipadas
+\[
+    p_n = \frac{\sum_{g \in G_n} \min\bigl(\text{cont}_{\text{cand}}(g),\, \text{cont}_{\text{ref}}(g)\bigr)}{\sum_{g \in G_n} \text{cont}_{\text{cand}}(g)},
+\]
+a penalidade por brevidade ($\text{BP} = 1$ se $c > r$, e $\text{BP} = e^{\,1 - r/c}$ se
+$c \le r$) e $\text{BLEU} = \text{BP} \cdot \exp\bigl(\sum_{n=1}^{4} \tfrac{1}{4} \ln p_n\bigr)$,
+em que $c$ e $r$ são os tamanhos do candidato e da referência. Considere:
+\begin{center}
+    Referência: \texttt{the cat sat on the mat} \quad ($r = 6$) \\
+    Candidato: \texttt{the cat sat on a mat} \quad ($c = 6$)
+\end{center}
+\begin{enumerate}[(a)]
+    \item Calcule as precisões modificadas $p_1$, $p_2$, $p_3$ e $p_4$.
+    \item Calcule a penalidade por brevidade e o valor final de BLEU.
+    \item Se o candidato fosse encurtado para \texttt{the cat sat on} ($c = 4$), qual seria a
+    nova penalidade por brevidade?
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D6 — Medium (ROUGE-1, ROUGE-2, ROUGE-L: recall, precisao, F1)
+% ------------------------------------------------------------------
+\item A métrica \textbf{ROUGE} avalia um resumo candidato comparando-o a uma referência, com
+ênfase em \textit{recall}. Para cada variante, calcule \textit{recall} ($R$), precisão ($P$) e
+$F_1 = \frac{2\,P\,R}{P + R}$. Considere:
+\begin{center}
+    Referência: \texttt{the boy quickly opened the door} \\
+    Candidato: \texttt{the boy opened the door}
+\end{center}
+\begin{enumerate}[(a)]
+    \item \textbf{ROUGE-1}: sobreposição de unigramas, com contagem clipada.
+    \item \textbf{ROUGE-2}: sobreposição de bigramas.
+    \item \textbf{ROUGE-L}: maior subsequência comum (\textit{Longest Common Subsequence}, LCS).
+\end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Gabarito}
+\color{blue}
+\begin{enumerate}[I)]
+
+% ----- D1 -----
+\item Passo completo de atenção.
+\begin{enumerate}[(a)]
+    \item \textit{Scores} (produto interno $h_t^{\top} s_k$ com $h_t = (1;\, 2)$):
+    \begin{align*}
+        \text{score}(h_t, s_1) &= 1 \cdot 2 + 2 \cdot 0 = 2, \\
+        \text{score}(h_t, s_2) &= 1 \cdot 0 + 2 \cdot 2 = 4, \\
+        \text{score}(h_t, s_3) &= 1 \cdot ({-}1) + 2 \cdot 1 = 1.
+    \end{align*}
+    \item Exponenciais: $\exp(2) = 7.3891$, $\exp(4) = 54.5982$, $\exp(1) = 2.7183$, com
+    soma $64.7056$. Logo
+    \[
+        a^{(t)} = \left[\frac{7.3891}{64.7056};\; \frac{54.5982}{64.7056};\;
+        \frac{2.7183}{64.7056}\right] \approx [\,0.1142;\; 0.8438;\; 0.0420\,].
+    \]
+    \item \textit{Context vector}:
+    \begin{align*}
+        c^{(t)} &= 0.1142 (2;\, 0) + 0.8438 (0;\, 2) + 0.0420 ({-}1;\, 1) \\
+                &= (0.2284 - 0.0420;\; 1.6876 + 0.0420) \approx (0.186;\; 1.730).
+    \end{align*}
+    O peso domina em $s_2$, o estado de maior \textit{score}, e o contexto é puxado nessa direção.
+\end{enumerate}
+
+% ----- D2 -----
+\item Perplexidade.
+\begin{enumerate}[(a)]
+    \item $\log_2 p = [\,-2,\; -1,\; -1,\; -2\,]$, então $L = -6$ e $-\frac{1}{m} L =
+    \frac{6}{4} = 1.5$. Portanto $\text{Perplexidade} = 2^{1.5} \approx 2.828$.
+    \item O modelo se comporta, em média, como se estivesse em dúvida entre cerca de $2.8$
+    \textit{tokens} a cada passo: quanto menor a perplexidade, mais ``decidido'' (e melhor) é o
+    modelo; o mínimo $1$ corresponde a um modelo determinístico e sempre certo.
+    \item Com $p = 1/|V|$ em todos os $m$ passos,
+    \[
+        L = \sum_{t=1}^{m} \log_2\!\left(\frac{1}{|V|}\right) = -m \log_2 |V|,
+        \qquad -\frac{1}{m} L = \log_2 |V|,
+    \]
+    logo $\text{Perplexidade} = 2^{\log_2 |V|} = |V|$. Como a distribuição uniforme é a de maior
+    incerteza, esse é o pior caso e justifica $\text{Perplexidade} \in [1,\, |V|]$.
+\end{enumerate}
+
+% ----- D3 -----
+\item \textit{Greedy} vs.\ \textit{Beam Search}.
+\begin{enumerate}[(a)]
+    \item \textit{Greedy}: no 1º passo escolhe \texttt{nice} ($0.6$, o mais provável) e no 2º
+    escolhe \texttt{woman} ($0.45$). Sequência \texttt{The nice woman}, com probabilidade
+    $0.6 \cdot 0.45 = 0.27$.
+    \item \textit{Beam} ($b = 2$): mantém \texttt{nice} ($0.6$) e \texttt{dog} ($0.3$). As
+    melhores expansões são $0.6 \cdot 0.45 = 0.27$ (\texttt{The nice woman}) e
+    $0.3 \cdot 0.95 = 0.285$ (\texttt{The dog has}). A maior é $0.285$, então o
+    \textit{Beam} devolve \texttt{The dog has}.
+    \item O \textit{Greedy} comprometeu-se com \texttt{nice} por ser o \textit{token} localmente
+    mais provável, sem considerar que \texttt{dog}, embora menos provável no 1º passo, leva a uma
+    continuação (\texttt{has}, $0.95$) que torna a \emph{sequência inteira} mais provável. Por
+    manter $b$ hipóteses em paralelo, o \textit{Beam} consegue recuperar essa sequência de maior
+    probabilidade conjunta.
+\end{enumerate}
+
+% ----- D4 -----
+\item Temperatura e amostragem.
+\begin{enumerate}[(a)]
+    \item Com $\tau = 1$: $\exp(z) = [\,7.389;\; 2.718;\; 1.000\,]$, soma $11.107$, logo
+    $p \approx [\,0.665;\; 0.245;\; 0.090\,]$.
+    Com $\tau = 2$: $z/\tau = [\,1;\, 0.5;\, 0\,]$, $\exp = [\,2.718;\; 1.649;\; 1.000\,]$,
+    soma $5.367$, logo $p \approx [\,0.506;\; 0.307;\; 0.186\,]$. A probabilidade do
+    \textit{token} dominante caiu de $0.665$ para $0.506$ e a do menos provável subiu de
+    $0.090$ para $0.186$: a distribuição ficou mais plana.
+    \item Temperatura baixa concentra a massa nos \textit{tokens} de maior \textit{logit}: mais
+    coerência, menos diversidade. Temperatura alta espalha a massa: mais diversidade, menos
+    coerência. No limite $\tau \to 0$ a \textit{softmax} tende ao \textit{argmax} (geração
+    determinística); no limite $\tau \to \infty$ tende à distribuição uniforme sobre o
+    vocabulário.
+    \item O \textit{Top-P} ajusta o tamanho do conjunto à forma da distribuição: quando ela é
+    \emph{nítida} (um ou dois \textit{tokens} concentram quase toda a massa), o núcleo fica
+    pequeno; quando é \emph{plana} (massa espalhada por muitos \textit{tokens}), o núcleo cresce.
+    Um $K$ fixo não tem essa adaptação: por exemplo, com \texttt{The light was \_\_}, em que
+    \texttt{on} e \texttt{off} somam $\approx 0.89$, um $K = 4$ obrigaria a incluir
+    \textit{tokens} ruidosos (\texttt{in}, \texttt{at}) que mal contribuem; já com uma
+    distribuição plana sobre muitas cores plausíveis, esse mesmo $K = 4$ descartaria opções
+    válidas. O \textit{Top-P} resolve ambos os casos com um único $p$.
+\end{enumerate}
+
+% ----- D5 -----
+\item BLEU passo a passo.
+\begin{enumerate}[(a)]
+    \item Contagens clipadas dos \textit{n-grams} do candidato \texttt{the cat sat on a mat}
+    contra a referência \texttt{the cat sat on the mat}:
+    \begin{itemize}
+        \item Unigramas (6 no candidato): casam \texttt{the}, \texttt{cat}, \texttt{sat},
+        \texttt{on}, \texttt{mat} ($=5$); \texttt{a} não aparece na referência. Logo
+        $p_1 = 5/6 \approx 0.833$.
+        \item Bigramas (5): casam \texttt{the cat}, \texttt{cat sat}, \texttt{sat on} ($=3$);
+        \texttt{on a} e \texttt{a mat} não casam. Logo $p_2 = 3/5 = 0.6$.
+        \item Trigramas (4): casam \texttt{the cat sat}, \texttt{cat sat on} ($=2$). Logo
+        $p_3 = 2/4 = 0.5$.
+        \item 4-gramas (3): casa apenas \texttt{the cat sat on} ($=1$). Logo
+        $p_4 = 1/3 \approx 0.333$.
+    \end{itemize}
+    \item Como $c = r = 6$, a penalidade é $\text{BP} = e^{\,1 - 6/6} = e^0 = 1$. Então
+    \[
+        \text{BLEU} = 1 \cdot \exp\Bigl(\tfrac{1}{4}\bigl(\ln\tfrac{5}{6} + \ln\tfrac{3}{5}
+        + \ln\tfrac{1}{2} + \ln\tfrac{1}{3}\bigr)\Bigr) = \exp(-0.621) \approx 0.537.
+    \]
+    \item Com $c = 4$ e $r = 6$, como $c \le r$, $\text{BP} = e^{\,1 - 6/4} = e^{-0.5}
+    \approx 0.607$. A penalidade reduz a nota para compensar a saída mais curta.
+\end{enumerate}
+
+% ----- D6 -----
+\item ROUGE passo a passo. A referência \texttt{the boy quickly opened the door} tem 6
+\textit{tokens} (com \texttt{the} duas vezes) e o candidato \texttt{the boy opened the door}
+tem 5 \textit{tokens}, omitindo \texttt{quickly}.
+\begin{enumerate}[(a)]
+    \item \textbf{ROUGE-1}: unigramas em comum (clipados) \texttt{the}$\times$2, \texttt{boy},
+    \texttt{opened}, \texttt{door} $= 5$; apenas \texttt{quickly} fica de fora.
+    \[
+        R = \tfrac{5}{6} \approx 0.833, \quad P = \tfrac{5}{5} = 1.0, \quad
+        F_1 = \frac{2 \cdot 1.0 \cdot 0.833}{1.0 + 0.833} \approx 0.909.
+    \]
+    \item \textbf{ROUGE-2}: bigramas da referência \texttt{the boy}, \texttt{boy quickly},
+    \texttt{quickly opened}, \texttt{opened the}, \texttt{the door} ($5$); do candidato
+    \texttt{the boy}, \texttt{boy opened}, \texttt{opened the}, \texttt{the door} ($4$). Em
+    comum: \texttt{the boy}, \texttt{opened the}, \texttt{the door} $= 3$.
+    \[
+        R = \tfrac{3}{5} = 0.6, \quad P = \tfrac{3}{4} = 0.75, \quad
+        F_1 = \frac{2 \cdot 0.75 \cdot 0.6}{0.75 + 0.6} \approx 0.667.
+    \]
+    \item \textbf{ROUGE-L}: a LCS \texttt{the boy opened the door} tem comprimento $5$ (pula
+    \texttt{quickly}, preservando a ordem dos demais \textit{tokens}).
+    \[
+        R = \tfrac{5}{6} \approx 0.833, \quad P = \tfrac{5}{5} = 1.0, \quad
+        F_1 \approx 0.909.
+    \]
+\end{enumerate}
+
+\end{enumerate}
+\color{black}
+
+\end{document}

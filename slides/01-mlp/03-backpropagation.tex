@@ -1,0 +1,1067 @@
+\documentclass[aspectratio=169, xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{\textit{Backpropagation}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{ Machine Learning Theory and Applications Laboratory \\ PUCRS % Your institution for the title page
+}
+\date{\mespor de \the\year}
+% Date, can be changed to a custom date
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+  \begin{frame}
+    % Print the title page as the first slide
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Overview}
+    % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+    \tableofcontents
+  \end{frame}
+  \section{Introdução}
+
+  \begin{frame}{MLP}
+    \begin{columns}
+      \begin{column}{.65\linewidth}
+        \begin{itemize}
+          \item Um MLP é um aproximador universal de funções\footnotemark\textsuperscript{,}\footnotemark
+
+          \item Contudo, o PLA (\textit{Perceptron Learning Algorithm}) não funciona
+            para um MLP
+        \end{itemize}
+        \centering
+        \resizebox{.45\linewidth}{!}{
+        \begin{tikzpicture}
+          \pgfmathsetmacro{\ex}{0.5} \pgfmathsetmacro{\ey}{1.} \pgfmathsetmacro{\eradius}{0.5}
+          \pgfmathsetmacro{\yone}{1.5} \pgfmathsetmacro{\ytwo}{0} \pgfmathsetmacro{\ythree}{-1.5}
+          % \draw[help lines] (-2,-2) grid (3,3);
+          % first
+          \fill (-2, \yone) circle[x radius=0.15, y radius=0.15];
+          \node at (-2, \yone+0.5) {$\mlinstance_{0}=1$};
+
+          % second
+          \fill (-2, \ytwo) circle[x radius=0.15, y radius=0.15];
+          \node at (-2, \ytwo+0.5) {$\mlinstance_{1}$};
+
+          % third
+          \fill (-2, \ythree) circle[x radius=0.15, y radius=0.15];
+          \node at (-2, \ythree+0.5) {$\mlinstance_{2}$};
+
+          \draw[thick] (-2, \yone) -- (\ex, \ey-1);
+          \draw[thick] (-2, \ytwo) -- (\ex, \ey-1);
+          \draw[thick] (-2, \ythree) -- (\ex, \ey-1);
+          \node at (-1.5,{\yone}) {\small \textcolor{blue}{$-1.5$}};
+          \node at (-1.5,{\ytwo+0.2}) {\small \textcolor{blue}{$1$}};
+          \node at (-1.5,{\ythree+0.6}) {\small \textcolor{blue}{$-1$}};
+          \draw[thick] (\ex, 0) -- (\ex+2, 0);
+          \filldraw[color=black, fill=PastelBlue] (\ex,\ey-1) circle (0.5);
+          \node[font=\tiny] at (\ex, 0) {$\varphi(z^{(i)})$};
+
+          \node at (-1.5,{\yone-1}) {\small \textcolor{green}{$-1.5$}};
+          \node at (-1.5,{\ytwo-0.2}) {\small \textcolor{green}{$-1$}};
+          \node at (-1.5,{\ythree-0.3}) {\small \textcolor{green}{$1$}};
+          \draw[thick] (-2, \yone) -- (\ex, \ythree);
+          \draw[thick] (-2, \ytwo) -- (\ex, \ythree);
+          \draw[thick] (-2, \ythree) -- (\ex, \ythree);
+
+          \draw[thick] (\ex,\ythree) -- (\ex+2, 0);
+
+          \filldraw[color=black, fill=PastelGreen] (\ex,\ythree) circle (0.5);
+
+          \node[font=\tiny] at (\ex, \ythree) {$\varphi(z^{(i)})$};%
+          \draw[thick] (-2, \yone) -- (\ex+2, 0);
+          \node at (1.7,{\yone-1}) {\small \textcolor{red}{$0.5$}};
+          \node at (1.7,{\ytwo-0.2}) {\small \textcolor{red}{$1$}};
+          \node at (1.7,{\ytwo-0.8}) {\small \textcolor{red}{$1$}};
+
+          \draw[thick, ->] (\ex+2, 0) -- (\ex+3, 0);
+          \filldraw[color=black, fill=PastelRed] ({\ex+2},{\ey-1}) circle (0.5);
+          \node[font=\tiny] at (\ex+2, 0) {$\varphi(z^{(i)})$};%
+        \end{tikzpicture}
+        }
+      \end{column}
+      \begin{column}{.35\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+        \begin{tikzpicture}
+          \begin{axis}[
+            legend pos=south east, % <-- this line controls the width
+            xlabel={$\mlinstance_{1}$},
+            ylabel={$\mlinstance_{2}$},
+            xmin=-1.5,
+            xmax=1.5,
+            ymin=-1.5,
+            ymax=1.5,
+            xtick={-1, 0, 1},
+            ytick={-1, 0, 1},
+            ymajorgrids=true,
+            xmajorgrids=true,
+            grid style=dashed,
+          ]
+            \path[name path=bottom]
+              (\pgfkeysvalueof{/pgfplots/xmin},\pgfkeysvalueof{/pgfplots/ymin}) -- (\pgfkeysvalueof{/pgfplots/xmax},\pgfkeysvalueof{/pgfplots/ymin});
+
+            \path[name path=top]
+              (\pgfkeysvalueof{/pgfplots/xmin},\pgfkeysvalueof{/pgfplots/ymax}) -- (\pgfkeysvalueof{/pgfplots/xmax},\pgfkeysvalueof{/pgfplots/ymax});
+
+            \addplot [ name path=g, domain=-1.5:1.5, samples=2, color=black,
+            dashed, thick, ] {x+1}; \addplot[PastelBlue, opacity=0.3] fill between
+            [of=g and top]; \addplot[PastelRed, opacity=0.3] fill between [of=g and
+            bottom]; \addplot [ name path=f, domain=-1.5:1.5, samples=2, color=black,
+            dashed, thick, ] {x-1};
+
+            \addplot[PastelRed, opacity=0.3] fill between [of=f and top]; \addplot[PastelBlue,
+            opacity=0.3] fill between [of=f and bottom]; \addplot [ name path=f,
+            domain=-1.5:1.5, samples=2, color=black, dashed, thick, ] {x-1};
+            \addplot [ name path=g, domain=-1.5:1.5, samples=2, color=black, dashed,
+            thick, ] {x+1}; \addplot[PastelBlue, opacity=0.3] fill between [of=g
+            and top]; \addplot[PastelRed, opacity=0.3] fill between [of=f and g];
+            \addplot[PastelBlue, opacity=0.3] fill between [of=f and bottom]; \addplot[
+            only marks, ultra thick, color=red, mark=-, mark options={scale=3} ]
+            coordinates { (-1,-1)(1,1) }; \addplot[ only marks, ultra thick,
+            color=blue, mark=+, mark options={scale=3} ] coordinates
+            { (-1,1)(1,-1) };
+          \end{axis}
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{hornik1989multilayer}} \footnotetext[2]{\fullcite{cybenko1989approximationsigmoid}}
+  \end{frame}
+
+  \begin{frame}{Inverno das Redes Neurais}
+    \begin{itemize}
+      \item Com a publicação de Minsky e Papert (1969) enfatizando as limitações
+        do Perceptron\cite{minsky1969perceptron} o interesse em redes neurais
+        diminuiu.
+        \begin{itemize}
+          \item Pouca verba de pesquisa
+
+          \item Por que pesquisar um modelo linear enquanto temos modelos lineares
+            melhores (Regressão Linear) e diversos modelos não-lineares?
+
+          \item MLP resolve problemas não-lineares, mas ninguém sabe como
+            treinar um MLP
+        \end{itemize}
+
+      \item Foi apenas 20 anos depois que começaram a surgir as primeiras publicações
+        com um método de treinamento para MLPs e redes neurais em geral\footfullcite{rumelhart1986learningbackpropextended}
+        \begin{itemize}
+          \item Hinton não alega ter inventado o \textit{backpropagation}, mas ele
+            foi um dos principais responsáveis pela sua popularização
+        \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  \section{Treinamento de um MLP}
+  \begin{frame}
+    \frametitle{Treinando um MLP}
+    \begin{itemize}
+      \item Vamos calcular a mão uma iteração de treino em um MLP
+
+      \item \textbf{Ideia:} Aplicar a descida de gradiente
+
+      \item \textbf{Função de custo:} \textit{Half Mean Squared Error}\footnote{O fator $1/2$ é convenção: simplifica a derivada do quadrático.}
+        \[
+          J(\thetav)=\frac{1}{2N}\sum_{i}\left(\y^{(i)}-\yhat^{(i)}\right)^{2}
+        \]
+
+      \item \textbf{Regra de atualização:}
+        \[
+          \thetav_{t+1}=\thetav_{t}-\eta\nabla J
+        \]
+    \end{itemize}
+    \vfill
+    \textbf{Premissas para simplificar o problema:}
+    \begin{itemize}
+      \item Apenas 2 camadas
+
+      \item 1 neurônio em cada camada
+
+      \item Desconsideramos o bias
+
+      \item Temos apenas um exemplo $\y=1, \X_{1}=1$
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}{Treinando um MLP}{Notação e Definições}
+    \begin{itemize}
+      \item $l\in [0,1,2,...,L]$ é o índice da camada do MLP ($L$ é o número de camadas)
+
+      \item $\X$ é a entrada do MLP (também pode ser chamado de $a^{(0)}$)
+
+      \item $\y$ é a variável alvo
+
+      \item $\thetav_{ij}^{(l)}$ é o peso da camada $l$ que conecta a entrada $j$
+        a saída $i$
+
+      \item $z^{(l)}$ é a \textbf{\alert{pré-ativação}} da unidade, $z^{(l)}=
+        a^{(l-1)}\thetav^{(l)^\top}$
+
+      \item $a^{(l)}$ é a \textbf{\alert{ativação}} (saída) da unidade
+        $a^{(l)}=\varphi(z^{(l)})$
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}{Treinando um MLP}{A função de Ativação}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \textbf{Função Sinal:}
+        \[
+          \varphi(z)=
+          \begin{cases}
+            1  & z\geq 0 \\
+            -1 & z <0
+          \end{cases}
+        \]
+        \visible<2>{\begin{alertblock}{Problemas da função sinal}
+          \begin{itemize}
+            \item Não é diferenciável em $z=0$
+
+            \item Sua derivada é 0 em todos os outros pontos
+          \end{itemize}
+          Isso impede o aprendizado via descida de gradiente.
+        \end{alertblock}}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \resizebox{\linewidth}{!}{
+        \input{slides/img/tikz/activationfunction/sinalgraph.tikz}
+        \input{slides/img/tikz/activationfunction/sinalgraphprime.tikz}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Treinando um MLP}{A função de Ativação}
+    \begin{columns}
+      \begin{column}{.3\linewidth}
+        \textbf{Função Sigmoide:}
+        \[
+          \varphi(z)= \sigma(z)=\frac{1}{1+e^{-z}}
+        \]
+        \begin{exampleblock}{Solução}
+          A função sigmoide é uma versão ``suave'' da função sinal e é diferenciável
+          em todo seu domínio.
+        \end{exampleblock}
+      \end{column}
+      \begin{column}{.7\linewidth}
+        \resizebox{\linewidth}{!}{
+        \input{slides/img/tikz/activationfunction/sigmoidgraph.tikz}
+        \input{slides/img/tikz/activationfunction/sigmoidgraphprime.tikz}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{As Etapas do Treinamento de uma Rede Neural}
+    A cada iteração de treinamento, seguimos quatro passos:
+
+    \begin{columns}
+      \begin{column}{.6\linewidth}
+        \begin{enumerate}
+          \item \tikzmark{forward} \textbf{Forward Pass:} Computar todas as ativações
+            da rede.
+
+          \item \tikzmark{loss}\textbf{Loss Function:} Computar o valor da
+            \textit{Loss Function} que quantifica o quão diferente as saídas são
+            em relação à variável alvo.
+
+          \item \tikzmark{backward}\textbf{Backward Pass:} Computar o gradiente
+            da \textit{Loss Function} em relação aos parâmetros da rede.
+
+          \item \tikzmark{optimizer} \textbf{Optimizer:} Usar os gradientes para
+            atualizar os pesos.
+        \end{enumerate}
+      \end{column}
+      \begin{column}{.4\linewidth}
+        \centering
+        \resizebox*{\linewidth}{!}{ \lstinputlisting[style=vscode-light,linewidth=1.05\textwidth]{slides/code/01_mintraining.py}%
+        }
+      \end{column}
+    \end{columns}
+    \begin{tikzpicture}[overlay, remember picture]
+      \pgfmathsetmacro{\x}{1.1} \pgfmathsetmacro{\y}{0.15}\pgfmathsetmacro{\len}{0.5}
+      \draw[->, ultra thick, red]
+        ($(pic cs:forward) +(-\x, +\y)$) -- ($(pic cs:forward) +(-\x+\len,+\y)$);
+      \draw[->, ultra thick, PastelBlue2]
+        ($(pic cs:loss) +(-\x, +\y)$) -- ($(pic cs:loss) +(-\x+\len,+\y)$);
+      \draw[->, ultra thick, PastelPink]
+        ($(pic cs:backward) +(-\x, +\y)$) -- ($(pic cs:backward) +(-\x+\len,+\y)$);
+      \draw[->, ultra thick, PastelGreen]
+        ($(pic cs:optimizer) +(-\x, +\y)$) -- ($(pic cs:optimizer) +(-\x+\len,+\y)$);
+    \end{tikzpicture}
+    \begin{tikzpicture}[remember picture, overlay]
+      \pgfmathsetmacro{\x}{11.65} \pgfmathsetmacro{\y}{1.8}
+      \draw[->, ultra thick, red] (\x+1, \y) -- (\x, \y);
+    \end{tikzpicture}%
+    \begin{tikzpicture}[remember picture, overlay]
+      \pgfmathsetmacro{\x}{13.} \pgfmathsetmacro{\y}{1.5}
+      \draw[->, ultra thick, PastelBlue2] (\x+1, \y) -- (\x, \y);
+    \end{tikzpicture}%
+    \begin{tikzpicture}[remember picture, overlay]
+      \pgfmathsetmacro{\x}{11.65} \pgfmathsetmacro{\y}{1.2}
+      \draw[->, ultra thick, PastelPink] (\x+1, \y) -- (\x, \y);
+    \end{tikzpicture}%
+    \begin{tikzpicture}[remember picture, overlay]
+      \pgfmathsetmacro{\x}{11.65} \pgfmathsetmacro{\y}{0.8}
+      % \draw[lightgray, step=0.5] (0,0) grid (14,6);
+      \draw[->, ultra thick, PastelGreen] (\x+1, \y) -- (\x, \y);
+    \end{tikzpicture}%
+  \end{frame}
+
+  \subsection{Forward Pass}
+  \begin{frame}{Forward Pass}
+    \centering
+    \vspace{5pt}
+    \input{slides/img/tikz/simplemlp.tikz.tex}
+    \vspace{10pt}
+
+    \begin{itemize}
+      \item Vamos considerar os pesos iniciais como: $\theta^{(1)}=-0.5$ e
+        $\theta^{(2)}=0.5$.
+
+      \item Computando o loss para o par $X_{1}=1$, $y=1$.
+    \end{itemize}
+    \vfill
+    \textbf{Passo a passo (Forward Pass):}
+    \begin{columns}
+      \begin{column}{0.6\textwidth}
+        \begin{enumerate}
+          \visible<1->{\item
+          $z^{(1)}= X_{1}\cdot \theta^{(1)}= 1 \cdot (-0.5) = -0.5$} \visible<2->{\item
+          $a^{(1)}= \sigma(z^{(1)}) = \sigma(-0.5) = 0.3775$} \visible<3->{\item
+          $z^{(2)}= a^{(1)}\cdot \theta^{(2)}= 0.3775 \cdot 0.5 = 0.18875$} \visible<4->{\item
+          $\hat{y}= a^{(2)}= \sigma(z^{(2)}) = \sigma(0.18875) = 0.5470$}
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.4\textwidth}
+        \visible<4->{
+        \begin{block}{Resumindo}
+          Esse é o \textit{forward pass} da rede neural, onde calculamos as ativações
+          e obtemos a saída da rede $\hat{y}= a^{(2)}= 0.5470$
+        \end{block}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+  \subsection{Função de Custo}
+
+  \begin{frame}{Loss Function}
+    \vspace{5pt}
+    \begin{figure}
+      \centering
+      % Use the tikz file to draw the MLP
+      \input{slides/img/tikz/simplemlp.tikz.tex}
+    \end{figure}
+    \vspace{10pt}
+    \vfill
+    Nessa etapa computamos a \textit{Loss Function} para avaliar o desempenho da
+    rede.
+
+    Loss: $J(\theta)=\frac{1}{2}(y-\hat{y})^{2}$.
+    \[
+      J(\theta) = \frac{1}{2}(1 - 0.5470)^{2}= 0.1026045
+    \]
+    \only<2>{
+    \begin{block}{Resumindo}
+      Essa é a etapa de computar o valor da \textit{Loss Function}. Observe que o
+      valor da \textit{Loss Function} não será usado diretamente nos gradientes
+      nem na atualização dos pesos
+    \end{block}
+    }
+  \end{frame}
+
+  \begin{frame}{Comparando com PyTorch}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \vfill
+        \begin{figure}
+          \resizebox{\textwidth}{!}{
+          \input{slides/img/tikz/simplemlp.tikz.tex}
+          }
+        \end{figure}
+        \vfill
+        \begin{align*}
+          \yhat     & = 0.5470    \\
+          J(\theta) & = 0.1026045
+        \end{align*}
+        \vfill
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox*{!}{.75\textheight}{ \lstinputlisting[style=vscode-light]{slides/code/01_forward_pass.py}%
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \subsection{Backward Pass}
+
+  \begin{frame}{Backward Pass}
+    \vspace{5pt}
+    \begin{figure}
+      \centering
+      % Use the tikz file to draw the MLP
+      \input{slides/img/tikz/simplemlp.tikz.tex}
+    \end{figure}
+    \vspace{10pt}
+    \begin{columns}
+      \begin{column}{0.6\textwidth}
+        Nossa rede neural computa a seguinte função:
+        \[
+          a^{(2)}= \sigma(\sigma(X_{1}\cdot \theta^{(1)})\cdot \theta^{(2)})
+        \]
+
+        Logo, a função de custo é:
+        \[
+          J(\theta)=\frac{1}{2}(y-a^{(2)})^{2}=\frac{1}{2}\left(1-\sigma\left(\sigma
+          ( X_{1}\cdot \theta^{(1)})\cdot \theta^{(2)}\right)\right)^{2}
+        \]
+      \end{column}
+      \begin{column}{0.4\textwidth}
+        \vfill
+        \visible<2>{\begin{alertblock}{Problema}
+          Como computar o gradiente da função de custo em relação aos pesos $\theta
+          ^{(1)}$ e $\theta^{(2)}$?
+          \begin{align*}
+            \frac{\partial J}{\partial\theta^{(2)}} & = ? \\
+            \frac{\partial J}{\partial\theta^{(1)}} & = ?
+          \end{align*}
+        \end{alertblock}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Backward Pass}
+    \vspace{5pt}
+    \begin{figure}
+      \centering
+      % Use the tikz file to draw the MLP
+      \input{slides/img/tikz/simplemlp.tikz.tex}
+    \end{figure}
+    \vspace{10pt}
+
+    \textbf{Solução:} A função $J(\theta)$ é uma função composta, então usamos a
+    regra da cadeia
+    \vfill
+    \textbf{Gradiente para $\theta^{(2)}$:}
+    \[
+      \frac{\partial J}{\partial\theta^{(2)}}=\frac{\partial J}{\partial a^{(2)}}
+      \frac{\partial a^{(2)}}{\partial z^{(2)}}\frac{\partial z^{(2)}}{\partial\theta^{(2)}}
+    \]
+    \vfill
+    \textbf{Gradiente para $\theta^{(1)}$:}
+    \[
+      \frac{\partial J}{\partial\theta^{(1)}}=\frac{\partial J}{\partial a^{(2)}}
+      \frac{\partial a^{(2)}}{\partial z^{(2)}}\frac{\partial z^{(2)}}{\partial
+      a^{(1)}}\frac{\partial a^{(1)}}{\partial z^{(1)}}\frac{\partial z^{(1)}}{\partial\theta^{(1)}}
+    \]
+  \end{frame}
+
+  \begin{frame}{Backward Pass}
+    % \vspace{5pt}
+    %     \begin{figure}
+    %       \centering
+    %       % Use the tikz file to draw the MLP
+    %       \input{slides/img/tikz/simplemlp.tikz.tex}
+    %     \end{figure}
+    %     \vspace{10pt}
+    \[
+      \frac{\partial J}{\partial\theta^{(2)}}=\frac{\partial J}{\partial a^{(2)}}
+      \frac{\partial a^{(2)}}{\partial z^{(2)}}\frac{\partial z^{(2)}}{\partial\theta^{(2)}}
+    \]
+    \begin{columns}
+      \begin{column}{.33\linewidth}
+        \begin{itemize}
+          \item<1-> $\frac{\partial J}{\partial a^{(2)}}=a^{(2)}-y$
+
+          \item<2-> $\frac{\partial a^{(2)}}{\partial z^{(2)}}=a^{(2)}(1-a^{(2)})$
+
+          \item<3-> $\frac{\partial z^{(2)}}{\partial\theta^{(2)}}=a^{(1)}$
+        \end{itemize}
+      \end{column}
+      \begin{column}{.67\linewidth}
+        \only<1>{
+        \begin{align*}
+          \frac{\partial J}{\partial a^{(2)}} & =\frac{\partial \left( \frac{1}{2}(y-a^{(2)})^{2}\right)}{\partial a^{(2)}} \\
+                                              & =(-1)\cancel{2}\frac{1}{\cancel{2}}(y-a^{(2)})                              \\
+                                              & =a^{(2)}-y
+        \end{align*}} \only<2>{
+        \begin{align*}
+          \frac{\partial a^{(2)}}{\partial z^{(2)}} & =\frac{\partial \left( \frac{1}{1+e^{-z^{(2)}}}\right)}{\partial z^{(2)}}=\frac{\partial \left( (1+e^{-z^{(2)}})^{-1}\right)}{\partial z^{(2)}}                       \\
+                                                    & =(\cancel{-1})(1+e^{-z^{(2)}})^{-2}e^{-z^{(2)}}(\cancel{-1})                                                                                                          \\
+                                                    & =\frac{\textcolor{red}{1}+e^{-z^{(2)}}\textcolor{red}{-1}}{(1+e^{-z^{(2)}})^{2}}                                                                                      \\
+                                                    & =\frac{1}{1+e^{-z^{(2)}}}\left(\cancelto{1}{\frac{\textcolor{red}{1}+e^{-z^{(2)}}}{1+e^{-z^{(2)}}}}\textcolor{red}{-}\frac{\textcolor{red}{1}}{1+e^{-z^{(2)}}}\right) \\
+                                                    & =\sigma(z^{(2)})(1-\sigma(z^{(2)})) = a^{(2)}(1-a^{(2)})
+        \end{align*}} \only<3>{
+        \begin{align*}
+          \frac{\partial z^{(2)}}{\partial \theta^{(2)}} & =\frac{\partial \left(a^{(1)}\theta^{(2)}\right)}{\partial \theta^{(2)}} \\
+                                                         & =a^{(1)}
+        \end{align*}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Backward Pass}
+    % \vspace{5pt}
+    %     \begin{figure}
+    %       \centering
+    %       % Use the tikz file to draw the MLP
+    %       \input{slides/img/tikz/simplemlp.tikz.tex}
+    %     \end{figure}
+    %     \vspace{10pt}
+    \[
+      \frac{\partial J}{\partial\theta^{(1)}}= \frac{\partial J}{\partial a^{(2)}}
+      \frac{\partial a^{(2)}}{\partial z^{(2)}}\frac{\partial z^{(2)}}{\partial
+      a^{(1)}}\frac{\partial a^{(1)}}{\partial z^{(1)}}\frac{\partial z^{(1)}}{\partial\theta^{(1)}}
+    \]
+    \begin{columns}
+      \begin{column}{.33\linewidth}
+        \begin{itemize}
+          \item $\frac{\partial J}{\partial a^{(2)}}=a^{(2)}-y$
+
+          \item $\frac{\partial a^{(2)}}{\partial z^{(2)}}=a^{(2)}(1-a^{(2)})$
+
+          \item<2-> $\frac{\partial z^{(2)}}{\partial a^{(1)}}=\theta^{(2)}$
+
+          \item<3-> $\frac{\partial a^{(1)}}{\partial z^{(1)}}=a^{(1)}(1-a^{(1)})$
+
+          \item<4> $\frac{\partial z^{(1)}}{\partial \theta^{(1)}}=\X_{1}$
+        \end{itemize}
+      \end{column}
+      \begin{column}{.67\linewidth}
+        \only<1>{ Os primeiros termos são iguais aos dois primeiros termos do gradiente
+        de $\theta^{(2)}$
+
+        } \only<2>{
+        \begin{align*}
+          \frac{\partial z^{(2)}}{\partial a^{(1)}} & =\frac{\partial \left(a^{(1)}\theta^{(2)}\right)}{\partial a^{(1)}} \\
+                                                    & =\theta^{(2)}
+        \end{align*}
+        } \only<3>{
+        \begin{align*}
+          \frac{\partial a^{(1)}}{\partial z^{(1)}} & =\frac{\partial \left( \frac{1}{1+e^{-z^{(1)}}}\right)}{\partial z^{(1)}}=\frac{\partial \left( (1+e^{-z^{(1)}})^{-1}\right)}{\partial z^{(1)}}                       \\
+                                                    & =(\cancel{-1})(1+e^{-z^{(1)}})^{-2}e^{-z^{(1)}}(\cancel{-1})                                                                                                          \\
+                                                    & =\frac{\textcolor{red}{1}+e^{-z^{(1)}}\textcolor{red}{-1}}{(1+e^{-z^{(1)}})^{2}}                                                                                      \\
+                                                    & =\frac{1}{1+e^{-z^{(1)}}}\left(\cancelto{1}{\frac{\textcolor{red}{1}+e^{-z^{(1)}}}{1+e^{-z^{(1)}}}}\textcolor{red}{-}\frac{\textcolor{red}{1}}{1+e^{-z^{(1)}}}\right) \\
+                                                    & =\sigma(z^{(1)})(1-\sigma(z^{(1)}))=a^{(1)}(1-a^{(1)})
+        \end{align*}} \only<4>{
+        \begin{align*}
+          \frac{\partial z^{(1)}}{\partial \theta^{(1)}} & =\frac{\partial \left(X_{1}\theta^{(1)}\right)}{\partial \theta^{(1)}} \\
+                                                         & =X_{1}
+        \end{align*}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Backward Pass}
+    \textbf{Vamos Computar o Gradiente}
+    \begin{align*}
+      \onslide<1->{\frac{\partial J}{\partial\theta^{(2)}} & = \underbrace{(a^{(2)}-y) \cdot a^{(2)}(1 -a^{(2)})}_{\delta^{(2)}}\cdot a^{(1)}}                                          \\
+      \onslide<2->{                                            & = (0.5470-1) \cdot 0.5470(1-0.5470) \cdot 0.3775 = \textbf{−0.04237412}}                                                   \\
+      \onslide<3->{\frac{\partial J}{\partial\theta^{(1)}} & = \underbrace{(a^{(2)}-y) \cdot a^{(2)}(1 -a^{(2)})}_{\delta^{(2)}}\cdot \theta^{(2)}\cdot a^{(1)}(1-a^{(1)}) \cdot X_{1}} \\
+      \onslide<4->{                                            & = (0.5470-1) \cdot 0.5470(1-0.5470) \cdot 0.5 \cdot 0.3775(1-0.3775) \cdot 1 = \textbf{−0.01318894}}
+    \end{align*}
+    \only<5>{
+    \begin{block}{Resumindo}
+      No \textit{Backward Pass} calculamos os gradientes da função de custo em
+      relação a todos os parâmetros treináveis
+    \end{block}
+    }
+  \end{frame}
+
+  \begin{frame}{Descida de Gradiente}
+    \begin{itemize}
+      \item Usando $\eta = 0.1$: $\theta_{t}= \theta_{t-1}- \eta \nabla J$
+
+      \item $\theta_{t}^{(2)}= 0.5 - 0.1(-0.042374) = \textbf{0.5042374}$
+
+      \item $\theta_{t}^{(1)}= -0.5 - 0.1(-0.013189) = \textbf{-0.4986811}$
+    \end{itemize}
+    \vfill
+    \only<2>{
+    \begin{block}{Resumindo}
+      Na \textit{Descida de Gradiente} usamos o gradiente para atualizar os
+      parâmetros treináveis
+    \end{block}
+    }
+  \end{frame}
+
+  \begin{frame}{Resultado da Atualização}
+    \begin{itemize}
+      \item Após a atualização, os pesos da rede são:
+        \begin{itemize}
+          \item $\theta^{(1)}=-0.4986811$
+
+          \item $\theta^{(2)}=0.5042374$
+        \end{itemize}
+
+      \item O novo valor de $a^{(2)}$ é:
+        \[
+          a^{(2)}= \sigma(\sigma(X_{1}\cdot\theta^{(1)})\cdot\theta^{(2)})= \sigma
+          (\sigma(1\cdot(-0.4986811))\cdot 0.5042374)=0.547\textcolor{PastelBlue2}{4}
+        \]
+
+      \item O novo valor de $J(\theta)$ é:
+        \[
+          J(\theta)=\frac{1}{2}(y-a^{(2)})^{2}=\frac{1}{2}(1-0.5474)^{2}=0.102\textcolor
+          {PastelBlue2}{4234}
+        \]
+        \visible<2>{\item O novo valor de $J(\theta)$ é menor que o anterior
+        $0.102\textcolor{Red}{6045}$, indicando que o erro do MLP é menor}
+    \end{itemize}
+    \vfill
+  \end{frame}
+
+  \subsection{Descida de Gradiente}
+
+  \begin{frame}[fragile,containsverbatim]
+    \frametitle{Comparando com PyTorch}
+    \begin{columns}
+      \begin{column}{0.4\textwidth}
+        \begin{align*}
+          \frac{\partial J}{\partial \thetav^{(1)}} & =-0.01318894 \\
+          \frac{\partial J}{\partial \thetav^{(2)}} & =-0.04237412 \\
+          \theta_{t}^{(2)}                          & = 0.5042374  \\
+          \theta_{t}^{(1)}                          & = -0.4986811
+        \end{align*}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \resizebox*{\linewidth}{!}{ \lstinputlisting[style=vscode-light]{slides/code/01_backward_pass.py}%
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \section{Vetorização do Treinamento}
+
+  \begin{frame}{Generalizando o Treinamento}
+  \begin{figure}
+      \centering
+      \input{slides/img/tikz/simplemlp.tikz.tex}
+  \end{figure}
+  \begin{columns}
+      \begin{column}{.55\linewidth}
+        Repare que:
+          \begin{itemize}
+              \visible<1->{\item  Ambas as derivadas são computadas com um termo $\delta^{(l)}$ multiplicado pela entrada da camada $\frac{\partial z^{(l)}}{\partial \theta^{(l)}}$}
+              \visible<2>{\item $\delta^{(1)}$ pode ser obtido a partir de $\delta^{(2)}$}
+          \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \begin{align*}
+          \frac{\partial J}{\partial\theta^{(2)}}&=\underbrace{\textcolor{red}{\frac{\partial J}{\partial a^{(2)}}
+          \frac{\partial a^{(2)}}{\partial z^{(2)}}}}_{\textcolor{red}{\delta^{(2)}}}\textcolor{teal}{\frac{\partial z^{(2)}}{\partial\theta^{(2)}}}\\
+          \frac{\partial J}{\partial\theta^{(1)}}&=\underbrace{\underbrace{\textcolor{red}{\frac{\partial J}{\partial a^{(2)}}
+          \frac{\partial a^{(2)}}{\partial z^{(2)}}}}_{\textcolor{red}{\delta^{(2)}}}\textcolor{magenta}{\frac{\partial z^{(2)}}{\partial
+          a^{(1)}}\frac{\partial a^{(1)}}{\partial z^{(1)}}}}_{\textcolor{magenta}{\delta^{(1)}}}\textcolor{blue}{\frac{\partial z^{(1)}}{\partial\theta^{(1)}}}
+      \end{align*}        
+      \end{column}
+  \end{columns}
+  
+  \begin{tikzpicture}[overlay, remember picture]
+      % \draw[lightgray, step=0.5] (0,0) grid (14,7);
+      \draw[ultra thick, ->, teal] ($(theta2)-(1.cm,0)$) to (theta2);
+      \draw[ultra thick, ->, red] ($(theta2)+(1.cm,0)$) to (theta2);
+      
+      \draw[ultra thick, ->, blue] ($(theta1)-(1.cm,0)$) to (theta1);
+      \draw[ultra thick, ->, magenta] ($(theta1)+(1.cm,0)$) to (theta1);
+    \end{tikzpicture}
+  \end{frame}
+
+
+  
+  \begin{frame}{Generalizando o Treinamento}
+    O gradiente em cada camada pode ser dividido em dois componentes:
+    \begin{itemize}
+      \item \textbf{Delta da Camada:}
+        $\delta^{(l)}= \frac{\partial J}{\partial z^{(l)}}$
+
+      \item \textbf{Ativação da Camada Anterior:} $a^{(l-1)}$
+    \end{itemize}
+    \vfill
+    \textbf{Backpropagation:}
+    \begin{enumerate}
+      \item \textbf{Erro na Camada de Saída:}
+        $\delta^{(L)}=\frac{\partial J}{\partial a^{(L)}}\odot\frac{\partial a^{(L)}}{\partial z^{(L)}}$
+        \vfill
+      
+      \item \textbf{Propagação do Erro:}
+        $\delta^{(l)}=(\delta^{(l+1)}\theta^{(l+1)})\odot a^{\prime(l)}$
+        \vfill
+      
+      \item \textbf{Gradiente do Parâmetros:}
+        $\frac{\partial J}{\partial\theta^{(i)}}=\delta^{(i)^\top}a^{(i-1)}$
+        \vfill
+
+
+    \end{enumerate}
+  \end{frame}
+
+  \begin{frame}{Exemplo Vetorizado}
+    \begin{columns}
+        \begin{column}{.6\textwidth}
+
+        \begin{itemize}
+            \item Dataset (\textit{Batch Size} = 2)
+            \[
+              X =
+              \begin{bmatrix}
+                0.5 & 0.1 \\
+                0.2 & 0.6
+              \end{bmatrix}, \quad y =
+              \begin{bmatrix}
+                0.6 \\
+                0.8
+              \end{bmatrix}
+            \]
+            \item Arquitetura
+                \begin{itemize}
+                  \item Camada de Entrada: 2 unidades
+                  \item Camada Oculta 1: 3 unidades
+                  \item Camada de Saída: 1 unidade
+                \end{itemize}
+            \item Pesos Iniciais
+                \begin{itemize}
+                  \item Camada 1: $\theta^{(1)}=
+                    \begin{bmatrix}
+                      0.5  & 0.2  \\
+                      0.6  & -0.1 \\
+                      -0.4 & -0.3
+                    \end{bmatrix}$
+            
+                  \item Camada 2: $\theta^{(2)}=
+                    \begin{bmatrix}
+                      0.7 & -0.1 & 0.2
+                    \end{bmatrix}$
+                \end{itemize}
+        \end{itemize}
+
+        \end{column}
+        \begin{column}{.4\textwidth}
+            \begin{figure}
+                \centering
+                \resizebox{\linewidth}{!}{
+                \input{slides/img/tikz/mlp_vectorized}}
+            \end{figure}
+        \end{column}
+    \end{columns}
+
+  \end{frame}
+
+
+  \begin{frame}
+    \frametitle{Exemplo Vetorizado: Forward Pass}
+    \begin{columns}
+        \begin{column}{.6\linewidth}
+        \small
+        \begin{align*}
+            Z^{(1)} &= X \cdot{\theta^{(1)}}^{\top}\\
+            &= \begin{bmatrix}
+        0.5 & 0.1 \\
+        0.2 & 0.6
+      \end{bmatrix}_{2\times2}\cdot
+      \begin{bmatrix}
+        0.5 & 0.6  & -0.4 \\
+        0.2 & -0.1 & -0.3
+      \end{bmatrix}_{2\times3}\\
+      &=\begin{bmatrix}
+        0.27 & 0.29 & -0.23 \\
+        0.22 & 0.06 & -0.26
+      \end{bmatrix}_{2\times3}\\
+      A^{(1)} &= \sigma(Z^{(1)})\\
+      &= \sigma\left(\begin{bmatrix}
+        0.27 & 0.29 & -0.23 \\
+        0.22 & 0.06 & -0.26
+      \end{bmatrix}_{2\times3}\right)
+      \\
+      &=\begin{bmatrix}
+        0.5671 & 0.5720 & 0.4428 \\
+        0.5548 & 0.5150 & 0.4354
+      \end{bmatrix}_{2\times3}
+    \end{align*}                
+    
+        \end{column}
+        \begin{column}{.4\textwidth}
+            \begin{figure}
+                \centering
+                \resizebox{\linewidth}{!}{
+                \input{slides/img/tikz/mlp_vectorized}}
+            \end{figure}
+        \end{column}    
+    \end{columns}
+  \end{frame}
+
+\begin{frame}{Exemplo Vetorizado: Forward Pass}
+    \begin{columns}
+        \begin{column}{.6\linewidth}
+        \small
+        \begin{align*}
+      Z^{(2)}&= A^{(1)}\cdot{\theta^{(2)}}^{T}\\
+      &=\begin{bmatrix}
+        0.5671 & 0.5720 & 0.4428 \\
+        0.5548 & 0.5150 & 0.4354
+      \end{bmatrix}_{2\times3}\cdot
+      \begin{bmatrix}
+        0.7  \\
+        -0.1 \\
+        0.2
+      \end{bmatrix}_{3\times1}\\
+      &=
+      \begin{bmatrix}
+        0.4283 \\
+        0.4239
+      \end{bmatrix}_{2\times1}\\
+      A^{(2)}&= \hat{y}= \sigma(Z^{(2)})\\
+      &= \sigma\left(\begin{bmatrix}
+        0.4283 \\
+        0.4239
+      \end{bmatrix}_{2\times1}\right)\\
+      &=\begin{bmatrix}
+        0.6055 \\
+        0.6044
+      \end{bmatrix}_{2\times1}
+        \end{align*}                
+        \end{column}
+        \begin{column}{.4\textwidth}
+            \begin{figure}
+                \centering
+                \resizebox{\linewidth}{!}{
+                \input{slides/img/tikz/mlp_vectorized}}
+            \end{figure}
+        \end{column}    
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo Vetorizado: Cálculo da \textit{Loss}}
+    \begin{columns}
+        \begin{column}{.6\linewidth}
+        \small
+        \begin{align*}
+         J &= \frac{1}{2}\sum (y - \hat{y})^{2}\\
+         &= \frac{1}{2}\sum\left(\begin{bmatrix}
+        0.6055 \\
+        0.6044
+      \end{bmatrix}_{2\times1} -              
+      \begin{bmatrix}
+                0.6 \\
+                0.8
+              \end{bmatrix}_{2\times1}\right)^2\\
+      &= 0.01914
+        \end{align*}                
+        \end{column}
+        \begin{column}{.4\textwidth}
+            \begin{figure}
+                \centering
+                \resizebox{\linewidth}{!}{
+                \input{slides/img/tikz/mlp_vectorized}}
+            \end{figure}
+        \end{column}    
+    \end{columns}
+
+\end{frame}
+
+\begin{frame}{Exemplo Vetorizado: \textit{Backward Pass}}
+        \small
+        \begin{align*}
+      \delta^{(2)} &= \left(
+      \begin{bmatrix}
+        0.6055 \\
+        0.6044
+      \end{bmatrix}
+      -
+      \begin{bmatrix}
+        0.6 \\
+        0.8
+      \end{bmatrix}
+      \right) \odot
+      \begin{bmatrix}
+        0.2389 \\
+        0.2391
+      \end{bmatrix}\\
+      &=
+      \begin{bmatrix}
+        0.0055  \\
+        -0.1956
+      \end{bmatrix}
+      \odot
+      \begin{bmatrix}
+        0.2389 \\
+        0.2391
+      \end{bmatrix}\\
+      &=
+      \begin{bmatrix}
+        0.00131 \\
+        -0.04676
+      \end{bmatrix}\\
+      \delta^{(1)} &= (\delta^{(2)}\cdot \theta^{(2)}) \odot \sigma'(Z^{(1)})\\
+      &= \left(
+      \begin{bmatrix}
+        0.00131 \\
+        -0.04676
+      \end{bmatrix}
+      \cdot
+      \begin{bmatrix}
+        0.7 & -0.1 & 0.2
+      \end{bmatrix}
+      \right) \odot \sigma'\left(\begin{bmatrix}
+        0.27 & 0.29 & -0.23 \\
+        0.22 & 0.06 & -0.26
+      \end{bmatrix}\right)\\
+      &=
+      \begin{bmatrix}
+        0.00022 & -0.00003 & 0.00006 \\
+        -0.00809 & 0.00117 & -0.00230
+      \end{bmatrix}
+        \end{align*}                
+\end{frame}
+
+ \begin{frame}{Exemplo Vetorizado: \textit{Backward Pass}}
+    \begin{columns}
+        \begin{column}{.6\linewidth}
+        \small
+        \begin{align*}
+              \frac{\partial J}{\partial \theta^{(2)}}&={\delta^{(2)}}^{T}\cdot A^{(1)}\\
+              &=
+      \begin{bmatrix}
+        0.00131 & -0.04676
+      \end{bmatrix}
+      \cdot
+      \begin{bmatrix}
+        0.5671 & 0.5720 & 0.4428 \\
+        0.5548 & 0.5150 & 0.4354
+      \end{bmatrix}\\
+            &=
+      \begin{bmatrix}
+        -0.0252 & -0.0233 & -0.0198
+      \end{bmatrix}\\
+      \frac{\partial J}{\partial \theta^{(1)}}&={\delta^{(1)}}^{T}\cdot X \\
+            &=
+      \begin{bmatrix}
+        0.00022 & -0.00809 \\
+        -0.00003 & 0.00117 \\
+        0.00006 & -0.00230 \\
+      \end{bmatrix}\cdot \begin{bmatrix}
+                0.5 & 0.1 \\
+                0.2 & 0.6
+              \end{bmatrix}\\
+      &=
+      \begin{bmatrix}
+        -0.00150 & -0.00483 \\
+        0.00022  & 0.00070  \\
+        -0.00043 & -0.00137
+      \end{bmatrix}
+        \end{align*}                
+        \end{column}
+        \begin{column}{.4\textwidth}
+            \begin{figure}
+                \centering
+                \resizebox{\linewidth}{!}{
+                \input{slides/img/tikz/mlp_vectorized}}
+            \end{figure}
+        \end{column}    
+    \end{columns}
+
+\end{frame}
+
+
+  \begin{frame}
+    \frametitle{Exemplo Vetorizado: \textit{Optimizer}}
+    \small
+    \textbf{Atualização dos Pesos ($\eta = 0.1$):}
+    \[
+      \theta_{t}^{(l)}=\theta_{t-1}^{(l)}-\eta\nabla_{\theta}J
+    \]
+    \vfill
+    \textbf{Novos Pesos da Camada 2:}
+    \begin{align*}
+      \theta_{new}^{(2)}&=
+      \begin{bmatrix}
+        0.7 & -0.1 & 0.2
+      \end{bmatrix}
+      - 0.1 \cdot
+      \begin{bmatrix}
+        -0.0252 & -0.0233 & -0.0198
+      \end{bmatrix}\\
+      &=
+      \begin{bmatrix}
+        0.7025 & -0.0977 & 0.2020
+      \end{bmatrix}
+    \end{align*}
+    \vfill
+    \textbf{Novos Pesos da Camada 1:}
+    \begin{align*}
+      \theta_{new}^{(1)}&=
+      \begin{bmatrix}
+        0.5  & 0.2  \\
+        0.6  & -0.1 \\
+        -0.4 & -0.3
+      \end{bmatrix}
+      - 0.1 \cdot
+           \begin{bmatrix}
+        -0.00150 & -0.00483 \\
+        0.00022  & 0.00070  \\
+        -0.00043 & -0.00137
+      \end{bmatrix}\\
+      &=
+      \begin{bmatrix}
+        0.5002  & 0.2005   \\
+        0.6000  & -0.1001 \\
+        -0.4000 & -0.2999
+      \end{bmatrix}
+    \end{align*}
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{Resumindo}
+    \begin{itemize}
+      \item Podemos treinar redes neurais de múltiplas camadas usando descida de
+        gradiente.
+        \vfill
+
+      \item O processo de treinamento consiste em repetir 4 etapas:
+        \begin{enumerate}
+          \item Computar todas as saídas da rede (\textit{Forward Pass})
+
+          \item Computar o quão diferente as saídas são em relação a variável alvo (\textit{Loss Function})
+
+          \item Computar o gradiente do erro em relação aos parâmetros da rede (\textit{Backward Pass})
+
+          \item Atualizar os pesos (\textit{Optimizer})
+        \end{enumerate}
+        \vfill
+
+      \item Todo o treinamento pode ser implementado de forma vetorizada.
+    \end{itemize}
+  \end{frame}
+
+  \section*{Referências e Leituras}
+  %------------------------------------------------
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Primeira publicação do Backpropagation: \fullcite{rumelhart1986learningbackpropextended}
+
+      \item Capítulo 2: \fullcite{nielsen2015neural}
+    \end{itemize}
+  \end{frame}
+
+  %------------------------------------------------
+
+  \begin{frame}{Referências}
+    \printbibliography
+  \end{frame}
+\end{document}

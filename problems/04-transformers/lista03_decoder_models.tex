@@ -1,0 +1,706 @@
+\documentclass{dlproblemset}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing,positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{emoji}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\definecolor{CellBlue}{HTML}{BBDEFB}
+\definecolor{CellGreen}{HTML}{C8E6C9}
+\definecolor{CellYellow}{HTML}{FFF9C4}
+\definecolor{CellRed}{HTML}{FFCDD2}
+\definecolor{DarkBlue}{HTML}{1565C0}
+\definecolor{DarkGreen}{HTML}{1B5E20}
+\definecolor{DarkRed}{HTML}{C62828}
+
+\title{Atenção e Transformers}
+\subtitle{Decoder Only Models}
+
+\begin{document}
+
+\paragraph{Instruções:} Cada questão possui exatamente uma alternativa correta.
+
+
+\section*{Questões}
+% ============================================================
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% Q1 — Fácil (KV-Cache)
+% ------------------------------------------------------------------
+\item Durante a fase de \textbf{decode} de um decoder-only com KV-cache,
+      o modelo gera o quarto token de uma sequência iniciada com o
+      prompt de 3 tokens \textit{``O rato roeu''}. O diagrama abaixo
+      mostra o estado dos pares K,V nesse passo.
+
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={draw, rounded corners, minimum width=1.3cm, minimum height=0.46cm,
+              align=center, font=\small},
+  kv/.style={draw, minimum width=1.3cm, minimum height=0.36cm,
+             align=center, font=\scriptsize},
+  arr/.style={->, >=Stealth, thick},
+]
+  \node[tok, fill=CellBlue]   (t1) at (0.0, 2.5) {\texttt{O}};
+  \node[tok, fill=CellBlue]   (t2) at (1.7, 2.5) {\texttt{rato}};
+  \node[tok, fill=CellBlue]   (t3) at (3.4, 2.5) {\texttt{roeu}};
+  \node[tok, fill=CellRed]    (t4) at (5.1, 2.5) {\texttt{?}};
+
+  \node[kv, fill=CellGreen]   (k1) at (0.0, 1.58) {$K_1$};
+  \node[kv, fill=CellGreen]   (k2) at (1.7, 1.58) {$K_2$};
+  \node[kv, fill=CellGreen]   (k3) at (3.4, 1.58) {$K_3$};
+  \node[kv, fill=CellYellow]  (k4) at (5.1, 1.58) {$K_4$};
+
+  \node[kv, fill=CellGreen]   (v1) at (0.0, 0.96) {$V_1$};
+  \node[kv, fill=CellGreen]   (v2) at (1.7, 0.96) {$V_2$};
+  \node[kv, fill=CellGreen]   (v3) at (3.4, 0.96) {$V_3$};
+  \node[kv, fill=CellYellow]  (v4) at (5.1, 0.96) {$V_4$};
+
+  \node[font=\scriptsize, gray, left=0.1cm of k1] {$K$:};
+  \node[font=\scriptsize, gray, left=0.1cm of v1] {$V$:};
+
+  \draw[arr] (t4.south) -- (k4.north);
+
+  \node[font=\scriptsize, below=0.1cm] at (2.55, 0.6)
+    {\colorbox{CellGreen}{\,}~cache~~\colorbox{CellYellow}{\,}~computando agora};
+\end{tikzpicture}
+\end{center}
+
+O que o diagrama ilustra sobre o funcionamento do KV-cache nesse passo?
+
+\begin{enumerate}[a)]
+    \item Apenas $K_4$ e $V_4$ são computados; $K_1$--$K_3$ e $V_1$--$V_3$
+          são reutilizados do cache.
+    \item Todos os $K_1$--$K_4$ e $V_1$--$V_4$ são recalculados integralmente
+          a cada novo token gerado.
+    \item $K_4$ é computado, mas todos os $V_1$--$V_4$ são recalculados
+          para combinar com a nova query $Q_4$.
+    \item O cache armazena apenas as queries; keys e values são sempre
+          recalculados a partir dos tokens originais.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q2 — Fácil (Temperatura e estratégias de amostragem)
+% ------------------------------------------------------------------
+\item O gráfico abaixo mostra a distribuição de probabilidade sobre
+      quatro tokens para os mesmos logits $z{=}[3,\;1,\;0,\;{-1}]$,
+      com três valores de temperatura.
+
+\begin{center}
+\begin{tikzpicture}
+  \begin{axis}[
+    ybar, bar width=0.22cm,
+    xlabel={Token}, ylabel={Probabilidade},
+    symbolic x coords={$v_1$,$v_2$,$v_3$,$v_4$},
+    xtick=data,
+    ymin=0, ymax=1.08,
+    width=8.5cm, height=4.8cm,
+    enlarge x limits=0.20,
+    legend style={at={(0.98,0.97)}, anchor=north east, font=\small},
+    legend cell align=left,
+  ]
+    \addplot[fill=CellBlue,   draw=DarkBlue]  coordinates
+      {($v_1$,0.979)($v_2$,0.018)($v_3$,0.002)($v_4$,0.000)};
+    \addlegendentry{$T{=}0.5$}
+    \addplot[fill=CellYellow, draw=DarkRed]   coordinates
+      {($v_1$,0.831)($v_2$,0.112)($v_3$,0.041)($v_4$,0.015)};
+    \addlegendentry{$T{=}1$}
+    \addplot[fill=CellGreen,  draw=DarkGreen] coordinates
+      {($v_1$,0.579)($v_2$,0.213)($v_3$,0.129)($v_4$,0.079)};
+    \addlegendentry{$T{=}2$}
+  \end{axis}
+\end{tikzpicture}
+\end{center}
+
+Qual afirmação descreve corretamente o efeito da temperatura?
+
+\begin{enumerate}[a)]
+    \item $T < 1$ achata a distribuição, aumentando a diversidade;
+          $T > 1$ concentra a massa no token mais provável.
+    \item $T = 1$ produz distribuição uniforme; valores maiores
+          concentram a massa progressivamente.
+    \item $T \to 0$ equivale ao argmax (greedy); $T > 1$ achata a
+          distribuição, aumentando a diversidade da geração.
+    \item A temperatura não altera as razões de probabilidade entre
+          tokens: se $P(v_i)/P(v_j) = r$ com $T{=}1$, essa razão
+          permanece $r$ para qualquer valor de $T$.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q3 — Médio (Perplexidade vs. benchmarks de avaliação)
+% ------------------------------------------------------------------
+\item Ao avaliar um LLM, um pesquisador considera usar a
+      \textbf{perplexidade} sobre um corpus de teste ou o benchmark
+      \textbf{MMLU} (conhecimento enciclopédico em 57 domínios,
+      formato de múltipla escolha). Qual afirmação descreve
+      corretamente uma vantagem e uma limitação de cada métrica?
+
+\begin{enumerate}[a)]
+    \item A perplexidade requer um conjunto de questões rotuladas,
+          tornando-a mais custosa que o MMLU; o MMLU, por ser gerado
+          automaticamente, é imune a contaminação do pré-treinamento.
+    \item A perplexidade independe do tokenizador, permitindo
+          comparação direta entre modelos com vocabulários distintos;
+          o MMLU mede exclusivamente raciocínio matemático em
+          múltiplos passos.
+    \item A perplexidade é barata de computar e não exige dados
+          rotulados, mas correlaciona-se imperfeitamente com o
+          desempenho em tarefas específicas; o MMLU mede capacidades
+          concretas, mas pode ser inflacionado por contaminação do
+          corpus de pré-treinamento.
+    \item A perplexidade garante que modelos com valores menores
+          terão melhor desempenho em qualquer tarefa downstream;
+          benchmarks como o MMLU são imunes a esse problema por
+          usarem questões de múltipla escolha.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q4 — Médio (MHA / MQA / GQA: tamanho de KV-cache)
+% ------------------------------------------------------------------
+\item Considere um modelo com $H = 8$ cabeças de query, $d_k = 64$
+      e $L = 32$ camadas. O diagrama abaixo compara MHA e GQA
+      com $G = 2$ grupos (usando $H{=}4$ na visualização):
+
+\begin{center}
+\begin{tikzpicture}[
+  qh/.style={draw, fill=CellBlue, rounded corners,
+             minimum width=0.72cm, minimum height=0.58cm,
+             font=\scriptsize, align=center},
+  kh/.style={draw, fill=CellGreen, rounded corners,
+             minimum width=0.80cm, minimum height=0.58cm,
+             font=\scriptsize, align=center},
+  arr/.style={->, >=Stealth, semithick},
+]
+  %--- MHA ---
+  \node[font=\small\bfseries] at (1.35, 2.7) {MHA ($G{=}H{=}4$)};
+  \foreach \i/\x in {1/0.3, 2/1.0, 3/1.7, 4/2.4} {
+    \node[qh] (qm\i) at (\x, 1.8) {Q\textsubscript{\i}};
+    \node[kh] (km\i) at (\x, 0.8) {KV\textsubscript{\i}};
+    \draw[arr] (km\i) -- (qm\i);
+  }
+  \node[font=\scriptsize, gray] at (1.35, 0.18) {4 pares KV};
+
+  %--- GQA (G=2) ---
+  \node[font=\small\bfseries] at (5.3, 2.7) {GQA ($G{=}2$)};
+  \foreach \i/\x in {1/4.1, 2/4.9, 3/5.7, 4/6.5} {
+    \node[qh] (qg\i) at (\x, 1.8) {Q\textsubscript{\i}};
+  }
+  \node[kh] (kga) at (4.5, 0.8) {KV\textsubscript{a}};
+  \node[kh] (kgb) at (6.1, 0.8) {KV\textsubscript{b}};
+  \draw[arr] (kga) -- (qg1);
+  \draw[arr] (kga) -- (qg2);
+  \draw[arr] (kgb) -- (qg3);
+  \draw[arr] (kgb) -- (qg4);
+  \node[font=\scriptsize, gray] at (5.3, 0.18) {2 pares KV};
+\end{tikzpicture}
+\end{center}
+
+Usando $H{=}8$, $G{=}2$, $d_k{=}64$, $L{=}32$: qual é o tamanho do
+KV-cache \textbf{por token} com GQA e quantas vezes menor é que o MHA?
+
+\begin{enumerate}[a)]
+    \item $8\,192$ floats/token; $4\times$ menor que MHA.
+    \item $8\,192$ floats/token; $8\times$ menor que MHA.
+    \item $16\,384$ floats/token; $2\times$ menor que MHA.
+    \item $4\,096$ floats/token; $8\times$ menor que MHA.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q5 — Médio (RMSNorm vs. LayerNorm)
+% ------------------------------------------------------------------
+\item Dado $\mathbf{x} = [3,\; 4]$ e $\boldsymbol{\gamma} = [1,\; 1]$
+      (ignorando $\epsilon$), calcule $\mathrm{RMSNorm}(\mathbf{x})$
+      e identifique qual das opções corresponde ao resultado correto.
+      \[
+        \mathrm{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\mathrm{RMS}(\mathbf{x})} \odot \boldsymbol{\gamma},
+        \qquad
+        \mathrm{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2}.
+      \]
+
+\begin{enumerate}[a)]
+    \item $[\,-1.00,\;+1.00\,]$
+    \item $[\,0.849,\;1.131\,]$
+    \item $[\,0.600,\;0.800\,]$
+    \item $[\,0.857,\;1.143\,]$
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q6 — Médio (MoE: Expert Collapse)
+% ------------------------------------------------------------------
+\item Em um modelo Mixture-of-Experts (MoE) com $E = 4$ especialistas
+      e $k = 1$ (top-1 routing), observa-se que, após o treinamento,
+      o especialista~1 processa ${\approx}\,97\%$ de todos os tokens,
+      enquanto os especialistas 2--4 ficam essencialmente inativos.
+      Qual fenômeno descreve essa situação e qual é a solução adotada?
+
+\begin{enumerate}[a)]
+    \item \textbf{Overfitting} do router: o router memoriza os tokens de treino;
+          solução: aumentar o número de especialistas $E$.
+    \item \textbf{Expert collapse}: ciclo de reforço positivo em que o especialista
+          mais ativo recebe mais tokens, melhora mais e atrai ainda mais tokens;
+          solução: perda auxiliar de balanceamento
+          $\mathcal{L}_{\text{aux}} = \alpha\,E\sum_{i=1}^{E} f_i\,P_i$.
+    \item \textbf{Vanishing gradients}: gradientes desaparecem nos especialistas
+          inativos; solução: conexões residuais no router.
+    \item \textbf{Mode collapse}: todos os especialistas convergem para a mesma
+          função; solução: inicialização diversificada dos pesos.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q7 — Médio (SwiGLU: mecanismo de portão)
+% ------------------------------------------------------------------
+\item Na FFN SwiGLU, o cálculo é:
+      \[
+        \mathrm{FFN}(x) = \bigl(\mathrm{SiLU}(xW_1) \odot xW_3\bigr)W_2,
+      \]
+      enquanto a ReLU-FFN clássica usa $\mathrm{FFN}(x) = \max(0,\,xW_1)\,W_2$.
+      Qual é a principal vantagem do portão $xW_3$ em relação ao corte
+      estático da ReLU?
+
+\begin{enumerate}[a)]
+    \item A SwiGLU usa três matrizes em vez de duas, aumentando a capacidade
+          bruta sem custo computacional adicional por token.
+    \item A SwiGLU aplica a não-linearidade duas vezes consecutivas
+          ($\mathrm{SiLU}$ e depois $W_2$), aumentando a profundidade efetiva.
+    \item O portão $xW_3$ aprende dinamicamente quais dimensões do espaço
+          oculto deixar passar, ao contrário da ReLU, que zera estaticamente
+          valores negativos independentemente do contexto da entrada.
+    \item A SwiGLU elimina a necessidade de normalização por camada, pois
+          o portão já controla a magnitude das ativações.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q8 — �� Difícil (Decodificação Especulativa)
+% ------------------------------------------------------------------
+\item \emoji{skull-and-crossbones} No algoritmo de decodificação especulativa
+      (Leviathan et al., 2023), o modelo alvo $M_p$ e o modelo draft $M_q$
+      atribuem as seguintes probabilidades a três tokens candidatos:
+
+\begin{center}
+\begin{tabular}{lccc}
+  \toprule
+  Token & $p$ (alvo $M_p$) & $q$ (draft $M_q$) \\
+  \midrule
+  $\tilde{x}$ & 0.30 & 0.60 \\
+  $\tilde{y}$ & 0.50 & 0.30 \\
+  $\tilde{z}$ & 0.20 & 0.10 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+O draft propõe $\tilde{x}$. Qual é a probabilidade de aceitação de
+$\tilde{x}$ e, caso rejeitado, de qual distribuição é re-amostrado o
+token substituto?
+
+\begin{enumerate}[a)]
+    \item Aceitação $= 1.00$ (sempre aceito, pois $p(\tilde{x}) > 0$);
+          substituto amostrado de $p$ sem modificação.
+    \item Aceitação $= 0.50$; substituto amostrado de
+          $p'(x) \propto \max\!\bigl(0,\,p(x)-q(x)\bigr)$,
+          que concentra a massa onde $M_p$ supera $M_q$.
+    \item Aceitação $= 0.50$; substituto amostrado
+          uniformemente sobre o vocabulário.
+    \item Aceitação $= 0.30$; substituto amostrado de $q$ (draft).
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q9 — Difícil (Leis de Escala / Chinchilla: regra 20N e retornos decrescentes)
+% ------------------------------------------------------------------
+\item Uma equipe treina um modelo com $N = 8 \times 10^9$ parâmetros durante
+      $D = 80 \times 10^9$ tokens e obtém perda de validação de $2.22$.
+      Satisfeitos com o resultado, param o treinamento.
+      Em seguida, avaliam se vale a pena uma segunda rodada de treinamento
+      prolongado até $D = 800 \times 10^9$ tokens.
+      À luz das leis de escala do Chinchilla (Hoffmann et al., 2022),
+      qual afirmação descreve corretamente a situação?
+
+\begin{enumerate}[a)]
+    \item O modelo foi treinado de forma ótima ($D = 10N$ é a
+          regra do Chinchilla); a segunda rodada não trará nenhuma melhoria
+          pois a perda já saturou em $2.22$.
+    \item O modelo foi sub-treinado em dados ($D^* = 20N = 160\text{B} > D$);
+          a segunda rodada ainda reduzirá a perda, mas com
+          \emph{retornos decrescentes}.
+    \item O modelo foi super-treinado em dados ($D = 80\text{B} > D^* = N = 8\text{B}$);
+          a segunda rodada causará sobreajuste e a perda de validação
+          aumentará.
+    \item O modelo foi treinado de forma ótima ($D = 10N$);
+          a segunda rodada melhorará a perda linearmente com os tokens
+          adicionados.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q10 — Médio (Few-shot prompting: restrição de janela de contexto)
+% ------------------------------------------------------------------
+\item Uma pesquisadora usa $k$-shot prompting com um LLM de janela de
+      contexto $C = 2048$ tokens. O prompt de sistema ocupa $150$ tokens,
+      cada exemplar (pergunta $+$ rótulo) ocupa $200$ tokens e a consulta
+      de teste ocupa $200$ tokens. Com $k = 5$ o prompt cabe na janela.
+      Ela quer testar $k = 10$. Qual afirmação está correta?
+
+\begin{enumerate}[a)]
+    \item $k = 10$ é viável: $10 \times 200 = 2000 < 2048$, portanto
+          há tokens suficientes.
+    \item $k = 10$ não é viável: o prompt totalizaria
+          $150 + 10 \times 200 + 200 = 2350 > 2048$ tokens, excedendo a
+          janela; o modelo precisaria truncar o contexto ou a geração.
+    \item $k = 10$ é equivalente a \textit{fine-tuning} com 10 exemplos:
+          em ambos os casos, o modelo atualiza sua distribuição de saída
+          sem modificar os pesos.
+    \item $k = 10$ é viável, mas degrada o desempenho: mais exemplares no
+          contexto causam \textit{overfitting} aos rótulos, análogo ao
+          fine-tuning com poucos dados.
+\end{enumerate}
+% R: b
+
+% ------------------------------------------------------------------
+% Q11 — Médio (MQA: redução de KV-cache)
+% ------------------------------------------------------------------
+\item O \textbf{Multi-Query Attention} (MQA, Shazeer 2019) substitui os
+      $H$ pares $K,V$ independentes do MHA por um \textbf{único} par $K,V$
+      compartilhado entre todas as cabeças de query.
+      Considere um modelo com $H = 8$ cabeças, $d_k = 64$ e $L = 32$ camadas.
+      Qual é o tamanho do KV-cache \textbf{por token} com MQA e por quantas
+      vezes é menor que o MHA equivalente?
+
+\begin{enumerate}[a)]
+    \item $16\,384$ floats/token; $2\times$ menor que MHA.
+    \item $4\,096$ floats/token; $8\times$ menor que MHA.
+    \item $8\,192$ floats/token; $4\times$ menor que MHA
+          (mesmo resultado do GQA com $G{=}2$).
+    \item $4\,096$ floats/token; $4\times$ menor que MHA.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q12 — Médio (Top-p / Nucleus Sampling)
+% ------------------------------------------------------------------
+\item Num passo de decodificação, o modelo atribui as seguintes
+      probabilidades (ordenadas de forma decrescente):
+
+\begin{center}
+\begin{tabular}{lcc}
+  \toprule
+  Token & $P$ & $P$ acumulada \\
+  \midrule
+  \texttt{o}    & 0.45 & 0.45 \\
+  \texttt{um}   & 0.30 & 0.75 \\
+  \texttt{este} & 0.15 & 0.90 \\
+  \texttt{seu}  & 0.07 & 0.97 \\
+  \texttt{...}  & 0.03 & 1.00 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Com \textbf{top-p = 0.90} (nucleus sampling), qual é o conjunto
+\emph{mínimo} de tokens que compõe o núcleo do qual o próximo token
+será amostrado?
+
+\begin{enumerate}[a)]
+    \item Apenas \texttt{o} (probabilidade acumulada = 0.45).
+    \item \texttt{o}, \texttt{um}
+          (probabilidade acumulada = 0.75 $<$ 0.90).
+    \item \texttt{o}, \texttt{um}, \texttt{este}
+          (probabilidade acumulada = 0.90 $\ge$ 0.90).
+    \item \texttt{o}, \texttt{um}, \texttt{este}, \texttt{seu}
+          (probabilidade acumulada = 0.97 $>$ 0.90).
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q13 — Médio (Perplexidade)
+% ------------------------------------------------------------------
+\item Um modelo de linguagem com vocabulário de 6 tokens
+      $\mathcal{V} = \{\texttt{o},\;\texttt{gato},\;\texttt{correu},\;
+      \texttt{leite},\;\texttt{bebeu},\;\texttt{fim}\}$
+      atribui as seguintes probabilidades condicionais para cada posição
+      da sequência \textit{``o~gato~correu''}:
+
+\begin{center}
+\begin{tabular}{lrrr}
+  \toprule
+  \textbf{Token}
+    & $P(w_1)$
+    & $P(w_2\mid w_1)$
+    & $P(w_3\mid w_{1:2})$ \\
+  \midrule
+  \texttt{o}       & \textbf{0.500} & 0.050 & 0.050 \\
+  \texttt{gato}    & 0.150 & \textbf{0.250} & 0.100 \\
+  \texttt{correu}  & 0.150 & 0.300 & \textbf{0.125} \\
+  \texttt{leite}   & 0.100 & 0.150 & 0.375 \\
+  \texttt{bebeu}   & 0.050 & 0.150 & 0.250 \\
+  \texttt{fim}     & 0.050 & 0.100 & 0.100 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Os valores em \textbf{negrito} correspondem ao token observado em
+cada posição. Usando a definição
+\[
+  \mathrm{PPL}(w_1,\ldots,w_N)
+    = \exp\!\left(-\frac{1}{N}\sum_{t=1}^{N}\ln P(w_t\mid w_{<t})\right),
+\]
+qual é a \textbf{perplexidade} do modelo nessa sequência?
+
+\begin{enumerate}[a)]
+    \item $\approx 3.4$
+    \item $4$
+    \item $8$
+    \item $64$
+\end{enumerate}
+
+\end{enumerate}
+
+
+
+% ============================================================
+\section*{Soluções}
+% ============================================================
+
+% --- Solução Q1 ---
+\subsection*{I — Resposta: (a)}
+Durante a fase de \emph{decode}, o KV-cache armazena os pares $K_j, V_j$ de todos
+os tokens já processados. Para gerar o token na posição~4, o modelo computa $K_4$
+e $V_4$ aplicando as projeções $W^K$ e $W^V$ ao embedding do novo token; os pares
+$K_1,V_1$, $K_2,V_2$ e $K_3,V_3$ são lidos diretamente do cache sem recálculo.
+Isso reduz o custo por passo de decodificação de $\mathcal{O}(n^2 d)$ (sem cache)
+para $\mathcal{O}(n d)$ (com cache), sendo essencial para geração eficiente em
+sequências longas.
+% ---
+
+% --- Solução Q2 ---
+\subsection*{II — Resposta: (c)}
+A temperatura escala os logits antes do softmax: $P_T(v) \propto \exp(z_v/T)$.
+Com $T \to 0$, apenas o maior logit contribui significativamente, equivalente ao
+$\arg\max$ (greedy decoding). Com $T > 1$, os logits são reduzidos em magnitude,
+tornando a distribuição mais uniforme e aumentando a diversidade das amostras.
+O gráfico confirma: $T{=}0.5$ (azul) concentra ${\approx}97.9\%$ em $v_1$;
+$T{=}2$ (verde) distribui $57.9\%$ em $v_1$ e o restante nos demais tokens.
+A opção~(a) inverte os efeitos. A opção~(b) confunde $T{=}0$ com distribuição
+uniforme. A opção~(d) é incorreta pois a temperatura altera as probabilidades
+relativas: a razão $P_T(v_i)/P_T(v_j) = e^{(z_i-z_j)/T}$ depende de $T$.
+% ---
+
+% --- Solução Q3 ---
+\subsection*{III — Resposta: (c)}
+A perplexidade ($\mathrm{PP} = \exp\!\bigl(-\tfrac{1}{N}\sum_{i=1}^{N}\log P(w_i)\bigr)$)
+não exige anotação humana e é eficiente de calcular, sendo amplamente usada como
+proxy de qualidade durante o desenvolvimento e treinamento. Sua limitação principal
+é a correlação imperfeita com tarefas downstream: modelos com perplexidade similar
+podem diferir substancialmente em benchmarks como MMLU ou GSM8k. O MMLU
+(Hendrycks et al., 2021) avalia conhecimento em 57 domínios via múltipla escolha,
+fornecendo uma medida interpretável de capacidades específicas; porém, por ser
+público e amplamente divulgado, suas questões podem aparecer no corpus de
+pré-treinamento (\emph{data contamination}), inflando artificialmente o desempenho
+reportado. A opção~(a) inverte o requisito de dados rotulados: perplexidade não os
+exige, o MMLU sim. A opção~(b) confunde dependência do tokenizador (perplexidade
+\emph{depende} do tokenizador) e atribui ao MMLU o foco matemático do GSM8k.
+A opção~(d) afirma falsamente que perplexidade baixa garante bom desempenho em
+qualquer tarefa downstream.
+% ---
+
+% --- Solução Q4 ---
+\subsection*{IV — Resposta: (a)}
+O tamanho do KV-cache por token é $2 \times G \times d_k \times L$ floats
+(2 tensores: K e V; $G$ grupos KV; $d_k$ dimensão por cabeça; $L$ camadas):
+\[
+  \text{GQA}\;(G{=}2):\quad 2 \times 2 \times 64 \times 32 = 8\,192\ \text{floats/token}.
+\]
+Com MHA ($G = H = 8$):
+\[
+  2 \times 8 \times 64 \times 32 = 32\,768\ \text{floats/token}.
+\]
+Razão: $32\,768 / 8\,192 = 4\times$, não $8\times$, pois $G{=}2$ reduz $H$ por
+um fator $H/G = 8/2 = 4$, não por $H = 8$. A opção~(d) corresponderia ao
+MQA ($G{=}1$), onde há apenas 1 par KV compartilhado.
+% ---
+
+% --- Solução Q5 ---
+\subsection*{V — Resposta: (b)}
+\[
+  \mathrm{RMS}(\mathbf{x})
+    = \sqrt{\frac{3^2 + 4^2}{2}}
+    = \sqrt{\frac{25}{2}}
+    = \sqrt{12.5}
+    \approx 3.536.
+\]
+\[
+  \mathrm{RMSNorm}(\mathbf{x})
+    = \left[\frac{3}{3.536},\;\frac{4}{3.536}\right]
+    \approx [0.849,\;1.131].
+\]
+A opção~(a) é o resultado do \emph{LayerNorm} ($\mu = 3.5$, $\sigma = 0.5$),
+que \textbf{subtrai a média} antes de normalizar; o RMSNorm não subtrai a média,
+por isso a segunda componente pode ser maior que~1. A opção~(c) seria a normalização
+pela norma $\ell_2$ ($\|\mathbf{x}\|_2 = 5 \Rightarrow [3/5,\,4/5] = [0.6,\,0.8]$);
+a opção~(d) divide pela média $\mu = 3.5$.
+% ---
+
+% --- Solução Q6 ---
+\subsection*{VI — Resposta: (b)}
+O \textbf{expert collapse} é um ciclo de reforço positivo: o especialista mais
+capaz recebe mais tokens $\to$ acumula mais gradiente $\to$ torna-se ainda melhor
+$\to$ atrai ainda mais tokens. Os demais especialistas recebem gradiente próximo
+de zero e nunca aprendem. A solução padrão é acrescentar uma perda auxiliar de
+balanceamento à loss principal:
+\[
+  \mathcal{L}_{\text{aux}} = \alpha\, E \sum_{i=1}^{E} f_i\, P_i,
+\]
+onde $f_i$ é a fração de tokens roteados ao especialista $i$ e $P_i$ é o score
+médio do router para esse especialista. Minimizar $\mathcal{L}_{\text{aux}}$
+incentiva distribuição uniforme entre especialistas (o Mixtral usa $\alpha=0.01$).
+% ---
+
+% --- Solução Q7 ---
+\subsection*{VII — Resposta: (c)}
+Na ReLU-FFN, $\max(0, z) = 0$ sempre que $z < 0$, independentemente do token
+de entrada; o corte é \emph{estático} e depende apenas do valor da ativação.
+Na SwiGLU, o portão $xW_3$ é um vetor computado a partir da entrada $x$: para
+cada token diferente, $xW_3$ produz valores distintos, de modo que o modelo
+\emph{aprende} dinamicamente quais dimensões do espaço de dimensão $d_\text{ff}$
+suprimir ou amplificar. Isso confere maior expressividade sem alterar a
+complexidade assintótica. A opção~(a) é parcialmente verdadeira (SwiGLU usa 3
+matrizes), mas isso \emph{aumenta} o custo computacional; a equivalência de
+parâmetros é mantida reduzindo $d_\text{ff}$ para $\tfrac{8}{3}\,d_\text{model}$.
+% ---
+
+% --- Solução Q8 ---
+\subsection*{VIII — Resposta: (b)}
+\textbf{Probabilidade de aceitação:}
+\[
+  \min\!\left(1,\;\frac{p(\tilde{x})}{q(\tilde{x})}\right)
+  = \min\!\left(1,\;\frac{0.30}{0.60}\right) = 0.50.
+\]
+\textbf{Distribuição de re-amostragem} (se $\tilde{x}$ for rejeitado),
+$p'(x) \propto \max\!\bigl(0,\, p(x) - q(x)\bigr)$:
+\begin{center}
+\begin{tabular}{lcccc}
+  \toprule
+  Token & $p$ & $q$ & $p - q$ & $p'$ (normalizado) \\
+  \midrule
+  $\tilde{x}$ & 0.30 & 0.60 & $-$0.30 & 0.00 \\
+  $\tilde{y}$ & 0.50 & 0.30 & $+$0.20 & $\approx$0.667 \\
+  $\tilde{z}$ & 0.20 & 0.10 & $+$0.10 & $\approx$0.333 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+$p'$ concentra a massa nos tokens onde $M_p$ supera $M_q$, garantindo que a
+distribuição final seja \textbf{idêntica} a amostrar diretamente de $M_p$,
+preservando a qualidade do modelo alvo por construção. A opção~(a) confunde
+``$p > 0$'' com ``aceitar sempre''; apenas $p \ge q$ garante aceitação com
+probabilidade~1.
+% ---
+
+% --- Solução Q9 ---
+\subsection*{IX — Resposta: (b)}
+A regra prática do Chinchilla estabelece $D^* \approx 20N$.
+Para $N = 8 \times 10^9$ parâmetros:
+\[
+  D^* = 20 \times 8 \times 10^9 = 160 \times 10^9\ \text{tokens}.
+\]
+O treinamento parou em $D = 80$B $< 160$B, portanto o modelo está
+\textbf{sub-treinado em dados}.
+
+Continuar até $D = 800$B ainda melhorará o modelo:
+a perda segue uma \textbf{lei de potência} $L(D) \propto D^{-\alpha_D}$
+($\alpha_D \approx 0.095$), de modo que ganhos existem além de $D^*$,
+mas são cada vez menores. Essa é a motivação por trás de modelos como o Llama~3 8B,
+treinado em ${\approx}15$T tokens (${\approx}1900 \times N^*$): do ponto de
+vista de \emph{inferência}, vale gastar mais no treinamento para obter
+um modelo menor e mais barato de implantar.
+
+As opções~(a) e~(d) erram a regra ($10N$ em vez de $20N$).
+A opção~(a) agrava o erro ao afirmar que a perda satura exatamente em $20 \times$, ela apenas \emph{diminui mais lentamente}, mas não para.
+A opção~(c) inverte a direção: com $D^* = 20N = 160$B, o modelo com
+$D = 80$B está \emph{abaixo}, não acima, do ótimo; além disso, LLMs
+não sofrem sobreajuste por excesso de dados, tipicamente quanto mais dados melhor.
+% ---
+
+% --- Solução Q10 ---
+\subsection*{X — Resposta: (b)}
+Com $k = 5$: $150 + 5 \times 200 + 200 = 1350 \le 2048$ tokens (cabe).
+Com $k = 10$: $150 + 10 \times 200 + 200 = 2350 > 2048$ tokens (excede a janela em
+$302$ tokens; o modelo precisaria truncar exemplares iniciais ou a geração, degradando a qualidade).
+A opção~(a) esquece o prompt de sistema ($150$) e a consulta ($200$), computando apenas
+$k \times 200 = 2000 < 2048$ e concluindo erroneamente que cabe.
+A opção~(c) confunde \textit{in-context learning} com \textit{fine-tuning}: o \textit{few-shot
+prompting} não atualiza nenhum peso: o modelo usa os exemplares apenas como contexto durante
+a inferência.
+A opção~(d) aplica indevidamente o conceito de \textit{overfitting} ao ICL: como não há
+atualização de gradiente, não há sobreajuste no sentido clássico; mais exemplares tendem a
+melhorar o desempenho até a janela de contexto ser atingida.
+% ---
+
+% --- Solução Q11 ---
+\subsection*{XI — Resposta: (b)}
+Com MQA há apenas $G = 1$ par $K,V$, compartilhado pelas $H = 8$ cabeças de query.
+O tamanho do KV-cache por token é $2 \times G \times d_k \times L$:
+\[
+  \text{MQA}\;(G{=}1):\quad 2 \times 1 \times 64 \times 32 = 4\,096\ \text{floats/token}.
+\]
+O MHA usa $G = H = 8$:
+\[
+  \text{MHA}\;(G{=}8):\quad 2 \times 8 \times 64 \times 32 = 32\,768\ \text{floats/token}.
+\]
+Razão: $32\,768\,/\,4\,096 = 8\times$. O MQA é, portanto, o caso extremo da família
+GQA com $G{=}1$, oferecendo a maior redução de cache ao custo de uma pequena queda
+de qualidade (comparado ao GQA com $G{=}2$, que reduz $4\times$ e preserva melhor
+a qualidade, ver questão~IV).
+% ---
+
+% --- Solução Q12 ---
+\subsection*{XII — Resposta: (c)}
+O \textbf{nucleus sampling} (Holtzman et al., 2020) define o núcleo como o menor
+conjunto de tokens cuja probabilidade acumulada atinge ou supera o limiar $p$.
+Com $p = 0.90$:
+\begin{itemize}
+  \item Após \texttt{o}: acum.\ $= 0.45 < 0.90$: insuficiente.
+  \item Após \texttt{um}: acum.\ $= 0.75 < 0.90$: insuficiente.
+  \item Após \texttt{este}: acum.\ $= 0.90 \ge 0.90$: limiar atingido.
+\end{itemize}
+O núcleo é $\{\texttt{o},\,\texttt{um},\,\texttt{este}\}$; suas probabilidades são
+re-normalizadas e o próximo token é amostrado desse conjunto. A opção~(d) inclui
+\texttt{seu} desnecessariamente, pois o limiar já foi satisfeito. A opção~(b) é o
+top-p com $p{=}0.75$. A diferença-chave entre top-$k$ e top-$p$ é que o nucleus
+adapta o tamanho do conjunto ao \emph{formato} da distribuição: se a distribuição
+for concentrada (e.g., $p_1 = 0.95$), o núcleo terá poucos tokens; se for difusa,
+terá muitos, comportamento mais robusto que um $k$ fixo.
+% ---
+
+% --- Solução Q13 ---
+\subsection*{XIII — Resposta: (b)}
+As probabilidades dos tokens observados são
+$P(\texttt{o}) = \tfrac{1}{2}$,\;
+$P(\texttt{gato}\mid\texttt{o}) = \tfrac{1}{4}$ e
+$P(\texttt{correu}\mid\texttt{o},\texttt{gato}) = \tfrac{1}{8}$.
+Aplicando a fórmula com $N = 3$:
+\[
+  \mathrm{PPL}
+    = \exp\!\left(-\frac{1}{3}\Bigl(
+        \ln\tfrac{1}{2} + \ln\tfrac{1}{4} + \ln\tfrac{1}{8}
+      \Bigr)\right)
+    = \exp\!\left(\frac{1 + 2 + 3}{3}\,\ln 2\right)
+    = \exp\bigl(2\ln 2\bigr)
+    = 2^2 = 4.
+\]
+\textbf{Análise das alternativas incorretas:}
+\begin{itemize}
+  \item \emph{(a) $\approx 3.4$}: surge ao usar a média \emph{aritmética}
+        das probabilidades $(0.5 + 0.25 + 0.125)/3 \approx 0.292$
+        e tomar o seu inverso; a perplexidade equivale à média
+        \emph{geométrica} dos inversos, via $\exp(-\bar{\ell})$,
+        não à média aritmética.
+  \item \emph{(c) $= 8$}: corresponde a $1/P(w_3) = 1/0.125 = 8$,
+        considerando apenas o token de maior surpresa e ignorando as
+        demais posições.
+  \item \emph{(d) $= 64$}: resultado de esquecer a normalização $1/N$:
+        $\exp\!\bigl(-(\ln\tfrac{1}{2}+\ln\tfrac{1}{4}+\ln\tfrac{1}{8})\bigr)
+        = 2^6 = 64$.
+\end{itemize}
+% ---
+
+\end{document}
+
+

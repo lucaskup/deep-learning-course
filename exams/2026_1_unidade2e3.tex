@@ -1,0 +1,250 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidades 2 e 3}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (5 x 1.2 = 6.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (6.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ numerical — receptive field (CNN) ----------
+\item (1.2) Considere uma CNN com três camadas convolucionais em sequência, todas \textbf{sem} \textit{padding}. A camada 1 usa \textit{kernel} $3\times 3$ com \textit{stride} $S_1 = 1$; a camada 2 usa \textit{kernel} $3\times 3$ com \textit{stride} $S_2 = 2$; a camada 3 usa \textit{kernel} $3\times 3$ com \textit{stride} $S_3 = 1$. Qual o campo receptivo (lado, em \textit{pixels}) de uma unidade na saída da camada 3?
+\begin{enumerate}[a)]
+    \item $5$
+    \item $6$
+    \item $7$
+    \item $9$
+    \item $11$
+    \item $13$
+    \item $15$
+    \item $17$
+\end{enumerate}
+
+%% ---------- Q2: OBJ-D architectural-purpose recall — batch norm in residual blocks ----------
+\item (1.2) Em redes residuais, a soma $h = x + f(x)$ tende a aumentar a variância das ativações ao longo da profundidade. Qual o principal objetivo de inserir \textit{batch normalization} dentro dos blocos residuais?
+\begin{enumerate}[a)]
+    \item Reduzir o número de parâmetros treináveis do bloco, já que os parâmetros $\gamma$ e $\beta$ substituem os pesos das convoluções internas do bloco.
+    \item Substituir a conexão de atalho (\textit{skip connection}), tornando a soma $h = x + f(x)$ desnecessária e reduzindo o número de caminhos de gradiente da rede.
+    \item Normalizar a distribuição das ativações dentro do bloco, controlando o crescimento da variância introduzido pela soma e mantendo o treino estável em grande profundidade.
+    \item Atuar como a única não-linearidade do bloco, dispensando funções de ativação como a ReLU entre as convoluções que compõem $f(x)$.
+    \item Aumentar o campo receptivo das unidades do bloco sem acrescentar parâmetros, de forma análoga ao efeito de uma convolução dilatada.
+    \item Garantir matematicamente que cada bloco aprenda exatamente o mapeamento identidade $f(x) = 0$, independentemente dos dados de treino.
+    \item Eliminar a necessidade de inicialização cuidadosa dos pesos, pois fixa a variância dos pesos em $2/n_{\text{in}}$ como na inicialização de He.
+    \item Servir de regularizador que memoriza as estatísticas do conjunto de teste para acelerar a convergência durante a inferência.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-C scenario diagnostic — vanishing gradient in RNN ----------
+\item (1.2) Você treina uma RNN \textit{vanilla} (ativação $\tanh$ nas conexões recorrentes) para classificar sequências longas (cerca de 200 passos). O treino fica estagnado com erro alto; ao inspecionar, os gradientes da função de custo em relação aos pesos associados aos \textbf{primeiros} passos da sequência são praticamente nulos, enquanto os dos \textbf{últimos} passos têm magnitude normal. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+\begin{enumerate}[a)]
+    \item O otimizador SGD é o único responsável; trocá-lo por Adam, sem nenhuma outra mudança, é suficiente para que os gradientes dos passos iniciais deixem de ser nulos.
+    \item O problema é de explosão de gradiente; aplicar \textit{gradient clipping} aos gradientes dos primeiros passos restaura o sinal de aprendizado que chega a esses passos.
+    \item A taxa de aprendizado está baixa demais para os passos iniciais; usar uma taxa por passo, maior no início da sequência, compensa o desequilíbrio observado entre os passos.
+    \item A rede está em \textit{overfitting} nos passos finais; reduzir o comprimento das sequências para poucos passos elimina o problema sem necessidade de trocar a arquitetura.
+    \item A ativação $\tanh$ é a causa direta; substituí-la por sigmoide nas conexões recorrentes aumenta as derivadas e resolve o desaparecimento do gradiente nos passos iniciais.
+    \item Os gradientes desaparecem: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1 - \tanh^2(z_k))$ ao longo de muitos passos e, como têm módulo $\le 1$, o sinal decai nos passos iniciais; a mitigação é usar arquitetura com portões (LSTM/GRU).
+    \item A camada de saída está mal escolhida; trocá-la por \textit{softmax} com entropia cruzada propaga gradiente igualmente para todos os passos, eliminando o decaimento.
+    \item Há \textit{dropout} insuficiente nos primeiros passos; adicioná-lo aumenta a magnitude do gradiente que chega a eles e compensa o decaimento multiplicativo da retropropagação.
+\end{enumerate}
+
+%% ---------- Q4: OBJ-B I/II/III analysis — LSTM/GRU gates ----------
+\item (1.2) Sobre as asserções abaixo a respeito de células LSTM:
+
+\textbf{I.} Na LSTM, a atualização da memória $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ combina a memória anterior (modulada pelo \textit{forget gate}) com o novo candidato (modulado pelo \textit{input gate}); o caminho de $c_{t-1}$ para $c_t$ é predominantemente aditivo, o que ajuda a preservar o gradiente ao longo do tempo.
+
+\textbf{II.} Na LSTM, o \textit{forget gate} $f_t$ e o \textit{input gate} $i_t$ são sempre acoplados pela restrição $i_t = 1 - f_t$, de modo que a fração esquecida da memória anterior é exatamente a fração escrita pelo novo candidato.
+
+\textbf{III.} O estado oculto da LSTM é obtido como $h_t = o_t \odot \tanh(c_t)$; portanto o \textit{output gate} $o_t$ controla qual parte da memória é exposta como saída no passo $t$.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q5: OBJ — beam vs greedy decoding (LM) ----------
+\item (1.2) A árvore abaixo mostra a expansão de hipóteses de um modelo de linguagem ao completar a frase iniciada pelo \textit{token} ``O'': cada aresta indica a probabilidade condicional do próximo \textit{token} e os nós do segundo nível representam as duas continuações mais prováveis de cada hipótese. Considere decodificação com \textit{beam search} de largura $b = 2$ em contraste com \textit{greedy search}. Com base na figura, qual a análise correta?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth,
+    every node/.style={font=\small},
+    level 1/.style={level distance=1.6cm, sibling distance=4.6cm},
+    level 2/.style={level distance=1.6cm, sibling distance=1.9cm},
+    level 3/.style={level distance=1.5cm},
+    tok/.style={draw, rounded corners, minimum size=0.7cm, inner sep=3pt},
+    eos/.style={draw, rounded corners, minimum size=0.7cm, inner sep=3pt, font=\footnotesize\ttfamily},
+    plabel/.style={font=\footnotesize, fill=white, inner sep=1.5pt}]
+\node[tok] {O}
+    child { node[tok] {céu}
+        child { node[tok] {azul}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, left] {$0.40$} }
+        child { node[tok] {limpo}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, right] {$0.35$} }
+        edge from parent node[plabel, above left] {$0.50$} }
+    child { node[tok] {sol}
+        child { node[tok] {brilha}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, left] {$0.90$} }
+        child { node[tok] {ilumina}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, right] {$0.05$} }
+        edge from parent node[plabel, left] {$0.45$} }
+    child { node[tok] {mar}
+        child { node[tok] {calmo}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, left] {$0.95$} }
+        child { node[tok] {profundo}
+            child { node[eos] {\textless EOS\textgreater} edge from parent node[plabel, right] {$1.00$} }
+            edge from parent node[plabel, right] {$0.03$} }
+        edge from parent node[plabel, above right] {$0.05$} };
+\end{tikzpicture}
+\end{center}
+\begin{enumerate}[a)]
+    \item O \textit{greedy} escolhe ``O sol brilha'' ($0.405$) e o \textit{beam search} escolhe ``O céu azul'' ($0.20$); as duas estratégias trocam de papel neste exemplo específico.
+    \item Tanto o \textit{greedy} quanto o \textit{beam search} selecionam ``O céu azul'', pois ``céu'' tem a maior probabilidade no primeiro passo ($0.50$) e nenhuma das duas chega a expandir ``sol''.
+    \item ``O sol brilha'' é selecionada porque ``sol'' mantém a maior probabilidade em cada passo isolado; nesse exemplo o \textit{greedy} e o \textit{beam search} coincidem na escolha.
+    \item ``O céu azul'' vence no \textit{beam search}, pois $0.50 \times 0.40 = 0.20$ é maior que $0.45 \times 0.90$; o \textit{greedy} e o \textit{beam} concordam nessa escolha.
+    \item O \textit{beam search} maximiza a soma das probabilidades ($0.45 + 0.90 = 1.35$) e por isso escolhe ``O sol brilha''; o produto das probabilidades da sequência não é levado em conta.
+    \item ``O mar calmo'' é selecionada, pois o \textit{beam search} prioriza \textit{tokens} de baixa probabilidade no primeiro passo para aumentar a diversidade da geração.
+    \item ``O sol brilha'' é selecionada: sua probabilidade conjunta ($0.45 \times 0.90 = 0.405$) supera as demais; o \textit{greedy} compromete-se com ``céu'' por ser localmente mais provável e perde a melhor sequência.
+    \item Nenhuma sequência pode ser escolhida sem antes normalizar pela penalidade de comprimento, pois sem normalização as probabilidades conjuntas das sequências não são comparáveis.
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions  (4.0 pts)
+%% =============================================================
+\pagebreak
+\section*{Questões Dissertativas (4.0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{5}
+
+%% ---------- Q6: DISS-A T/F with non-trivial modification ----------
+\item (2.0) Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+
+\begin{enumerate}[a)]
+    \item ( )\,V \quad ( )\,F \quad Uma camada convolucional com \textit{kernel} $5 \times 5$, \textit{stride} $1$ e \textit{padding} $1$ preserva as dimensões espaciais $H \times W$ da entrada.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Na derivada da saída de um bloco residual em relação à sua entrada surge um termo identidade $I$; esse termo cria um caminho direto para o gradiente, o que ajuda a mitigar o desaparecimento do gradiente em redes profundas.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Durante a inferência, a \textit{batch normalization} normaliza cada ativação usando a média e o desvio padrão calculados sobre o próprio \textit{mini-batch} de teste em que a amostra se encontra.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Um modelo de linguagem que atribui probabilidade \emph{uniforme} sobre um vocabulário de tamanho $|V|$ a cada passo tem perplexidade igual a $1$.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Na LSTM, quando o \textit{forget gate} $f_t \to 1$ e o \textit{input gate} $i_t \to 0$, a atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ reduz-se a $c_{t-1}$, ou seja, a memória anterior é mantida praticamente inalterada.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q7: DISS-B forward / BPTT / SGD update (RNN) ----------
+\item (2.0) Considere a RNN \textit{vanilla} \textbf{escalar} desdobrada abaixo, com ativação $\tanh$ no estado oculto e saída linear. Os pesos (todos escalares) são $\theta_{ih} = 0.5$, $\theta_{hh} = 0.2$ e $\theta_{ho} = 1.0$, com vieses $b_h = 0$ e $b_o = 0$. A sequência de entrada é $x_1 = 1$, $x_2 = 1$, o estado inicial é $h_0 = 0$ e a saída esperada (no passo $2$) é $y = 1$. A recorrência é $h_t = \tanh(x_t\,\theta_{ih} + h_{t-1}\,\theta_{hh})$, a saída é $\hat{y}_2 = h_2\,\theta_{ho}$ e a função de custo é $J = \tfrac{1}{2}(y - \hat{y}_2)^2$. Pode arredondar para $4$ casas decimais.
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+    \node[circle, draw] (x1) at (0, -1.4) {$x_1$};
+    \node[circle, draw] (h1) at (0, 0)    {$h_1$};
+    \node[circle, draw] (x2) at (3, -1.4) {$x_2$};
+    \node[circle, draw] (h2) at (3, 0)    {$h_2$};
+    \node[circle, draw] (y)  at (6, 0)    {$\hat{y}_2$};
+    \node (h0) at (-2.4, 0) {$h_0 = 0$};
+    \draw[->] (h0) -- node[above]{$\theta_{hh}$} (h1);
+    \draw[->] (x1) -- node[right]{$\theta_{ih}$} (h1);
+    \draw[->] (h1) -- node[above]{$\theta_{hh}$} (h2);
+    \draw[->] (x2) -- node[right]{$\theta_{ih}$} (h2);
+    \draw[->] (h2) -- node[above]{$\theta_{ho}$} (y);
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item (0.5) Compute o \textit{forward pass} e indique os valores de $h_1$, $h_2$ e $\hat{y}_2$.
+    \vspace{2.2cm}
+
+    \item (0.5) Compute o valor da função de custo $J$.
+    \vspace{1.6cm}
+
+    \item (0.5) Compute os gradientes $\dfrac{\partial J}{\partial \theta_{ho}}$, $\dfrac{\partial J}{\partial \theta_{ih}}$ e $\dfrac{\partial J}{\partial \theta_{hh}}$.
+    \vspace{3.2cm}
+
+    \item (0.5) Realize uma atualização dos três parâmetros usando descida de gradiente estocástica $\theta_{t+1} = \theta_t - \eta\,\nabla_\theta J$ com taxa de aprendizado $\eta = 0.1$.
+    \vspace{2cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

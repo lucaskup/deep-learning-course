@@ -1,0 +1,195 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova G2, Unidades 1 a 3}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 \\\hline
+e & d & d & g & a & f & c & f \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+Leitura das curvas: \textbf{A} sobe após uma queda inicial, ou seja, o custo diverge, comportamento típico de $\eta$ muito alta. \textbf{B} cai rápido mas passa a oscilar em torno de um patamar acima do mínimo: os passos são grandes demais para entrar no vale, $\eta$ alta. \textbf{C} decai de forma suave e estabiliza em valor baixo: $\eta$ adequada. \textbf{D} decai quase linearmente e muito devagar: $\eta$ muito baixa.
+
+Os erros embutidos nas demais alternativas se agrupam em três confusões: tratar a oscilação de B como se fosse convergência ($\eta$ adequada), ou como divergência (alternativas (a), (b) e (h)); tratar o declínio lento e constante de D como se fosse o regime adequado, quando na prática o treino não converge em tempo útil (alternativas (d) e (g)); e inverter divergência com lentidão, associando a curva ascendente A a $\eta$ pequena (alternativas (c) e (f)). Os sinais de cada regime são: divergência = custo crescente; $\eta$ alta = oscilação em patamar; adequada = queda suave até valor baixo; muito baixa = queda lenta quase linear.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (d)}
+Com a codificação $\pm 1$ e viés $\theta_0$, basta avaliar $z = \theta_0 + \theta_1 X_1 + \theta_2 X_2$ nas quatro combinações de entrada. Para $(\theta_0, \theta_1, \theta_2) = (1, 1, 1)$:
+\[
+(-1,-1)\!: z = -1 \Rightarrow \hat{y} = -1; \quad
+(+1,-1)\!: z = 1 \Rightarrow +1; \quad
+(-1,+1)\!: z = 1 \Rightarrow +1; \quad
+(+1,+1)\!: z = 3 \Rightarrow +1,
+\]
+exatamente a tabela-verdade do OR: falso apenas quando as duas entradas são falsas. Geometricamente, a fronteira $X_1 + X_2 = -1$ separa o ponto $(-1,-1)$ dos outros três.\\
+\textbf{(a)} $(-3, 1, 1)$ dá $z < 0$ em todas as combinações: a saída é constante em $-1$ (sempre falso).
+\textbf{(b)} $(-1, -1, -1)$ implementa o NOR: responde $+1$ apenas em $(-1,-1)$.
+\textbf{(c)} $(-1, 1, 1)$ implementa o AND: exige as duas entradas em $+1$; é o erro clássico de deslocar a fronteira para o lado errado.
+\textbf{(e)} $(1, 1, -1)$ implementa $X_1 \lor \lnot X_2$: falha em $(-1, +1)$.
+\textbf{(f)} $(1, -1, -1)$ implementa o NAND: responde $-1$ em $(+1,+1)$.
+\textbf{(g)} $(-1, 1, -1)$ implementa $X_1 \land \lnot X_2$: responde $+1$ apenas em $(+1,-1)$.
+\textbf{(h)} $(3, 1, 1)$ dá $z > 0$ em todas as combinações: a saída é constante em $+1$ (sempre verdadeiro).
+
+\subsection*{Questão 3 \textemdash{} Resposta: (d)}
+Primeira iteração:
+\[
+v_1 = 0{,}5 \cdot 0 + 0{,}5 \cdot 4 = 2, \qquad \theta_1 = 1 - 0{,}1 \cdot 2 = 0{,}8.
+\]
+Segunda iteração:
+\[
+v_2 = 0{,}5 \cdot 2 + 0{,}5 \cdot 2 = 2, \qquad \theta_2 = 0{,}8 - 0{,}1 \cdot 2 = 0{,}6.
+\]
+\textbf{(a)} $0{,}2$ resulta de omitir o fator $(1-\beta)$ (convenção Polyak/PyTorch, $v_{t+1} = \beta v_t + \nabla\mathcal{L}$), que não é a formulação dada no enunciado.
+\textbf{(b)} $0{,}4$ é o resultado de SGD puro, ignorando o acumulador de \textit{momentum}.
+\textbf{(c)} $0{,}5$ resulta de aplicar $(1-\beta)$ apenas na primeira iteração ($v_2 = 0{,}5\cdot 2 + 2 = 3$).
+\textbf{(e)} $0{,}7$ corresponde a um único passo com o gradiente médio ($\theta = 1 - 0{,}1 \cdot 3$).
+\textbf{(f)} $0{,}8$ é o valor de $\theta_1$, apenas uma iteração.
+\textbf{(g)} $1{,}0$ assume que o \textit{momentum} se anula e $\theta$ volta ao valor inicial, o que não ocorre: os gradientes têm o mesmo sinal.
+\textbf{(h)} $1{,}4$ resulta de somar em vez de subtrair as atualizações (subida de gradiente).
+
+\subsection*{Questão 4 \textemdash{} Resposta: (g)}
+Preenchimento correto: (1) IoU; (2) semântica; (3) o \textit{backbone} convolucional.
+
+\textbf{Lacuna (1):} IoU ($\frac{A \cap B}{A \cup B}$) é a métrica geométrica padrão para comparar \textit{bounding boxes}. Entropia cruzada é uma função de custo de classificação, não uma métrica de sobreposição espacial; alternativas (a), (c), (e) e (h) cometem essa troca.
+
+\textbf{Lacuna (2):} atribuir classe a cada \textit{pixel} sem separar objetos individuais é segmentação \textbf{semântica}; a segmentação \textbf{de instâncias} adicionalmente distingue cada objeto (dois gatos lado a lado recebem rótulos diferentes). Alternativas (b), (c), (f) e (h) confundem as duas tarefas.
+
+\textbf{Lacuna (3):} com poucos dados, congela-se o \textit{backbone} convolucional pré-treinado (extrator de características genéricas) e treina-se apenas a cabeça densa para as novas classes. Congelar a cabeça e treinar o \textit{backbone}, como em (d), (e) e (f), inverte a lógica: destruiria os filtros genéricos e treinaria milhões de parâmetros com poucos exemplos.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (a)}
+\textbf{I é verdadeira:} o fenômeno descrito é o problema da degradação (He et al.): ao empilhar mais camadas sem atalhos residuais, a rede mais profunda apresenta erro \textbf{maior} que a rasa equivalente já no conjunto de treino; portanto não se trata de falha de generalização, e sim de dificuldade de otimização (em parte explicada pelos gradientes quebrados/dissipados em composições profundas).
+
+\textbf{II é verdadeira e justifica I:} o sintoma do \textit{overfitting} é erro de treino baixo com erro de validação alto. Como na degradação o erro já é alto no treino, o diagnóstico de \textit{overfitting} fica logicamente excluído, que é exatamente o argumento que sustenta I. As conexões residuais atacam esse problema criando caminhos aditivos pelos quais gradiente e identidade fluem.\\
+\textbf{(b)} a relação causal existe: II é precisamente o critério que exclui \textit{overfitting}.
+\textbf{(c)} inverte a direção da justificativa: I é a conclusão, II é o critério que a fundamenta.
+\textbf{(d)/(f)/(h)} negam a asserção II, que é a definição usual dos dois padrões de erro.
+\textbf{(e)} nega a asserção I, que é o resultado empírico central que motivou as ResNets.
+\textbf{(g)} a degradação foi observada mesmo em redes com \textit{batch normalization}; a condição inventada não existe.
+\textbf{(h)} o otimizador usado não altera a definição de \textit{overfitting} nem o fato empírico de I.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (f)}
+Saltos abruptos no custo com norma de gradiente na ordem de $10^{6}$ e \texttt{NaN} são sintomas de \textbf{explosão de gradiente}: a retropropagação no tempo multiplica fatores $\theta_{hh}(1-\tanh^2(z_k))$ por passo e, quando esses fatores têm módulo maior que $1$, o produto cresce exponencialmente com o comprimento da sequência. A mitigação padrão é o \textit{clipping} por norma, $g \leftarrow c\,g/\|g\|$ quando $\|g\| > c$, que limita o tamanho do passo \textbf{preservando a direção} do gradiente.\\
+\textbf{(a)} diagnostica dissipação, mas norma $10^{6}$ indica o problema oposto; e a LSTM não impede explosão por si só.
+\textbf{(b)} \textit{batch} menor \emph{aumenta} a variância do gradiente, agravando os saltos.
+\textbf{(c)} inverte a propriedade: é o \textit{clipping} por \emph{norma} que preserva a direção; o por valor distorce o vetor componente a componente.
+\textbf{(d)} \textit{overfitting} não produz saltos de custo nem \texttt{NaN}; \textit{dropout} não limita a norma do gradiente.
+\textbf{(e)} ReLU é ilimitada superiormente; nas conexões recorrentes tende a \emph{piorar} o crescimento das ativações e dos gradientes.
+\textbf{(g)} o \texttt{NaN} é consequência numérica do \textit{overflow} causado pela explosão, não um defeito do \textit{framework}; trocar a semente não remove a causa.
+\textbf{(h)} \textit{teacher forcing} e viés de exposição dizem respeito à discrepância treino/inferência na geração, não à norma do gradiente.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (c)}
+Associação correta: \textbf{1-(ii)} o \textit{greedy} escolhe o \textit{token} de maior probabilidade condicional a cada passo, de forma determinística; \textbf{2-(i)} o \textit{beam search} mantém as $b$ hipóteses de maior probabilidade conjunta; \textbf{3-(iii)} com $\tau \to 0^{+}$ a \textit{softmax} com temperatura concentra toda a massa no \textit{token} de maior \textit{logit}, tornando a amostragem equivalente ao argmax; \textbf{4-(iv)} o Top-P amostra do menor conjunto de \textit{tokens} cuja probabilidade acumulada atinge $p$.
+
+Erros agrupados por troca: \textbf{(a)} troca temperatura com Top-P, confundindo os dois mecanismos de restrição da amostragem; \textbf{(b)} e \textbf{(g)} trocam \textit{greedy} com temperatura, sem perceber que (ii) descreve o mecanismo do \textit{greedy} e (iii) descreve um comportamento-limite; \textbf{(d)} e \textbf{(f)} trocam \textit{greedy} com \textit{beam search}, ignorando que só o \textit{beam} raciocina sobre probabilidade \emph{conjunta}; \textbf{(e)} e \textbf{(h)} associam Top-P ao \textit{beam search} ou ao \textit{greedy}, confundindo manter hipóteses paralelas com restringir o suporte da amostragem.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (f)}
+\textit{Scores} de produto escalar:
+\[
+\mathrm{score}(h_t, s_1) = 1 \cdot 2 + 1 \cdot 2 = 4, \qquad
+\mathrm{score}(h_t, s_2) = 1 + 1 = 2, \qquad
+\mathrm{score}(h_t, s_3) = 0 - 1 = -1.
+\]
+\textit{Softmax} sobre os \textit{scores} ($e^{4} \approx 54{,}60$, $e^{2} \approx 7{,}39$, $e^{-1} \approx 0{,}37$):
+\[
+a_1^{(t)} = \frac{e^{4}}{e^{4} + e^{2} + e^{-1}} \approx \frac{54{,}60}{54{,}60 + 7{,}39 + 0{,}37} = \frac{54{,}60}{62{,}36} \approx 0{,}876.
+\]
+\textbf{(a)} $0{,}006$ é o peso $a_3^{(t)}$ ($0{,}37/62{,}36$), não o pedido.
+\textbf{(b)} $0{,}118$ é o peso $a_2^{(t)}$ ($7{,}39/62{,}36$), não o pedido.
+\textbf{(c)} $0{,}333$ assume pesos uniformes ($1/3$), ignorando os \textit{scores}.
+\textbf{(d)} $0{,}571$ normaliza os módulos dos \textit{scores} ($4/7$) em vez de aplicar a exponencial.
+\textbf{(e)} $0{,}800$ normaliza os \textit{scores} brutos ($4/(4+2-1)$) sem a exponencial da \textit{softmax}.
+\textbf{(g)} $0{,}881$ esquece $s_3$ no denominador ($54{,}60/(54{,}60+7{,}39)$); \textit{scores} negativos também entram na \textit{softmax}.
+\textbf{(h)} $0{,}982$ aplica a sigmoide ao \textit{score} $4$ em vez da \textit{softmax} sobre os três \textit{scores}.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 9 \textemdash{} Passo de LSTM à mão}
+
+Dados: $[h_0, x_1] = [0{,}4,\ 0{,}5]$, $c_0 = -0{,}2$.
+
+\textbf{(a)} Portões, candidato e estado de célula:
+\begin{align*}
+    f_1 &= \sigma(0{,}5 \cdot 0{,}4 + (-0{,}4) \cdot 0{,}5 + 0{,}2) = \sigma(0{,}2) \approx 0{,}5498 \\
+    i_1 &= \sigma((-0{,}3) \cdot 0{,}4 + 0{,}6 \cdot 0{,}5 - 0{,}1) = \sigma(0{,}08) \approx 0{,}5200 \\
+    \tilde{c}_1 &= \tanh(0{,}2 \cdot 0{,}4 + 0{,}8 \cdot 0{,}5 + 0) = \tanh(0{,}48) \approx 0{,}4462 \\
+    c_1 &= f_1 \cdot c_0 + i_1 \cdot \tilde{c}_1 \approx 0{,}5498 \cdot (-0{,}2) + 0{,}5200 \cdot 0{,}4462 \approx -0{,}1100 + 0{,}2320 = 0{,}1221
+\end{align*}
+
+\textbf{(b)} Porta de saída e estado oculto:
+\begin{align*}
+    o_1 &= \sigma(0{,}7 \cdot 0{,}4 + 0{,}1 \cdot 0{,}5 - 0{,}3) = \sigma(0{,}03) \approx 0{,}5075 \\
+    h_1 &= o_1 \cdot \tanh(c_1) \approx 0{,}5075 \cdot \tanh(0{,}1221) \approx 0{,}5075 \cdot 0{,}1215 \approx 0{,}0617
+\end{align*}
+
+\textit{Explicação esperada:} o caminho de $c_{t-1}$ para $c_t$ é aditivo e sua derivada é $\partial c_t / \partial c_{t-1} = f_t$; retropropagando por $T$ passos o gradiente carrega $\prod_k f_k$, e como a rede pode aprender a manter $f_k \approx 1$, esse produto não decai necessariamente com $T$, ao contrário da RNN \textit{vanilla}, cujo produto $\prod_k \theta_{hh}(1-\tanh^2(z_k))$ tende a zero (\textit{constant error carousel}).
+
+\subsection*{Questão 10 \textemdash{} MLP \textit{versus} convolução para imagens}
+
+\textbf{(a)} Camada totalmente conectada: a entrada achatada tem $64 \cdot 64 \cdot 3 = 12288$ componentes; com $256$ unidades,
+\[
+12288 \times 256 + 256 = 3\,145\,728 + 256 = 3\,145\,984 \text{ parâmetros}.
+\]
+Camada convolucional $3 \times 3$ com $3$ canais de entrada e $32$ filtros:
+\[
+3 \times 3 \times 3 \times 32 + 32 = 864 + 32 = 896 \text{ parâmetros},
+\]
+cerca de $3500$ vezes menos. Note que o total da convolução independe das dimensões espaciais $64 \times 64$ da imagem.
+
+\textbf{(b)} Duas propriedades (quaisquer duas, bem explicadas, valem o item):
+\begin{itemize}
+    \item \textbf{Compartilhamento de pesos:} o mesmo \textit{kernel} é aplicado em todas as posições da imagem, tornando a operação equivariante à translação: um padrão aprendido em um canto é reconhecido em qualquer outra posição sem parâmetros adicionais.
+    \item \textbf{Conectividade local:} cada unidade olha apenas para uma vizinhança pequena, explorando a coesão espacial das imagens (\textit{pixels} próximos são fortemente correlacionados), e o empilhamento de camadas amplia o campo receptivo de forma hierárquica.
+    \item (Também aceito) \textbf{Independência do tamanho da entrada:} o número de parâmetros depende só de \textit{kernel} e canais, permitindo aplicar a mesma camada a imagens de resoluções diferentes.
+\end{itemize}
+
+\color{black}
+
+\end{document}

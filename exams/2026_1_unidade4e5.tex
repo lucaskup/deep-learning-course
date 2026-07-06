@@ -1,0 +1,306 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidades 4 e 5}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1  & & & & & & & & \\\hline
+2  & & & & & & & & \\\hline
+3  & & & & & & & & \\\hline
+4  & & & & & & & & \\\hline
+5  & & & & & & & & \\\hline
+6  & & & & & & & & \\\hline
+7  & & & & & & & & \\\hline
+8  & & & & & & & & \\\hline
+9  & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1.0 = 10.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ====================== UNIDADE 4 (TRANSFORMERS) ======================
+
+%% ---------- Q1: dimensões na multi-head attention ----------
+\item (1.0) Uma entrada $X \in \mathbb{R}^{n \times d_{\text{model}}}$ com $n = 10$ \textit{tokens} e $d_{\text{model}} = 512$ passa por uma camada de \textit{multi-head self-attention} com $H = 8$ cabeças (logo $d_k = d_{\text{model}}/H$). Quais são, respectivamente, as dimensões de (i) $Q_i$ \emph{de uma cabeça}, (ii) da matriz de \textit{scores} $Q_i K_i^\top$ \emph{de uma cabeça}, e (iii) da saída final da camada (após concatenar as cabeças e aplicar $W_O$)?
+
+\begin{enumerate}[a)]
+    \item $Q_i$: $10 \times 512$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 64$; \quad $Q_i K_i^\top$: $64 \times 64$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 64$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $10 \times 64$.
+    \item $Q_i$: $64 \times 64$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 64$; \quad $Q_i K_i^\top$: $8 \times 8$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 64$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 8$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $Q_i$: $10 \times 64$; \quad $Q_i K_i^\top$: $10 \times 10$; \quad saída: $512 \times 512$.
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q2: contagem de parâmetros de um bloco Transformer ----------
+\item (1.0) Considere \textbf{um} bloco Transformer (esquematizado ao lado) com $d_{\text{model}} = 64$. A atenção é \textit{multi-head} com $H = 8$ cabeças e usa as quatro projeções $W_Q, W_K, W_V, W_O$, cada uma $64 \times 64$ \textbf{com viés}. A FFN expande para $d_{\text{ff}} = 256$ (ReLU, ambas as camadas \textbf{com viés}). Há dois \textit{LayerNorm}, cada um com parâmetros $\gamma$ e $\beta$ de dimensão $64$. Qual o número total de parâmetros \emph{treináveis} do bloco?
+
+\begin{center}
+\begin{minipage}[c]{0.54\linewidth}
+\centering
+\begin{tikzpicture}[>=stealth, font=\scriptsize,
+  box/.style={draw, rounded corners, minimum width=2.8cm, minimum height=0.4cm, inner sep=2pt},
+  op/.style={draw, circle, inner sep=0.5pt}]
+  \node (x) {entrada $x$};
+  \node[box, above=0.22cm of x]   (ln1) {LayerNorm};
+  \node[box, above=0.22cm of ln1] (mha) {Multi-Head Attention};
+  \node[op,  above=0.22cm of mha] (a1)  {$+$};
+  \node[box, above=0.22cm of a1]  (ln2) {LayerNorm};
+  \node[box, above=0.22cm of ln2] (ffn) {FFN (ReLU)};
+  \node[op,  above=0.22cm of ffn] (a2)  {$+$};
+  \node[above=0.22cm of a2] (out) {saída};
+  \draw[->] (x)--(ln1); \draw[->](ln1)--(mha); \draw[->](mha)--(a1);
+  \draw[->] (a1)--(ln2); \draw[->](ln2)--(ffn); \draw[->](ffn)--(a2); \draw[->](a2)--(out);
+  \draw[->] (x.east)  -- ++(1.6,0) |- (a1.east);
+  \draw[->] (a1.west) -- ++(-1.6,0) |- (a2.west);
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.42\linewidth}
+\begin{enumerate}[a)]
+    \item $49\,408$
+    \item $45\,824$
+    \item $49\,984$
+    \item $49\,152$
+    \item $33\,088$
+    \item $16\,640$
+    \item $49\,728$
+    \item $50\,240$
+\end{enumerate}
+\end{minipage}
+\end{center}
+
+%% ---------- Q3: multi-assertiva mecânica da atenção ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre \textit{self-attention}:
+
+\textbf{I.} O fator de escala $\sqrt{d}$ em $\mathrm{softmax}(QK^\top/\sqrt{d})V$ mantém a variância dos \textit{scores} em torno de $1$ (o produto escalar de vetores com componentes i.i.d.\ de variância $1$ tem variância $d$), evitando a saturação do \textit{softmax}.
+
+\textbf{II.} A operação de \textit{self-attention} ``crua'' (apenas $\mathrm{softmax}(QK^\top/\sqrt{d})V$, sem as projeções) não possui parâmetros treináveis.
+
+\textbf{III.} A \textit{self-attention} é permutação-equivariante; por isso é necessário acrescentar \textit{positional encoding} à entrada.
+
+\textbf{IV.} Dividir os \textit{scores} por $d$ (em vez de $\sqrt{d}$) também manteria a variância dos \textit{scores} em $1$.
+
+\textbf{V.} A máscara causal atribui o valor $0$ às posições futuras \emph{antes} do \textit{softmax}.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I, III e V estão corretas.
+    \item Apenas III, IV e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas I e II estão corretas.
+\end{enumerate}
+
+%% ---------- Q4: multi-assertiva complexidade / inferência / arquitetura ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre \textit{transformers}:
+
+\textbf{I.} A complexidade da \textit{self-attention} é $O(n^2 d)$ no comprimento de sequência $n$; portanto dobrar $n$ multiplica por aproximadamente $4$ o custo do termo de atenção.
+
+\textbf{II.} O \textit{KV-cache} reduz o custo de gerar cada novo \textit{token} de $O(n^2)$ para $O(n)$, ao preço de uma memória que cresce linearmente com o comprimento do contexto.
+
+\textbf{III.} Na \textit{cross-attention} de uma arquitetura \textit{encoder-decoder}, as \textit{queries} vêm do \textit{decoder} e as \textit{keys} e \textit{values} vêm do \textit{encoder}.
+
+\textbf{IV.} O \textit{positional encoding} sinusoidal de Vaswani et al.\ (2017) não possui parâmetros treináveis: é uma função fixa da posição.
+
+\textbf{V.} Aumentar o número de cabeças $H$ (mantendo $d_{\text{model}}$ fixo) aumenta o número total de parâmetros das projeções de atenção proporcionalmente a $H$.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, III e IV estão corretas.
+    \item Apenas II, III, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I, II, III e V estão corretas.
+    \item Apenas III e IV estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Todas as afirmações estão corretas.
+\end{enumerate}
+
+%% ---------- Q5: decodificação especulativa (aceitação estocástica) ----------
+\item (1.0) Na \textbf{decodificação especulativa}, o modelo de rascunho $M_q$ propõe $\gamma$ \textit{tokens} (probabilidades $q$) e o modelo alvo $M_p$ os verifica em um único passe (probabilidades $p$). Cada \textit{token} proposto $\tilde{x}$ é \textbf{aceito} com probabilidade $\min\!\left(1,\; p(\tilde{x})/q(\tilde{x})\right)$; se \textbf{rejeitado}, reamostra-se da distribuição normalizada $(p - q)_+ = \max(0,\, p - q)$ e \textbf{descartam-se todas as posições seguintes} do rascunho (se todos forem aceitos, amostra-se ainda $1$ \textit{token} extra de $M_p$). A tabela mostra os três \textit{tokens} mais prováveis de $M_q$ e de $M_p$ em cada uma das $\gamma = 5$ posições; o \textit{token} proposto é o primeiro da coluna $M_q$. Considere apenas os \textit{tokens} listados.
+
+\begin{center}
+\small
+\begin{tabular}{c|l|l}
+\textbf{Pos.} & \textbf{$M_q$ (rascunho): 3 mais prováveis} & \textbf{$M_p$ (alvo): 3 mais prováveis} \\ \hline
+1 & tem (0.60), há (0.15), possui (0.10)       & tem (0.90), possui (0.05), há (0.03) \\
+2 & uma (0.50), a (0.20), sua (0.10)           & uma (0.70), a (0.15), sua (0.08) \\
+3 & porta (0.80), janela (0.12), parede (0.05) & janela (0.70), porta (0.20), parede (0.05) \\
+4 & azul (0.40), branca (0.25), velha (0.15)   & azul (0.60), branca (0.20), velha (0.10) \\
+5 & grande (0.70), nova (0.15), bonita (0.08)  & nova (0.40), grande (0.35), bonita (0.10) \\
+\end{tabular}
+\end{center}
+
+Com base na regra acima, qual afirmação descreve corretamente a verificação?
+
+\begin{enumerate}[a)]
+    \item Todo \textit{token} proposto que aparece entre os três mais prováveis do alvo é aceito; logo apenas a posição $5$ pode ser rejeitada na verificação.
+    \item A posição $3$ é \emph{sempre} rejeitada (pois $p < q$): reamostra-se ``janela'' e descartam-se as posições $4$ e $5$ do rascunho.
+    \item A posição $3$ é aceita com probabilidade $p/q = 0.8/0.2 = 1$ (sempre), bastando o \textit{token} estar entre os mais prováveis do alvo.
+    \item As posições $1$ e $2$ são sempre aceitas ($p \ge q$); a posição $3$ ($p < q$) é aceita com probabilidade $p/q = 0.2/0.8 = 0.25$ e, se rejeitada, reamostrada de $(p-q)_+$ para ``janela'', descartando-se as posições $4$ e $5$.
+    \item As posições $1$ e $2$ podem ser rejeitadas com probabilidade $p/q$; a posição $3$, por ter $p < q$, é a única sempre aceita do conjunto.
+    \item Se rejeitada, a posição $3$ é reamostrada para ``porta'' (o \textit{token} do rascunho), e as posições $4$ e $5$ são reamostradas logo em seguida.
+    \item Como $p < q$ nas posições $3$ e $5$, ambas são reamostradas de forma independente, gerando ``janela'' e ``nova'', respectivamente.
+    \item Nenhuma posição pode ser aceita sem reamostragem, pois a regra de verificação exige que $p = q$ exatamente em cada posição.
+\end{enumerate}
+
+
+\pagebreak
+%% ====================== UNIDADE 5 (GERADORES) ======================
+
+%% ---------- Q6: cálculo numérico KL (VAE) ----------
+\item (1.0) Em um VAE com latente $D_z = 2$, o \textit{encoder} produz, para certa entrada, $\mu = (2,\; 0)$ e $\Sigma = \mathrm{diag}(0.5,\; 2)$. Usando a forma fechada
+\[
+  D_{KL}\!\left[\mathcal{N}(\mu,\Sigma)\,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\right),
+\]
+qual o valor de $D_{KL}$? (Note que $\det\Sigma = 1$.)
+
+\begin{enumerate}[a)]
+    \item $3.25$
+    \item $2.25$
+    \item $4.50$
+    \item $0.25$
+    \item $1.50$
+    \item $4.25$
+    \item $2.00$
+    \item $5.00$
+\end{enumerate}
+
+%% ---------- Q7: multi-assertiva VAE / ELBO / reparametrização ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre autoencoders e VAEs:
+
+\textbf{I.} A ELBO se decompõe como $\mathbb{E}_{q(z|x,\phi)}[\log p(x|z,\thetav)] - D_{KL}[q(z|x,\phi)\,\|\,p(z)]$ e é um limite \emph{inferior} de $\log p(x|\thetav)$.
+
+\textbf{II.} O \textit{reparametrization trick} ($z = \mu + \Sigma^{1/2}\epsilon$, com $\epsilon \sim \mathcal{N}(\mathbf{0},\mathbf{I})$) é necessário para permitir a retropropagação \emph{através} da amostragem do latente.
+
+\textbf{III.} No termo $\tfrac{1}{2}(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma)$, a parcela $-\log\det\Sigma$ cresce sem limite quando a variância do posterior tende a zero, penalizando o colapso do posterior a uma massa pontual.
+
+\textbf{IV.} Um autoencoder determinístico comum pode gerar novas amostras simplesmente amostrando $z \sim \mathcal{N}(\mathbf{0},\mathbf{I})$ e passando pelo \textit{decoder}, pois seu espaço latente já é gaussiano.
+
+\textbf{V.} A ELBO é um limite \emph{superior} de $\log p(x|\thetav)$, e a diferença para $\log p(x|\thetav)$ é $D_{KL}[q(z|x,\phi)\,\|\,p(z|x,\thetav)]$.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas I e II estão corretas.
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I, III e V estão corretas.
+    \item Apenas I, II, IV e V estão corretas.
+    \item Apenas III e IV estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas I, II e III estão corretas.
+\end{enumerate}
+
+%% ---------- Q8: cálculo affine coupling (normalizing flow) ----------
+\item (1.0) Uma camada \textit{affine coupling} de um \textit{normalizing flow} recebe $h = (h^A, h^B)$, copia $h^A$ e transforma $h^B$ por $y^B = h^B \odot \exp(\mathbf{s}) + \mathbf{t}$, onde $(\mathbf{s}, \mathbf{t})$ são produzidos por uma rede a partir de $h^A$. Para $h^B = (3,\; 4)$, $\mathbf{s} = (\ln 2,\; 0)$ e $\mathbf{t} = (1,\; -1)$, calcule $y^B$ e o log-determinante $\log\lvert\det J\rvert$ da camada.
+
+\begin{enumerate}[a)]
+    \item $y^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 2$.
+    \item $y^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 3$.
+    \item $y^B = (6,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+    \item $y^B = (7,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+    \item $y^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+    \item $y^B = (3,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = 0$.
+    \item $y^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 0$.
+    \item $y^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 0.5$.
+\end{enumerate}
+
+\pagebreak
+
+%% ---------- Q9: multi-assertiva GANs ----------
+\item (1.0) Avalie as cinco afirmações a seguir sobre GANs:
+
+\textbf{I.} O discriminador ótimo é $D^{*}(x) = \dfrac{P(x)}{P(x) + P^{*}(x)}$, em que $P$ é a densidade dos dados reais e $P^{*}$ a dos dados gerados.
+
+\textbf{II.} Sob o discriminador ótimo, a \emph{loss} do GAN equivale (a menos de uma constante aditiva) à divergência de Jensen--Shannon entre $P$ e $P^{*}$.
+
+\textbf{III.} A \emph{loss} não-saturante do gerador, $-\ln\sigma(f[\cdot])$, fornece gradiente útil mesmo quando o discriminador vence ($\sigma \to 0$), ao contrário da \emph{loss} original $\ln(1 - \sigma(f[\cdot]))$.
+
+\textbf{IV.} Quando os suportes de $P$ e $P^{*}$ são disjuntos, a divergência de Jensen--Shannon satura em seu valor máximo $\ln 2$ e o gradiente para o gerador desaparece.
+
+\textbf{V.} O \textit{mode collapse} ocorre porque o termo de cobertura da Jensen--Shannon gera um gradiente forte que força o gerador a cobrir as modas ignoradas.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, III e IV estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas II, III, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I e II estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas III, IV e V estão corretas.
+\end{enumerate}
+
+%% ---------- Q10: cálculo classifier-free guidance (difusão) ----------
+\item (1.0) Em um modelo difusor com \textit{classifier-free guidance}, a estimativa de ruído guiada é $\tilde{g}_t = (1 + w)\,g_t[z_t, c] - w\,g_t[z_t, \varnothing]$, com peso de guiamento $w \ge 0$, onde $g_t[z_t, c]$ é a predição \emph{condicionada} (ao \textit{prompt} $c$) e $g_t[z_t, \varnothing]$ a predição \emph{sem condição}. Para $g_t[z_t, c] = 2$, $g_t[z_t, \varnothing] = 0.5$ e $w = 3$, qual o valor de $\tilde{g}_t$?
+
+\begin{enumerate}[a)]
+    \item $6.5$
+    \item $5.0$
+    \item $4.0$
+    \item $8.0$
+    \item $6.0$
+    \item $4.5$
+    \item $2.0$
+    \item $0.5$
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

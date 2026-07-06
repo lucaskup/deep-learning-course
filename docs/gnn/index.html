@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Graph Neural Networks: message passing e receptive field, oversmoothing em uma GCN real, coeficientes de atenção em GAT e o teste de Weisfeiler-Lehman passo a passo." />
+  <title>Graph Neural Networks — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Message passing</a></li>
+      <li><a href="#s2">Oversmoothing</a></li>
+      <li><a href="#s3">Atenção (GAT)</a></li>
+      <li><a href="#s4">Teste 1-WL</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Graph <span>Neural Networks</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de GNNs</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: como o
+        <em>receptive field</em> de um nó cresce com o número de camadas de
+        message passing, por que empilhar camadas demais faz todos os
+        embeddings convergirem (<em>oversmoothing</em>), como os coeficientes
+        de atenção <span class="formula">α_{vu}</span> de uma GAT reagem ao
+        conteúdo dos embeddings, e o teste de Weisfeiler-Lehman
+        (<span class="formula">1-WL</span>) rodando passo a passo, incluindo o
+        par de grafos em que ele falha.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Message passing e receptive field ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Message passing e receptive field</h2>
+      <p class="demo-text">
+        Em uma GNN de <span class="formula">K</span> camadas, o embedding
+        <span class="formula">h_v</span> depende de todos os nós a até
+        <span class="formula">K</span> saltos de <span class="formula">v</span>:
+        é o <em>receptive field</em> do nó. <strong>Clique em um nó</strong>
+        para escolher o centro e mova o slider de camadas para ver até onde a
+        informação chega. Cada cor é uma distância em saltos.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">camadas K = <span id="s1-k-val">2</span>
+            <input type="range" id="s1-k" min="0" max="4" value="2" step="1" />
+          </label>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Clique em um nó para torná-lo o centro v; cores = distância em saltos</p>
+            <canvas id="s1-graph"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Este grafo tem diâmetro 5: com <span class="formula">K = 4</span>
+          quase todo nó já enxerga quase o grafo inteiro. É por isso que GCN/GAT
+          típicas usam 2 a 4 camadas, e não 50: depois que o receptive field
+          cobre o grafo, camadas extras só misturam informação repetida, o tema
+          da seção 2.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Oversmoothing ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Oversmoothing: uma GCN de verdade</h2>
+      <p class="demo-text">
+        Um grafo com duas comunidades. Cada nó começa com um atributo 2D que
+        indica sua comunidade (ciano vs laranja, com ruído) e aplicamos
+        <span class="formula">k</span> vezes a propagação da GCN,
+        <span class="formula">H ← D̃^{−1/2} Ã D̃^{−1/2} H</span> (a conta real,
+        sem pesos treináveis). A cor de cada nó é o seu embedding atual. Mova o
+        slider de profundidade e veja as cores convergirem.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">camadas k = <span id="s2-k-val">0</span>
+            <input type="range" id="s2-k" min="0" max="10" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s2-reseed" type="button">↺ Novo ruído</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Cor do nó = embedding após k camadas de propagação</p>
+            <canvas id="s2-graph"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Distância média entre pares de embeddings vs profundidade</p>
+            <canvas id="s2-dist"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">k = 2</span> as comunidades ainda são
+          separáveis (e a classificação seria fácil); com
+          <span class="formula">k = 10</span> a distância média entre embeddings
+          desaba e os nós ficam indistinguíveis. Esse é o trade-off central:
+          profundidade compra alcance, mas destrói a diversidade dos embeddings.
+          Mitigações nos slides: skip connections, Jumping Knowledge, DropEdge.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Atenção em GAT ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Coeficientes de atenção em GAT</h2>
+      <p class="demo-text">
+        O nó <span class="formula">v</span> tem três vizinhos. A GAT calcula um
+        score <span class="formula">e_u = LeakyReLU(a·[Wh_v ‖ Wh_u])</span> e
+        normaliza com softmax para obter <span class="formula">α_{vu}</span>.
+        <strong>Arraste os embeddings</strong> <span class="formula">Wh_u</span>
+        no plano à direita (ou gire a direção de atenção
+        <span class="formula">θ</span>) e veja a espessura das arestas mudar à
+        esquerda. O preset reproduz o exemplo numérico dos slides,
+        <span class="formula">α ≈ (0.51, 0.19, 0.31)</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">direção da atenção θ = <span id="s3-theta-val">0°</span>
+            <input type="range" id="s3-theta" min="-180" max="180" value="0" step="5" />
+          </label>
+          <button class="btn-ctl primary" id="s3-preset" type="button">↺ Preset dos slides</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Espessura da aresta ∝ α_{vu}: quem fala mais alto na agregação</p>
+            <canvas id="s3-graph"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Plano dos embeddings projetados Wh (arraste os pontos)</p>
+            <canvas id="s3-embed"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">θ = 0°</span> a atenção premia a primeira
+          coordenada: <span class="formula">u_1 = (1, 0)</span> domina. Gire
+          para <span class="formula">θ = 90°</span> e quem domina passa a ser
+          <span class="formula">u_2 = (0, 1)</span>. O vetor
+          <span class="formula">a</span> é aprendido no treino: é a tarefa que
+          define o que conta como <em>semelhança</em>. Na GCN esses pesos seriam
+          fixos, dados pelos graus.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Teste 1-WL ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · O teste de Weisfeiler-Lehman, passo a passo</h2>
+      <p class="demo-text">
+        O 1-WL recolore cada nó com um hash do próprio rótulo e do multiset dos
+        rótulos dos vizinhos, exatamente o padrão message-aggregate-update.
+        Se os multisets de cores dos dois grafos diferem, eles
+        <strong>não</strong> são isomorfos; se ficam iguais até estabilizar, o
+        teste é <strong>inconclusivo</strong>. Clique em
+        <em>iterar</em> e acompanhe as cores.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s4-preset-a" type="button">Caminho vs triângulo+pendente</button>
+          <button class="btn-ctl" id="s4-preset-b" type="button">Ciclo C₆ vs dois triângulos</button>
+          <button class="btn-ctl primary" id="s4-step" type="button">▶ Iterar 1-WL</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <div class="controls">
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">G₁ — multiset de cores: <span id="s4-ms1"></span></p>
+            <canvas id="s4-g1"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">G₂ — multiset de cores: <span id="s4-ms2"></span></p>
+            <canvas id="s4-g2"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 No primeiro preset uma única iteração separa os grafos (multisets
+          {A,A,B,B} vs {A,B,B,C}, como nos slides). No segundo, todo nó tem grau
+          2 e vê sempre o mesmo multiset: as cores nunca divergem e o 1-WL
+          <strong>falha</strong>, mesmo os grafos não sendo isomorfos. Como GIN
+          ≤ 1-WL, nenhuma GNN de message passing puro distingue C₆ de dois
+          triângulos: MPNNs não contam ciclos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Graph Neural Networks</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-message-passing.js"></script>
+  <script defer src="js/section2-oversmoothing.js"></script>
+  <script defer src="js/section3-attention.js"></script>
+  <script defer src="js/section4-wl-test.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

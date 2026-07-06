@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Positional Encoding: invariância a permutação da atenção, codificação sinusoidal posição × dimensão, produto interno PE_i·PE_j como função da distância relativa e a rotação 2D do RoPE." />
+  <title>Positional Encoding — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Permutação</a></li>
+      <li><a href="#s2">Sinusoidal</a></li>
+      <li><a href="#s3">Produto interno</a></li>
+      <li><a href="#s4">RoPE</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Positional <span>Encoding</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de positional encodings</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: por que a self-attention é
+        invariante a permutação (a frase “O gato sentou no tapete” embaralhada produz
+        as mesmas saídas sem PE), a codificação sinusoidal
+        <span class="formula">PE(i, 2k) = sin(i·ω<sub>k</sub>)</span>,
+        <span class="formula">PE(i, 2k+1) = cos(i·ω<sub>k</sub>)</span> com
+        <span class="formula">ω<sub>k</sub> = 10000<sup>−2k/d</sup></span>,
+        o produto interno <span class="formula">PE<sub>i</sub>·PE<sub>j</sub></span>
+        que depende apenas do offset <span class="formula">i − j</span>,
+        e o RoPE, que codifica posição rotacionando pares de dimensões de
+        <span class="formula">q</span> e <span class="formula">k</span> por um ângulo
+        <span class="formula">i·θ</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Atenção é invariante a permutação ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Atenção é invariante a permutação</h2>
+      <p class="demo-text">
+        O score de atenção visto em aula,
+        <span class="formula">score(i, j) = q<sub>i</sub><sup>⊤</sup>k<sub>j</sub> / √d</span>,
+        não depende dos índices <span class="formula">i</span> e
+        <span class="formula">j</span>, apenas dos valores dos vetores. Aqui usamos a
+        frase dos slides, “O gato sentou no tapete”, com os mesmos embeddings
+        <span class="formula">x<sub>i</sub></span> de dimensão
+        <span class="formula">d = 4</span> do cálculo manual. Embaralhe a frase e
+        compare a saída da atenção de cada palavra com a saída na ordem original:
+        sem PE elas são idênticas (a palavra só muda de lugar), com o PE sinusoidal
+        somado (<span class="formula">x<sub>i</sub> ← x<sub>i</sub> + PE(i)</span>)
+        cada posição vira uma representação única e a saída muda.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s1-tab-nope" type="button">Sem PE</button>
+            <button class="tab" id="s1-tab-pe" type="button">Com PE sinusoidal</button>
+          </div>
+          <button class="btn-ctl primary" id="s1-shuffle" type="button">🎲 Permutar frase</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Ordem original</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Matriz de atenção softmax(q<sub>i</sub><sup>⊤</sup>k<sub>j</sub>/√d) na ordem atual da frase</p>
+            <canvas id="s1-attn"></canvas>
+          </div>
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Saída da atenção por palavra (barras: ordem atual; traço: a mesma palavra na ordem original)</p>
+            <canvas id="s1-out"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Na aba <strong>Sem PE</strong>, permute a frase várias vezes: o readout mostra
+          Δ ≈ 0, a saída de “gato” é a mesma em qualquer posição, ou seja,
+          “O tapete sentou no gato” é indistinguível para o modelo. Troque para
+          <strong>Com PE sinusoidal</strong> e permute de novo: as barras se afastam dos
+          traços e Δ cresce, porque cada posição agora contribui com um vetor
+          PE(i) diferente. Note também como a matriz de atenção muda com a permutação
+          apenas no caso com PE.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: PE sinusoidal ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · A codificação sinusoidal</h2>
+      <p class="demo-text">
+        Cada posição <span class="formula">i</span> recebe um vetor de
+        <span class="formula">d</span> valores: a dimensão par
+        <span class="formula">2k</span> usa
+        <span class="formula">sin(i·ω<sub>k</sub>)</span> e a ímpar
+        <span class="formula">2k+1</span> usa
+        <span class="formula">cos(i·ω<sub>k</sub>)</span>, mesma frequência com
+        defasagem de 90°. A base 10000 em
+        <span class="formula">ω<sub>k</sub> = 10000<sup>−2k/d</sup></span> cria um
+        espectro de frequências: low-k (índice pequeno) oscila rápido e codifica posição
+        fina, high-k (índice grande) quase não se move e codifica posição grosseira,
+        o análogo contínuo da contagem binária vista em aula. Escolha
+        <span class="formula">k</span> para destacar um par de dimensões no heatmap e
+        ver suas curvas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">d = <span id="s2-d-val">32</span>
+            <input type="range" id="s2-d" min="4" max="64" value="32" step="2" />
+          </label>
+          <label class="slider-label">L = <span id="s2-len-val">60</span>
+            <input type="range" id="s2-len" min="16" max="120" value="60" step="1" />
+          </label>
+          <label class="slider-label">k = <span id="s2-k-val">0</span>
+            <input type="range" id="s2-k" min="0" max="15" value="0" step="1" />
+          </label>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Matriz PE(i, dim): posição no eixo x, dimensão no eixo y (retângulo: par 2k, 2k+1 selecionado)</p>
+            <canvas id="s2-heat"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Curvas sin(i·ω<sub>k</sub>) e cos(i·ω<sub>k</sub>) do par selecionado</p>
+            <canvas id="s2-curves"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">d = 32</span>, compare
+          <span class="formula">k = 0</span> (ω = 1, período ≈ 6 posições, listras finas
+          na base do heatmap) com <span class="formula">k = 15</span> (ω ≈ 0.0002, a curva
+          parece constante: precisaria de milhares de posições para completar um ciclo).
+          Reduza para <span class="formula">d = 4</span> e
+          <span class="formula">L = 16</span> para reproduzir a tabela do cálculo manual
+          dos slides: as dimensões 2 e 3 quase não mudam ao longo da frase. Aumente
+          <span class="formula">d</span> e veja mais “relógios” intermediários surgirem.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Produto interno entre posições ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Produto interno PE<sub>i</sub>·PE<sub>j</sub></h2>
+      <p class="demo-text">
+        Para cada par de frequência vale
+        <span class="formula">sin(i·ω<sub>k</sub>)sin(j·ω<sub>k</sub>) + cos(i·ω<sub>k</sub>)cos(j·ω<sub>k</sub>) = cos((i−j)·ω<sub>k</sub>)</span>,
+        então o produto interno completo é
+        <span class="formula">PE<sub>i</sub>·PE<sub>j</sub> = Σ<sub>k</sub> cos((i−j)·ω<sub>k</sub>)</span>:
+        ele depende <strong>apenas do offset</strong> <span class="formula">i − j</span>,
+        nunca das posições absolutas. É essa estrutura que permite ao modelo aprender
+        offsets relativos a partir de um PE absoluto
+        (<span class="formula">PE(i+δ)</span> é função linear de
+        <span class="formula">PE(i)</span>). O heatmap fica constante ao longo das
+        diagonais e a curva de similaridade tem a mesma forma para qualquer posição de
+        referência, apenas transladada.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">d = <span id="s3-d-val">32</span>
+            <input type="range" id="s3-d" min="4" max="64" value="32" step="2" />
+          </label>
+          <label class="slider-label">L = <span id="s3-len-val">64</span>
+            <input type="range" id="s3-len" min="16" max="90" value="64" step="1" />
+          </label>
+          <label class="slider-label">i = <span id="s3-i-val">12</span>
+            <input type="range" id="s3-i" min="0" max="63" value="12" step="1" />
+          </label>
+          <label class="slider-label">i′ = <span id="s3-i2-val">40</span>
+            <input type="range" id="s3-i2" min="0" max="63" value="40" step="1" />
+          </label>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Heatmap PE<sub>i</sub>·PE<sub>j</sub> normalizado (linhas destacadas: i e i′)</p>
+            <canvas id="s3-heat"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">PE<sub>i</sub>·PE<sub>j</sub> em função de j, para as referências i (ciano) e i′ (laranja)</p>
+            <canvas id="s3-curve"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Arraste <span class="formula">i</span> de 0 até 60 e observe que a curva
+          ciano apenas desliza, sem mudar de forma: a similaridade decai com a distância
+          relativa do mesmo jeito em qualquer ponto da sequência, e o readout confirma
+          numericamente que <span class="formula">PE<sub>i</sub>·PE<sub>i+8</sub></span>
+          dá o mesmo valor para <span class="formula">i</span> e
+          <span class="formula">i′</span>. Com <span class="formula">d = 4</span> o
+          decaimento oscila bastante (poucas frequências); com
+          <span class="formula">d = 64</span> a soma de muitos cossenos produz um pico
+          limpo em <span class="formula">j = i</span> que decai suavemente.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: RoPE ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · RoPE: posição como rotação</h2>
+      <p class="demo-text">
+        Em vez de somar PE ao embedding, o RoPE <strong>rotaciona</strong> cada par de
+        dimensões de <span class="formula">q</span> e <span class="formula">k</span>
+        dentro do attention head:
+        <span class="formula">q̃<sub>i</sub> = R<sub>θ</sub>(i)·q</span> e
+        <span class="formula">k̃<sub>j</sub> = R<sub>θ</sub>(j)·k</span>, com ângulos
+        <span class="formula">i·θ</span> e <span class="formula">j·θ</span>. Como
+        <span class="formula">R<sub>θ</sub>(i)<sup>⊤</sup>R<sub>θ</sub>(j) = R<sub>θ</sub>(j−i)</span>,
+        o score expande para
+        <span class="formula">q̃<sub>i</sub>·k̃<sub>j</sub> = (q<sub>0</sub>k<sub>0</sub>+q<sub>1</sub>k<sub>1</sub>)·cos((j−i)θ) + (q<sub>1</sub>k<sub>0</sub>−q<sub>0</sub>k<sub>1</sub>)·sin((j−i)θ)</span>,
+        que depende apenas do offset <span class="formula">j − i</span>. O slider
+        <span class="formula">δ</span> desloca a dupla inteira pela sequência: os
+        vetores giram juntos, mas o score não se mexe.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">i = <span id="s4-i-val">1</span>
+            <input type="range" id="s4-i" min="0" max="16" value="1" step="1" />
+          </label>
+          <label class="slider-label">j = <span id="s4-j-val">3</span>
+            <input type="range" id="s4-j" min="0" max="16" value="3" step="1" />
+          </label>
+          <label class="slider-label">θ = <span id="s4-theta-val">1.00</span>
+            <input type="range" id="s4-theta" min="0.05" max="1.5" value="1" step="0.05" />
+          </label>
+          <label class="slider-label">δ = <span id="s4-delta-val">0</span>
+            <input type="range" id="s4-delta" min="0" max="16" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Bloco 2D: q e k originais (tracejados, arraste-os) e rotacionados q̃<sub>i</sub>, k̃<sub>j</sub> (sólidos)</p>
+            <canvas id="s4-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Score q̃<sub>i</sub>·k̃<sub>j</sub> em função do offset j − i (ponto: offset atual)</p>
+            <canvas id="s4-score"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Reproduza o cálculo manual dos slides: com
+          <span class="formula">q = (1, 0)</span>, <span class="formula">k = (0, 1)</span>,
+          <span class="formula">θ = 1.0</span>, <span class="formula">i = 1</span> e
+          <span class="formula">j = 3</span>, o bloco contribui
+          <span class="formula">−sin(2) ≈ −0.909</span>. Agora aumente
+          <span class="formula">δ</span> até 16: os dois vetores giram no plano, mas o
+          readout mostra o mesmo score, pois o offset continua 2. Compare
+          <span class="formula">θ = 1.0</span> (low-k, curva de score oscila rápido,
+          posição relativa fina) com <span class="formula">θ = 0.05</span> (high-k,
+          curva quase plana, posição grosseira). Arraste os vetores tracejados para
+          mudar <span class="formula">q</span> e <span class="formula">k</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Positional Encoding</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-permutation.js"></script>
+  <script defer src="js/section2-sinusoidal.js"></script>
+  <script defer src="js/section3-dot-product.js"></script>
+  <script defer src="js/section4-rope.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

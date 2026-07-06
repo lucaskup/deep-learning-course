@@ -1,0 +1,1035 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Redes Recorrentes}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    TIKZ STYLES
+%----------------------------------------------------------------------------------------
+
+\tikzset{
+    rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
+    inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
+    outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\scriptsize, inner sep=2pt},
+    grad/.style={->, red, very thick}
+}
+
+% Corpo (reutilizável) do diagrama desdobrado de duas células usado no BPTT.
+% Usar dentro de um tikzpicture; as setas vermelhas do gradiente são desenhadas
+% depois, em cada frame, referenciando os nós criados aqui (cell\i, xh\i, hh\i,
+% plus\i, tanh\i, out\i, xnode\i, ynode\i).
+\newcommand{\bpttcells}{%
+    \foreach \i/\xpos/\xv/\hin/\hout/\yout in {1/0/1/0/0.462/0.462, 2/6.6/2/0.462/0.843/0.843}{
+        \node[rnncell, minimum width=3.4cm, minimum height=2.5cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
+        \node[opnode] (xh\i) at (\xpos, -0.5) {$\xv\,\theta_{ih}$};
+        \node[opnode] (hh\i) at (\xpos-1.15, 0.4) {$\hin\,\theta_{hh}$};
+        \node[draw, circle, inner sep=1pt, fill=white] (plus\i) at (\xpos, 0.4) {$+$};
+        \node[opnode] (tanh\i) at (\xpos+0.95, 0.4) {$\tanh$};
+        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.25) {$\hout\,\theta_{ho}$};
+        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.85) {$\xv$};
+        \node[outputnode, minimum size=0.85cm] (ynode\i) at (\xpos, 2.45) {$\yout$};
+        \node[font=\scriptsize] at (\xpos+0.6, 2.85) {$\hat{y}_\i$};
+        \draw[->] (xnode\i) -- (xh\i);
+        \draw[->] (xh\i) -- (plus\i);
+        \draw[->] (hh\i) -- (plus\i);
+        \draw[->] (plus\i) -- (tanh\i);
+        \draw[->] (tanh\i) |- (out\i);
+        \draw[->] (out\i) -- (ynode\i);
+    }%
+    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.462$} (hh2.west);
+}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    \tableofcontents
+\end{frame}
+
+%========================================================================
+\section{Sequências}
+%========================================================================
+
+\begin{frame}{Sequências em Aprendizado de Máquina}
+\begin{itemize}
+    \item Muitos problemas relevantes envolvem dados \textbf{sequenciais}, em que a ordem dos elementos importa.
+    \item Exemplos:
+    \begin{itemize}
+        \item Análise de sentimento de uma frase ou resenha.
+        \item \textit{Image captioning}: gerar uma descrição textual a partir de uma imagem.
+        \item Tradução automática entre idiomas.
+        \item Previsão de séries temporais (preço de ações, clima, energia).
+        \item Reconhecimento de fala e síntese de áudio.
+    \end{itemize}
+    \item Em todos esses casos, mudar a ordem dos elementos altera o significado da entrada ou da saída.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Análise de Sentimento}
+\begin{itemize}
+    \item A tarefa: dada uma frase, prever se o sentimento é positivo ou negativo.
+\end{itemize}
+\vspace{0.2em}
+\begin{columns}[T]
+    \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[height=3.0cm]{slides/03-rnn/imagens/sentimento_filme1.png}\\[0.4em]
+        {\footnotesize\textit{``esse filme é uma bela porcaria''}}\;
+        \raisebox{-0.35\height}{\includegraphics[height=0.55cm]{slides/03-rnn/imagens/thumb_down.png}}\\[0.3em]
+        {\footnotesize sentimento \textbf{negativo}}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[height=3.0cm]{slides/03-rnn/imagens/sentimento_filme2.png}\\[0.4em]
+        {\footnotesize\textit{``eu esperava que fosse uma porcaria, mas é uma bela forma de passar o tempo''}}\;
+        \raisebox{-0.35\height}{\includegraphics[height=0.55cm]{slides/03-rnn/imagens/thumb_up.png}}\\[0.3em]
+        {\footnotesize sentimento \textbf{positivo}}
+    \end{column}
+\end{columns}
+\vspace{0.5em}
+\begin{center}
+    \colorbox{PastelOrange}{\parbox{0.9\linewidth}{\centering\small As mesmas palavras (``bela'', ``porcaria'') aparecem nas duas frases: a \textbf{ordem} faz toda a diferença!}}
+\end{center}
+\end{frame}
+
+\begin{frame}{Exemplo: \textit{Image Captioning} (\textit{one-to-many})}
+\begin{columns}[c]
+    \begin{column}{.42\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/03-rnn/imagens/captioning_gato.jpg}\\[0.4em]
+        {\footnotesize\textit{``Um gato sentado na estrada''}}
+    \end{column}
+    \begin{column}{.58\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.9, transform shape]
+            \foreach \i in {0,1,2,3}{
+                \node[rnncell, minimum width=1.0cm, minimum height=0.8cm] (c\i) at (1.7*\i, 0) {};
+            }
+            \foreach \i/\j in {0/1, 1/2, 2/3}{
+                \draw[->, thick] (c\i) -- (c\j);
+            }
+            \node[inputnode, minimum size=1.0cm] (img) at (0, -1.7) {\tiny imagem};
+            \draw[->, thick] (img) -- (c0);
+            \foreach \i/\w in {0/Um, 1/gato, 2/sentado, 3/{na estrada}}{
+                \node[outputnode] (y\i) at (1.7*\i, 1.4) {$\hat{y}_\i$};
+                \draw[->, thick] (c\i) -- (y\i);
+                \node[font=\scriptsize, PastelBlue2] at (1.7*\i, 2.1) {\w};
+            }
+        \end{tikzpicture}\\[0.5em]
+        {\footnotesize Uma única entrada (a imagem) gera uma \textbf{sequência} de palavras.}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo: Tradução Automática (\textit{many-to-many})}
+\begin{columns}[c]
+    \begin{column}{.54\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/03-rnn/imagens/traducao_google.png}
+    \end{column}
+    \begin{column}{.46\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.82, transform shape]
+            \foreach \i/\inw/\outw in {0/Essa/This, 1/aula/class, 2/{é}/is, 3/{fácil}/easy}{
+                \node[rnncell, minimum width=0.9cm, minimum height=0.8cm] (c\i) at (1.7*\i, 0) {};
+                \node[inputnode] (x\i) at (1.7*\i, -1.3) {$x_\i$};
+                \node[outputnode] (y\i) at (1.7*\i, 1.3) {$\hat{y}_\i$};
+                \draw[->, thick] (x\i) -- (c\i);
+                \draw[->, thick] (c\i) -- (y\i);
+                \node[font=\tiny, PastelBlue2] at (1.7*\i, -1.95) {\inw};
+                \node[font=\tiny, PastelBlue2] at (1.7*\i, 1.95) {\outw};
+            }
+            \foreach \i/\j in {0/1, 1/2, 2/3}{
+                \draw[->, thick] (c\i) -- (c\j);
+            }
+        \end{tikzpicture}\\[0.6em]
+        {\footnotesize Uma sequência de entrada gera uma sequência de saída.}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Tipos de Problemas Sequenciais}
+\centering
+\begin{tikzpicture}[every node/.style={font=\tiny}, scale=0.85, transform shape]
+    % one-to-one
+    \node[font=\scriptsize] at (0, 1.6) {\textit{one-to-one}};
+    \node[rnncell, minimum width=1.0cm, minimum height=0.7cm] (c11) at (0, 0) {};
+    \node[inputnode] at (0, -1.0) {$x_t$};
+    \node[outputnode] at (0, 1.0) {$\hat{y}_t$};
+    \draw[->] (0,-0.6) -- (c11);
+    \draw[->] (c11) -- (0, 0.6);
+
+    % one-to-many
+    \node[font=\scriptsize] at (3.5, 1.6) {\textit{one-to-many}};
+    \foreach \i in {0,1,2,3}{
+        \node[rnncell, minimum width=0.7cm, minimum height=0.7cm] (a\i) at (2+0.9*\i, 0) {};
+    }
+    \node[inputnode] at (2, -1.0) {$x_0$};
+    \draw[->] (2,-0.6) -- (a0);
+    \foreach \i/\j in {0/1, 1/2, 2/3}{
+        \draw[->] (a\i) -- (a\j);
+    }
+    \foreach \i in {1,2,3}{
+        \node[outputnode] at (2+0.9*\i, 1.0) {$\hat{y}_\i$};
+        \draw[->] (a\i) -- (2+0.9*\i, 0.6);
+    }
+
+    % many-to-one
+    \node[font=\scriptsize] at (8.0, 1.6) {\textit{many-to-one}};
+    \foreach \i in {0,1,2,3}{
+        \node[rnncell, minimum width=0.7cm, minimum height=0.7cm] (b\i) at (6.5+0.9*\i, 0) {};
+        \node[inputnode] at (6.5+0.9*\i, -1.0) {$x_\i$};
+        \draw[->] (6.5+0.9*\i,-0.6) -- (b\i);
+    }
+    \foreach \i/\j in {0/1, 1/2, 2/3}{
+        \draw[->] (b\i) -- (b\j);
+    }
+    \node[outputnode] at (6.5+0.9*3, 1.0) {$\hat{y}_3$};
+    \draw[->] (b3) -- (6.5+0.9*3, 0.6);
+
+    % many-to-many
+    \node[font=\scriptsize] at (12.5, 1.6) {\textit{many-to-many}};
+    \foreach \i in {0,1,2,3}{
+        \node[rnncell, minimum width=0.7cm, minimum height=0.7cm] (d\i) at (11+0.9*\i, 0) {};
+        \node[inputnode] at (11+0.9*\i, -1.0) {$x_\i$};
+        \node[outputnode] at (11+0.9*\i, 1.0) {$\hat{y}_\i$};
+        \draw[->] (11+0.9*\i,-0.6) -- (d\i);
+        \draw[->] (d\i) -- (11+0.9*\i, 0.6);
+    }
+    \foreach \i/\j in {0/1, 1/2, 2/3}{
+        \draw[->] (d\i) -- (d\j);
+    }
+\end{tikzpicture}
+\vspace{0.5em}
+\begin{itemize}\footnotesize
+    \item \textit{one-to-many}: \textit{image captioning} (uma imagem gera uma sequência de palavras).
+    \item \textit{many-to-one}: análise de sentimento (uma sequência gera um rótulo).
+    \item \textit{many-to-many}: tradução automática, geração de texto.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Tentando Modelar com MLP e CNN}
+%========================================================================
+
+\begin{frame}{Uma Ideia: Usar um MLP}
+\begin{itemize}\footnotesize
+    \item Vamos usar um MLP para classificar o sentimento. Cada palavra vira uma \textit{embedding} e a camada de entrada precisa de pesos para cada palavra.
+\end{itemize}
+\vspace{0.2em}
+\begin{columns}[T]
+    \begin{column}{.42\linewidth}
+        \centering
+        {\footnotesize\textit{``bela porcaria''}}\\[0.4em]
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.82, transform shape]
+            \node[inputnode, minimum size=0.55cm] (i1) at (0, 0.4) {bela};
+            \node[inputnode, minimum size=0.55cm] (i2) at (0, -0.4) {porc.};
+            \foreach \j in {1,2,3}{
+                \node[draw, circle, fill=PastelGreen, minimum size=0.5cm] (h\j) at (1.9, 0.8-0.8*\j+0.8) {};
+            }
+            \node[draw, circle, fill=PastelGreen, minimum size=0.5cm] (o) at (3.4, 0) {};
+            \foreach \i in {1,2}{ \foreach \j in {1,2,3}{ \draw[->] (i\i) -- (h\j); } }
+            \foreach \j in {1,2,3}{ \draw[->] (h\j) -- (o); }
+            \draw[->] (o) -- (4.0, 0);
+        \end{tikzpicture}\\[0.4em]
+        {\footnotesize 2 palavras: $2\times 3 = \mathbf{6}$ pesos de entrada}
+    \end{column}
+    \begin{column}{.58\linewidth}
+        \centering
+        {\footnotesize\textit{``esse filme é uma bela porcaria''}}\\[0.4em]
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.72, transform shape]
+            \foreach \i/\w/\y in {1/esse/1.8, 2/filme/1.08, 3/{é}/0.36, 4/uma/-0.36, 5/bela/-1.08, 6/porc./-1.8}{
+                \node[inputnode, minimum size=0.55cm, font=\tiny] (i\i) at (0, \y) {\w};
+            }
+            \foreach \j in {1,2,3}{
+                \node[draw, circle, fill=PastelGreen, minimum size=0.5cm] (h\j) at (2.3, 0.8-0.8*\j+0.8) {};
+            }
+            \node[draw, circle, fill=PastelGreen, minimum size=0.5cm] (o) at (3.9, 0) {};
+            \foreach \i in {1,...,6}{ \foreach \j in {1,2,3}{ \draw[->] (i\i) -- (h\j); } }
+            \foreach \j in {1,2,3}{ \draw[->] (h\j) -- (o); }
+            \draw[->] (o) -- (4.5, 0);
+        \end{tikzpicture}\\[0.4em]
+        {\footnotesize 6 palavras: $6\times 3 = \mathbf{18}$ pesos de entrada}
+    \end{column}
+\end{columns}
+\vspace{0.3em}
+\begin{center}
+    \colorbox{PastelOrange}{\parbox{0.92\linewidth}{\centering\small Quanto maior a frase, mais parâmetros treináveis na \textbf{camada de entrada}, e o tamanho da entrada muda de frase para frase.}}
+\end{center}
+\end{frame}
+
+\begin{frame}{Problemas com MLP em Sequências}
+\begin{itemize}
+    \item \textbf{Frases de tamanhos diferentes} demandariam entradas de tamanhos diferentes, com pesos diferentes.
+    \item Entradas maiores demandam mais pesos.
+    \item A mesma palavra em posições diferentes é multiplicada por pesos diferentes.
+    \begin{itemize}
+        \item Cada posição tem que aprender separadamente o significado da palavra.
+    \end{itemize}
+    \item Não há mecanismo natural para tratar entradas de comprimento variável.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Outra Ideia: Usar uma CNN 1D}
+\begin{itemize}
+    \item Vamos tentar usar uma CNN para classificar o sentimento da frase.
+    \item Cada palavra é convertida em uma \textit{word embedding}, e um \textit{kernel} desliza ao longo da sequência.
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node at (-1.4, 0.4) {``bela''};
+    \node at (-1.4, -0.4) {``porc.''};
+    \foreach \j in {0,1,2,3,4}{
+        \draw[fill=PastelBlue!\fpeval{40+\j*15}!white] (\j*0.4, 0.2) rectangle (\j*0.4+0.4, 0.6);
+        \draw[fill=PastelBlue!\fpeval{30+\j*12}!white] (\j*0.4, -0.2) rectangle (\j*0.4+0.4, -0.6);
+    }
+    \node[font=\tiny] at (1.0, 1.0) {\textit{word embedding}};
+    \draw[->] (2.05, 0.4) -- (2.55, 0.4);
+    \draw[->] (2.05, -0.4) -- (2.55, -0.4);
+    % kernel
+    \foreach \j in {0,1,2,3,4}{
+        \draw[fill=PastelYellow] (2.7+\j*0.4, 0.2) rectangle (2.7+\j*0.4+0.4, 0.6);
+        \draw[fill=PastelYellow] (2.7+\j*0.4, -0.2) rectangle (2.7+\j*0.4+0.4, -0.6);
+    }
+    \draw[thick] (2.65, -0.65) rectangle (4.75, 0.65);
+    \node[font=\tiny] at (3.7, 1.0) {\textit{kernel} $2\times 1$};
+
+    \draw[->] (4.8, 0) -- (5.3, 0);
+
+    % activation map
+    \foreach \j in {0,1,2}{
+        \draw[fill=red!\fpeval{40+\j*20}!white] (5.4+\j*0.4, -0.2) rectangle (5.4+\j*0.4+0.4, 0.2);
+    }
+    \node[font=\tiny] at (6.0, 0.6) {\textit{activation map}};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Limitações da CNN 1D}
+\begin{itemize}
+    \item Para frases mais longas, o problema fica mais nítido:
+    \begin{itemize}
+        \item Contextos ``distantes'' são difíceis de modelar.
+        \item Precisamos empilhar várias camadas convolucionais para aumentar o campo receptivo.
+    \end{itemize}
+    \item Mesmo com várias camadas, o campo receptivo é finito e o tamanho da saída depende do tamanho da entrada.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Não são Boas Soluções}
+\begin{itemize}
+    \item MLPs exigem entradas de tamanho fixo. Frases têm tamanho variável.
+    \item CNNs podem trabalhar com entradas de tamanho variável, mas se não tomarmos cuidado com o campo receptivo corremos o risco de não levar em conta a frase toda.
+\end{itemize}
+\vspace{0.4em}
+Precisamos de uma rede que:
+\begin{itemize}
+    \item Trabalhe sequencialmente com as palavras, uma por vez.
+    \item Mantenha um \textbf{estado} (memória) que carregue informações obtidas anteriormente.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Recorrência em Redes Neurais}
+%========================================================================
+
+\begin{frame}{Revisitando o MLP}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Em uma camada densa, temos:
+            \begin{itemize}
+                \item entradas $x$,
+                \item pesos $\theta$,
+                \item função de ativação,
+                \item saídas $\hat{y}$.
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\small}]
+            \node[inputnode] (x1) at (0, 0.7) {$x_1$};
+            \node[inputnode] (x2) at (0, -0.7) {$x_2$};
+            \foreach \j in {1,2,3}{
+                \node[draw, circle, fill=PastelGreen, minimum size=0.65cm] (h\j) at (2.2, 1.4-\j*0.7) {};
+            }
+            \node[outputnode] (y) at (4.4, 0) {$\hat{y}$};
+            \foreach \i in {1,2}{ \foreach \j in {1,2,3}{ \draw[->] (x\i) -- (h\j); } }
+            \foreach \j in {1,2,3}{ \draw[->] (h\j) -- (y); }
+            \node[font=\scriptsize, above] at (1.1, 0.95) {$\theta$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Revisitando o MLP}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Podemos \textbf{colapsar} o vetor de entrada em um único nó e a camada inteira em um único bloco.
+            \item O desenho fica mais compacto, mas representa exatamente a mesma rede.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\small}]
+            \node[inputnode, minimum size=0.9cm] (x) at (0, 0) {$x$};
+            \node[rnncell] (cell) at (2.4, 0) {};
+            \node[outputnode, minimum size=0.9cm] (y) at (4.8, 0) {$\hat{y}$};
+            \draw[->, thick] (x) -- (cell);
+            \draw[->, thick] (cell) -- (y);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Revisitando o MLP}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Agora \textbf{rotacionamos} o desenho: a entrada fica embaixo e a saída em cima.
+            \item É o mesmo MLP, apenas com a representação na vertical.
+            \item O vetor de entrada foi colapsado, mas continua tendo um \textbf{tamanho fixo}.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\small}]
+            \node[inputnode, minimum size=0.9cm] (x) at (0, -1.4) {$x$};
+            \node[rnncell] (cell) at (0, 0) {};
+            \node[outputnode, minimum size=0.9cm] (y) at (0, 1.4) {$\hat{y}$};
+            \draw[->, thick] (x) -- (cell);
+            \draw[->, thick] (cell) -- (y);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Aplicando o MLP a uma Sequência}
+\begin{itemize}
+    \item Vamos rodar esse MLP na frase \textit{``Minha laranja está estragada''}, palavra a palavra.
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \foreach \i/\w in {0/Minha, 1/laranja, 2/está, 3/estragada}{
+        \node[inputnode] (x\i) at (2.6*\i, -0.8) {$x_\i$};
+        \node[rnncell] (c\i) at (2.6*\i, 0.4) {};
+        \node[outputnode] (y\i) at (2.6*\i, 1.6) {$\hat{y}_\i$};
+        \draw[->, thick] (x\i) -- (c\i);
+        \draw[->, thick] (c\i) -- (y\i);
+        \node[font=\scriptsize, PastelBlue2] at (2.6*\i, -1.5) {\w};
+    }
+\end{tikzpicture}
+\vspace{0.4em}
+\begin{itemize}
+    \item Cada palavra é processada de forma independente.
+    \item O modelo \textbf{não sabe} que ``laranja'' veio depois de ``Minha''.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{O Problema Continua}
+\begin{itemize}
+    \item Qual é o problema dessa abordagem?
+    \begin{itemize}
+        \item \textbf{O processamento de cada entrada é individual} e não leva em conta o restante da sequência.
+        \item Não há \textbf{memória} entre os instantes.
+    \end{itemize}
+    \item Para um problema sequencial, precisamos que a saída em $t$ dependa também do que aconteceu em $t-1, t-2, \dots$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solução: Recorrência}
+\begin{itemize}
+    \item Além da entrada $x_t$ no instante atual, vamos passar adiante alguma informação do instante anterior.
+    \item Chamamos essa informação de \textbf{estado interno} $h_t$.
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \foreach \i/\w in {0/Minha, 1/laranja, 2/está, 3/estragada}{
+        \node[inputnode] (x\i) at (3.0*\i, -0.8) {$x_\i$};
+        \node[rnncell] (c\i) at (3.0*\i, 0.4) {};
+        \node[outputnode] (y\i) at (3.0*\i, 1.6) {$\hat{y}_\i$};
+        \draw[->, thick] (x\i) -- (c\i);
+        \draw[->, thick] (c\i) -- (y\i);
+        \node[font=\scriptsize, PastelBlue2] at (3.0*\i, -1.5) {\w};
+    }
+    \foreach \i/\j in {0/1, 1/2, 2/3}{
+        \draw[->, thick] (c\i) -- node[above, font=\scriptsize] {$h_\i$} (c\j);
+    }
+\end{tikzpicture}
+\vspace{0.4em}
+\begin{itemize}
+    \item Os mesmos pesos são reutilizados em todos os passos de tempo.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Versão Dobrada vs Desdobrada}
+\begin{itemize}
+    \item A representação \textbf{desdobrada no tempo} pode ser compactada em uma versão \textbf{dobrada}, com uma única célula que se conecta a si mesma.
+\end{itemize}
+\centering
+\begin{tikzpicture}[every node/.style={font=\small}]
+    % folded
+    \node[inputnode] (xt) at (0, -0.8) {$x_t$};
+    \node[rnncell] (ct) at (0, 0.4) {};
+    \node[outputnode] (yt) at (0, 1.6) {$\hat{y}_t$};
+    \draw[->, thick] (xt) -- (ct);
+    \draw[->, thick] (ct) -- (yt);
+    \draw[->, thick, rounded corners=4pt]
+        (ct.east) -- (1.4, 0.4) -- (1.4, 2.3) -- (-1.4, 2.3) -- (-1.4, 0.4) -- (ct.west);
+    \node[font=\scriptsize, right] at (1.4, 1.3) {$h_t$};
+
+    \draw[thick] (2.4, -1.6) -- (2.4, 2.2);
+
+    % unfolded
+    \foreach \i in {0,1,2,3}{
+        \node[inputnode] (ux\i) at (3.2+2.6*\i, -0.8) {$x_\i$};
+        \node[rnncell] (uc\i) at (3.2+2.6*\i, 0.4) {};
+        \node[outputnode] (uy\i) at (3.2+2.6*\i, 1.6) {$\hat{y}_\i$};
+        \draw[->, thick] (ux\i) -- (uc\i);
+        \draw[->, thick] (uc\i) -- (uy\i);
+    }
+    \foreach \i/\j in {0/1, 1/2, 2/3}{
+        \draw[->, thick] (uc\i) -- node[above, font=\scriptsize] {$h_\i$} (uc\j);
+    }
+\end{tikzpicture}
+\vspace{0.4em}
+\begin{itemize}
+    \item Os dois desenhos representam a \textbf{mesma rede}: a versão desdobrada apenas explicita os passos de tempo.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Camadas Densas com Recorrência}
+\begin{itemize}
+    \item A saída de uma célula recorrente depende da \textbf{entrada} e do \textbf{estado interno}.
+    \item Os pesos são reutilizados em todos os passos de tempo.
+\end{itemize}
+\vspace{0.6em}
+\begin{equation*}
+    \underbrace{\bigl(\,\colorbox{PastelPink}{$\hat{y}_t$}\,,\;\colorbox{PastelOrange}{$h_t$}\,\bigr)}_{\text{\textcolor{Magenta}{\textbf{saída}}}}
+    \;=\; f\Bigl(\;
+    \underbrace{\colorbox{PastelBlue}{$x_t$}}_{\text{\textcolor{RoyalBlue}{\textbf{entrada}}}}\;,\;\;
+    \underbrace{\colorbox{PastelOrange}{$h_{t-1}$}}_{\substack{\text{\textcolor{Orange}{\textbf{memória ou}}}\\[0.1em]\text{\textcolor{Orange}{\textbf{estado interno}}}}}
+    \;\Bigr)
+\end{equation*}
+\vspace{0.4em}
+\begin{itemize}
+    \item O estado interno $h_{t-1}$ resume tudo o que a rede ``viu'' até o passo anterior.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Pseudocódigo de uma RNN}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+rnn = RNN()
+hidden_state = [0, 0, 0, 0]
+
+sentence = ["Minha", "laranja", "está"]
+
+for word in sentence:
+    prediction, hidden_state = rnn(word, hidden_state)
+
+# prediction -> palavra mais provavel (argmax sobre o vocabulario)
+next_word = decode(prediction)
+print(next_word)
+# >>> "estragada"
+\end{lstlisting}
+\begin{itemize}
+    \item A cada iteração, a rede recebe a entrada atual e o estado interno, e devolve a predição e o novo estado.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Detalhando as Atualizações}
+\begin{itemize}
+    \item A célula recorrente mais simples (\textit{vanilla RNN}) é dada por:
+\end{itemize}
+\vspace{0.3em}
+\begin{equation*}
+    z_t = x_t\,\theta_{ih}^{T} + h_{t-1}\,\theta_{hh}^{T} + b_h, \qquad h_t = \tanh(z_t)
+\end{equation*}
+\begin{equation*}
+    \hat{y}_t = h_t\,\theta_{ho}^{T} + b_o
+\end{equation*}
+\begin{itemize}\footnotesize
+    \item Chamamos de $z_t$ a \textbf{pré-ativação} (a soma antes do $\tanh$); ela reaparece no \textit{backward pass}.
+\end{itemize}
+\begin{itemize}
+    \item $\theta_{ih}$: pesos da entrada para o estado interno (\textit{input-to-hidden}, \texttt{weight\_ih}).
+    \item $\theta_{hh}$: pesos do estado interno anterior para o novo estado interno (\textit{hidden-to-hidden}, \texttt{weight\_hh}).
+    \item $\theta_{ho}$: pesos do estado interno para a saída (camada \texttt{Linear} adicional, fora do \texttt{nn.RNN}).
+    \item $b_h$: \textit{bias} do estado interno; \quad $b_o$: \textit{bias} da saída.
+\end{itemize}
+\vspace{0.3em}
+\begin{itemize}\footnotesize
+    \item Mesma notação do \texttt{nn.RNN} do PyTorch (que usa $W$ no lugar de $\theta$). O PyTorch mantém \textbf{dois} \textit{bias} no estado interno, $b_{ih}$ e $b_{hh}$; aqui os combinamos em um único $b_h$, pois só a soma importa.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Backpropagation Through Time}
+%========================================================================
+
+\begin{frame}{\textit{Backpropagation Through Time} (BPTT)}
+\begin{itemize}
+    \item O algoritmo de treinamento é o mesmo já conhecido: \textit{backpropagation}.
+    \item Porém agora precisamos considerar múltiplos passos de tempo (\textit{timesteps}).
+    \begin{itemize}
+        \item O mesmo peso influencia a saída de várias formas diferentes, conforme o \textit{timestep}.
+        \item As contribuições do gradiente são \textbf{somadas} ao longo da sequência.
+    \end{itemize}
+    \item Esse algoritmo é chamado de \textit{Backpropagation Through Time}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Setup do Exemplo}
+\begin{columns}
+    \begin{column}{.45\linewidth}
+        Vamos usar a rede recorrente mais simples possível para um exemplo numérico:
+        \begin{itemize}\small
+            \item $x = [1, 2]$
+            \item $y = 3$
+            \item $h_0 = 0$
+            \item $\theta_{ih} = 0.5$, \quad $\theta_{hh} = 0.5$
+            \item $\theta_{ho} = 1$
+            \item $b_h = 0$, \quad $b_o = 0$
+        \end{itemize}
+        \vspace{0.2em}
+        {\footnotesize Para simplificar a aritmética, usamos dimensão 1: cada $x_t$ e $h_t$ é um escalar, e $x = [1, 2]$ são dois passos de tempo.}
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
+            \node[opnode] (xh) at (0, -0.5) {$x_t\,\theta_{ih}^{T} + b_h$};
+            \node[opnode] (hh) at (-1.2, 0.4) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
+            \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
+            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$h_t\,\theta_{ho}^{T} + b_o$};
+            \node[inputnode] (xnode) at (0, -2.0) {$x_t$};
+            \node[outputnode] (ynode) at (0, 2.4) {$\hat{y}_t$};
+            \draw[->] (xnode) -- (xh);
+            \draw[->] (xh) -- (plus);
+            \draw[->] (hh) -- (plus);
+            \draw[->] (plus) -- (tanh);
+            \draw[->] (tanh) |- (out);
+            \draw[->] (out) -- (ynode);
+            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$h_t$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Forward Pass}, Passo 1}
+\begin{itemize}\small
+    \item No passo 1, $x_1 = 1$ e $h_0 = 0$:
+    \begin{align*}
+        h_1 &= \tanh(1\cdot\theta_{ih} + 0\cdot\theta_{hh} + b_h) = \tanh(0.5) \approx 0.462 \\
+        \hat{y}_1 &= h_1\cdot\theta_{ho} + b_o = 0.462\cdot 1 + 0 = 0.462
+    \end{align*}
+\end{itemize}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
+    \node[opnode] (xh) at (0, -0.5) {$1\,\theta_{ih} + 0$};
+    \node[opnode] (hh) at (-1.2, 0.4) {$0\,\theta_{hh}$};
+    \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
+    \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
+    \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$0.462\,\theta_{ho} + 0$};
+    \node[inputnode, fill=PastelBlue] (xnode) at (0, -2.0) {$1$};
+    \node[outputnode, minimum size=1.0cm] (ynode) at (0, 2.5) {\scriptsize $0.462$};
+    \node[font=\scriptsize] at (0.5, 2.9) {$\hat{y}_1$};
+    \draw[->] (xnode) -- (xh);
+    \draw[->] (xh) -- (plus);
+    \draw[->] (hh) -- (plus);
+    \draw[->] (plus) -- (tanh);
+    \draw[->] (tanh) |- (out);
+    \draw[->] (out) -- (ynode);
+    \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$h_1\!=\!0.462$};
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{\textit{Forward Pass}, Passo 2}
+\begin{itemize}\small
+    \item No passo 2, $x_2 = 2$ e $h_1 \approx 0.462$:
+    \begin{align*}
+        h_2 &= \tanh(2\cdot\theta_{ih} + 0.462\cdot\theta_{hh} + b_h) = \tanh(1.231) \approx 0.843 \\
+        \hat{y}_2 &= h_2\cdot\theta_{ho} + b_o = 0.843\cdot 1 + 0 = 0.843
+    \end{align*}
+\end{itemize}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.9, transform shape]
+    \foreach \i/\xv/\hin/\hout/\yout/\xpos in {1/1/0/0.462/0.462/0, 2/2/0.462/0.843/0.843/5.0}{
+        \node[rnncell, minimum width=3.2cm, minimum height=2.4cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
+        \node[opnode] (xh\i) at (\xpos, -0.5) {$\xv\,\theta_{ih} + 0$};
+        \node[opnode] (hh\i) at (\xpos-1.05, 0.4) {$\hin\,\theta_{hh}$};
+        \node[draw, circle, inner sep=1pt] (plus\i) at (\xpos, 0.4) {$+$};
+        \node[opnode] (tanh\i) at (\xpos+0.8, 0.4) {$\tanh$};
+        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.2) {$\hout\,\theta_{ho}$};
+        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.9) {$\xv$};
+        \node[outputnode, minimum size=0.95cm] (ynode\i) at (\xpos, 2.4) {$\yout$};
+        \node[font=\scriptsize] at (\xpos+0.5, 2.8) {$\hat{y}_\i$};
+        \draw[->] (xnode\i) -- (xh\i);
+        \draw[->] (xh\i) -- (plus\i);
+        \draw[->] (hh\i) -- (plus\i);
+        \draw[->] (plus\i) -- (tanh\i);
+        \draw[->] (tanh\i) |- (out\i);
+        \draw[->] (out\i) -- (ynode\i);
+    }
+    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.462$} (hh2.west);
+\end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Cálculo da \textit{Loss}}
+\begin{itemize}
+    \item Após o \textit{forward}, comparamos $\hat{y}_2$ com a meta $y = 3$ usando metade do erro quadrático:
+\end{itemize}
+\begin{equation*}
+    J(\theta) = \frac{1}{2}\bigl(\hat{y}_2 - y\bigr)^2 = \frac{1}{2}(0.843 - 3)^2 \approx 2.326
+\end{equation*}
+\begin{itemize}
+    \item O fator $\tfrac{1}{2}$ apenas cancela o expoente ao derivar, semeando o \textit{backward pass}:
+\end{itemize}
+\begin{equation*}
+    \frac{\partial J}{\partial \hat{y}_2} = (\hat{y}_2 - y)
+\end{equation*}
+\begin{itemize}
+    \item A \textit{loss} no instante final pode ser usada sozinha (\textit{many-to-one}) ou somada ao longo de todos os instantes (\textit{many-to-many}).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Backward Pass}: O Grafo Computacional}
+\begin{itemize}\footnotesize
+    \item O \textit{forward} desdobrado no tempo forma um \textbf{grafo computacional}: a \textit{loss} $J = \tfrac{1}{2}(\hat{y}_2 - y)^2$ depende de $\hat{y}_2$, que depende de $h_2$, que depende de $h_1$, e assim por diante.
+\end{itemize}
+\vspace{0.1em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.8, transform shape]
+    \bpttcells
+\end{tikzpicture}
+\vspace{0.2em}
+\begin{itemize}\footnotesize
+    \item Para treinar, vamos percorrer esse grafo \textbf{de trás para frente}, derivando o gradiente de $J$ em relação a cada parâmetro, um de cada vez.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Backward Pass}: Pesos da Saída}
+\begin{columns}[T]
+    \begin{column}{.35\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \bpttcells
+            \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
+        \end{tikzpicture}}
+    \end{column}
+    \begin{column}{.65\linewidth}
+        \begin{itemize}\small
+            \item Começamos pelos pesos da saída: o gradiente chega em $\hat{y}_2$ e atinge a cabeça de saída (em \textcolor{red}{vermelho}).
+        \end{itemize}
+        \vspace{0.4em}
+        {\small
+        \begin{align*}
+            \onslide<1->{\frac{\partial J}{\partial \theta_{ho}} &= \frac{\partial J}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial \theta_{ho}} = (\hat{y} - y)\, h_2}\\[0.1em]
+            \onslide<1->{&= (0.843 - 3)\cdot 0.843 \approx -1.818}\\[0.4em]
+            \onslide<2->{\frac{\partial J}{\partial b_{o}} &= \frac{\partial J}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial b_{o}} = (\hat{y} - y)\cdot 1}\\[0.1em]
+            \onslide<2->{&= (0.843 - 3)\cdot 1 \approx -2.157}
+        \end{align*}
+        }
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Backward Pass}: Pesos da Entrada}
+\begin{columns}[T]
+    \begin{column}{.35\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \bpttcells
+            \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
+            \draw<1->[grad] (out2.south) to[bend left=20] (tanh2.north);
+            \draw<1->[grad] (tanh2.south) to[bend left=15] (plus2.east);
+            \draw<1->[grad] (plus2.south) to[bend right=15] (xh2.north);
+            \draw<2->[grad] (plus2.west) to[bend left=15] (hh2.east);
+            \draw<2->[grad] (hh2.south) to[bend right=12] (tanh1.east);
+            \draw<2->[grad] (tanh1.south) to[bend left=15] (plus1.east);
+            \draw<2->[grad] (plus1.south) to[bend right=15] (xh1.north);
+        \end{tikzpicture}}
+    \end{column}
+    \begin{column}{.65\linewidth}
+        \begin{itemize}\small
+            \item Para os pesos $\theta_{ih}$, o gradiente \textbf{atravessa todos os passos de tempo}.
+        \end{itemize}
+        \vspace{0.3em}
+        \onslide<1->{\footnotesize%
+        \[
+            \frac{\partial J}{\partial \theta_{ih}} = \frac{\partial J}{\partial \hat{y}}\frac{\partial \hat{y}}{\partial h_2}\frac{\partial h_2}{\partial z_2}\!\left(\frac{\partial z_2}{\partial \theta_{ih}} + \underbrace{\frac{\partial z_2}{\partial h_1}\frac{\partial h_1}{\partial z_1}\frac{\partial z_1}{\partial \theta_{ih}}}_{\text{atravessa o tempo}}\right)
+        \]}
+        \onslide<2->{\footnotesize%
+        \[
+            \frac{\partial J}{\partial \theta_{ih}} = (\hat{y}-y)\,\theta_{ho}\,(1-\tanh^2(z_2))\bigl(x_2 + \theta_{hh}(1-\tanh^2(z_1))\,x_1\bigr)
+        \]}
+        \onslide<3->{\footnotesize%
+        \[
+            \frac{\partial J}{\partial \theta_{ih}} = (0.843 - 3)\cdot 1 \cdot (1 - 0.843^2)\bigl(2 + 0.5(1 - 0.462^2)\cdot 1\bigr) \approx -1.493
+        \]}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Backward Pass}: \textit{bias} e Pesos Recorrentes}
+\begin{columns}[T]
+    \begin{column}{.35\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \bpttcells
+            \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
+            \draw<1->[grad] (out2.south) to[bend left=20] (tanh2.north);
+            \draw<1->[grad] (tanh2.south) to[bend left=15] (plus2.east);
+            \draw<2->[grad] (plus2.west) to[bend left=15] (hh2.east);
+            \draw<2->[grad] (hh2.south) to[bend right=12] (tanh1.east);
+            \draw<2->[grad] (tanh1.west) to[bend right=15] (hh1.east);
+        \end{tikzpicture}}
+    \end{column}
+    \begin{column}{.65\linewidth}
+        \begin{itemize}\small
+            \item A mesma ideia vale para o \textit{bias} $b_h$ e para os pesos recorrentes $\theta_{hh}$.
+        \end{itemize}
+        \vspace{0.2em}
+        {\footnotesize
+        \begin{align*}
+            \onslide<1->{\frac{\partial J}{\partial b_{h}} &= (\hat{y}-y)\,\theta_{ho}\,(1-\tanh^2(z_2))\bigl(1 + \theta_{hh}(1-\tanh^2(z_1))\bigr)}\\
+            \onslide<1->{&\approx (0.843-3)\cdot 1 \cdot(1 - 0.843^2)\bigl(1 + 0.5(1-0.462^2)\bigr)} \\
+            \onslide<1->{&\approx -0.870} \\[0.3em]
+            \onslide<2->{\frac{\partial J}{\partial \theta_{hh}} &= (\hat{y}-y)\,\theta_{ho}\,(1-\tanh^2(z_2))\bigl(h_1 + \theta_{hh}(1-\tanh^2(z_1))\,h_0\bigr)} \\
+            \onslide<2->{&\approx (0.843-3)\cdot 1 \cdot(1 - 0.843^2)\bigl(0.462 + 0.5(1-0.462^2)\cdot 0\bigr)} \\
+            \onslide<2->{&\approx -0.288}
+        \end{align*}
+        }
+        \onslide<2->{\begin{itemize}\footnotesize
+            \item Como $h_0 = 0$, o segundo termo de $\partial J / \partial \theta_{hh}$ se anula.
+        \end{itemize}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Resumo dos Gradientes}
+\centering
+\begin{tabular}{l c}
+    \toprule
+    Parâmetro & $\partial J / \partial \cdot$ \\
+    \midrule
+    $\theta_{ho}$ & $-1.818$ \\
+    $b_{o}$       & $-2.157$ \\
+    $\theta_{ih}$ & $-1.493$ \\
+    $b_{h}$       & $-0.870$ \\
+    $\theta_{hh}$ & $-0.288$ \\
+    \bottomrule
+\end{tabular}
+\vspace{0.6em}
+\begin{itemize}
+    \item Repare que o gradiente do peso recorrente $\theta_{hh}$ depende dos estados internos passados.
+    \item Em sequências longas, esse caminho de derivadas multiplicadas é a origem dos problemas de \textit{vanishing} e \textit{exploding gradient}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Passo do \textit{Optimizer}}
+\begin{itemize}
+    \item Com taxa de aprendizado $\eta = 0.1$ e os gradientes calculados:
+\end{itemize}
+{\small
+\begin{align*}
+    \theta_{ho} &\leftarrow \theta_{ho} - \eta \frac{\partial J}{\partial \theta_{ho}} = 1 - 0.1\cdot(-1.818) = 1.1818 \\
+    b_{o}       &\leftarrow 0 - 0.1\cdot(-2.157) = 0.2157 \\
+    \theta_{ih} &\leftarrow 0.5 - 0.1\cdot(-1.493) = 0.6493 \\
+    b_{h}       &\leftarrow 0 - 0.1\cdot(-0.870) = 0.087 \\
+    \theta_{hh} &\leftarrow 0.5 - 0.1\cdot(-0.288) = 0.5288
+\end{align*}
+}
+\begin{itemize}
+    \item Com os pesos atualizados, refazemos o \textit{forward} para verificar o efeito na \textit{loss}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Resultado: a \textit{Loss} Diminuiu}
+\begin{itemize}\footnotesize
+    \item Refazendo o \textit{forward} com os pesos atualizados ($\theta_{ih}=0.6493$, $\theta_{hh}=0.5288$, $b_h=0.087$, $\theta_{ho}=1.1818$, $b_o=0.2157$):
+\end{itemize}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.88, transform shape]
+    \foreach \i/\xpos/\xv/\hin/\hout/\yout in {1/0/1/0/0.627/0.957, 2/5.2/2/0.627/0.938/1.324}{
+        \node[rnncell, minimum width=3.0cm, minimum height=2.2cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
+        \node[opnode] (xh\i) at (\xpos, -0.45) {$\xv\,\theta_{ih} + b_h$};
+        \node[opnode] (hh\i) at (\xpos-1.0, 0.4) {$\hin\,\theta_{hh}$};
+        \node[draw, circle, inner sep=1pt, fill=white] (plus\i) at (\xpos, 0.4) {$+$};
+        \node[opnode] (tanh\i) at (\xpos+0.8, 0.4) {$\tanh$};
+        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.15) {$\hout\,\theta_{ho}$};
+        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.7) {$\xv$};
+        \node[outputnode, minimum size=0.9cm] (ynode\i) at (\xpos, 2.3) {$\yout$};
+        \node[font=\scriptsize] at (\xpos+0.55, 2.7) {$\hat{y}_\i$};
+        \draw[->] (xnode\i) -- (xh\i);
+        \draw[->] (xh\i) -- (plus\i);
+        \draw[->] (hh\i) -- (plus\i);
+        \draw[->] (plus\i) -- (tanh\i);
+        \draw[->] (tanh\i) |- (out\i);
+        \draw[->] (out\i) -- (ynode\i);
+    }
+    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.627$} (hh2.west);
+\end{tikzpicture}
+\vspace{0.3em}
+\begin{equation*}
+    J_{\text{antes}} = \tfrac{1}{2}(0.843 - 3)^2 \approx 2.326
+    \;\;\longrightarrow\;\;
+    J_{\text{depois}} = \tfrac{1}{2}(1.324 - 3)^2 \approx 1.404
+\end{equation*}
+\begin{itemize}\footnotesize
+    \item Uma única iteração de \textit{BPTT} mais \textit{optimizer} já reduziu a \textit{loss}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Implementação em PyTorch}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+class RNNSimples(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.weight_ih = torch.nn.Parameter(torch.tensor(0.5))
+        self.weight_hh = torch.nn.Parameter(torch.tensor(0.5))
+        self.bias_h    = torch.nn.Parameter(torch.tensor(0.0))
+        self.weight_ho = torch.nn.Parameter(torch.tensor(1.0))
+        self.bias_o    = torch.nn.Parameter(torch.tensor(0.0))
+
+    def forward(self, x, h=torch.tensor(0.0)):
+        h = torch.tanh(x * self.weight_ih + h * self.weight_hh + self.bias_h)
+        y = h * self.weight_ho + self.bias_o
+        return y, h
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]{Loop de Treinamento}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+model = RNNSimples()
+optimizer = SGD(model.parameters(), lr=0.1)
+x = [torch.tensor(1.0), torch.tensor(2.0)]
+y = torch.tensor(3.0)
+
+model.train()
+optimizer.zero_grad()
+h = torch.tensor(0.0)
+for x_i in x:
+    y_hat, h = model(x_i, h)
+loss = (y - y_hat)**2 / 2
+loss.backward()
+optimizer.step()
+\end{lstlisting}
+\begin{itemize}
+    \item O \texttt{loss.backward()} acumula o gradiente de cada peso ao longo de todos os passos de tempo automaticamente.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Considerações Práticas}
+%========================================================================
+
+\begin{frame}{Problemas: \textit{Vanishing} e \textit{Exploding Gradient}}
+\begin{itemize}\small
+    \item Os velhos conhecidos: \textit{vanishing} e \textit{exploding gradient}.
+    \item Com RNNs ficam piores, pois a rede também é \textbf{profunda no tempo}.
+    \begin{itemize}
+        \item Em sequências longas, o gradiente se multiplica por $\theta_{hh}\,(1-\tanh^2)$ a cada passo.
+        \item Após $T$ passos, o produto de Jacobianos toma a forma:
+    \end{itemize}
+\end{itemize}
+\vspace{-0.3em}
+\[
+    \prod_{k=1}^{T} \theta_{hh}\,\bigl(1-\tanh^2(z_k)\bigr)
+\]
+\vspace{-0.6em}
+\begin{itemize}\small
+    \item Se cada fator é menor que 1, o produto decai exponencialmente em $T$ (\textit{vanishing}); se é maior que 1, cresce exponencialmente (\textit{exploding}).
+    \item Soluções comuns:
+    \begin{itemize}
+        \item \textit{Gradient clipping by norm}, com limiar $c$: se $\|g\| > c$, então $g \leftarrow c \cdot g/\|g\|$. Preserva a direção do gradiente. Variantes \textit{clipping by value} distorcem a direção e são menos usadas.
+        \item Arquiteturas com portas: LSTM e GRU.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Uma Observação sobre PyTorch}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item É comum que \textit{frameworks} como o PyTorch \textbf{não} incluam a camada de saída $\hat{y}$ diretamente no bloco RNN.
+            \item Cabe ao desenvolvedor adicionar uma camada densa (\texttt{nn.Linear}) sobre o estado interno $h_t$.
+            \item Isso dá flexibilidade para combinar a célula recorrente com diferentes camadas de saída (regressão, classificação, sequência).
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \node[rnncell, minimum width=3.2cm, minimum height=2.0cm, fill=PastelGreen] (cell) at (0, 0) {};
+            \node[opnode] (xh) at (0, -0.6) {$x_t\,\theta_{ih}^{T} + b_h$};
+            \node[opnode] (hh) at (-1.0, 0.2) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.2) {$+$};
+            \node[opnode] (tanh) at (0.8, 0.2) {$\tanh$};
+            \node[inputnode] (xnode) at (0, -1.8) {$x_t$};
+            \draw[->] (xnode) -- (xh);
+            \draw[->] (xh) -- (plus);
+            \draw[->] (hh) -- (plus);
+            \draw[->] (plus) -- (tanh);
+            \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$h_t$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+%========================================================================
+\section{Referências}
+%========================================================================
+
+\begin{frame}[allowframebreaks]{Referências}
+\begin{itemize}
+    \item Sugere-se a leitura do Capítulo 10 de \textit{Deep Learning}\footfullcite{goodfellow2016deep}.
+    \begin{itemize}
+        \item Disponível em \url{https://www.deeplearningbook.org/}.
+    \end{itemize}
+    \item Material baseado em:
+    \begin{itemize}
+        \item Capítulo 10 de \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio e Aaron Courville.
+        \item \textit{MIT Introduction to Deep Learning}, Ava Amini, 2023.
+    \end{itemize}
+\end{itemize}
+\printbibliography
+\end{frame}
+
+\end{document}

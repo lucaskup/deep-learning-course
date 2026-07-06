@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Normalizing Flows: mudança de variável em 1D com o termo do jacobiano, composição de K camadas inversíveis, affine coupling em 2D e treino por máxima verossimilhança com a NLL caindo ao vivo." />
+  <title>Normalizing Flows — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Mudança de variável</a></li>
+      <li><a href="#s2">Composição</a></li>
+      <li><a href="#s3">Affine coupling</a></li>
+      <li><a href="#s4">Treino MLE</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Normalizing <span>Flows</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de Normalizing Flows</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: a mudança de variável
+        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|df/dz|<sup>−1</sup></span>
+        em 1D com o termo do jacobiano visível, a composição
+        <span class="formula">f = f<sub>K</sub> ∘ … ∘ f<sub>1</sub></span> deformando a
+        gaussiana base passo a passo, a camada de <em>affine coupling</em>
+        <span class="formula">y<sup>B</sup> = x<sup>B</sup> ⊙ exp(s(x<sup>A</sup>)) + t(x<sup>A</sup>)</span>
+        em 2D, e o treino por máxima verossimilhança minimizando a NLL
+        <span class="formula">½‖z‖² − Σ<sub>ℓ</sub> s<sub>ℓ</sub> + const</span>
+        com um flow de verdade aprendendo two moons no navegador.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Mudança de variável em 1D ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Mudança de variável em 1D</h2>
+      <p class="demo-text">
+        Partimos da base <span class="formula">z ∼ 𝒩(0,1)</span> e aplicamos uma
+        transformação monotônica ajustável
+        <span class="formula">x = f(z) = b + a·z + c·tanh(z/0.7)</span>.
+        A conservação de probabilidade exige <span class="formula">p(x)·dx = p(z)·dz</span>,
+        logo a densidade resultante é
+        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|f′(z)|<sup>−1</sup></span>:
+        onde o flow alonga o eixo (derivada grande) a densidade abaixa, onde comprime
+        (derivada pequena) a densidade sobe. A curva tracejada mostra o que acontece se
+        <em>esquecermos</em> o termo do jacobiano: a área sob a curva deixa de ser 1.
+        Arraste o ponto no painel central para inspecionar
+        <span class="formula">f′(z<sub>0</sub>)</span> em cada região.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">escala a = <span id="s1-a-val">1.00</span>
+            <input type="range" id="s1-a" min="0.2" max="2" value="1" step="0.05" />
+          </label>
+          <label class="slider-label">translação b = <span id="s1-b-val">0.0</span>
+            <input type="range" id="s1-b" min="-2" max="2" value="0" step="0.1" />
+          </label>
+          <label class="slider-label">alongamento c = <span id="s1-c-val">0.00</span>
+            <input type="range" id="s1-c" min="0" max="2.5" value="0" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Base p<sub>Z</sub>(z) = 𝒩(0,1) e amostras</p>
+            <canvas id="s1-base"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Transformação x = f(z) (arraste o ponto z<sub>0</sub>)</p>
+            <canvas id="s1-map"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">p<sub>X</sub>(x) com jacobiano (sólida) e sem (tracejada) + histograma das amostras transformadas</p>
+            <canvas id="s1-out"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">a = 1, b = 0, c = 0</span> o flow é a identidade e
+          <span class="formula">p<sub>X</sub> = p<sub>Z</sub></span>. Suba para
+          <span class="formula">c ≈ 1.5</span> e reduza <span class="formula">a ≈ 0.5</span>:
+          o centro do eixo é esticado, a massa é empurrada para os lados e surge uma
+          densidade bimodal, como na figura dos slides. Compare a sólida com a tracejada no
+          readout: sem o jacobiano a área fica longe de 1. Arraste
+          <span class="formula">z<sub>0</sub></span> até o centro e veja
+          <span class="formula">f′(z<sub>0</sub>)</span> grande exatamente onde a densidade é baixa.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Composição de K camadas ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Composição de K camadas</h2>
+      <p class="demo-text">
+        A classe de funções inversíveis e diferenciáveis é fechada em composição:
+        <span class="formula">f = f<sub>K</sub> ∘ f<sub>K−1</sub> ∘ … ∘ f<sub>1</sub></span>.
+        Cada camada aqui é simples, <span class="formula">f<sub>k</sub>(z) = z + α<sub>k</sub>·tanh((z − μ<sub>k</sub>)/s<sub>k</sub>)</span>,
+        mas empilhando camadas a gaussiana base se deforma em distribuições cada vez mais
+        ricas. Pela regra da cadeia o determinante do jacobiano da composição é o produto
+        dos determinantes, <span class="formula">|f′| = Π<sub>k</sub> |f<sub>k</sub>′|</span>,
+        então basta que cada camada seja barata para a rede inteira ser tratável.
+        Mova o slider de <span class="formula">K</span> e veja a densidade se deformar passo a passo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">K = <span id="s2-k-val">3</span> camadas
+            <input type="range" id="s2-k" min="0" max="8" value="3" step="1" />
+          </label>
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Empilhar camada</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ K = 0</button>
+          <button class="btn-ctl" id="s2-shuffle" type="button">🎲 Novas camadas</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Densidade após K camadas (laranja); cinza: estágios intermediários; ciano tracejado: base p(z)</p>
+            <canvas id="s2-density"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Mapa composto x = f(z) (tracejado: identidade)</p>
+            <canvas id="s2-map"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">K = 0</span> a densidade é a própria base. Clique
+          ⏭ uma camada por vez e acompanhe o readout: o jacobiano composto em
+          <span class="formula">z = 0</span> é o produto dos jacobianos das camadas, e em log
+          vira uma soma, exatamente o termo que entra na NLL. Clique 🎲 algumas vezes:
+          composições diferentes geram multimodalidades diferentes, mesmo com cada
+          <span class="formula">f<sub>k</sub></span> sendo um único "solavanco" de tanh.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Affine coupling em 2D ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Affine coupling em 2D</h2>
+      <p class="demo-text">
+        A camada de <em>affine coupling</em> (RealNVP) divide a entrada em duas partes:
+        <span class="formula">x<sup>A</sup></span> é copiada sem mudança e
+        <span class="formula">x<sup>B</sup></span> sofre uma transformação afim cujos
+        parâmetros vêm de <span class="formula">x<sup>A</sup></span>:
+        <span class="formula">y<sup>B</sup> = x<sup>B</sup>·exp(s(x<sup>A</sup>)) + t(x<sup>A</sup>)</span>.
+        Como <span class="formula">x<sup>A</sup></span> não depende de
+        <span class="formula">x<sup>B</sup></span>, o jacobiano é triangular e
+        <span class="formula">log|det J| = Σ s</span>. Aqui a "coupling network" é
+        controlada por dois sliders: <span class="formula">s(x<sup>A</sup>) = w<sub>s</sub>·tanh(x<sup>A</sup>)</span>
+        e <span class="formula">t(x<sup>A</sup>) = w<sub>t</sub>·(x<sup>A</sup>² − 1)/2</span>.
+        As abas trocam qual metade é transformada, o papel da permutação entre camadas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s3-tab-b" type="button">Transforma x₂ (condiciona em x₁)</button>
+            <button class="tab" id="s3-tab-a" type="button">Transforma x₁ (condiciona em x₂)</button>
+          </div>
+          <label class="slider-label">w<sub>s</sub> = <span id="s3-ws-val">0.60</span>
+            <input type="range" id="s3-ws" min="-1.5" max="1.5" value="0.6" step="0.05" />
+          </label>
+          <label class="slider-label">w<sub>t</sub> = <span id="s3-wt-val">1.00</span>
+            <input type="range" id="s3-wt" min="-2" max="2" value="1" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <label class="slider-label">interpolação α = <span id="s3-alpha-val">1.00</span>
+            <input type="range" id="s3-alpha" min="0" max="1" value="1" step="0.01" />
+          </label>
+          <button class="btn-ctl primary" id="s3-anim" type="button">▶ Animar</button>
+          <button class="btn-ctl" id="s3-resample" type="button">🎲 Reamostrar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">z ∼ 𝒩(0, I) (ciano) → amostras transformadas (laranja), densidade p<sub>X</sub> (mapa de cores) e grade deformada</p>
+            <canvas id="s3-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Saídas da coupling network: α·s(x<sup>A</sup>) e α·t(x<sup>A</sup>)</p>
+            <canvas id="s3-st"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">α = 0</span> a camada é a identidade; clique ▶ e
+          veja a gaussiana se curvar em forma de banana, um passo na direção das two moons
+          da seção 4. Teste <span class="formula">w<sub>s</sub> = 1.2, w<sub>t</sub> = 0</span>:
+          só a escala muda, e o readout mostra <span class="formula">log|det J| = s(x<sup>A</sup>)</span>
+          positivo onde a grade alarga e negativo onde encolhe. Note que a dimensão
+          condicionante nunca se move: por isso camadas reais alternam a metade
+          transformada com permutações.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Treino por máxima verossimilhança ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Treino por máxima verossimilhança</h2>
+      <p class="demo-text">
+        Um flow de verdade treinando no navegador: <span class="formula">K</span> camadas de
+        affine coupling alternando a metade transformada, cada uma com uma coupling network
+        MLP pequena que produz <span class="formula">s</span> e <span class="formula">t</span>.
+        O treino minimiza a NLL vinda da mudança de variável,
+        <span class="formula">−log p<sub>X</sub>(x) = ½‖f(x)‖² − Σ<sub>ℓ</sub> s<sub>ℓ</sub> + log(2π)</span>:
+        o primeiro termo puxa <span class="formula">z = f(x)</span> para a gaussiana base e o
+        log-determinante paga o preço da deformação de volume. Para amostrar, basta passar
+        <span class="formula">z ∼ 𝒩(0, I)</span> pelas inversas em ordem contrária.
+        Use ⏭ para ver as amostras atravessando o flow camada a camada.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s4-tab-moons" type="button">Two moons</button>
+            <button class="tab" id="s4-tab-circles" type="button">Anéis</button>
+          </div>
+          <label class="slider-label">K = <span id="s4-k-val">6</span> camadas
+            <input type="range" id="s4-k" min="2" max="8" value="6" step="1" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s4-train" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-stage" type="button">⏭ Camada a camada</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar pesos</button>
+          <button class="btn-ctl" id="s4-seed" type="button">🎲 Nova semente</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Dados (ciano), amostras do flow (laranja) e densidade aprendida p<sub>X</sub>(x) (mapa de cores)</p>
+            <canvas id="s4-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">NLL média por passo (ciano: bruta, laranja: média móvel)</p>
+            <canvas id="s4-nll"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Antes de treinar as amostras são quase a própria gaussiana base. Clique
+          ▶ Treinar e observe a NLL despencar nos primeiros segundos enquanto a nuvem
+          laranja se parte em duas luas. Compare <span class="formula">K = 2</span> com
+          <span class="formula">K = 6</span>: com poucas camadas o flow não consegue separar
+          os modos (a expressividade vem da composição). Pause e clique ⏭ repetidamente:
+          cada clique mostra as amostras após mais uma camada inversa, a deformação gradual
+          de <span class="formula">𝒩(0, I)</span> até os dados. Nos anéis, repare como o flow
+          precisa "rasgar" a gaussiana para cobrir um suporte com buraco.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Normalizing Flows</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-change-of-variable.js"></script>
+  <script defer src="js/section2-composition.js"></script>
+  <script defer src="js/section3-affine-coupling.js"></script>
+  <script defer src="js/section4-training.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

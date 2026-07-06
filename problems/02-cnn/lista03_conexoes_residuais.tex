@@ -1,0 +1,151 @@
+\documentclass{dlproblemset}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\title{Conexões Residuais}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\begin{enumerate}[I)]
+
+   \item Explique porque os dois ramos de um bloco residual não são correlacionados. Mostre que a variância da soma de duas variáveis aleatórias não correlacionadas é igual a soma das variâncias.
+
+   \item Por que precisamos usar \textit{batch norm} quando usamos \textit{skip connections?}
+
+   \item Quantos parâmetros treináveis uma camada de \textit{batch norm} possui?
+
+   \item O grafo computacional do \textit{batch norm} é dado ela Figura \ref{fig:batch-norm}. Nessa figura, os circulos marcam cada uma das funções que são executadas durante o processo de um forward que aplica \textit{batch norm}. Tendo em vista esse contexto, faça o que é solicitado nas questões abaixo:
+
+   \begin{figure}[H]
+       \centering
+       \includegraphics[width=1\linewidth]{problems/02-cnn/images/grafo_computacional_batch_norm.png}
+       \caption{Grafo Computacional Batch Norm}
+       \label{fig:batch-norm}
+   \end{figure}
+
+As equações abaixo detalham o grafo computacional:
+
+   \begin{equation*}
+       f_1=\mathbb{E}[z_i]\\
+       f_{2i}=x_i-f_1\\
+       f_{3i}=f_{2i}^2\\
+       f_4=\mathbb{E}[f_{3i}]
+    \end{equation*}
+    \begin{equation*}
+           f_5=\sqrt{f_4+\epsilon}\\
+           f_6=\frac{1}{f_5}\\
+           f_{7i}=f_{2i}\times f_6 \\
+           z_i'=f_{7i}\times \gamma + \delta
+    \end{equation*}
+   \begin{enumerate}[a)]
+       \item Escreva código em Python para implementar o \textit{forward pass}.
+       \item Descubra as derivadas de cada nodo do grafo.
+       \item Crie uma expressão que computa $\frac{\partial z'_i}{\partial z_i}$
+       \item Implemente o \textit{backward pass} em Python.
+   \end{enumerate}
+
+    \item Calcule a saída do caminho $F(x)$ e a saída final de um bloco residual onde a entrada e a saída possuem as mesmas dimensões. Lembre que:
+    \begin{equation}
+        H(x) = F(x) + x
+    \end{equation}
+    Onde $F(x)$ representa uma camada convolucional utilizando o Kernel $K_1$. Assuma padding = 1; stride = 1; bias = 0.
+
+    $$X = \begin{bmatrix}
+    1 & 2 & 3 \\
+    4 & 5 & 6 \\
+    7 & 8 & 9
+    \end{bmatrix}
+    \qquad
+    K_1 = \begin{bmatrix}
+    0 & 0 & 0 \\
+    0 & -1 & 0 \\
+    0 & 0 & 0
+    \end{bmatrix}
+    $$
+
+    \item Sobre a questão anterior, que aconteceria com a saída $H(x)$ se o kernel $K_1$ fosse treinado para ter todos os seus 9 pesos iguais a $0$? O que isso significa para o treinamento de redes muito profundas?
+
+    \item Em redes neurais muito profundas, os gradientes podem "desaparecer" (ficando próximos de zero), impedindo que as primeiras camadas da rede aprendam. Qual é a "chave" para resolver o problema do vanishing gradient?
+
+\end{enumerate}
+
+\newpage
+\subsection*{Gabarito}
+\color{blue}
+
+\begin{enumerate}[I)]
+
+   \item Como um dos ramos de uma conexão residual passa por uma multiplicação por um vetor de pesos seguido de uma função de ativação não-linear, as correlações lineares são perdidas.
+
+   \item Para não causar explosão das ativações nem dos gradientes devido ao aumento da variância.
+
+   \item 2 $\gamma$ e $\delta$
+
+   \item \href{https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html}{Ver aqui}
+
+        \item Cálculo de $F(x)$ (Convolução de $x$ com $K_1$):
+
+O kernel $K_1$ é um filtro simples que multiplica o pixel central por $-1$ e todos os vizinhos por $0$. Ao passarmos $K_1$ sobre a matriz de entrada com padding, o resultado de cada operação é o valor do pixel central da entrada multiplicado por $-1$.
+
+Portanto, a matriz $F(x)$ é a negação da matriz de entrada $x$:
+$$
+F(x) = \begin{bmatrix}
+-1 & -2 & -3 \\
+-4 & -5 & -6 \\
+-7 & -8 & -9
+\end{bmatrix}
+$$
+
+Cálculo $H(x)$:
+A saída final do bloco residual é a soma do resultado $F(x)$ com a entrada original $x$.
+$$
+H(x) = F(x) + x
+$$
+$$
+H(x) = \begin{bmatrix}
+-1 & -2 & -3 \\
+-4 & -5 & -6 \\
+-7 & -8 & -9
+\end{bmatrix}
++
+\begin{bmatrix}
+1 & 2 & 3 \\
+4 & 5 & 6 \\
+7 & 8 & 9
+\end{bmatrix}
+$$
+\vspace{0.5cm}
+$$
+H(x) = \begin{bmatrix}
+(-1+1) & (-2+2) & (-3+3) \\
+(-4+4) & (-5+5) & (-6+6) \\
+(-7+7) & (-8+8) & (-9+9)
+\end{bmatrix}
+=
+\begin{bmatrix}
+0 & 0 & 0 \\
+0 & 0 & 0 \\
+0 & 0 & 0
+\end{bmatrix}
+$$
+
+Resultado Final:
+A saída do bloco residual é uma matriz nula:
+$$
+H(x) = \begin{bmatrix}
+0 & 0 & 0 \\
+0 & 0 & 0 \\
+0 & 0 & 0
+\end{bmatrix}
+$$
+    \item Se o kernel $K_1$ fosse treinado para ser uma matriz de zeros, e assumindo que o bias $B_1$ também seja zero, o resultado da convolução $F(x)$ seria uma matriz inteiramente nula. A Saída final do bloco, $H(x)$, seria calculada como:
+    $$ H(x) = F(x) + x = \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix} + x = x$$
+
+    O bloco se tornaria, efetivamente, uma transformação identidade, simplesmente passando a entrada $x$ adiante sem qualquer alteração.
+    % Isso é a principal vantagem das (ResNets), resolvendo o problema da degradação (que ocorre quando adicionar mais camadas a uma rede profunda começa a piorar o desempenho). Com as conexões residuais, se uma camada adicional não for útil (ou for prejudicial ao treinamento), o otimizador pode simplesmente aprender a "ignora-la" (fazendo seu caminho $F(x)$ tender a zero), e o bloco reverte para uma identidade. Isso garante que ao adicionar mais camadas, na pior das hipóteses, não irá prejudicar o desempenho da rede.
+
+    \item A "chave" são as conexões residuais (\textit{skip connections}), introduzidas pelas ResNets. Elas criam um "atalho" que soma a entrada ($x$) diretamente à saída de um bloco de camadas ($F(x)$). Garantindo que o gradiente sempre tenha um caminho direto (o atalho $+x$) para fluir, impedindo que ele se multiplique até desaparecer.
+
+\end{enumerate}
+\end{document}

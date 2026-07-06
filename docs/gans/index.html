@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de GANs: o jogo adversarial em 1D com gerador de um parâmetro, o discriminador ótimo e a divergência de Jensen-Shannon, colapso de moda (qualidade vs cobertura) e gradientes da JS vs Wasserstein." />
+  <title>GANs — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Jogo 1D</a></li>
+      <li><a href="#s2">D* ótimo</a></li>
+      <li><a href="#s3">Colapso de moda</a></li>
+      <li><a href="#s4">JS vs W</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Generative Adversarial <span>Networks</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de GANs</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o jogo adversarial no exemplo
+        <em>toy</em> 1D, em que o gerador <span class="formula">x* = g[z, θ] = z + θ</span>
+        tem um único parâmetro e o discriminador
+        <span class="formula">σ(f[x, ϕ])</span> é treinado em alternância;
+        o discriminador ótimo
+        <span class="formula">D*(x) = P(x) / (P(x) + P*(x))</span> e a divergência de
+        Jensen-Shannon; a decomposição da
+        <span class="formula">D<sub>JS</sub></span> em qualidade e cobertura, que explica o
+        colapso de moda; e a comparação entre
+        <span class="formula">D<sub>JS</sub></span> e a distância de Wasserstein quando as
+        distribuições se afastam. Notação dos slides:
+        <span class="formula">P(x)</span> real,
+        <span class="formula">P*(x)</span> gerada,
+        <span class="formula">M = ½(P + P*)</span>,
+        <span class="formula">D<sub>JS</sub> ≤ ln 2 ≈ 0.693</span> nats.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: O jogo adversarial em 1D ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · O jogo adversarial em 1D</h2>
+      <p class="demo-text">
+        O exemplo <em>toy</em> dos slides: os dados reais vêm de
+        <span class="formula">𝒩(7, 1)</span>, o latente de
+        <span class="formula">z ~ 𝒩(0, 1)</span> e o gerador tem um único parâmetro de
+        translação, <span class="formula">x* = z + θ</span>, então
+        <span class="formula">P*(x) = 𝒩(θ, 1)</span>.
+        O discriminador <span class="formula">σ(f[x, ϕ])</span> usa um logit linear
+        <span class="formula">f[x, ϕ] = a·x + b</span> e minimiza a entropia cruzada
+        (reais com <span class="formula">y = 1</span>, geradas com
+        <span class="formula">y = 0</span>). O treino alterna
+        <span class="formula">k</span> passos do discriminador e um passo do gerador.
+        Para o gerador, compare a loss original
+        <span class="formula">L[θ] = Σ ln[1 − σ(f[x*, ϕ])]</span> com a
+        <em>non-saturating</em>
+        <span class="formula">L<sub>NS</sub>[θ] = Σ −ln[σ(f[x*, ϕ])]</span>:
+        quando o discriminador vence (<span class="formula">σ ≈ 0</span>), a original
+        quase não gera gradiente.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-tab-orig" type="button">Loss original do gerador</button>
+            <button class="tab active" id="s1-tab-ns" type="button">Non-saturating</button>
+          </div>
+          <label class="slider-label">θ inicial = <span id="s1-theta0-val">3.0</span>
+            <input type="range" id="s1-theta0" min="-4" max="12" value="3" step="0.5" />
+          </label>
+          <label class="slider-label">k (passos de D) = <span id="s1-k-val">1</span>
+            <input type="range" id="s1-k" min="1" max="10" value="1" step="1" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s1-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-dice" type="button">🎲 Nova semente</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">P(x) real, P*(x) gerada, amostras do minibatch e a sigmóide σ(f[x, ϕ]) (eixo da direita, 0 a 1); arraste no gráfico para mover θ</p>
+            <canvas id="s1-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">θ por passo de gerador (tracejado: alvo θ = 7)</p>
+            <canvas id="s1-theta"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Comece com <span class="formula">θ<sub>0</sub> = 3</span> e a loss
+          <em>non-saturating</em>: θ sobe até 7 e a sigmóide achata em 0.5, como no painel (c)
+          dos slides. Agora reinicie com <span class="formula">θ<sub>0</sub> = −3</span>,
+          <span class="formula">k = 10</span> e a loss original: o discriminador fica perto
+          do ótimo, <span class="formula">σ(f[x*, ϕ]) ≈ 0</span>,
+          <span class="formula">|∂L/∂θ|</span> no medidor despenca e o gerador quase não se
+          move. Troque para <em>non-saturating</em> sem reiniciar e veja o gradiente voltar
+          com força. Perto do equilíbrio θ oscila em vez de assentar: gerador e
+          discriminador continuam reagindo um ao outro, a instabilidade típica do treino
+          de GANs.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Discriminador ótimo e D_JS ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · O discriminador ótimo e a divergência de Jensen-Shannon</h2>
+      <p class="demo-text">
+        Pela regra de Bayes com <span class="formula">P(real) = P(gen) = ½</span>, o
+        discriminador ótimo depende só das densidades:
+        <span class="formula">D*(x) = P(x) / (P(x) + P*(x))</span>.
+        Substituindo <span class="formula">D*</span> na loss, cada termo vira uma KL contra a
+        mistura <span class="formula">M = ½(P + P*)</span> e o resultado da aula aparece:
+        <span class="formula">L[ϕ] = 2·D<sub>JS</sub>[P* ‖ P] − 2 ln 2</span>.
+        Aqui <span class="formula">P(x) = 𝒩(7, 1)</span> é fixa e você controla a gerada
+        <span class="formula">P*(x) = 𝒩(μ*, σ*²)</span>. Onde
+        <span class="formula">P</span> domina, <span class="formula">D* → 1</span>; onde
+        <span class="formula">P*</span> domina, <span class="formula">D* → 0</span>; onde as
+        densidades coincidem, <span class="formula">D* = ½</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">μ* = <span id="s2-mu-val">2.0</span>
+            <input type="range" id="s2-mu" min="-4" max="18" value="2" step="0.1" />
+          </label>
+          <label class="slider-label">σ* = <span id="s2-sigma-val">1.00</span>
+            <input type="range" id="s2-sigma" min="0.4" max="3" value="1" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">P(x), P*(x), mistura M(x) e D*(x) (eixo da direita, 0 a 1); arraste para mover μ*</p>
+            <canvas id="s2-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">D<sub>JS</sub>[P* ‖ P] em função de μ* (tracejado: ln 2)</p>
+            <canvas id="s2-js"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">μ* = 7</span> e <span class="formula">σ* = 1</span> as
+          densidades coincidem, <span class="formula">D*</span> fica plano em 0.5 e
+          <span class="formula">D<sub>JS</sub> = 0</span> (gerador perfeito). Arraste
+          <span class="formula">μ*</span> para 14: <span class="formula">D*</span> vira um
+          degrau e a curva da direita satura em
+          <span class="formula">ln 2 ≈ 0.693</span> nats, com derivada
+          <span class="formula">|∂D<sub>JS</sub>/∂μ*|</span> quase nula no medidor, é o
+          platô que vai causar o <em>vanishing gradient</em>. Diminua
+          <span class="formula">σ*</span> para 0.4 e note que mesmo com
+          <span class="formula">μ* = 7</span> a divergência não zera: a forma também conta.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Colapso de moda ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Colapso de moda: qualidade vs cobertura</h2>
+      <p class="demo-text">
+        A decomposição vista em aula separa a divergência em dois termos:
+        <span class="formula">D<sub>JS</sub>[P* ‖ P] = ½·D<sub>KL</sub>[P* ‖ M]</span>
+        (<strong>qualidade</strong>, penaliza amostras geradas implausíveis)
+        <span class="formula">+ ½·D<sub>KL</sub>[P ‖ M]</span>
+        (<strong>cobertura</strong>, penaliza modas reais ignoradas).
+        Quando <span class="formula">P*(x) ≪ P(x)</span> numa região, o integrando da
+        cobertura satura em <span class="formula">½·P(x)·ln 2</span>, independente do
+        gerador: deixar uma moda de fora custa um valor fixo que o gerador não consegue
+        reduzir aos poucos. Abaixo, <span class="formula">P(x)</span> é bimodal (modas em
+        −1.5 e 4, como na figura dos slides) e o gerador é unimodal,
+        <span class="formula">P*(x) = 𝒩(μ*, σ*²)</span>. O botão ▶ treina
+        <span class="formula">μ*</span> por descida de gradiente sobre a própria
+        <span class="formula">D<sub>JS</sub></span> (σ* fica fixo no valor do slider,
+        como o gerador de um parâmetro da seção 1).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">μ* = <span id="s3-mu-val">1.00</span>
+            <input type="range" id="s3-mu" min="-4" max="7" value="1" step="0.05" />
+          </label>
+          <label class="slider-label">σ* = <span id="s3-sigma-val">0.50</span>
+            <input type="range" id="s3-sigma" min="0.3" max="2.5" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">peso da moda em 4 = <span id="s3-w-val">0.50</span>
+            <input type="range" id="s3-w" min="0.05" max="0.95" value="0.5" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Treinar gerador</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">P(x) bimodal, P*(x) gerada e mistura M(x); arraste para mover μ*</p>
+            <canvas id="s3-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">D<sub>JS</sub> em função de μ* (σ* atual): dois vales, um por moda</p>
+            <canvas id="s3-js"></canvas>
+          </div>
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Integrandos: ½·P*·ln(P*/M) em laranja (qualidade) e ½·P·ln(P/M) em ciano (cobertura); área líquida = cada termo</p>
+            <canvas id="s3-terms"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Treine partindo de <span class="formula">μ* = 1</span>: o gerador desliza para
+          a moda em −1.5 e para. O termo de qualidade despenca, mas o lombo ciano em torno
+          de <span class="formula">x = 4</span> não se move: a moda ignorada contribui
+          <span class="formula">½·0.5·ln 2 ≈ 0.17</span> nats de cobertura,
+          independentes de <span class="formula">μ*</span>. Reinicie com
+          <span class="formula">μ* = 3</span> e ele colapsa para a outra moda: a curva
+          <span class="formula">D<sub>JS</sub>(μ*)</span> tem dois mínimos locais, um por
+          moda, e o gradiente nunca cruza a barreira entre eles. Aumente
+          <span class="formula">σ*</span> para 1.5 e veja a barreira amolecer (o gerador
+          largo cobre as duas modas, mas com qualidade pior); reduza o peso da moda em 4
+          para 0.05 e compare quanto a cobertura presa diminui.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: JS vs Wasserstein ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Vanishing gradient: Jensen-Shannon vs Wasserstein</h2>
+      <p class="demo-text">
+        Em alta dimensão, <span class="formula">P</span> e <span class="formula">P*</span>
+        vivem em <em>manifolds</em> que quase nunca se cruzam: suportes praticamente
+        disjuntos são a regra, não a exceção. Nesse regime
+        <span class="formula">D<sub>JS</sub></span> trava em
+        <span class="formula">ln 2</span> e o gradiente do gerador desaparece. A distância
+        de Wasserstein mede o <em>trabalho</em> de transportar massa
+        (massa × distância movida) e cresce linearmente com a separação: para
+        <span class="formula">P = 𝒩(0, 1)</span> e
+        <span class="formula">P* = 𝒩(d, 1)</span>, vale
+        <span class="formula">W = d</span>. Na forma dual de Kantorovich-Rubinstein, o
+        crítico <span class="formula">f</span> é 1-Lipschitz
+        (<span class="formula">|∂f/∂x| ≤ 1</span>, imposto por <em>weight clipping</em> ou
+        <em>gradient penalty</em>) e o ótimo aqui é uma reta de inclinação constante:
+        gradiente informativo em toda parte, ao contrário da sigmóide saturada.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s4-tab-js" type="button">Treinar com D<sub>JS</sub></button>
+            <button class="tab" id="s4-tab-w" type="button">Treinar com Wasserstein</button>
+          </div>
+          <label class="slider-label">separação d = <span id="s4-d-val">8.0</span>
+            <input type="range" id="s4-d" min="0" max="12" value="8" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s4-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">P(x), P*(x), discriminador ótimo D*(x) saturado e crítico 1-Lipschitz f(x) (reta, escala própria); arraste para mudar d</p>
+            <canvas id="s4-dist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">D<sub>JS</sub>(d) satura em ln 2; W(d) = d cresce sem teto (escala à direita)</p>
+            <canvas id="s4-curves"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Sinal de gradiente |∂/∂d|: JS some, Wasserstein é constante</p>
+            <canvas id="s4-grad"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">d = 8</span> e a aba D<sub>JS</sub>, aperte ▶: o
+          gerador fica congelado, o medidor mostra
+          <span class="formula">|∂D<sub>JS</sub>/∂d|</span> na casa de 10⁻⁵, é o
+          <em>vanishing gradient</em> do experimento de Arjovsky visto em aula. Troque para
+          a aba Wasserstein e o mesmo ponto desliza até
+          <span class="formula">d = 0</span> em velocidade constante, pois
+          <span class="formula">|∂W/∂d| = 1</span> sempre. Com
+          <span class="formula">d ≈ 2</span> (suportes ainda sobrepostos) a JS também
+          funciona: o problema aparece justamente quando o discriminador fica bom demais.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>GANs</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-jogo-adversarial.js"></script>
+  <script defer src="js/section2-discriminador-otimo.js"></script>
+  <script defer src="js/section3-mode-collapse.js"></script>
+  <script defer src="js/section4-wasserstein.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

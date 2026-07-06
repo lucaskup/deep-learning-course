@@ -1,0 +1,299 @@
+\documentclass{dlproblemset}
+\usepackage{emoji}
+\providecommand{\thetav}{\theta}
+
+\title{\textit{Autoencoders} e \textit{Variational Autoencoders}}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação dos slides: $g[x, \phi]$ para o \textit{encoder} (parâmetros $\phi$), $f[z, \thetav]$ para o \textit{decoder} (parâmetros $\thetav$), $q(z \mid x, \phi)$ para o posterior aproximado e $p(z) = \mathcal{N}(\mathbf{0}, \mathbf{I})$ para o \textit{prior}, conforme apresentadas em aula. Questões marcadas com \emoji{skull-and-crossbones} são consideradas difíceis.
+
+\subsection*{Questões de Múltipla Escolha.}
+
+\begin{enumerate}[I)]
+
+    % ------------------------------------------------------------------
+    % Q1 — Easy (AE bottleneck and trivial solutions)
+    % ------------------------------------------------------------------
+    \item Um pesquisador treina um \textit{autoencoder} sobre imagens $28 \times 28$ (entrada com $784$ \textit{features}) e observa erro de reconstrução próximo de zero, mas as representações latentes não capturam estrutura semântica útil. Ao inspecionar a arquitetura, ele percebe que o vetor latente possui dimensão $1024$ e que todas as camadas usam ativações lineares. Qual é a causa mais provável do problema?
+    \begin{enumerate}[(a)]
+        \item A função de perda escolhida não é compatível com imagens em escala de cinza.
+        \item O \textit{decoder} possui parâmetros insuficientes para reconstruir a entrada.
+        \item Não há gargalo de informação, então a rede aprende a copiar a entrada.
+        \item A inicialização dos pesos foi feita com valores muito pequenos, causando colapso.
+    \end{enumerate}
+    % R: c
+
+    % ------------------------------------------------------------------
+    % Q2 — Easy (denoising AE objective)
+    % ------------------------------------------------------------------
+    \item Em um \textit{denoising autoencoder}, qual é o procedimento correto de treinamento por amostra?
+    \begin{enumerate}[(a)]
+        \item Corromper $x$ gerando $\tilde{x}$, passar $\tilde{x}$ pela rede e comparar a saída com $\tilde{x}$.
+        \item Corromper $x$ gerando $\tilde{x}$, passar $\tilde{x}$ pela rede e comparar a saída com $x$ original.
+        \item Passar $x$ pela rede e comparar a saída com uma versão corrompida $\tilde{x}$ do mesmo $x$.
+        \item Passar $x$ pela rede e adicionar ruído na representação latente antes do \textit{decoder}.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q3 — Medium (AE vs VAE conceptual)
+    % ------------------------------------------------------------------
+    \item Considere um \textit{autoencoder} vanilla treinado para minimizar o erro de reconstrução. Por que esse modelo, sozinho, não pode ser usado para gerar amostras novas e plausíveis, ainda que reconstrua bem o conjunto de treino?
+    \begin{enumerate}[(a)]
+        \item O \textit{decoder} é determinístico e, portanto, não admite a injeção de ruído necessária para variabilidade.
+        \item Não há distribuição conhecida sobre o latente, amostras aleatórias caem fora do suporte aprendido.
+        \item O erro de reconstrução tende a zero, o que elimina qualquer diversidade na saída do \textit{decoder}.
+        \item O \textit{encoder} não é diferenciável em relação a $\phi$, impedindo a propagação do gradiente até a entrada.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q4 — Medium (Numerical KL for diagonal Gaussian)
+    % ------------------------------------------------------------------
+    \item O \textit{encoder} de um VAE com latente bidimensional ($D_z = 2$) produz, para uma entrada $x$, os parâmetros $\mu = (2,\, 0)$ e $\Sigma = \mathrm{diag}(1,\, 1)$. Considerando $p(z) = \mathcal{N}(\mathbf{0}, \mathbf{I})$, qual é o valor de $D_{KL}\!\left[\,q(z \mid x, \phi)\,\|\,p(z)\,\right]$?
+    \begin{enumerate}[(a)]
+        \item $0$.
+        \item $1$.
+        \item $2$.
+        \item $4$.
+    \end{enumerate}
+    % R: c
+
+    % ------------------------------------------------------------------
+    % Q5 — Medium (Reparameterization computation)
+    % ------------------------------------------------------------------
+    \item Durante o \textit{forward pass} de um VAE com latente bidimensional, o \textit{encoder} produz $\mu = (1,\, -2)$ e desvios-padrão $\sigma = (0.5,\, 1.5)$ (assumindo $\Sigma$ diagonal). Foi amostrado $\epsilon^{*} = (0.4,\, -0.2)$ a partir de $\mathcal{N}(\mathbf{0}, \mathbf{I})$. Qual é o valor de $z^{*}$ produzido pelo \textit{reparametrization trick}?
+    \begin{enumerate}[(a)]
+        \item $(1.2,\; -2.3)$.
+        \item $(1.4,\; -2.2)$.
+        \item $(0.9,\; -1.7)$.
+        \item $(1.5,\; -1.7)$.
+    \end{enumerate}
+    % R: a
+
+    % ------------------------------------------------------------------
+    % Q6 — Medium (why reparameterization is needed)
+    % ------------------------------------------------------------------
+    \item Por que o \textit{reparametrization trick} é necessário durante o treinamento de um VAE?
+    \begin{enumerate}[(a)]
+        \item Para garantir que o \textit{prior} $p(z)$ seja exatamente $\mathcal{N}(\mathbf{0}, \mathbf{I})$ durante toda a otimização.
+        \item Para que a amostragem de $z^{*}$ permaneça no caminho diferenciável em relação aos parâmetros do \textit{encoder}.
+        \item Para reduzir o custo computacional da estimativa \textit{Monte Carlo} do termo de reconstrução.
+        \item Para forçar a distribuição posterior $q(z \mid x, \phi)$ a ter média zero e variância unitária.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q7 — Medium (ELBO decomposition)
+    % ------------------------------------------------------------------
+    \item O ELBO usado no treinamento de um VAE pode ser escrito como a soma de dois termos. Qual alternativa identifica corretamente o papel de cada termo na função objetivo?
+    \begin{enumerate}[(a)]
+        \item Termo de reconstrução: $-D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z)\right]$. Termo de regularização: $\mathbb{E}_{q}[\log p(x \mid z, \thetav)]$.
+        \item Termo de reconstrução: $\mathbb{E}_{q}[\log p(x \mid z, \thetav)]$. Termo de regularização: $-D_{KL}\!\left[q(z\mid x,\phi)\,\|\,p(z)\right]$.
+        \item Termo de reconstrução: $\mathbb{E}_{p(z)}[\log p(x \mid z, \thetav)]$. Termo de regularização: $D_{KL}\!\left[p(z)\,\|\,q(z\mid x,\phi)\right]$.
+        \item Termo de reconstrução: $\log p(x \mid \thetav)$. Termo de regularização: $\mathbb{E}_{q}[\log q(z \mid x, \phi)]$.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q8 — Medium (posterior collapse identification)
+    % ------------------------------------------------------------------
+    \item Após treinar um VAE com \textit{decoder} muito expressivo, observa-se que $D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]$ tende a zero para todas as entradas, enquanto o erro de reconstrução do \textit{decoder} permanece elevado. O que esse padrão indica?
+    \begin{enumerate}[(a)]
+        \item A taxa de aprendizado está alta demais e o gradiente do termo KL está dominando o gradiente da reconstrução.
+        \item O \textit{encoder} aprendeu a igualar $q(z \mid x, \phi)$ ao \textit{prior} e o latente carrega pouca informação sobre $x$.
+        \item O ruído $\epsilon^{*}$ do \textit{reparametrization trick} não está sendo amostrado de forma independente para cada exemplo.
+        \item A dimensão do latente $D_z$ está pequena demais para representar a distribuição dos dados.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q9 — Medium (sampling new instances from a trained VAE)
+    % ------------------------------------------------------------------
+    \item Depois de treinar um VAE, deseja-se gerar uma nova amostra $x^{*}$ que se assemelhe aos dados de treino. Qual procedimento corresponde à amostragem ancestral correta?
+    \begin{enumerate}[(a)]
+        \item Tomar um $x$ qualquer do conjunto de treino, passar pelo \textit{encoder} para obter $\mu, \Sigma$ e produzir $x^{*}$ via \textit{decoder} aplicado em $\mu$.
+        \item Amostrar $z^{*} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ e passar $z^{*}$ pelo \textit{decoder} para obter os parâmetros de $p(x \mid z^{*}, \thetav)$.
+        \item Amostrar $z^{*}$ uniformemente em um cubo de aresta $1$ centrado na origem e passar pelo \textit{decoder}.
+        \item Amostrar $z^{*}$ de $q(z \mid x, \phi)$ com $x$ tirado do conjunto de treino e copiar a saída do \textit{decoder}.
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q10 — Hard (skull) (what makes the V variational; intratable likelihood)
+    % ------------------------------------------------------------------
+    \item \emoji{skull-and-crossbones} Considere a fronteira entre um \textit{autoencoder} clássico e um \textit{variational autoencoder}. Qual afirmação abaixo descreve mais precisamente o papel da inferência variacional no VAE, dado que $p(x \mid \thetav) = \int p(x \mid z, \thetav)\,p(z)\,dz$ é, em geral, intratável?
+    \begin{enumerate}[(a)]
+        \item A inferência variacional substitui o termo $\log p(x \mid \thetav)$ por um limite inferior tratável envolvendo $q(z \mid x, \phi)$, que é otimizado em conjunto com $\thetav$.
+        \item A inferência variacional fornece uma forma exata de calcular $p(x \mid \thetav)$ via uma única amostra de $z$, dispensando integração numérica.
+        \item A inferência variacional transforma o problema em uma classificação binária entre amostras reais e amostras geradas pelo \textit{decoder}.
+        \item A inferência variacional garante que o \textit{encoder} aprenda exatamente a distribuição posterior verdadeira $p(z \mid x, \thetav)$.
+    \end{enumerate}
+    % R: a
+
+    % ------------------------------------------------------------------
+    % Q11 — Hard (skull) (KL sensitivity to small variance)
+    % ------------------------------------------------------------------
+    \item \emoji{skull-and-crossbones} Considere dois \textit{encoders} A e B de um VAE com latente bidimensional, ambos produzindo $\mu = (0,\, 0)$. O \textit{encoder} A devolve $\Sigma_A = \mathrm{diag}(0.01,\, 0.01)$, enquanto o B devolve $\Sigma_B = \mathrm{diag}(1,\, 1)$. Comparando $D_{KL}\!\left[q_A \,\|\, p(z)\right]$ e $D_{KL}\!\left[q_B \,\|\, p(z)\right]$ contra $p(z) = \mathcal{N}(\mathbf{0}, \mathbf{I})$, qual afirmação está correta?
+    \begin{enumerate}[(a)]
+        \item $D_{KL}^{A} < D_{KL}^{B}$, pois variâncias menores aproximam $q$ de uma massa pontual e reduzem a divergência.
+        \item $D_{KL}^{A} = D_{KL}^{B} = 0$, pois ambas as médias coincidem com a média do \textit{prior}.
+        \item $D_{KL}^{A} > D_{KL}^{B}$, pois o termo $-\log\det\Sigma$ cresce quando as variâncias se aproximam de zero.
+        \item $D_{KL}^{A} \approx D_{KL}^{B}$, pois o termo dominante é $\mu^{\top}\mu$, que se anula em ambos os casos.
+    \end{enumerate}
+    % R: c
+
+    % ------------------------------------------------------------------
+    % Q12 — Medium (sparse vs bottleneck regularization)
+    % ------------------------------------------------------------------
+    \item Um \textit{autoencoder esparso} é uma variante em que a dimensão do latente pode ser \emph{maior} que a da entrada (overcomplete), mas ainda assim a rede aprende representações úteis. Como essa configuração evita a solução trivial de cópia?
+    \begin{enumerate}[(a)]
+        \item Penalizando a ativação do latente para que poucas unidades fiquem ativas simultaneamente.
+        \item Aplicando \textit{dropout} apenas no \textit{decoder} para impedir a passagem direta da informação.
+        \item Reduzindo a taxa de aprendizado sempre que o erro de reconstrução fica abaixo de um limiar.
+        \item Substituindo o erro quadrático médio por entropia cruzada categórica no \textit{decoder}.
+    \end{enumerate}
+    % R: a
+
+\end{enumerate}
+
+\subsection*{Gabarito - Objetivas}
+\begin{enumerate}[I)]
+\item   c
+\item   b
+\item   b
+\item   c
+\item   a
+\item   b
+\item   b
+\item   b
+\item   b
+\item   a
+\item   c
+\item   a
+\end{enumerate}
+
+\subsection*{Resoluções - Objetivas}
+\color{blue}
+\begin{enumerate}[I)]
+    \item \textbf{(c)} Com $D_z = 1024 > 784$ e ativações lineares em todas as camadas, não existe gargalo de informação: a rede pode implementar a identidade (ou um par de mapas lineares que se cancelam) e copiar a entrada, zerando o erro sem aprender estrutura. A (a) é irrelevante para o sintoma descrito. A (b) contradiz o erro de reconstrução próximo de zero. A (d) produziria erro de reconstrução alto, o oposto do observado.
+
+    \item \textbf{(b)} O \textit{denoising autoencoder} corrompe a entrada (gerando $\tilde{x}$) mas usa o $x$ limpo como alvo, forçando a rede a aprender a remover o ruído. A (a) treina a rede a reproduzir a própria entrada corrompida, sem efeito de limpeza. A (c) inverte os papéis e ensinaria a rede a adicionar ruído. A (d) descreve perturbação no latente, que não caracteriza o \textit{denoising autoencoder}.
+
+    \item \textbf{(b)} Sem uma distribuição conhecida sobre o latente, não há como escolher $z$ para alimentar o \textit{decoder}: pontos sorteados ao acaso tendem a cair fora da região efetivamente ocupada pelas codificações do treino, e o \textit{decoder} devolve saídas implausíveis. A (a) não é o impedimento, o \textit{decoder} de um VAE também é determinístico dado $z$. A (c) é um \textit{non sequitur}, reconstruir bem não elimina diversidade. A (d) parte de premissa falsa, o \textit{encoder} é diferenciável.
+
+    \item \textbf{(c)} $D_{KL} = \tfrac{1}{2}\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\right) = \tfrac{1}{2}(2 + 4 - 2 - 0) = 2$. A (a) corresponde a ignorar a média (com $\mu = \mathbf{0}$ e $\Sigma = \mathbf{I}$ a divergência seria nula). A (b) corresponde a usar $\|\mu\| = 2$ sem elevar ao quadrado. A (d) corresponde a usar $\mu^{\top}\mu = 4$ sozinho, sem o fator $\tfrac{1}{2}$ e sem os demais termos.
+
+    \item \textbf{(a)} $z^{*} = \mu + \sigma \odot \epsilon^{*} = (1 + 0.5 \cdot 0.4,\; -2 + 1.5 \cdot (-0.2)) = (1.2,\; -2.3)$. A (b) soma $\epsilon^{*}$ diretamente, sem escalar por $\sigma$. As alternativas (c) e (d) resultam de trocas de componentes ou de sinais na aplicação elemento a elemento.
+
+    \item \textbf{(b)} O nó de amostragem é estocástico e não admite derivada em relação a $\phi$. Reescrevendo $z^{*} = \mu + \Sigma^{1/2}\epsilon^{*}$, a aleatoriedade fica isolada em $\epsilon^{*}$ (amostrado de uma distribuição fixa) e o caminho por $\mu$ e $\Sigma^{1/2}$ permanece diferenciável. A (a) confunde o \textit{prior}, fixado por hipótese, com algo imposto pelo truque. A (c) não procede, o custo da estimativa não muda. A (d) descreveria um colapso forçado do posterior, que não é o objetivo.
+
+    \item \textbf{(b)} O ELBO é $\mathbb{E}_{q}[\log p(x \mid z, \thetav)] - D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]$: o primeiro termo mede a qualidade da reconstrução, o segundo regulariza $q$ na direção do \textit{prior}. A (a) troca os papéis dos dois termos. A (c) usa a esperança sob o \textit{prior} e inverte os argumentos da KL. A (d) confunde o ELBO com a própria verossimilhança marginal, que é intratável.
+
+    \item \textbf{(b)} KL próxima de zero com reconstrução ruim é sinal do \textit{posterior collapse}: $q(z \mid x, \phi) \approx p(z)$ para todo $x$ e o latente deixa de informar o \textit{decoder}. A (a) descreveria instabilidade geral de otimização, não esse padrão específico. A (c) não produz esse sintoma. A (d) implicaria KL tipicamente alta, não nula.
+
+    \item \textbf{(b)} A amostragem ancestral segue o modelo gerador: $z^{*} \sim p(z) = \mathcal{N}(\mathbf{0}, \mathbf{I})$ e, em seguida, o \textit{decoder} produz os parâmetros de $p(x \mid z^{*}, \thetav)$. A (a) descreve reconstrução de um dado existente, não geração. A (c) amostra da distribuição errada. A (d) condiciona em um exemplo do treino, tendendo a reproduzi-lo em vez de gerar algo novo.
+
+    \item \textbf{(a)} Como $p(x \mid \thetav)$ envolve uma integral intratável, a inferência variacional introduz $q(z \mid x, \phi)$ e otimiza o ELBO, um limite inferior tratável de $\log p(x \mid \thetav)$, conjuntamente em $\phi$ e $\thetav$. A (b) superestima o que uma única amostra de $z$ fornece. A (c) descreve uma GAN. A (d) é falsa, $q$ apenas aproxima o posterior verdadeiro.
+
+    \item \textbf{(c)} $D_{KL}^{A} = \tfrac{1}{2}\left(0.02 + 0 - 2 - \ln(10^{-4})\right) = \tfrac{1}{2}(0.02 - 2 + 9.21) \approx 3.6$, enquanto $D_{KL}^{B} = \tfrac{1}{2}(2 + 0 - 2 - 0) = 0$. O termo $-\log\det\Sigma$ explode quando as variâncias tendem a zero, logo $D_{KL}^{A} > D_{KL}^{B}$. A (a) inverte a intuição, uma massa quase pontual está longe de uma gaussiana de variância unitária. A (b) considera apenas as médias e ignora as covariâncias. A (d) ignora o termo de determinante, que é justamente o dominante aqui.
+
+    \item \textbf{(a)} A penalidade de esparsidade força poucas unidades ativas por instância, criando um gargalo de capacidade efetiva mesmo com latente \textit{overcomplete}: a rede precisa selecionar o que representar. A (b) não impede a cópia pelo restante das conexões. A (c) e a (d) alteram a dinâmica de otimização e a função de perda, mas nenhuma das duas remove a solução de identidade.
+\end{enumerate}
+\color{black}
+
+\newpage
+
+\subsection*{Questões Dissertativas.}
+
+\begin{enumerate}[I)]
+
+    \item Considere um \textit{autoencoder} aplicado a imagens em escala de cinza com $D_x = 784$ \textit{pixels} (entrada vetorizada de $28 \times 28$). Para cada uma das configurações abaixo, indique se o modelo é \emph{undercomplete} ou \emph{overcomplete}, e discuta brevemente o efeito esperado sobre a representação aprendida.
+    \begin{enumerate}[(a)]
+        \item Latente com $D_z = 32$ unidades, sem outras regularizações.
+        \item Latente com $D_z = 2000$ unidades, sem outras regularizações.
+        \item Latente com $D_z = 2000$ unidades, treinado com penalidade de esparsidade na ativação do latente.
+    \end{enumerate}
+
+    \item Seja um VAE com latente $D_z = 2$. Para uma entrada $x$, o \textit{encoder} produz $\mu = (1,\, -1)$ e $\Sigma = \mathrm{diag}(0.5,\, 2)$. Calcule, passo a passo, $D_{KL}\!\left[\,q(z \mid x, \phi)\,\|\,\mathcal{N}(\mathbf{0}, \mathbf{I})\,\right]$ usando a fórmula fechada apresentada em aula. Em seguida, comente quais dos quatro termos ($\mathrm{Tr}[\Sigma]$, $\mu^{\top}\mu$, $D_z$, $\log\det\Sigma$) mais contribuíram para o valor obtido.
+
+    \item Explique o \textit{reparametrization trick} respondendo aos itens abaixo.
+    \begin{enumerate}[(a)]
+        \item Qual é o problema do ponto de vista da \textit{backpropagation} ao amostrar $z^{*} \sim q(z \mid x, \phi)$ diretamente?
+        \item Escreva a forma reparametrizada de $z^{*}$ usada em VAEs com posterior gaussiano de média $\mu$ e covariância diagonal $\Sigma$, identificando claramente quais variáveis ficam no caminho diferenciável e qual variável é a fonte de estocasticidade.
+        \item \emoji{skull-and-crossbones} Mostre, usando a forma reparametrizada, que $\mathbb{E}[z^{*}] = \mu$ e que $\mathrm{Cov}[z^{*}] = \Sigma$.
+    \end{enumerate}
+
+    \item Compare um \textit{autoencoder} clássico e um \textit{variational autoencoder} respondendo:
+    \begin{enumerate}[(a)]
+        \item O que cada \textit{encoder} produz para uma mesma entrada $x$?
+        \item Por que somente o VAE permite \emph{amostragem ancestral} de novos $x^{*}$ após o treinamento?
+        \item Qual é a função objetivo otimizada em cada caso e por que o VAE não otimiza diretamente $\log p(x \mid \thetav)$?
+    \end{enumerate}
+
+    \item Considere um VAE treinado em MNIST cuja loss de treino apresenta o seguinte comportamento ao longo das épocas: o termo $D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]$ cai rapidamente para perto de zero, enquanto o termo de reconstrução estagna em um valor alto. As amostras geradas a partir de $z^{*} \sim p(z)$ resultam em imagens de aparência média, com pouca variação entre amostras distintas.
+    \begin{enumerate}[(a)]
+        \item Nomeie o fenômeno observado e explique o que ele significa em termos da informação que o latente $z$ carrega sobre $x$.
+        \item Por que esse fenômeno é especialmente comum quando o \textit{decoder} é muito expressivo (por exemplo, autoregressivo)?
+        \item Cite uma estratégia conhecida para mitigar o problema e explique, em uma frase, como ela age sobre o ELBO.
+    \end{enumerate}
+
+\end{enumerate}
+
+\subsection*{Gabarito}
+\color{blue}
+\begin{enumerate}[I)]
+
+    \item Configurações.
+    \begin{enumerate}[(a)]
+        \item \emph{Undercomplete} ($D_z = 32 < 784$). O gargalo força o \textit{encoder} a comprimir, descartando informações redundantes; tende a produzir representações úteis para tarefas posteriores.
+        \item \emph{Overcomplete} ($D_z = 2000 > 784$), sem regularização. A rede pode aprender uma cópia trivial ou indexar as instâncias do treino (memorização), com representação latente pouco informativa.
+        \item \emph{Overcomplete} ($D_z = 2000$), porém regularizado por esparsidade. A penalidade obriga que apenas poucas unidades do latente fiquem ativas por instância, recuperando a utilidade da representação mesmo sem gargalo dimensional.
+    \end{enumerate}
+
+    \item Cálculo passo a passo.
+    \begin{align*}
+        \mathrm{Tr}[\Sigma]   &= 0.5 + 2 = 2.5 \\
+        \mu^{\top}\mu         &= 1^{2} + (-1)^{2} = 2 \\
+        \log\det\Sigma        &= \log(0.5) + \log(2) \approx -0.693 + 0.693 = 0 \\
+        D_{z}                 &= 2 \\
+        D_{KL} &= \tfrac{1}{2}\bigl(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\bigr) \\
+               &= \tfrac{1}{2}\bigl(2.5 + 2 - 2 - 0\bigr) = \tfrac{1}{2}\,(2.5) = 1.25.
+    \end{align*}
+    Os dois termos que mais contribuem são $\mathrm{Tr}[\Sigma] = 2.5$ (dispersão acima do \textit{prior} unitário, sobretudo pela segunda coordenada com $\sigma^{2} = 2$) e $\mu^{\top}\mu = 2$ (desvio da origem). O termo $\log\det\Sigma$ acaba se anulando porque as variâncias $0.5$ e $2$ se compensam em escala logarítmica.
+
+    \item \textit{Reparametrization trick}.
+    \begin{enumerate}[(a)]
+        \item A operação de amostragem é estocástica e não tem derivada bem definida com respeito aos parâmetros que produzem a distribuição. Sem reparametrização, o gradiente de $\mathcal{L}$ não consegue fluir do \textit{decoder} de volta até $\phi$ através do nó de amostragem.
+        \item Escrevemos $z^{*} = \mu + \Sigma^{1/2}\,\epsilon^{*}$, com $\epsilon^{*} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$. As quantidades $\mu$ e $\Sigma^{1/2}$ (saídas do \textit{encoder}, função de $\phi$) permanecem no caminho diferenciável; a estocasticidade fica concentrada em $\epsilon^{*}$, que é amostrado de uma distribuição fixa e \emph{não} depende de $\phi$.
+        \item Como $\epsilon^{*} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ é independente de $\mu$ e $\Sigma$:
+        \begin{align*}
+            \mathbb{E}[z^{*}]  &= \mu + \Sigma^{1/2}\,\mathbb{E}[\epsilon^{*}] = \mu + \mathbf{0} = \mu. \\
+            \mathrm{Cov}[z^{*}] &= \mathbb{E}\bigl[(z^{*} - \mu)(z^{*} - \mu)^{\top}\bigr] \\
+                                 &= \mathbb{E}\bigl[\Sigma^{1/2}\,\epsilon^{*}\epsilon^{*\,\top}\,\Sigma^{1/2}\bigr] \\
+                                 &= \Sigma^{1/2}\,\mathbb{E}[\epsilon^{*}\epsilon^{*\,\top}]\,\Sigma^{1/2} \\
+                                 &= \Sigma^{1/2}\,\mathbf{I}\,\Sigma^{1/2} = \Sigma.
+        \end{align*}
+        Logo $z^{*}$ é distribuído como $\mathcal{N}(\mu, \Sigma)$, conforme desejado.
+    \end{enumerate}
+
+    \item Comparação AE versus VAE.
+    \begin{enumerate}[(a)]
+        \item O \textit{encoder} de um AE clássico produz um \emph{ponto} no espaço latente, $z = g[x, \phi]$, determinístico dada a entrada. O \textit{encoder} de um VAE produz os parâmetros de uma \emph{distribuição} sobre o latente, $q(z \mid x, \phi) = \mathcal{N}(\mu, \Sigma)$.
+        \item No AE clássico não há uma distribuição conhecida sobre o latente, então amostrar $z$ ao acaso pode cair em regiões sem suporte aprendido pelo \textit{decoder}. No VAE o termo KL aproxima $q(z \mid x, \phi)$ do \textit{prior} $p(z)$, garantindo que amostras $z^{*} \sim p(z)$ permaneçam em regiões plausíveis para o \textit{decoder}.
+        \item O AE clássico minimiza apenas o erro de reconstrução, $J(x, f[g[x, \phi], \thetav])$. O VAE maximiza o ELBO, que é um limite inferior de $\log p(x \mid \thetav)$. Não otimizamos $\log p(x \mid \thetav)$ diretamente porque a marginal $p(x \mid \thetav) = \int p(x \mid z, \thetav)\,p(z)\,dz$ envolve uma integral intratável devido à não linearidade do \textit{decoder}.
+    \end{enumerate}
+
+    \item Diagnóstico do treino.
+    \begin{enumerate}[(a)]
+        \item O fenômeno é o \emph{posterior collapse}: o \textit{encoder} aprendeu a igualar $q(z \mid x, \phi)$ ao \textit{prior} para qualquer $x$, de modo que o latente $z$ deixa de carregar informação sobre a entrada. A consequência é que amostras geradas a partir do \textit{prior} se concentram em torno de uma reconstrução média, com pouca diversidade.
+        \item Quando o \textit{decoder} é poderoso o bastante para modelar $p(x \mid z, \thetav)$ ignorando $z$ (por exemplo, modelos autoregressivos sobre os \textit{pixels}), o otimizador encontra um ótimo barato em zerar o termo KL: a contribuição de $z$ para o ELBO fica marginal e o gradiente empurra $q$ na direção de $p(z)$.
+        \item Estratégias comuns incluem \textit{KL annealing} (introduzir o termo KL gradualmente, começando com peso baixo) e \textit{free bits} (não penalizar a KL abaixo de um limiar por dimensão do latente). Ambas reduzem a pressão do termo de regularização nas fases iniciais, permitindo que o \textit{decoder} aprenda a usar $z$ antes que o KL force o colapso.
+    \end{enumerate}
+
+\end{enumerate}
+\color{black}
+
+\end{document}

@@ -1,0 +1,745 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Overfitting, Underfitting e Regularização}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  \section{Motivação: overfitting na prática}
+  %======================================================================
+
+  %--- Slide: MNIST 1D ---
+  \begin{frame}{Conjunto de dados: MNIST 1D\footfullcite{greydanus2020scaling}}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Versão simplificada do MNIST, projetada para experimentos
+            rápidos com redes neurais.
+          \item Cada classe possui um \textit{template} unidimensional
+            que sofre transformações estocásticas.
+          \item Pipeline de geração:
+            \begin{enumerate}
+              \item \textit{Templates} para as 10 classes.
+              \item Distorções aleatórias (translação, escala, espelhamento).
+              \item Adição de ruído.
+              \item Subamostragem em 40 pontos.
+            \end{enumerate}
+          \item Repositório: \href{https://github.com/greydanus/mnist1d}{\textit{github.com/greydanus/mnist1d}}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.7\textheight,keepaspectratio]{slides/img/01-mlp/reg-mnist1d-templates.png}\\
+        \footnotesize a) \textit{Templates}, b) exemplos de treino, c) ruído, d) subamostragem em 40 pontos.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: setup do MLP ---
+  \begin{frame}{MLP usado no experimento}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Entradas: 40 (uma por ponto amostrado).
+          \item Saída: 10 logits, ativação \textit{softmax}.
+          \item Duas camadas ocultas, 100 unidades cada, ativação ReLU.
+          \item Conjunto de treino: 4000 instâncias.
+          \item Otimizador: SGD, \textit{batch size} 100, \textit{learning rate} 0.1.
+          \item Total de iterações: 6000, equivalente a:
+            $$\text{épocas} = \frac{6000 \cdot 100}{4000} = 150.$$
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[
+          node distance=0.55cm and 0.9cm,
+          every node/.style={font=\tiny},
+          unit/.style={circle,draw,minimum size=0.32cm,inner sep=0pt}
+        ]
+          \node[unit] (i1) {};
+          \node[unit, below=of i1] (i2) {};
+          \node[unit, below=of i2] (i3) {};
+          \node[below=0.05cm of i3,font=\tiny] {$x_{40}$};
+          \node[above=0.05cm of i1,font=\tiny] {$x_1$};
+
+          \node[unit, right=of i1] (h11) {};
+          \node[unit, below=of h11] (h12) {};
+          \node[unit, below=of h12] (h13) {};
+
+          \node[unit, right=of h11] (h21) {};
+          \node[unit, below=of h21] (h22) {};
+          \node[unit, below=of h22] (h23) {};
+
+          \node[unit, right=of h22] (o) {};
+          \node[right=0.05cm of o,font=\tiny] {$\hat{y}$};
+
+          \foreach \i in {i1,i2,i3}
+            \foreach \j in {h11,h12,h13} \draw[->,gray!60] (\i) -- (\j);
+          \foreach \i in {h11,h12,h13}
+            \foreach \j in {h21,h22,h23} \draw[->,gray!60] (\i) -- (\j);
+          \foreach \i in {h21,h22,h23} \draw[->,gray!60] (\i) -- (o);
+        \end{tikzpicture}\\
+        \footnotesize Esquema (representação reduzida).
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: resultados de overfitting ---
+  \begin{frame}{Resultados do treinamento}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item A taxa de erro no \textit{conjunto de treino} cai a zero.
+          \item A função de custo no \textit{conjunto de teste} primeiro diminui,
+            mas a partir de certo ponto começa a aumentar.
+          \item O modelo continua se ajustando ao ruído do treino e
+            \alert{generaliza pior}, comportamento clássico de \textit{overfitting}.
+          \item Capacidade alta sem regularização leva a esse padrão.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.65\textheight,keepaspectratio]{slides/img/01-mlp/reg-mnist1d-overfit.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: por que ocorre overfitting ---
+  \begin{frame}{Por que isso ocorre? Toy MLP de 3 unidades}
+    \begin{columns}
+      \begin{column}{.42\linewidth}
+        \begin{itemize}
+          \item MLP com uma camada oculta de 3 unidades ReLU.
+          \item Parâmetros nas linhas pontilhadas estão \alert{congelados}.
+          \item Variando $\bm{\phi} = \{\beta, \omega_1, \omega_2, \omega_3\}$
+            obtemos diferentes funções lineares por partes.
+          \item Em e), f) e g): parametrizações distintas geram saídas distintas,
+            mostrando como diferentes mínimos do treino correspondem a
+            funções muito diferentes.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.58\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-toy-variance.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Fontes de erro: ruído, viés e variância}
+  %======================================================================
+
+  %--- Slide: visão geral das três fontes ---
+  \begin{frame}{Três fontes de erro de teste}
+    \centering
+    \includegraphics[width=.95\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-sources-overview.png}
+  \end{frame}
+
+  %--- Slide: ruído ---
+  \begin{frame}{Ruído}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Mesmo recuperando exatamente a função geradora dos dados
+            (em preto), o erro não vai a zero.
+          \item Origem: fatores estocásticos no processo gerador, ou
+            variáveis observadas que não capturam toda a informação relevante.
+          \item Componente \alert{irredutível}: nenhum modelo elimina.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.7\textheight,keepaspectratio]{slides/img/01-mlp/reg-source-noise.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: viés ---
+  \begin{frame}{Viés}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Mesmo com os melhores parâmetros possíveis, o MLP em ciano
+            não modela perfeitamente a função em preto.
+          \item Diferença entre a função que o modelo é \textit{capaz} de
+            representar e a função real.
+          \item Todo modelo carrega um \textit{viés indutivo}: sem ele, não há
+            generalização possível.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.7\textheight,keepaspectratio]{slides/img/01-mlp/reg-source-bias.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: variância ---
+  \begin{frame}{Variância}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Ao treinar com um número limitado de instâncias, não recuperamos
+            necessariamente o melhor ajuste à função geradora.
+          \item Pequenas mudanças no conjunto de treino produzem modelos
+            diferentes.
+          \item Variância mede o quanto o modelo aprendido oscila com o
+            \textit{dataset} de treino.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.7\textheight,keepaspectratio]{slides/img/01-mlp/reg-source-variance.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: derivação bias-variance, setup ---
+  \begin{frame}{Decomposição viés-variância: \textit{setup}}
+    \small
+    Considere regressão escalar, com:
+    \begin{itemize}
+      \item Função geradora $\mu(x) = \mathbb{E}[y \mid x]$.
+      \item Observações $y = \mu(x) + \epsilon$, em que $\mathbb{E}[\epsilon] = 0$ e $\text{Var}(\epsilon) = \sigma^2$.
+      \item Predição $f(x;\mathcal{D})$ treinada em um \textit{dataset} $\mathcal{D}$.
+      \item Custo quadrático $\ell = (y - f(x;\mathcal{D}))^2$.
+    \end{itemize}
+
+    \smallskip
+    Queremos decompor o erro esperado em $x$:
+    $$\mathbb{E}_{\mathcal{D},\,y}\!\left[(y - f(x;\mathcal{D}))^2\right].$$
+
+    \smallskip
+    Estratégia: dois passos de soma e subtração de um termo conveniente.
+    Primeiro $\mu(x)$, isolando o ruído. Depois o modelo médio
+    $\bar f(x) = \mathbb{E}_{\mathcal{D}}[f(x;\mathcal{D})]$, separando viés e variância.
+  \end{frame}
+
+  %--- Slide: derivação bias-variance, passo 1 ---
+  \begin{frame}{Passo 1: isolar o ruído}
+    \small
+    Fixamos $f(x)$ e tomamos a esperança apenas em $y$.
+    Somando e subtraindo $\mu(x)$:
+    $$y - f(x) = \bigl(y - \mu(x)\bigr) + \bigl(\mu(x) - f(x)\bigr).$$
+
+    \onslide<2->{%
+      Elevando ao quadrado:
+      $$(y - f(x))^2 = (y - \mu(x))^2 \,+\, 2\,(y - \mu(x))(\mu(x) - f(x)) \,+\, (\mu(x) - f(x))^2.$$
+    }
+
+    \onslide<3->{%
+      Aplicando $\mathbb{E}_y$ e usando que $(\mu(x) - f(x))$ é constante em $y$, o termo cruzado se anula:
+      $$\mathbb{E}_y\!\left[(y - \mu(x))(\mu(x) - f(x))\right]
+        = (\mu(x) - f(x))\,\underbrace{\mathbb{E}_y[y - \mu(x)]}_{=\,0} = 0.$$
+    }
+
+    \onslide<4->{%
+      Restam dois termos:
+      $$\mathbb{E}_y[(y - f(x))^2]
+        = \underbrace{\mathbb{E}_y[(y - \mu(x))^2]}_{\sigma^2,\ \text{ruído}}
+        \,+\, \underbrace{(\mu(x) - f(x))^2}_{\text{erro do modelo}}.$$
+    }
+  \end{frame}
+
+  %--- Slide: derivação bias-variance, passo 2 ---
+  \begin{frame}{Passo 2: separar viés e variância}
+    \small
+    O termo de erro do modelo ainda depende do \textit{dataset} via $f(x;\mathcal{D})$.
+    Tomamos agora a esperança sobre $\mathcal{D}$, somando e subtraindo $\bar f(x)$:
+    $$\mu(x) - f(x;\mathcal{D}) = \bigl(\mu(x) - \bar f(x)\bigr) + \bigl(\bar f(x) - f(x;\mathcal{D})\bigr).$$
+
+    \onslide<2->{%
+      Elevando ao quadrado:
+      $$(\mu - f)^2 = (\mu - \bar f)^2 \,+\, 2\,(\mu - \bar f)(\bar f - f) \,+\, (\bar f - f)^2.$$
+    }
+
+    \onslide<3->{%
+      Aplicando $\mathbb{E}_{\mathcal{D}}$, o termo cruzado se anula porque $(\mu - \bar f)$ é constante em $\mathcal{D}$ e $\mathbb{E}_{\mathcal{D}}[\bar f - f] = \bar f - \bar f = 0$:
+      $$\mathbb{E}_{\mathcal{D}}\!\left[(\mu - \bar f)(\bar f - f)\right]
+        = (\mu - \bar f)\,\underbrace{\mathbb{E}_{\mathcal{D}}[\bar f - f]}_{=\,0} = 0.$$
+    }
+
+    \onslide<4->{%
+      Restam dois termos:
+      $$\mathbb{E}_{\mathcal{D}}[(\mu(x) - f(x;\mathcal{D}))^2]
+        = \underbrace{(\mu(x) - \bar f(x))^2}_{\text{viés}^2}
+        \,+\, \underbrace{\mathbb{E}_{\mathcal{D}}[(f(x;\mathcal{D}) - \bar f(x))^2]}_{\text{variância}}.$$
+    }
+  \end{frame}
+
+  %--- Slide: derivação bias-variance, resultado ---
+  \begin{frame}{Resultado: três fontes de erro}
+    \small
+    Combinando os dois passos, o erro esperado em $x$ se decompõe em três termos:
+    $$\mathbb{E}_{\mathcal{D},\,y}\!\left[(y - f(x;\mathcal{D}))^2\right]
+      = \underbrace{\sigma^2}_{\text{ruído}}
+      \,+\, \underbrace{(\mu(x) - \bar f(x))^2}_{\text{viés}^2}
+      \,+\, \underbrace{\mathbb{E}_{\mathcal{D}}[(f(x;\mathcal{D}) - \bar f(x))^2]}_{\text{variância}}.$$
+
+    \begin{itemize}
+      \item \textbf{Ruído} $\sigma^2$: componente irredutível, depende apenas do processo gerador.
+      \item \textbf{Viés}$^2$: distância entre o modelo médio $\bar f$ e a função real $\mu$.
+      \item \textbf{Variância}: oscilação do modelo aprendido em torno de $\bar f$, induzida pela amostra de treino.
+    \end{itemize}
+
+    \onslide<2->{%
+      Esta decomposição aditiva vale exatamente para o \alert{custo quadrático},
+      qualquer que seja o modelo $f$. Para outras funções de custo (0-1, entropia
+      cruzada) ela não é tão limpa, mas a intuição de viés e variância permanece útil.
+    }
+  \end{frame}
+
+  %======================================================================
+  \section{Trade-off viés-variância e double descent}
+  %======================================================================
+
+  %--- Slide: dataset size vs variância ---
+  \begin{frame}{Tamanho do \textit{dataset} vs. variância}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Mesmo modelo (capacidade fixa: 3 regiões lineares).
+          \item Com 6 instâncias: ajustes muito variáveis entre \textit{datasets}.
+          \item Com 100 instâncias: ajustes próximos uns dos outros.
+          \item Mais dados, menor variância.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-dataset-vs-variance.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: capacidade do modelo vs variância ---
+  \begin{frame}{Capacidade do modelo vs. variância}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Mesmo \textit{dataset}, modelos com mais regiões lineares.
+          \item Mais capacidade, ajustes mais sensíveis à amostra de treino.
+          \item Mais capacidade, maior variância.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-capacity-vs-variance.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: trade-off bias-variance clássico ---
+  \begin{frame}{Trade-off viés-variância clássico}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Pouca capacidade: viés alto domina o erro.
+          \item Muita capacidade: variância alta domina o erro.
+          \item Existe um ponto intermediário que minimiza o erro total.
+          \item Esta é a visão \textit{clássica}, antes das redes neurais
+            superparametrizadas.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-bv-tradeoff.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: double descent (overlay com 3 datasets) ---
+  \begin{frame}{Double descent em redes neurais\footfullcite{belkin2019reconciling}}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Em redes neurais o erro de teste pode \alert{voltar a cair}
+            depois de passar pelo limiar de interpolação.
+          \item Esse limiar ocorre quando o número de parâmetros se aproxima
+            do número de instâncias de treino.
+          \item Padrão observado em vários conjuntos:
+            \only<1>{MNIST-1D.}\only<2>{MNIST-1D, MNIST.}\only<3->{MNIST-1D, MNIST, CIFAR-100.}
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \only<1>{\includegraphics[width=\linewidth,height=.75\textheight,keepaspectratio]{slides/img/01-mlp/reg-dd-mnist1d.png}}
+        \only<2>{\includegraphics[width=\linewidth,height=.75\textheight,keepaspectratio]{slides/img/01-mlp/reg-dd-mnist.png}}
+        \only<3->{\includegraphics[width=\linewidth,height=.75\textheight,keepaspectratio]{slides/img/01-mlp/reg-dd-cifar100.png}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: ilustração double descent (Belkin) ---
+  \begin{frame}{Por que ocorre? Hipóteses}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Talvez a inicialização favoreça funções mais suaves.
+          \item Talvez o treinamento favoreça funções mais suaves.
+          \item Ainda é um tema aberto, com bons palpites mas sem consenso.
+          \item No regime moderno, a relação capacidade $\times$ erro de teste
+            tem dois mínimos: o ``sweet spot'' clássico e o regime
+            superparametrizado.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.7\textheight,keepaspectratio]{slides/img/01-mlp/reg-belkin.jpeg}\\
+        \footnotesize \citeauthoryear{belkin2019reconciling}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Regularização explícita e empírica}
+  %======================================================================
+
+  %--- Slide: taxonomia ---
+  \begin{frame}{Tipos de regularização}
+    \begin{itemize}
+      \item \textbf{Explícita}: termos extras na função de custo,
+        L1 e L2.
+      \item \textbf{Empírica}: técnicas que modificam o procedimento de
+        treinamento, \textit{early stopping}, \textit{dropout},
+        \textit{data augmentation}, \textit{label smoothing}.
+      \item \textbf{Implícita}: efeitos de regularização que surgem
+        do próprio otimizador (descida de gradiente e SGD).
+      \item Todas têm o mesmo objetivo: reduzir variância sem aumentar
+        demais o viés.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: L1 e L2 (formulação) ---
+  \begin{frame}{Regularização L1 e L2}
+    \begin{itemize}
+      \item Adicionamos um termo de penalidade à função de custo:
+        $$\tilde{\mathcal{L}}(\bm{\theta}) = \mathcal{L}(\bm{\theta}) + \lambda \, \Omega(\bm{\theta}),
+          \qquad \Omega_{L2} = \|\bm{\theta}\|_2^2,
+          \qquad \Omega_{L1} = \|\bm{\theta}\|_1.$$
+      \item Enviesamos a otimização em favor de parâmetros de \alert{baixa magnitude}.
+      \item Visão probabilística: equivale a adicionar um \textit{prior}
+        no critério de máxima verossimilhança.
+      \begin{itemize}
+        \item L2 corresponde a um \textit{prior} gaussiano,
+          $\bm{\theta} \sim \mathcal{N}(0, \tau^2 I)$.
+        \item L1 corresponde a um \textit{prior} laplaciano,
+          que induz \alert{esparsidade}.
+      \end{itemize}
+      \item Como redes neurais atuam em problemas variados, o \textit{prior}
+        precisa ser genérico.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: L2 como decaimento de pesos ---
+  \begin{frame}{L2 e \textit{weight decay}}
+    \small
+    Para L2, a atualização SGD se reescreve como:
+    \begin{align*}
+      \bm{\theta}_{t+1}
+        &= \bm{\theta}_t - \eta \, \nabla_{\bm{\theta}}\!\left[\mathcal{L}(\bm{\theta}_t) + \lambda \|\bm{\theta}_t\|_2^2\right]\\
+        &= \bm{\theta}_t - \eta \, \nabla_{\bm{\theta}} \mathcal{L}(\bm{\theta}_t) - 2\eta\lambda\,\bm{\theta}_t\\
+        &= \underbrace{(1 - 2\eta\lambda)\,\bm{\theta}_t}_{\text{decaimento}}
+           \; - \; \eta \,\nabla_{\bm{\theta}} \mathcal{L}(\bm{\theta}_t).
+    \end{align*}
+    \begin{itemize}
+      \item A cada passo, os pesos encolhem multiplicativamente por $(1 - 2\eta\lambda)$.
+      \item Esse comportamento dá origem ao nome \textit{weight decay}.
+    \end{itemize}
+    \vspace{0.3em}
+    {\footnotesize\color{gray!50!black}No PyTorch, o argumento \texttt{weight\_decay} corresponde ao coeficiente já em frente de $\bm\theta$ no \textit{update} (i.e., $\lambda_{\text{PT}} = 2\lambda$ desta derivação).}
+  \end{frame}
+
+  %--- Slide: efeito de aumentar lambda ---
+  \begin{frame}{Efeito de aumentar $\lambda$}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item $\lambda$ pequeno: o ajuste se aproxima do caso sem regularização,
+            modelo sensível ao ruído dos dados.
+          \item $\lambda$ grande: o ajuste se torna mais suave,
+            modelo se afasta dos pontos individuais.
+          \item Existe um $\lambda$ intermediário que generaliza melhor.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-lambda-effect.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: L1 vs L2 (paisagem de loss) ---
+  \begin{frame}{L1 vs. L2 na paisagem de \textit{loss}}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Painel a): \textit{loss} original com vários mínimos locais.
+          \item Painel b): termo de regularização sozinho, com mínimo único na origem.
+          \item Painel c): soma das duas paisagens, com poucos mínimos próximos da origem.
+          \item L1 favorece componentes \alert{exatamente zero} (os vértices do losango
+            do L1 ficam sobre os eixos); L2 favorece magnitudes pequenas mas não zero.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-l1-vs-l2.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: early stopping (conceito) ---
+  \begin{frame}{\textit{Early stopping}}
+    \begin{itemize}
+      \item Monitoramos o desempenho da rede em um conjunto de validação
+        e interrompemos o treinamento antes da \textit{loss} de validação
+        voltar a subir.
+      \item Tem efeito \alert{análogo} a L2, pois impede que os pesos
+        cresçam indiscriminadamente.
+      \item Hiperparâmetro principal: \textit{patience}, número de iterações
+        sem melhoria que toleramos antes de parar.
+      \item Bônus: também economiza tempo de computação.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: early stopping (gráfico) ---
+  \begin{frame}{\textit{Early stopping} em ação}
+    \centering
+    \includegraphics[width=.85\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-early-stopping.png}
+  \end{frame}
+
+  %--- Slide: dropout (conceito + diagrama) ---
+  \begin{frame}{\textit{Dropout}\footfullcite{srivastava2014dropout}}
+    \begin{columns}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Durante o treinamento, unidades de uma camada oculta são
+            \alert{desligadas} aleatoriamente.
+          \item Equivale a multiplicar as ativações por uma máscara binária
+            $m \sim \text{Bernoulli}(1 - p)$.
+          \item A cada \textit{forward}, uma sub-rede diferente é ativada,
+            efeito similar a treinar um \textit{ensemble} implícito.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.6\textheight,keepaspectratio]{slides/img/01-mlp/reg-dropout-net.png}\\
+        \footnotesize Esquerda: rede densa. Direita: rede com unidades desligadas.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: dropout (efeito visual progressivo) ---
+  \begin{frame}{\textit{Dropout}: por que ajuda}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item a) Sem \textit{dropout} o modelo já interpola os dados de treino,
+            mas com um pico isolado.
+          \item b) Ao desligar uma unidade, esse pico vira um aumento brusco
+            na \textit{loss}.
+          \item c) Continuando a desligar unidades aleatoriamente, o pico
+            é gradualmente eliminado.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.78\textheight,keepaspectratio]{slides/img/01-mlp/reg-dropout-effect.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: dropout em inferência ---
+  \begin{frame}{\textit{Dropout} em inferência}
+    \begin{itemize}
+      \item Em treino, cada unidade é desligada com probabilidade $p$, então a magnitude
+        esperada das ativações é $(1 - p)$ vezes a magnitude original.
+      \item Em inferência precisamos compensar esse fator. Duas opções:
+      \begin{itemize}
+        \item \textbf{Rescaling determinístico}: multiplicar as ativações
+          de teste por $(1 - p)$, ou equivalentemente dividi-las em treino
+          por $(1 - p)$ (\textit{inverted dropout}, padrão em PyTorch e Keras).
+        \item \textbf{Monte Carlo Dropout}\footfullcite{gal2016dropout}: rodar o \textit{forward}
+          múltiplas vezes com máscaras diferentes e combinar as saídas,
+          análogo a um \textit{ensemble} explícito; também fornece uma
+          estimativa de incerteza.
+      \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: data augmentation ---
+  \begin{frame}{\textit{Data augmentation}}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Geramos novas instâncias aplicando transformações nos dados
+            originais que preservam o rótulo.
+          \item Em imagens: rotações, \textit{flip}, mudança de cor,
+            equalização, \textit{random crop}, ruído.
+          \item Codificamos \alert{invariâncias} desejadas no conjunto de treino,
+            sem alterar a arquitetura.
+          \item Efeito: aumenta a diversidade efetiva do \textit{dataset},
+            reduzindo a variância do modelo.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=.45\linewidth,height=.45\textheight,keepaspectratio]{slides/img/01-mlp/reg-augmentation-1.png}\\
+        \vspace{0.2em}
+        \includegraphics[width=\linewidth,height=.32\textheight,keepaspectratio]{slides/img/01-mlp/reg-augmentation-2.png}\\
+        \footnotesize Original (acima) e variantes geradas (abaixo).
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: label smoothing (conceito) ---
+  \begin{frame}{\textit{Label smoothing}\footfullcite{szegedy2016rethinking}}
+    \begin{itemize}
+      \item \textit{Data augmentation} transforma as \alert{entradas};
+        podemos também regularizar transformando os \alert{alvos}.
+      \item Com alvo \textit{one-hot}, a entropia cruzada só é minimizada
+        quando a probabilidade da classe correta tende a 1, o que exige
+        \textit{logits} cada vez maiores: o modelo é empurrado para o
+        \alert{\textit{overconfidence}}.
+      \item \textit{Label smoothing} redistribui uma fração $\alpha$ da massa
+        de probabilidade uniformemente entre as $C$ classes:
+        $$\bm{y}^{(i)}_{ls} = (1 - \alpha)\,\bm{y}^{(i)}_{oh} + \frac{\alpha}{C}.$$
+      \item Casos limite: $\alpha = 0$ mantém o alvo \textit{one-hot} original;
+        $\alpha = 1$ produz um alvo uniforme, sem informação de classe.
+      \item Na prática, valores pequenos como $\alpha = 0{,}1$ são os mais comuns.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: label smoothing (efeito) ---
+  \begin{frame}{\textit{Label smoothing}: por que ajuda\footfullcite{muller2019labelsmoothing}}
+    \begin{itemize}
+      \item Exemplo com $C = 4$, classe correta 3 e $\alpha = 0{,}1$:
+        $$\bm{y}_{oh} = (0,\; 0,\; 1,\; 0)
+          \quad\longrightarrow\quad
+          \bm{y}_{ls} = (0{,}025,\; 0{,}025,\; 0{,}925,\; 0{,}025).$$
+      \item O alvo suavizado é atingível com \textit{logits} \alert{finitos}:
+        a diferença entre o \textit{logit} da classe correta e os demais
+        para de crescer, contendo a magnitude dos pesos
+        (efeito análogo ao de L2 na camada de saída).
+      \item Modelos treinados com \textit{label smoothing} tendem a ficar
+        \alert{melhor calibrados}: a confiança predita se aproxima da
+        acurácia real.
+      \item Custo: as representações da penúltima camada perdem informação
+        sobre a semelhança entre classes, o que prejudica, por exemplo,
+        a destilação de conhecimento para um modelo menor.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Regularização implícita}
+  %======================================================================
+
+  %--- Slide: conceito ---
+  \begin{frame}{Regularização implícita}
+    \begin{itemize}
+      \item Fato peculiar: a descida de gradiente encontra soluções que
+        \alert{generalizam}, mesmo em redes muito superparametrizadas.
+      \item Tanto o \textit{batch GD} quanto o SGD não fazem uma trajetória
+        direta para o mínimo local da função de custo: existe uma preferência
+        por algumas soluções em detrimento de outras.
+      \item Essas preferências, que não são impostas explicitamente na
+        função de custo, recebem o nome de \alert{regularização implícita}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: implicit gradient regularization (Barrett & Dherin) ---
+  \begin{frame}{\textit{Implicit Gradient Regularization}\footfullcite{barrett2020implicit}}
+    \begin{itemize}
+      \item Versão contínua da descida de gradiente:
+        $\dot{\bm{\theta}}(t) = -\nabla \mathcal{L}(\bm{\theta}(t))$.
+      \item A versão discreta (passos de tamanho $\eta$) aproxima a versão contínua
+        de uma função de custo \alert{modificada}:
+        $$\tilde{\mathcal{L}}_{GD}(\bm{\theta}) = \mathcal{L}(\bm{\theta})
+          + \frac{\eta}{4} \left\| \nabla \mathcal{L}(\bm{\theta}) \right\|^2.$$
+      \item Consequência: a solução é \alert{repelida} de regiões em que a norma
+        do gradiente é grande (alta declividade da \textit{loss}).
+      \item GD prefere bacias de mínimo \textit{rasas} e largas, que tendem
+        a generalizar melhor.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: SGD favorece gradiente estável ---
+  \begin{frame}{SGD favorece regiões de gradiente estável\footfullcite{smith2021origin}}
+    Para SGD com \textit{batches} de tamanho $B$:
+    $$\tilde{\mathcal{L}}_{SGD}(\bm{\theta}) = \mathcal{L}(\bm{\theta})
+      + \frac{\eta}{4}\|\nabla \mathcal{L}\|^2
+      + \frac{\eta}{4B}\sum_{b=1}^{B}\|\nabla \mathcal{L}_b - \nabla \mathcal{L}\|^2.$$
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item O segundo termo extra corresponde à \alert{variância} do gradiente
+            entre \textit{batches}.
+          \item SGD favorece soluções em que o gradiente é \alert{estável} ao
+            trocar de \textit{batch}.
+          \item Os mínimos da função de custo original não se movem,
+            mas as trajetórias e o mínimo escolhido podem mudar.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.55\textheight,keepaspectratio]{slides/img/01-mlp/reg-implicit-trajectory.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section*{Referências e Leituras}
+  %======================================================================
+
+  %--- Slide: leituras ---
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \sloppy
+    \begin{itemize}
+      \item Capítulo 9 de \fullcite{prince2023understanding}, livro disponível em
+        \href{https://udlbook.github.io/udlbook/}{\textit{udlbook.github.io/udlbook}}.
+      \item Capítulo 7 de \fullcite{goodfellow2016deep}, tratamento clássico de regularização.
+      \item Seção 5.5 de \textsc{Bishop}, C.\ M. \textit{Pattern Recognition and Machine Learning}, Springer, 2006: conexão Bayesiana entre L2/L1 e \textit{priors} gaussiano/laplaciano.
+      \item MNIST 1D: \citeauthoryear{greydanus2020scaling}.
+      \item Double descent: \citeauthoryear{belkin2019reconciling}.
+      \item Dropout: \citeauthoryear{srivastava2014dropout}; Monte Carlo
+        Dropout: \citeauthoryear{gal2016dropout}.
+      \item Regularização implícita: \citeauthoryear{barrett2020implicit};
+        \citeauthoryear{smith2021origin}.
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Aplicações de CNN: arquitetura e contagem de parâmetros da VGG16, bounding boxes com IoU e Dice ao vivo, non-maximum suppression com limiares ajustáveis e segmentação semântica com janela deslizante vs predição densa." />
+  <title>Aplicações de CNN — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">VGG16</a></li>
+      <li><a href="#s2">IoU e Dice</a></li>
+      <li><a href="#s3">NMS</a></li>
+      <li><a href="#s4">Segmentação</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Aplicações de <span>CNN</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de aplicações de CNN em visão computacional</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: a arquitetura da VGG16 camada a camada,
+        com a contagem de parâmetros <span class="formula">K<sub>h</sub>·K<sub>w</sub>·C<sub>in</sub>·C<sub>out</sub></span>
+        mostrando onde os ~138M de pesos se concentram; as métricas de localização
+        <span class="formula">IoU = (A ∩ B)/(A ∪ B)</span> e
+        <span class="formula">Dice = 2·(A ∩ B)/(Area(A) + Area(B))</span> com caixas arrastáveis;
+        a supressão de não máximos (NMS) usada pelos detectores de objetos, com limiares de
+        confiança e de IoU ajustáveis; e a segmentação semântica, comparando a ideia ingênua de
+        janela deslizante com a predição densa de um encoder-decoder.
+        Notação dos slides: caixa <span class="formula">y = (x, y, h, w)</span> em coordenadas
+        normalizadas, com <span class="formula">(0, 0)</span> no canto superior esquerdo e
+        <span class="formula">(1, 1)</span> no inferior direito.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: VGG16 e contagem de parâmetros ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · VGG16: arquitetura e parâmetros</h2>
+      <p class="demo-text">
+        A VGG16 transforma um tensor <span class="formula">(224, 224, 3)</span> em um vetor de
+        <span class="formula">1000</span> classes combinando convoluções
+        <span class="formula">3×3</span> com ReLU (mantêm a dimensão espacial),
+        <em>max pooling</em> <span class="formula">2×2</span> com <em>stride</em> 2
+        (reduz largura e altura pela metade) e três camadas densas no fim.
+        Cada camada convolucional tem <span class="formula">K<sub>h</sub>·K<sub>w</sub>·C<sub>in</sub>·C<sub>out</sub></span>
+        pesos (ignorando o <em>bias</em>, como nos slides) e cada densa tem
+        <span class="formula">n<sub>in</sub>·n<sub>out</sub></span>.
+        Percorra as camadas e observe o gráfico de barras: a distribuição dos parâmetros entre
+        convoluções e densas é tudo menos uniforme.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">camada = <span id="s1-layer-val">entrada</span>
+            <input type="range" id="s1-layer" min="0" max="23" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-step" type="button">⏭ Próxima camada</button>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Percorrer</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <div class="controls">
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Pirâmide de tensores da VGG16 (a camada atual fica destacada; clique numa camada para selecioná-la)</p>
+            <canvas id="s1-arch"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Parâmetros por camada treinável, em milhões</p>
+            <canvas id="s1-params"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Avance até <span class="formula">conv1_2</span> e compare com
+          <span class="formula">conv1_1</span>: o número de pesos salta de 1.728 para 36.864
+          só porque <span class="formula">C<sub>in</sub></span> passou de 3 para 64. Depois vá até
+          <span class="formula">fc1</span>: uma única camada densa concentra 102,8M de parâmetros,
+          mais que todas as 13 convoluções somadas (~14,7M). É por isso que, ao reaproveitar a
+          VGG como <em>backbone</em>, costuma-se descartar as densas e treinar uma cabeça nova.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Bounding box, IoU e Dice ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Localização: IoU e Dice</h2>
+      <p class="demo-text">
+        Na aula, a <em>bounding box</em> é modelada como regressão multivariada do vetor
+        <span class="formula">y = (x, y, h, w)</span>, com 4 saídas sigmoide e custo MSE.
+        Para avaliar a qualidade da caixa prevista <span class="formula">B</span> contra o
+        <em>ground truth</em> <span class="formula">A</span> usamos
+        <span class="formula">IoU = (A ∩ B)/(A ∪ B)</span> e
+        <span class="formula">Dice = 2·(A ∩ B)/(Area(A) + Area(B))</span>, ambas com valor ideal 1.
+        Arraste as caixas pelo corpo para movê-las e pelo quadradinho do canto inferior direito
+        para redimensioná-las: as duas métricas e o MSE entre os vetores são recalculados ao vivo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Exemplo dos slides</button>
+          <button class="btn-ctl" id="s2-rand" type="button">🎲 Caixas aleatórias</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Imagem em coordenadas normalizadas: ground truth A, predição B e interseção A ∩ B (arraste para mover, canto para redimensionar)</p>
+            <canvas id="s2-boxes"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Dice em função do IoU: para a mesma sobreposição, Dice = 2·IoU/(1 + IoU) ≥ IoU</p>
+            <canvas id="s2-curve"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Reproduza o exemplo numérico dos slides: deixe as duas caixas com a mesma área e
+          interseção igual à metade dela, e confira <span class="formula">IoU ≈ 0,333</span>
+          contra <span class="formula">Dice = 0,5</span>. Depois sobreponha B perfeitamente em A
+          (as duas métricas vão a 1) e afaste B até a interseção zerar. Note no gráfico à direita
+          que o Dice é sempre maior ou igual ao IoU, com igualdade apenas em 0 e 1: o IoU
+          penaliza mais a mesma sobreposição. Note também que um MSE pequeno entre os vetores
+          não garante IoU alto quando as caixas são pequenas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Detecção e NMS ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Detecção de objetos: NMS</h2>
+      <p class="demo-text">
+        Na detecção de objetos a imagem pode conter vários objetos e não sabemos quantos de
+        antemão. Detectores como YOLO e SSD produzem dezenas de caixas candidatas, cada uma com
+        uma classe e uma pontuação de confiança, e várias delas cobrem o mesmo objeto.
+        A <em>non-maximum suppression</em> (NMS) resolve a redundância: descartam-se as caixas
+        com confiança abaixo do limiar <span class="formula">τ</span>, ordenam-se as restantes
+        por confiança e, para cada caixa mantida, suprimem-se as caixas da mesma classe com
+        <span class="formula">IoU</span> acima do limiar de sobreposição. O DETR, visto no fim
+        da aula, elimina essa etapa ao prever diretamente um conjunto de caixas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">confiança τ = <span id="s3-conf-val">0,50</span>
+            <input type="range" id="s3-conf" min="0" max="0.95" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">IoU do NMS = <span id="s3-iou-val">0,50</span>
+            <input type="range" id="s3-iou" min="0.05" max="0.95" value="0.5" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s3-rand" type="button">🎲 Nova cena</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <div class="controls">
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Antes do NMS: caixas candidatas com confiança ≥ τ (o número é a confiança)</p>
+            <canvas id="s3-pre"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Depois do NMS: caixas mantidas (sólidas) e ground truth (tracejado)</p>
+            <canvas id="s3-post"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">τ = 0,50</span> e IoU do NMS em
+          <span class="formula">0,50</span>, sobra tipicamente uma caixa por objeto. Suba o IoU
+          do NMS para 0,9 e veja duplicatas sobrevivendo (a precisão cai); desça para 0,1 e a
+          supressão fica agressiva demais quando dois objetos se encostam. Agora zere
+          <span class="formula">τ</span>: entram falsos positivos de baixa confiança que o NMS
+          não remove, pois têm pouca sobreposição com as caixas boas. A precisão e a revocação
+          no painel usam o critério usual de acerto, IoU ≥ 0,5 com um ground truth da mesma classe.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Segmentação semântica ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Segmentação: janela deslizante vs predição densa</h2>
+      <p class="demo-text">
+        Segmentação semântica é classificação em nível de pixel: cada pixel recebe uma classe.
+        A primeira ideia, ingênua, recorta um <em>patch</em> em torno de cada pixel e roda a CNN
+        para classificar o pixel central, repetindo para a imagem inteira: são milhares de
+        <em>forwards</em> redundantes, pois patches vizinhos compartilham quase todo o conteúdo.
+        A arquitetura encoder-decoder resolve isso em um único <em>forward</em>: o encoder reduz
+        a dimensão espacial com convoluções e <em>pooling</em>, e o decoder a expande de volta
+        com <em>unpooling</em> e convoluções transpostas, produzindo a máscara inteira de uma vez.
+        As abas comparam ainda segmentação semântica (todas as pessoas com a mesma cor) com
+        segmentação de instâncias (cada pessoa com uma cor distinta).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s4-tab-sem" type="button">Semântica</button>
+            <button class="tab" id="s4-tab-inst" type="button">Instâncias</button>
+          </div>
+          <label class="slider-label">resolução da máscara = <span id="s4-grid-val">32×32</span>
+            <input type="range" id="s4-grid" min="16" max="64" value="32" step="8" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Janela deslizante</button>
+          <button class="btn-ctl" id="s4-dense" type="button">⚡ 1 forward (encoder-decoder)</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Limpar máscara</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Imagem de entrada (o quadrado laranja é o patch da janela deslizante)</p>
+            <canvas id="s4-img"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Máscara de saída: uma classe por pixel</p>
+            <canvas id="s4-mask"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Rode a janela deslizante em 32×32 e conte: 1.024 forwards para uma máscara
+          minúscula. Suba a resolução para 64×64 e o custo quadruplica para 4.096, enquanto o
+          encoder-decoder continua custando 1 forward em qualquer resolução (para 224×224 a
+          ideia ingênua exigiria 50.176 forwards). Troque para a aba Instâncias e compare com a
+          figura dos slides: na segmentação semântica os cinco objetos da classe pessoa formam
+          uma única região de cor, na segmentação de instâncias cada pessoa recebe a sua.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Aplicações de CNN em Visão Computacional</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-vgg.js"></script>
+  <script defer src="js/section2-iou.js"></script>
+  <script defer src="js/section3-nms.js"></script>
+  <script defer src="js/section4-segmentation.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

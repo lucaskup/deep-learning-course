@@ -1,0 +1,202 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidades 1, 2 e 3}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+c & d & e & g & a & f & d & b & h & c \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+%% ====================== UNIDADE 1 ======================
+
+\subsection*{Questão 1 \textemdash{} Resposta: (c)}
+Com $m_0 = v_0 = 0$ e $g_1 = 3$:
+\[
+m_1 = 0.1\cdot 3 = 0.3, \qquad v_1 = 0.001\cdot 3^2 = 0.009.
+\]
+Correção de viés em $t = 1$: $\hat{m}_1 = 0.3/(1-0.9) = 3$ e $\hat{v}_1 = 0.009/(1-0.999) = 9$, logo $\sqrt{\hat{v}_1} = 3$. A atualização é
+\[
+|\Delta\theta| = \eta\,\frac{\hat{m}_1}{\sqrt{\hat{v}_1} + \epsilon} = 0.01\cdot\frac{3}{3} = 0.01.
+\]
+No primeiro passo, com correção de viés, o módulo do passo iguala $\eta$ \emph{independentemente} da magnitude do gradiente (a correção de viés cancela exatamente os fatores $(1-\beta_1)$ e $\sqrt{1-\beta_2}$ quando $\epsilon \to 0$).\\
+\textbf{(b)} $0.03 = \eta\,g$ (descida de gradiente simples, sem o segundo momento).
+\textbf{(a)} $0.0316 = \eta\,m_1/\sqrt{v_1}$ (esqueceu a correção de viés).
+\textbf{(d)/(g)} ordens de grandeza incorretas.
+\textbf{(e)/(f)/(h)} confundem $\hat{m}$, $\eta$ ou o gradiente com o tamanho do passo.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (d)}
+\textit{Forward pass:}
+\begin{align*}
+    z_1 &= X_1\,\theta^{(1)}_{11} + X_2\,\theta^{(1)}_{12} = 1\cdot 1 + 2\cdot(-1) = -1 \;\Rightarrow\; a_1 = \mathrm{ReLU}(-1) = 0 \\
+    z_2 &= X_1\,\theta^{(1)}_{21} + X_2\,\theta^{(1)}_{22} = 1\cdot 1 + 2\cdot 1 = 3 \;\Rightarrow\; a_2 = \mathrm{ReLU}(3) = 3 \\
+    \hat{y} &= a_1\,\theta^{(2)}_{1} + a_2\,\theta^{(2)}_{2} = 0\cdot 1 + 3\cdot 2 = 6
+\end{align*}
+$\partial J/\partial \hat{y} = \hat{y} - y = 6 - 4 = 2$. Os gradientes pedidos:
+\begin{align*}
+    \frac{\partial J}{\partial \theta^{(1)}_{11}} &= \underbrace{(\hat{y}-y)}_{2}\cdot \underbrace{\theta^{(2)}_{1}}_{1}\cdot \underbrace{\mathrm{ReLU}'(z_1)}_{0}\cdot \underbrace{X_1}_{1} = 0 \quad (\text{unidade } a_1 \text{ inativa}) \\
+    \frac{\partial J}{\partial \theta^{(1)}_{21}} &= \underbrace{(\hat{y}-y)}_{2}\cdot \underbrace{\theta^{(2)}_{2}}_{2}\cdot \underbrace{\mathrm{ReLU}'(z_2)}_{1}\cdot \underbrace{X_1}_{1} = 4
+\end{align*}
+Atualização com $\eta = 0.1$: $\theta^{(1)}_{11} \leftarrow 1 - 0.1\cdot 0 = 1.0$ e $\theta^{(1)}_{21} \leftarrow 1 - 0.1\cdot 4 = 0.6$. O ponto-chave é que $a_1$ recebe pré-ativação negativa, logo $\mathrm{ReLU}' = 0$ e $\theta^{(1)}_{11}$ \emph{não é atualizado}.\\
+\textbf{(a)/(b)/(f)} tratam $a_1$ como ativa (atualizam $\theta^{(1)}_{11}$), ignorando $\mathrm{ReLU}'(-1) = 0$.
+\textbf{(c)} usa gradiente $2$ para $\theta^{(1)}_{21}$ (esquece o fator $\theta^{(2)}_2 = 2$): $1 - 0.1\cdot 2 = 0.8$.
+\textbf{(g)} usa gradiente $6$ ($1 - 0.1\cdot 6 = 0.4$).
+\textbf{(e)} não atualiza $\theta^{(1)}_{21}$.
+\textbf{(h)} aplica uma pequena atualização espúria a $\theta^{(1)}_{11}$.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (e)}
+\textbf{I (V):} definições corretas de \textit{batch GD} (gradiente médio sobre todo o conjunto) e SGD estrito (uma instância por iteração).
+\textbf{II (V):} o momentum acumula uma média móvel exponencial dos gradientes, $v_t = \beta v_{t-1} + (1-\beta)\nabla\mathcal{L}$; com $\beta = 0$ recupera-se $\theta_{t+1} = \theta_t - \eta\nabla\mathcal{L}$.
+\textbf{III (V):} o AdaGrad acumula $G_t = \sum_t (\nabla\mathcal{L})^2$ (soma monotônica), de modo que o passo efetivo $\eta/\sqrt{G_t}$ por parâmetro decai ao longo do treino (o que motiva RMSProp/Adam, que usam EMA no lugar da soma).
+\textbf{IV (F):} o momentum de Nesterov avalia o gradiente em uma posição de \textit{lookahead} ($\theta_t - \eta\,\beta v_t$), não na posição atual.
+\textbf{V (F):} o efeito é o oposto. Como $\beta_1, \beta_2 \in (0,1)$, à medida que $t$ cresce $\beta_1^{t}, \beta_2^{t} \to 0$ e os denominadores $1-\beta_1^{t}, 1-\beta_2^{t} \to 1$; logo a correção de viés torna-se \emph{negligível} para $t$ grande. Ela é mais relevante justamente nas \emph{primeiras} iterações, em que $m_0 = v_0 = 0$ subestimam fortemente os momentos.
+Verdadeiras: I, II e III.\\
+\textbf{(a)/(h)} incluem V (falsa).
+\textbf{(b)/(c)} incluem IV (falsa).
+\textbf{(d)} omite II.
+\textbf{(f)} troca III por V.
+\textbf{(g)} marca tudo.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (g)}
+Cada camada totalmente conectada tem $n_{\text{in}}\cdot n_{\text{out}} + n_{\text{out}}$ parâmetros (pesos $+$ vieses):
+\begin{align*}
+    \text{entrada}\to h_1:&\ 10\cdot 20 + 20 = 220 \\
+    h_1 \to h_2:&\ 20\cdot 20 + 20 = 420 \\
+    h_2 \to h_3:&\ 20\cdot 10 + 10 = 210 \\
+    h_3 \to \text{saída}:&\ 10\cdot 5 + 5 = 55 \\
+    \hline
+    \text{total}:&\ 220 + 420 + 210 + 55 = 905
+\end{align*}
+\textbf{(b)} $850$ ignora todos os vieses.
+\textbf{(c)} $900$ esquece o viés da camada de saída ($850 + 50$).
+\textbf{(d)} $855$ erro aritmético.
+\textbf{(a)} $1810$ dobra a contagem.
+\textbf{(e)/(f)/(h)} demais erros de contagem.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (a)}
+\textbf{I (V):} BCE deriva da máxima verossimilhança Bernoulli; MSE da Gaussiana com variância fixa.
+\textbf{II (V):} $\sigma'(z)$ é máxima em $z = 0$, com $\sigma'(0) = \tfrac{1}{4}$, e $\tanh'(0) = 1$.
+\textbf{III (F):} a matriz Jacobiana da \textit{softmax} \emph{não} é diagonal: $\partial S_i/\partial z_j = -S_i S_j$ para $i \neq j$ (e $S_i(1-S_i)$ para $i = j$).
+\textbf{IV (F):} o MSE \emph{pode} ser usado em classificação binária (a rede treina), apenas é menos bem fundamentado estatisticamente e costuma convergir mais devagar do que a entropia cruzada; ``não treina'' é falso.
+\textbf{V (V):} $\mathrm{ReLU}'(z) = 1$ para $z > 0$, sem saturação no ramo positivo, mitigando o desaparecimento do gradiente.
+Verdadeiras: I, II e V.\\
+\textbf{(e)} inclui III (falsa).
+\textbf{(c)/(f)} incluem IV (falsa).
+\textbf{(b)} omite V.
+\textbf{(d)} troca I por III.
+\textbf{(g)/(h)} incluem falsas.
+
+%% ====================== UNIDADE 2 ======================
+
+\subsection*{Questão 6 \textemdash{} Resposta: (f)}
+Aplicando $H' = \lfloor (H - K + 2P)/S \rfloor + 1$ camada a camada, partindo de $64$:
+\begin{align*}
+    \text{(i) conv } K{=}5, S{=}1, P{=}0:&\ (64 - 5)/1 + 1 = 60 \\
+    \text{(ii) pool } 2, S{=}2:&\ (60 - 2)/2 + 1 = 30 \\
+    \text{(iii) conv } K{=}3, S{=}1, P{=}1:&\ (30 - 3 + 2)/1 + 1 = 30 \\
+    \text{(iv) pool } 2, S{=}2:&\ (30 - 2)/2 + 1 = 15 \\
+    \text{(v) conv } K{=}3, S{=}2, P{=}1:&\ \lfloor (15 - 3 + 2)/2 \rfloor + 1 = \lfloor 14/2 \rfloor + 1 = 8
+\end{align*}
+Dimensão de saída $8 \times 8$.\\
+\textbf{(b)} $7 \times 7$ esquece o ``$+1$'' (ou erra o piso) na camada (v).
+\textbf{(d)} $15 \times 15$ para na camada (iv).
+\textbf{(c)} $16 \times 16$ trata a (v) como preservando dimensão.
+\textbf{(a)/(e)/(g)/(h)} demais erros de aplicação da fórmula.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (d)}
+\textbf{I (V):} convolução compartilha pesos; a contagem depende de $K$, $C_{\text{in}}$, $C_{\text{out}}$ (e vieses), não de $H\times W$.
+\textbf{II (V):} convolução é equivariante à translação; o \textit{pooling} adiciona invariância local.
+\textbf{III (F):} na inferência a \textit{batch norm} usa as estatísticas móveis ($\mu_{\text{mov}}, \sigma_{\text{mov}}$) acumuladas no \emph{treino}, não as do \textit{mini-batch} de teste (caso contrário a saída de uma amostra dependeria das demais do \textit{batch}).
+\textbf{IV (F):} duas $3\times 3$ têm de fato o mesmo campo receptivo ($5$) de uma $5\times 5$, porém com \emph{menos} parâmetros ($2\cdot 9 = 18 < 25$) e mais não-linearidades; ``mais parâmetros'' é falso.
+\textbf{V (V):} a convolução $1\times 1$ preserva o espaço e recombina canais.
+Verdadeiras: I, II e V.\\
+\textbf{(b)/(f)} incluem IV (falsa).
+\textbf{(c)/(e)} incluem III (falsa).
+\textbf{(a)} omite II.
+\textbf{(g)} marca tudo.
+\textbf{(h)} omite I.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (b)}
+\textit{Kernel} efetivo da camada 1: $K_{\text{eff}} = D_1(K_1 - 1) + 1 = 2\cdot 2 + 1 = 5$ (camadas 2 e 3 têm $D = 1$, logo $K_{\text{eff}} = K$). Aplicando a recursão:
+\begin{align*}
+    RF_1 &= 1 + (5 - 1)\cdot 1 = 5 \\
+    RF_2 &= 5 + (3 - 1)\cdot S_1 = 5 + 2\cdot 1 = 7 \\
+    RF_3 &= 7 + (3 - 1)\cdot (S_1 S_2) = 7 + 2\cdot(1\cdot 2) = 11
+\end{align*}
+Campo receptivo $11 \times 11$.\\
+\textbf{(a)} $9 \times 9$ ignora a dilatação na camada 1 (usa $K_{\text{eff}} = 3$: $3 \to 5 \to 9$).
+\textbf{(d)} $7 \times 7$ para no $RF_2$.
+\textbf{(f)} $5 \times 5$ para no $RF_1$.
+\textbf{(g)} $17 \times 17$ é o resultado de \emph{duas} camadas $5\times 5$ dilatadas ($D=2$) sem \textit{stride}.
+\textbf{(c)/(e)/(h)} usam o \textit{stride} da própria camada no produto ou outros erros.
+
+%% ====================== UNIDADE 3 ======================
+
+\subsection*{Questão 9 \textemdash{} Resposta: (h)}
+$\log_2$ das probabilidades: $\log_2\tfrac12 = -1$, $\log_2\tfrac14 = -2$, $\log_2\tfrac14 = -2$, $\log_2\tfrac18 = -3$. Soma $= -8$. Média do log-negativo: $-\tfrac{1}{m}\sum \log_2 P = \tfrac{8}{4} = 2$. Logo
+\[
+\text{Perplexidade} = 2^{2} = 4.
+\]
+(Equivalente: $\big(\prod P\big)^{-1/m} = (1/256)^{-1/4} = 256^{1/4} = 4$.)\\
+\textbf{(e)} $256 = 2^{8}$ esquece de dividir por $m$ (média).
+\textbf{(d)} $2$ confunde o expoente.
+\textbf{(c)} $16 = 2^4$ usa o número de \textit{tokens} no expoente.
+\textbf{(f)} $2.83 = 2^{1.5}$ erro na soma dos logaritmos.
+\textbf{(a)/(b)/(g)} demais erros.
+
+\subsection*{Questão 10 \textemdash{} Resposta: (c)}
+\textbf{I (V):} produto de Jacobianos $\theta_{hh}(1 - \tanh^2(z_k))$ com fatores $\le 1$ decai em sequências longas.
+\textbf{II (V):} $f_t \to 1$, $i_t \to 0 \Rightarrow c_t \approx c_{t-1}$ (\textit{constant error carousel}).
+\textbf{III (F):} na LSTM o candidato $\tilde{c}_t$ usa ativação $\tanh$ (não sigmoide); apenas os três portões $f_t$, $i_t$ e $o_t$ usam sigmoide.
+\textbf{IV (V):} a LSTM faz circular dois estados no tempo, o estado oculto $h_t$ e o estado de célula $c_t$ (memória), ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$.
+\textbf{V (F):} a perplexidade satisfaz $\text{Perplexidade} \ge 1$; o modelo determinístico e sempre correto atinge exatamente $1$, nunca menos.
+Verdadeiras: I, II e IV.\\
+\textbf{(b)/(e)} incluem V (falsa).
+\textbf{(a)/(f)} incluem III (falsa).
+\textbf{(d)} omite II.
+\textbf{(g)} marca tudo.
+\textbf{(h)} omite I.
+
+\color{black}
+
+\end{document}

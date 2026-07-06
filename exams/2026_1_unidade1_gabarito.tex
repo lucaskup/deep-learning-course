@@ -1,0 +1,165 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 1}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 \\\hline
+b & e & c & f & d \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (b)}
+A função $\mathrm{sign}(z)$ é constante em $\mathbb{R}^- \setminus \{0\}$ e em $\mathbb{R}^+ \setminus \{0\}$ (logo, derivada $0$) e descontínua em $z = 0$ (derivada indefinida). \textit{Backpropagation} requer que se multiplique gradientes camada a camada via regra da cadeia; com derivada zero em quase todo ponto, esses gradientes morrem e os pesos não são atualizados. A correção que historicamente viabilizou MLPs treináveis foi substituir $\mathrm{sign}$ por funções com derivada não-nula (sigmoide, tanh, ReLU).\\
+\textbf{(a)} o produto escalar é trivialmente diferenciável em $\boldsymbol{\theta}$; a obstrução está na ativação.
+\textbf{(c)} a separabilidade linear é uma limitação de capacidade do Perceptron único; ela não desaparece automaticamente, e não é o motivo de o gradiente não funcionar.
+\textbf{(d)} a obstrução é da derivada (cadeia), não da função de custo.
+\textbf{(e)} a regra do PLA não tem ligação direta com a derivada da ativação; trocar PLA por SGD ainda esbarra na derivada zero do $\mathrm{sign}$.
+\textbf{(f)} o número de parâmetros é irrelevante para a derivabilidade.
+\textbf{(g)} o PLA não é descida de gradiente; é uma regra de atualização específica do Perceptron.
+\textbf{(h)} a interpretação probabilística é uma propriedade desejável da saída, não uma exigência da descida de gradiente.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (e)}
+\textbf{I é correta:} a saturação da sigmoide leva $\sigma'(z) \to 0$ para $|z|$ grande; em redes profundas o produto de derivadas pequenas decai ao longo das camadas (gradiente desaparece nas iniciais).
+
+\textbf{II é incorreta:} a ReLU \textit{pode} morrer (\textit{dying ReLU}). Se uma unidade passa a receber consistentemente entradas negativas, sua saída fica em zero e $\mathrm{ReLU}'(z) = 0$, de modo que o gradiente em relação aos pesos dessa unidade é nulo e ela deixa de aprender.
+
+\textbf{III é correta:} $\tanh'(z) = 1 - \tanh^2(z)$ atinge máximo $1$ em $z = 0$, enquanto $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ atinge máximo $0.25$ em $z = 0$. Em regiões não saturadas a tanh propaga gradientes até $\sim 4\times$ maiores do que a sigmoide, o que tipicamente acelera a convergência da descida de gradiente em comparação com a sigmoide.
+
+Logo, apenas I e III estão corretas.\\
+\textbf{(a)/(b)/(c)} excluem afirmações corretas.
+\textbf{(d)/(f)} incluem a afirmação II que é falsa.
+\textbf{(g)} inclui II.
+\textbf{(h)} contradiz I e III.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (c)}
+A combinação ``sigmoide em todas as camadas + rede profunda + inicialização $\mathcal{N}(0, 1)$'' produz pré-ativações com módulo grande, levando a saturação da sigmoide; $\sigma'$ pequeno multiplicado camada a camada faz com que o gradiente desapareça nas camadas iniciais. A correção padrão é trocar a sigmoide das ocultas por ReLU/Leaky ReLU (cujas derivadas não saturam) e usar inicialização adequada (He), mantendo sigmoide na saída por se tratar de classificação binária.\\
+\textbf{(a)} aumentar a taxa de aprendizado em duas ordens de grandeza tipicamente leva a divergência, não cura gradientes que já chegam praticamente nulos às primeiras camadas devido à saturação da sigmoide.
+\textbf{(b)} reduzir a profundidade ``resolve'' o sintoma mas remove a vantagem representacional da rede; não é a melhor mitigação.
+\textbf{(d)} L2 loss combinada com sigmoide na saída \emph{piora} o gradiente (introduz fator $\sigma'$ adicional).
+\textbf{(e)} pesos zerados eliminam toda quebra de simetria; a rede não consegue aprender.
+\textbf{(f)} SoftMax é apropriada para multiclasse com rótulo único; o problema é binário e a saturação ocorre nas camadas \emph{ocultas}, não na saída.
+\textbf{(g)} \textit{Dropout} desliga unidades; não aumenta o gradiente.
+\textbf{(h)} Adam ajusta passos por estimativas adaptativas, mas se o gradiente real é praticamente zero o sinal de aprendizado continua ausente — Adam ajuda, mas isolado não cura o problema da saturação.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (f)}
+Com sigmoide + entropia cruzada binária (e analogamente SoftMax + entropia cruzada multinomial), o gradiente $\partial \mathcal{L}/\partial z$ em relação aos \textit{logits} simplifica-se a $\hat{y} - y$. Esse cancelamento elimina o termo $\sigma'(z)$, que tende a zero quando a sigmoide satura, e fornece um sinal de aprendizado bem-comportado mesmo quando a predição está muito errada, fator crítico para a estabilidade do treinamento.\\
+\textbf{(a)} \textit{overfitting} é tratado por regularização, não pela escolha do par ativação/custo da saída.
+\textbf{(b)} é parcialmente verdadeira para o intervalo, mas \emph{não} é a razão principal; outras combinações também produziriam saídas no intervalo, sem o ganho computacional.
+\textbf{(c)} \textit{backpropagation} funciona com qualquer composição diferenciável.
+\textbf{(d)} o teorema da aproximação universal não exige nenhum pareamento específico de saída/custo.
+\textbf{(e)} a função de custo da rede como um todo \emph{não} é convexa nos pesos, mesmo com esse pareamento (a convexidade vale apenas para a regressão logística com uma única camada).
+\textbf{(g)} a escolha não altera a contagem de parâmetros.
+\textbf{(h)} sem o pareamento, o gradiente \emph{não} é zero; é apenas pior comportado (com termos de saturação).
+
+\subsection*{Questão 5 \textemdash{} Resposta: (d)}
+He propôs (\textit{He et al., 2015}) usar $\mathrm{Var}(W) = 2/n_{\text{in}}$ assumindo ReLU; o fator 2 compensa a probabilidade aproximada de $1/2$ de a pré-ativação ser zerada pela ReLU, mantendo a variância das ativações estável ao longo da profundidade.\\
+\textbf{(a)} pesos zero geram unidades idênticas; o gradiente não quebra essa simetria.
+\textbf{(b)} a mesma constante para todos os pesos também viola a quebra de simetria entre unidades.
+\textbf{(c)} Xavier é apropriada para tanh/sigmoide (regime aproximadamente linear); para ReLU o fator 2 ausente faz com que a variância das ativações encolha camada a camada.
+\textbf{(e)} uniforme em $[-1, 1]$ ignora $n_{\text{in}}$; em redes profundas isso faz a variância das ativações explodir ou colapsar.
+\textbf{(f)} PCA produz uma inicialização determinística; não é prática padrão e não tem garantia teórica para esse fim.
+\textbf{(g)} apenas inicializar os \textit{biases} aleatoriamente não basta — pesos com mesmo valor produzem saídas idênticas independentemente do \textit{bias}.
+\textbf{(h)} $\mathcal{N}(0, 1)$ sem reescala em rede profunda sob ReLU faz a variância explodir; não basta diminuir a taxa de aprendizado.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 6 \textemdash{} Verdadeiro/Falso com modificação}
+
+\begin{enumerate}[a)]
+    \item \textbf{F.} A expressão $(K - 1)\,D^2$ conta apenas os pesos das $K - 1$ transições entre camadas ocultas, ignorando os $D$ \textit{biases} de cada camada oculta de destino (ou seja, das camadas $h_2, h_3, \ldots, h_K$), totalizando $(K - 1)\,D$ parâmetros omitidos. Decompondo (pesos + \textit{biases} da camada de destino): entrada para a primeira oculta tem $1 \cdot D + D = 2D$ parâmetros; cada uma das $K - 1$ transições entre camadas ocultas tem $D \cdot D + D = D(D+1)$ parâmetros (não apenas $D^2$); última oculta para a saída tem $D \cdot 1 + 1 = D + 1$ parâmetros. \textit{Modificação:} substituir $(K - 1)\,D^2$ por $(K - 1)\,D(D+1)$, totalizando $3D + 1 + (K - 1)\,D(D+1)$.
+
+    \item \textbf{F.} As definições estão invertidas. \textit{Modificação:} a \textbf{descida de gradiente em lote} (\textit{batch GD}) calcula o gradiente sobre \emph{todo} o conjunto de treinamento a cada iteração; a \textbf{SGD} (\textit{Stochastic Gradient Descent}) calcula o gradiente sobre uma \emph{única} instância (ou um \textit{mini-batch} pequeno) a cada iteração.
+
+    \item \textbf{V.} Descrição correta do desaparecimento do gradiente em redes profundas com sigmoide. Aceitar também respostas que mencionem o efeito multiplicativo $(\le 0.25)^L$ ao longo de $L$ camadas.
+
+    \item \textbf{F.} A entropia cruzada binária decorre da máxima verossimilhança assumindo $y_i \mid \hat{y}_i \sim \mathrm{Bernoulli}(\hat{y}_i)$, \emph{não} Gaussiana. Para $y \in \{0,1\}$, a verossimilhança é $p(y \mid \hat{y}) = \hat{y}^{y}(1-\hat{y})^{1-y}$ e $-\log p$ resulta exatamente em $-[y\log \hat{y} + (1-y)\log(1-\hat{y})]$. A hipótese Gaussiana com variância fixa, ao contrário, conduz ao MSE (regressão), não à entropia cruzada. \textit{Modificação:} substituir ``Gaussiana de média $\hat{y}_i$ e variância fixa'' por ``Bernoulli de parâmetro $\hat{y}_i$''.
+
+    \item \textbf{F.} Com pesos zero, todas as unidades de uma camada computam a mesma pré-ativação, recebem o mesmo gradiente e portanto sofrem a mesma atualização: a simetria \emph{nunca} é quebrada por \textit{backpropagation}, e as unidades permanecem idênticas indefinidamente. \textit{Modificação:} é necessário inicializar os pesos com pequenos valores \emph{aleatórios} (e.g., Xavier/He); só essa aleatoriedade quebra a simetria entre unidades de uma mesma camada.
+\end{enumerate}
+
+\subsection*{Questão 7 \textemdash{} \textit{Forward/Backward Pass} e atualização SGD}
+
+Dados: $X_1 = 1$, $X_2 = 2$, $y = 5$, $\theta^{(1)}_1 = 1$, $\theta^{(1)}_2 = 1$, $\theta^{(2)} = 2$, $\eta = 0.1$.
+
+\textbf{(a)} \textit{Forward pass:}
+\begin{align*}
+    z^{(1)} &= X_1 \cdot \theta^{(1)}_1 + X_2 \cdot \theta^{(1)}_2 = 1 \cdot 1 + 2 \cdot 1 = 3 \\
+    a^{(1)} &= \mathrm{ReLU}(z^{(1)}) = \max(0, 3) = 3 \\
+    z^{(2)} &= a^{(1)} \cdot \theta^{(2)} = 3 \cdot 2 = 6 \\
+    \hat{y} &= z^{(2)} = 6 \quad \text{(saída linear)}
+\end{align*}
+
+\textbf{(b)} \textit{Função de custo:}
+\[
+J(\theta) = \tfrac{1}{2}(y - \hat{y})^2 = \tfrac{1}{2}(5 - 6)^2 = 0.5
+\]
+
+\textbf{(c)} \textit{Backward pass} (regra da cadeia):
+\begin{align*}
+    \frac{\partial J}{\partial \hat{y}} &= -(y - \hat{y}) = -(5 - 6) = 1 \\
+    \frac{\partial J}{\partial \theta^{(2)}} &= \frac{\partial J}{\partial \hat{y}} \cdot a^{(1)} = 1 \cdot 3 = 3 \\
+    \frac{\partial J}{\partial a^{(1)}} &= \frac{\partial J}{\partial \hat{y}} \cdot \theta^{(2)} = 1 \cdot 2 = 2 \\
+    \frac{\partial a^{(1)}}{\partial z^{(1)}} &= \mathrm{ReLU}'(z^{(1)}) = 1 \quad (\text{pois } z^{(1)} = 3 > 0) \\
+    \frac{\partial J}{\partial z^{(1)}} &= \frac{\partial J}{\partial a^{(1)}} \cdot \frac{\partial a^{(1)}}{\partial z^{(1)}} = 2 \cdot 1 = 2 \\
+    \frac{\partial J}{\partial \theta^{(1)}_1} &= \frac{\partial J}{\partial z^{(1)}} \cdot X_1 = 2 \cdot 1 = 2 \\
+    \frac{\partial J}{\partial \theta^{(1)}_2} &= \frac{\partial J}{\partial z^{(1)}} \cdot X_2 = 2 \cdot 2 = 4
+\end{align*}
+
+\textbf{(d)} \textit{Atualização SGD} com $\eta = 0.1$:
+\begin{align*}
+    \theta^{(2)}_{t+1}      &= 2 - 0.1 \cdot 3 = 1.7 \\
+    \theta^{(1)}_{1,\,t+1}  &= 1 - 0.1 \cdot 2 = 0.8 \\
+    \theta^{(1)}_{2,\,t+1}  &= 1 - 0.1 \cdot 4 = 0.6
+\end{align*}
+
+\color{black}
+
+\end{document}

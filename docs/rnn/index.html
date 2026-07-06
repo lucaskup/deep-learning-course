@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Redes Recorrentes: a célula RNN desenrolada no tempo, a dinâmica do estado oculto h_t, o exemplo numérico de Backpropagation Through Time da aula e os gradientes que desaparecem ou explodem em sequências longas." />
+  <title>Redes Recorrentes — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Célula RNN</a></li>
+      <li><a href="#s2">Estado h<sub>t</sub></a></li>
+      <li><a href="#s3">BPTT</a></li>
+      <li><a href="#s4">Gradientes</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Redes <span>Recorrentes</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de redes recorrentes</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: a célula recorrente desenrolada no tempo
+        processando uma sequência com a regra
+        <span class="formula">h<sub>t</sub> = tanh(x<sub>t</sub>·θ<sub>ih</sub> + h<sub>t−1</sub>·θ<sub>hh</sub> + b<sub>h</sub>)</span>
+        e <span class="formula">ŷ<sub>t</sub> = h<sub>t</sub>·θ<sub>ho</sub> + b<sub>o</sub></span>,
+        a dinâmica do estado oculto quando a recorrência é iterada muitas vezes,
+        o exemplo numérico de <em>Backpropagation Through Time</em> visto em aula
+        (<span class="formula">x = [1, 2]</span>, <span class="formula">y = 3</span>)
+        e o produto de fatores
+        <span class="formula">θ<sub>hh</sub>·(1 − tanh²(z<sub>k</sub>))</span>
+        que faz o gradiente desaparecer ou explodir em sequências longas.
+        Notação dos slides: <span class="formula">θ<sub>ih</sub></span> (entrada para estado),
+        <span class="formula">θ<sub>hh</sub></span> (estado para estado),
+        <span class="formula">θ<sub>ho</sub></span> (estado para saída),
+        <span class="formula">h<sub>t</sub></span> (estado interno).
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Célula recorrente desenrolada no tempo ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · A célula recorrente desenrolada no tempo</h2>
+      <p class="demo-text">
+        A mesma célula é aplicada a cada elemento da sequência, com os
+        <strong>mesmos pesos</strong> em todos os passos de tempo. Além da entrada
+        <span class="formula">x<sub>t</sub></span>, a célula recebe o estado interno
+        <span class="formula">h<sub>t−1</sub></span>, que resume tudo o que a rede viu até o
+        passo anterior: <span class="formula">h<sub>t</sub> = tanh(x<sub>t</sub>·θ<sub>ih</sub> + h<sub>t−1</sub>·θ<sub>hh</sub>)</span>
+        e <span class="formula">ŷ<sub>t</sub> = h<sub>t</sub>·θ<sub>ho</sub></span>
+        (com <span class="formula">b<sub>h</sub> = b<sub>o</sub> = 0</span>, como no exemplo da aula).
+        Arraste as barras azuis para editar a sequência de entrada e avance o tempo passo a passo
+        para ver o estado fluir de uma célula para a seguinte.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">θ<sub>ih</sub> = <span id="s1-thih-val">0.50</span>
+            <input type="range" id="s1-thih" min="0" max="2" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">θ<sub>hh</sub> = <span id="s1-thhh-val">0.50</span>
+            <input type="range" id="s1-thhh" min="-1.5" max="1.5" value="0.5" step="0.05" />
+          </label>
+          <label class="slider-label">θ<sub>ho</sub> = <span id="s1-thho-val">1.00</span>
+            <input type="range" id="s1-thho" min="0" max="2" value="1" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s1-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s1-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-rand" type="button">🎲 Nova sequência</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Rede desenrolada: x<sub>t</sub> embaixo (arraste as barras), células tanh no meio, h<sub>t</sub> nas setas e ŷ<sub>t</sub> em cima</p>
+            <canvas id="s1-unroll"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Estado h<sub>t</sub> (laranja) e saída ŷ<sub>t</sub> (rosa) ao longo do tempo</p>
+            <canvas id="s1-state"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">θ<sub>hh</sub> = 0</span> a memória some: cada
+          <span class="formula">h<sub>t</sub></span> depende só de <span class="formula">x<sub>t</sub></span>,
+          exatamente o MLP aplicado palavra a palavra dos slides. Suba para
+          <span class="formula">θ<sub>hh</sub> = 1.0</span> e zere as últimas entradas arrastando
+          as barras: o estado continua carregando informação dos primeiros passos.
+          Com <span class="formula">θ<sub>hh</sub> = −1.0</span> o estado alterna de sinal a cada
+          passo. Os valores iniciais reproduzem o exemplo da aula:
+          <span class="formula">x<sub>1</sub> = 1, x<sub>2</sub> = 2</span> dão
+          <span class="formula">h<sub>1</sub> ≈ 0.462</span> e <span class="formula">h<sub>2</sub> ≈ 0.843</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Dinâmica do estado oculto ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Dinâmica do estado oculto</h2>
+      <p class="demo-text">
+        O que acontece com a memória quando a recorrência é iterada muitas vezes sem novas
+        entradas? O estado obedece ao mapa
+        <span class="formula">h<sub>t</sub> = tanh(θ<sub>hh</sub>·h<sub>t−1</sub>)</span>
+        (aba tanh) ou à versão sem ativação
+        <span class="formula">h<sub>t</sub> = θ<sub>hh</sub>·h<sub>t−1</sub></span> (aba linear).
+        O diagrama de teia de aranha mostra a iteração: de
+        <span class="formula">h<sub>t</sub></span> sobe até a curva (aplica o mapa) e vai até a
+        diagonal (vira a entrada do próximo passo). Arraste no gráfico para escolher
+        <span class="formula">h<sub>0</sub></span> e varie <span class="formula">θ<sub>hh</sub></span>
+        para ver o estado decair, persistir ou saturar.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-tanh" type="button">h<sub>t</sub> = tanh(θ<sub>hh</sub>·h<sub>t−1</sub>)</button>
+            <button class="tab" id="s2-tab-linear" type="button">h<sub>t</sub> = θ<sub>hh</sub>·h<sub>t−1</sub></button>
+          </div>
+          <label class="slider-label">θ<sub>hh</sub> = <span id="s2-thhh-val">0.90</span>
+            <input type="range" id="s2-thhh" min="-2" max="2" value="0.9" step="0.05" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Teia de aranha: curva do mapa, diagonal h<sub>t</sub> = h<sub>t−1</sub> e a trajetória (arraste para mudar h<sub>0</sub>)</p>
+            <canvas id="s2-cobweb"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">h<sub>t</sub> por passo de tempo t</p>
+            <canvas id="s2-traj"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Na aba linear, <span class="formula">θ<sub>hh</sub> = 0.5</span> faz o estado cair
+          pela metade a cada passo (a memória evapora em poucos passos) e
+          <span class="formula">θ<sub>hh</sub> = 1.5</span> faz o estado explodir.
+          Na aba tanh a explosão é contida pela saturação: com
+          <span class="formula">θ<sub>hh</sub> = 1.5</span> o estado converge a um ponto fixo
+          <span class="formula">±h*</span> (bolinhas verdes) e a rede "trava" numa memória
+          persistente. Teste <span class="formula">θ<sub>hh</sub> = −1.5</span> e veja o estado
+          oscilar de sinal. É essa mesma multiplicação repetida por
+          <span class="formula">θ<sub>hh</sub></span> que vai reaparecer no gradiente da seção 4.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: BPTT no exemplo da aula ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · BPTT no exemplo numérico da aula</h2>
+      <p class="demo-text">
+        Reproduzimos o exemplo dos slides: a menor RNN possível, com
+        <span class="formula">x = [1, 2]</span>, meta <span class="formula">y = 3</span>,
+        <span class="formula">h<sub>0</sub> = 0</span> e parâmetros iniciais
+        <span class="formula">θ<sub>ih</sub> = θ<sub>hh</sub> = 0.5</span>,
+        <span class="formula">θ<sub>ho</sub> = 1</span>,
+        <span class="formula">b<sub>h</sub> = b<sub>o</sub> = 0</span>.
+        A loss é <span class="formula">J(θ) = ½(ŷ<sub>2</sub> − y)²</span> e o
+        <em>Backpropagation Through Time</em> soma as contribuições do gradiente ao longo dos
+        passos de tempo: o caminho de <span class="formula">θ<sub>ih</sub></span>, por exemplo,
+        atravessa <span class="formula">h<sub>1</sub></span> para chegar em
+        <span class="formula">h<sub>2</sub></span>. Cada clique em ⏭ faz um ciclo completo de
+        forward, backward e passo do optimizer
+        <span class="formula">θ ← θ − η·∂J/∂θ</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">η = <span id="s3-eta-val">0.10</span>
+            <input type="range" id="s3-eta" min="0.01" max="0.6" value="0.1" step="0.01" />
+          </label>
+          <label class="slider-label">y = <span id="s3-y-val">3.0</span>
+            <input type="range" id="s3-y" min="0" max="5" value="3" step="0.5" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Uma iteração</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Gradientes ∂J/∂θ nos parâmetros atuais (a barra é o que o próximo passo do optimizer vai aplicar)</p>
+            <canvas id="s3-grads"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Loss J por iteração k, escala log</p>
+            <canvas id="s3-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Em <span class="formula">k = 0</span> as barras reproduzem a tabela da aula:
+          <span class="formula">∂J/∂θ<sub>ho</sub> ≈ −1.818</span>,
+          <span class="formula">∂J/∂b<sub>o</sub> ≈ −2.157</span>,
+          <span class="formula">∂J/∂θ<sub>ih</sub> ≈ −1.493</span>,
+          <span class="formula">∂J/∂b<sub>h</sub> ≈ −0.870</span> e
+          <span class="formula">∂J/∂θ<sub>hh</sub> ≈ −0.288</span>.
+          Dê uma iteração com <span class="formula">η = 0.1</span> e confira
+          <span class="formula">J: 2.326 → 1.404</span>, como no slide. Depois deixe ▶ rodar até
+          convergir e repare que os gradientes vão a zero. Com
+          <span class="formula">η = 0.6</span> a loss oscila antes de assentar:
+          o passo fica grande demais para este vale.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Vanishing e exploding gradient ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Gradientes que desaparecem ou explodem</h2>
+      <p class="demo-text">
+        Em sequências longas a RNN é <strong>profunda no tempo</strong>: para chegar aos
+        primeiros passos, o gradiente atravessa um produto de Jacobianos
+        <span class="formula">∏<sub>k</sub> θ<sub>hh</sub>·(1 − tanh²(z<sub>k</sub>))</span>.
+        Se cada fator é menor que 1 o produto decai exponencialmente
+        (<em>vanishing gradient</em>); se é maior que 1, cresce exponencialmente
+        (<em>exploding gradient</em>). Abaixo, uma RNN escalar processa uma sequência de
+        entradas aleatórias e medimos <span class="formula">|∂J/∂h<sub>t</sub>|</span> ao
+        retropropagar a loss do último passo até cada instante t. A curva tracejada mostra a
+        linearização em que cada fator vale exatamente <span class="formula">θ<sub>hh</sub></span>
+        (como se <span class="formula">1 − tanh² = 1</span>); na rede tanh real a saturação
+        reduz os fatores. À direita, a magnitude do gradiente total
+        <span class="formula">|∂J/∂θ<sub>ih</sub>|</span> em função do comprimento da
+        sequência, com o efeito do <em>gradient clipping by norm</em>:
+        se <span class="formula">‖g‖ &gt; c</span>, então
+        <span class="formula">g ← c·g/‖g‖</span>, preservando a direção.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">θ<sub>hh</sub> = <span id="s4-thhh-val">1.00</span>
+            <input type="range" id="s4-thhh" min="0.1" max="2.5" value="1" step="0.05" />
+          </label>
+          <label class="slider-label">T = <span id="s4-T-val">30</span>
+            <input type="range" id="s4-T" min="5" max="60" value="30" step="1" />
+          </label>
+          <label class="slider-label">limiar c = <span id="s4-clip-val">1.0</span>
+            <input type="range" id="s4-clip" min="0.1" max="5" value="1" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s4-rand" type="button">🎲 Nova sequência</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">log₁₀ |∂J/∂h<sub>t</sub>| ao retropropagar do passo T até t (ciano: rede tanh; tracejado cinza: fatores θ<sub>hh</sub> sem saturação)</p>
+            <canvas id="s4-flow"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">log₁₀ |∂J/∂θ<sub>ih</sub>| vs comprimento T da sequência (verde: curva sem saturação após clipping com limiar c)</p>
+            <canvas id="s4-norm"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">θ<sub>hh</sub> = 0.5</span> e
+          <span class="formula">T = 60</span> o gradiente que chega em
+          <span class="formula">t = 1</span> é da ordem de
+          <span class="formula">10⁻²⁰</span>: os primeiros passos da sequência ficam
+          impossíveis de treinar. Com <span class="formula">θ<sub>hh</sub> = 2.0</span> a
+          curva tracejada explode e cruza o limiar do clipping: a linha verde mostra a norma
+          efetivamente usada na atualização. Repare na curva ciano que, com
+          <span class="formula">θ<sub>hh</sub> &gt; 1</span>, o estado satura e o fator
+          <span class="formula">θ<sub>hh</sub>·(1 − tanh²(z<sub>k</sub>))</span> fica menor
+          que 1: na rede tanh real o gradiente volta a desaparecer (confira o fator médio no
+          painel). O clipping resolve a explosão mas não o desaparecimento, que motiva as
+          arquiteturas com portas (LSTM e GRU) da próxima aula.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Redes Recorrentes</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-celula.js"></script>
+  <script defer src="js/section2-dinamica.js"></script>
+  <script defer src="js/section3-bptt.js"></script>
+  <script defer src="js/section4-gradientes.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

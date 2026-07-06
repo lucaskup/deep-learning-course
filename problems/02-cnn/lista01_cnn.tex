@@ -1,0 +1,185 @@
+\documentclass{dlproblemset}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\title{Redes Convolucionais}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\begin{enumerate}[I)]
+
+    \item A rede convolucional LeNET-5 ilustrada na Figura \ref{fig:lenet5} foi desenvolvida por Yann LeCun e publicada em 1989. Sobre a LeNET-5, responda as perguntas abaixo.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\linewidth]{problems/02-cnn/images/LeNET5.jpeg}
+        \caption{LeNET-5}
+        \label{fig:lenet5}
+    \end{figure}
+\begin{enumerate}[a)]
+    \item Qual o motivo do número 5 no nome dessa rede?
+    \item Quais os tamanhos das convoluções usadas?
+    \item Qual o tamanho do campo receptivo de uma unidade dos mapas de ativação 14x14 gerados após a camada de \textit{average pooling} (\textit{subsampling})?
+    %\item Qual o tamanho do campo receptivo de uma unidade dos mapas de ativação 5x5 gerados após a camada de \textit{average pooling} (\textit{subsampling})?
+    \item Quantos parâmetros treináveis tem essa rede?
+    \item A maior parte dos parâmetros treináveis está localizada nas camadas convolucionais ou nas totalmente conectadas?
+\end{enumerate}
+
+    \item O que é o \textit{stride} em uma camada convolucional?
+    \item O que é o \textit{dilation} em uma camada convolucional?
+    \item O que é uma convolução transposta?
+    \item Por que dizemos que camadas de agrupamento do tipo \textit{Max Pooling} e \textit{Average Pooling} fazem \textit{subsampling} dos mapas de ativação?
+    \item Por que usualmente omitimos o número de canais em uma convolução 2D?
+    \item Considerando uma convolução 2D 3x3 que conecta dois mapas de ativação com tamanho 224x224 com $C_1$ e $C_2$ canais respectivamente. Como você poderia inicializar os pesos dessa camada usando a inicialização He?
+
+    \item Dada a matriz de input abaixo, e uma rede com 2 camadas convolucionais, calcule a saída da rede com as configurações a seguir. Para a primeira camada convolucional: Padding = 0, Stride = 1; Kernel = $K_1$; Ativação linear na saída. Para a segunda camada convolucional: Padding = 1; Stride = 1; Kernel = $K_2$; Ativação ReLU na saída. Considere \textit{dillation} = 0.
+
+    $$I = \begin{bmatrix}
+    7 & 8 & 9 \\
+    6 & 5 & 4 \\
+    1 & 2 & 3
+    \end{bmatrix}
+    \qquad
+    K_1 = \begin{bmatrix}
+    1 & 0 & -1 \\
+    1 & 0 & -1 \\
+    1 & 0 & -1
+    \end{bmatrix}
+    \qquad
+    K_2 = \begin{bmatrix}
+    1 & 1 & 1 \\
+    0 & 0 & 0 \\
+    -1 & -1 & -1
+    \end{bmatrix}$$
+
+
+    \item Dadas as alternativas abaixo, qual das alternativas representa o Kernel mais indicado para identificação de bordas horizontais em uma imagem?
+\begin{enumerate}[a)]
+    \item $$\begin{bmatrix}
+    -1 & -1 & -1 \\
+    -1 & 8 & -1 \\
+    -1 & -1 & -1
+    \end{bmatrix}$$
+    \item $$\begin{bmatrix}
+    -1 & 0 & 1 \\
+    -2 & 0 & 2 \\
+    -1 & 0 & 1
+    \end{bmatrix}$$
+    \item $$\begin{bmatrix}
+    0 & -1 & 0 \\
+    -2 & 6 & -2 \\
+    0 & -1 & 0
+    \end{bmatrix}$$
+    \item $$\begin{bmatrix}
+    -1 & -2 & -1 \\
+    0 & 0 & 0 \\
+    1 & 2 & 1
+    \end{bmatrix}$$
+\end{enumerate}
+
+
+    \item Dada uma imagem de entrada de $32\times32$ pixels, e duas camadas convolucionais, qual o campo receptivo na imagem original que é representado por um único pixel na saída final? Considere: Kernel para as duas camadas ($K_1 = K_2$) tem tamanho $5\times5$; Stride = 1; Dillation = 2.
+
+\end{enumerate}
+
+\newpage
+\subsection*{Gabarito}
+\color{blue}
+
+\begin{enumerate}[I)]
+\item
+\begin{enumerate}[a.]
+    \item O número 5 indica o número de camadas com parâmetros treináveis. São 2 convoluções e 3 totalmente conectadas.
+
+    \item Na primeira camada convolucional foram convoluções 5x5 com 6 canais de saída; Na segunda foram convoluções 5x5 com 16 canais de saída.
+
+    \item Tamanho 6x6. Uma convolução 5x5 tem campo receptivo de tamanho 5x5, se depois dele fizermos um \textit{average pooling} 2x2 teremos \textit{receptive field} de 6x6.
+
+    %\item Tamanho 16x16. Para responder a essa questão você deve perceber que ao aplicar uma conv após fazer pooling 2x2 com stride 2 o campo perceptivo dobra de tamanho.
+
+    \item Na primeira camada: $5x5x1x6 + 6 = 156$; Na segunda camada: $5x5x6x16 + 16 = 2416$; Na terceira camada $400*120 + 120=48120$; Na quarta camada $120*84 + 84=10164$; Na quinta camada $84*10 + 10=850$. Total 61706.
+
+    \item Nas camadas totalmente conectadas.
+\end{enumerate}
+\item É o quanto o filtro translada entre cada uma das aplicações. Por padrão em convoluções usamos 1, o que significa que o kernel é transladado de uma posição após cada aplicação do filtro.
+
+\item É um parâmetro usado para aumentar o campo receptivo da convolução. Na prática tornamos o kernel esparso completando com zeros.
+
+\item É uma convolução usada para fazer \textit{upsampling} na imagem. É uma forma de aprender a função de \textit{upsampling}.
+
+\item Pois normalmente usamos essas camadas para diminuir a resolução espacial dos mapas de ativação.
+
+\item Pois usualmente o número de canais da convolução é igual ao número de canais dos mapas de ativação.
+
+\item A inicialização He leva em conta o número de parâmetros que contribuem para cada ativação. Como nesse caso estamos falando de $C_1x3x3$ pesos, podemos inicializar com uma normal com média zero e variância $\frac{2}{9C_1}$
+
+\item Resolução Input 3x3 % resolução questão 8 VIII
+    Matrizes Iniciais
+    $$
+    I = \begin{bmatrix}
+    7 & 8 & 9 \\
+    6 & 5 & 4 \\
+    1 & 2 & 3
+    \end{bmatrix}
+    \qquad
+    K_1 = \begin{bmatrix}
+    1 & 0 & -1 \\
+    1 & 0 & -1 \\
+    1 & 0 & -1
+    \end{bmatrix}
+    \qquad
+    K_2 = \begin{bmatrix}
+    1 & 1 & 1 \\
+    0 & 0 & 0 \\
+    -1 & -1 & -1
+    \end{bmatrix}
+    $$
+
+    Camada 1 (Conv1)
+    Input $3\times3$, Kernel $3\times3$, $p=0$, $s=1 \implies$ Saída $1\times1$.
+    $$
+    C_1 = \sum(I \cdot K_1) + B_1 \quad (B_1 = 0)
+    $$
+    $$
+    C_1 = (7\cdot1 + 8\cdot0 + 9\cdot-1) + (6\cdot1 + 5\cdot0 + 4\cdot-1) + (1\cdot1 + 2\cdot0 + 3\cdot-1)
+    $$
+    $$
+    C_1 = (-2) + (2) + (-2) = -2
+    $$
+    $$
+    C_1 = \begin{bmatrix} -2 \end{bmatrix}
+    $$
+
+    Camada 2 (Conv2)
+    Input $1\times1$, Kernel $3\times3$, $p=1$, $s=1 \implies$ Saída $1\times1$.
+    Primeiro, aplicamos padding na saída de $C_1$:
+    $$
+    C_{1, padded} = \begin{bmatrix}
+    0 & 0 & 0 \\
+    0 & -2 & 0 \\
+    0 & 0 & 0
+    \end{bmatrix}
+    $$
+    Em seguida, aplicamos $K_2$, $B_2=1$ e ReLU:
+    $$
+    \text{Soma Conv} = \sum(C_{1, padded} \cdot K_2) = (-2 \cdot 0) = 0
+    $$
+    $$
+    \text{Pré ativação} = \text{Soma Conv} + B_2 = 0 + 1 = 1
+    $$
+    $$
+    Output = \text{ReLU}(1) = 1
+    $$
+
+    Resultado Final
+    $$
+    Output = \begin{bmatrix} 1 \end{bmatrix}
+    $$
+
+\item Alternativa D % resolução 9 IX
+
+   \item A primeira camada de convolução com kernel $5\times5$ e dilatação $2$, resulta em um \textit{feature map} com campo receptivo de $9\times9$ sobre a imagem de entrada. A segunda camada aplica a mesma configuração de kernel sobre o \textit{feature map} da primeira camada de convolução. Portanto, o campo receptivo final é o campo de visão da camada anterior ($9\times9$) mais a expansão adicional do seu próprio kernel. Resultando em um campo receptivo de $17\times17$. % questão X
+
+\end{enumerate}
+\end{document}

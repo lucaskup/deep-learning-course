@@ -1,0 +1,1074 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+
+\providecommand{\mlexampleinstance}{ \underset{N\times M}{
+    \begin{array}{|c|c|}
+        \hline
+        1 & 1   \\
+        \hline
+        1 & 2   \\
+        \hline
+        1 & 3   \\
+        \hline
+      \end{array}
+      }}
+      
+\providecommand{\mlexampletarget}{      \underset{N\times 1}{
+      \begin{array}{|c|}
+        \hline
+        20   \\
+        \hline
+        10   \\
+        \hline
+        30   \\
+        \hline
+      \end{array}}}
+      
+\providecommand{\mlexampleinstancetranspose}{\underset{M\times N}{
+      \begin{array}{|c|c|c|}
+        \hline
+        1 & 1 & 1  \\
+        \hline
+        1 & 2 & 3\\
+        \hline
+      \end{array}}}
+
+
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Revisão de \textit{Machine Learning}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS % Your institution for the title page
+}
+\date{\mespor de \the\year}
+ % Date, can be changed to a custom date
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    % Print the title page as the first slide
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+    \tableofcontents
+\end{frame}
+
+%------------------------------------------------
+\section{Por que precisamos de Machine Learning?}
+%------------------------------------------------
+
+\begin{frame}{A importância de Machine Learning}
+
+\begin{itemize}
+    \item ``A breakthrough in machine learning would be worth ten Microsofts'' (Bill Gates)
+    \item ``Machine learning is the next Internet'' (Tony Tether, Director, DARPA)
+    \item ``Machine learning is going to result in a real revolution'' (Greg Papadopoulos, Former CTO, Sun)
+    \item ``Machine learning is today’s discontinuity'' (Jerry Yang, Founder, Yahoo)
+    \item ``Machine learning is the new electricity'' (Andrew NG, Stanford Professor and Coursera founder)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Software} sem \textit{Machine Learning}}
+    É uma sequência de instruções que:
+    \begin{itemize}
+        \item Recebe uma entrada
+        \item Realiza um processamento
+        \item Retorna uma saída
+    \end{itemize}
+\end{frame}
+\begin{frame}{\textit{Software} sem \textit{Machine Learning}}{Exemplo}
+    \begin{enumerate}
+        \item Se você ou o seu oponente tiverem dois em sequência, jogue no espaço restante
+        \item Caso contrário, se existir um movimento que crie duas sequencias de dois, faça essa jogada
+        \item Caso contrário, se o centro estiver vazio, jogue no centro
+        \item Caso contrário, se o seu oponente jogou em um canto, jogue no canto oposto 
+        \item Caso contrário, se houver um canto livre jogue nesse canto
+        \item Caso contrário, jogue em uma posição vazia qualquer
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Algumas vezes não sabemos como resolver}
+\begin{columns}
+    \column{0.5\textwidth}
+       \begin{itemize}
+            
+           \item Complexidade de Tempo
+           \item Complexidade de Espaço
+           \item Complexidade ``Humana''
+       \end{itemize}
+    
+    \column{0.5\textwidth}
+        \begin{figure}
+        \centering
+         \includegraphics[width=\textwidth]{slides/img/aula00/three-headed-dragon-meme.jpg}      
+         \end{figure}
+    
+\end{columns}
+\end{frame}
+
+\begin{frame}{E no Aprendizado de Máquina?}
+
+\begin{itemize}
+    \item Mesmo quando não é possível criar um algoritmo para resolver o problema diretamente, pode ser possível criar algoritmos que \alert{\textit{encontram padrões}} 
+    \item Usamos raciocínio \alert{indutivo} para resolver os problemas 
+    
+\end{itemize}
+
+    \begin{block}{Definição de \textit{Machine Learning}}
+        ``A computer program is said to learn from experience \textbf{\textcolor{red}{E}} with respect to some class of tasks \textbf{\textcolor{blue}{T}} and performance measure \textbf{\textcolor{green}{P}}, if its performance at tasks in \textbf{\textcolor{blue}{T}}, as measured by \textbf{\textcolor{green}{P}}, improves with experience \textbf{\textcolor{red}{E}}'' \citeauthoryear{mitchell_machine_1997}
+    \end{block}
+    
+    
+\end{frame}
+
+\begin{frame}{Tipos de Raciocínio}
+\begin{columns}
+    \column{0.45\textwidth}
+        \begin{itemize}
+            \item<1-> \textbf{Dedutivo}
+            \begin{itemize}
+                \item Assumindo algumas premissas, a conclusão obrigatoriamente segue
+            \end{itemize}
+            \item<2-> \textbf{Não-dedutivo}
+            \begin{itemize}
+                \item<2-> \textbf{Abdução}
+                \begin{itemize}
+                    \item “Raciocínio do Detetive”
+                \end{itemize}
+                \item<3-> \textbf{Indução}
+                \begin{itemize}
+                    \item Dadas observações (limitadas em escopo e quantidade), podemos chegar a conclusões plausíveis
+                \end{itemize}
+            \end{itemize}
+        \end{itemize}
+        
+    \column{0.55\columnwidth}
+    \only<1>{
+    \begin{block}{Exemplo de Dedução}
+        \begin{itemize}
+            \item Premissa 1: Todos os humanos são mortais
+            \item Premissa 2: Sócrates é humano
+            \item Conclusão: Sócrates é mortal
+        \end{itemize}        
+    \end{block}
+    }
+    \only<2>{
+    \begin{block}{Exemplo de Abdução}
+        \begin{itemize}
+            \item Tem restos de frango assado pelo chão
+            \item O cachorro está com restos de frango no pelo, especialmente ao redor da boca
+            \item Logo, o cachorro comeu o frango assado
+        \end{itemize}        
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.4\linewidth]{slides/img/aula00/meme-hungrydog-abduction.jpg}
+    \end{figure}
+    }
+    \only<3->{
+    \begin{block}{Exemplo de Indução}
+         Qual o próximo número na sequência abaixo?\\
+         \alt<3>{$$1, 3, 5, 7, x$$}{$$1, 3, 5, 7, \textcolor{red}{217341}$$} \\    
+        \only<4>{
+            \scriptsize
+            $$f(x) = \frac{18111}{2}x^4 - 90555x^3 + \frac{633885}{2}x^2 - 452773x + 217331$$
+            }
+    \end{block}
+    \begin{figure}
+        \centering
+        \only<3>{\includegraphics[width=0.35\linewidth]{slides/img/aula00/meme-happy-math.jpg}}
+        \only<4>{\includegraphics[width=0.35\linewidth]{slides/img/aula00/meme-sad-math.jpg}}
+    \end{figure}
+    }
+\end{columns}
+\end{frame}
+
+\section{Conceitos Básicos de \textit{Machine Learning}}
+
+\begin{frame}{Desenvolvimento de uma aplicação com AM}
+\only<1>{
+    O projeto de um sistema que usa \textit{Machine Learning} pode ser descrito pela figura abaixo\footnote{\scriptsize Fluxos diferentes existem na literatura de \textit{Knowledge Discovery in Databases} e em Mineração de Dados.}
+    }
+\only<2>{
+\textbf{Experimental Design}
+    \begin{itemize}
+        \item Modelar o problema como uma tarefa de \textit{Machine Learning}
+        \item Como você definiria o problema de treinar um reconhecedor de rostos que é capaz de reconhecer 100 pessoas diferentes?
+        \begin{itemize}
+            \item Como um problema de \alert{classificação multiclasse} com 100 classes será muito difícil coletar uma base dados grande o bastante
+            \item Como um problema de \alert{classificação binário} onde o sistema recebe um par de imagens é mais fácil coletar dados
+        \end{itemize}
+    \end{itemize}
+}
+\only<3>{
+    \textbf{Data Collection}
+    \begin{itemize}
+        \item É possível coletar dados que sejam representativos do problema em questão?
+        \item Existe algum dataset aberto que pode nos auxiliar?
+        \item Quando a coleta de dados ou a anotação é cara, existem alternativas?
+    \end{itemize}
+}
+\only<4>{
+    \textbf{Dimensionality Reduction}
+    \begin{itemize}
+        \item Todos os atributos coletados são úteis para resolver a tarefa?
+        \item Como selecionar apenas os atributos relacionados a variável alvo? 
+        \item Existem formas de criar novos atributos que sejam melhores preditores para a variável alvo?
+        \item Posso resumir meus atributos em um espaço menor?
+    \end{itemize}
+}
+\only<5>{
+    \textbf{Predictor Design}
+    \begin{itemize}
+        \item Existe algum modelo cujo viés indutivo seja aderente ao meu problema?
+        \item Qual será a métrica utilizada para avaliação do desempenho do modelo?
+        \item Qual meu \textit{budget} computacional?
+        \item Qual a melhor hiperparametrização dos modelos selecionados?
+    \end{itemize}
+}
+\only<6>{
+    \textbf{Error Estimation}
+    \begin{itemize}
+        \item Meu modelo treinado generaliza?
+        \item Qual é o erro esperado do meu modelo para novos dados?
+        \item Coletar mais dados pode melhorar meus resultados?
+    \end{itemize}
+
+}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=.5\textwidth]{slides/img/aula00/fluxo-ml.png}
+        \caption{Representação simplificada do processo de \textit{Machine Learning}. Adaptado de \citeauthoryear{braga-neto_fundamentals_2020}}
+    \end{figure}
+    
+\end{frame}
+
+
+\begin{frame}{Tipos de Aprendizado}
+    \begin{itemize}
+        \item \textbf{Supervisionado}
+        \begin{itemize}
+            \item Dados de treino possuem rótulos
+            \item \textit{Exemplo}: classificar fotos como gato ou cachorro a partir de 10 mil imagens rotuladas
+        \end{itemize}
+        \item \textbf{Não Supervisionado}
+        \begin{itemize}
+            \item Dados de treino não possuem rótulos
+            \item \textit{Exemplo}: agrupar clientes em segmentos a partir do histórico de compras, sem rótulos
+        \end{itemize}
+        \item \textbf{Semi Supervisionado}
+        \begin{itemize}
+            \item Alguns dados de treino possuem rótulo outros não
+            \item \textit{Exemplo}: detecção de fraude com poucas transações rotuladas e milhões sem rótulo
+        \end{itemize}
+        \item \textbf{Aprendizado por Reforço}
+        \begin{itemize}
+            \item Agente recebe “recompensa” devido a uma série de ações
+            \item \textit{Exemplo}: AlphaGo aprende a jogar Go ganhando recompensa ao final da partida
+        \end{itemize}
+        \item \textbf{Auto Supervisionado}
+        \begin{itemize}
+            \item Parte das entradas servem como “supervisão”
+            \item \textit{Exemplo}: pré-treino do BERT prevendo palavras mascaradas em uma frase
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Notação}
+    Considerando um dataset formado por exemplos de uma relação $\big(\mlinstancei, \mltargeti\big )$
+    \begin{itemize}
+        \item $\mlinstance$ é nossa matriz de atributos $N\times M$ onde $N$ é o número de instâncias e $M$ é o número de atributos indexada por $\mlinstance^{(n)}_m$
+        \item $\mltarget$ é nossa variável alvo $N\times 1$
+        \item Objetivo é estimar $\mltargeti$ para uma instância desconhecida $\mlinstancei$
+        \begin{itemize}
+            \item Quando $\mltargeti$ é uma variável discreta: \textit{Problema de Classificação} 
+            \item Quando $\mltargeti$ é uma variável contínua: \textit{Problema de Regressão}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Viés Indutivo}
+    \begin{columns}
+        \begin{column}{0.25\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/linear.png}
+                \caption{Regressão Linear}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.25\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/svm.png}
+                \caption{SVM}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.25\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/arvore.png}
+                \caption{Árvore de Decisão}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.25\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/randomforest.png}
+                \caption{\textit{Random Forest}}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}{Efeito tesoura (\textit{Scissor Effect})}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Quando temos um conjunto de dados pequeno, regras de classificação mais simples tendem a obter erros de classificação menores
+                \item Quando temos um conjunto de dados grande, regras de classificação mais complexas tendem a obter erros menores
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/efeitotesoura.png}
+                \caption{Adaptado de \citeauthoryear{braga-neto_fundamentals_2020}}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Efeito tesoura, exemplo numérico}
+    \begin{columns}
+        \begin{column}{0.55\textwidth}
+            \centering
+            \resizebox{\linewidth}{!}{%
+            \begin{tikzpicture}[font=\footnotesize]
+                \begin{axis}[
+                    xlabel={$x$},
+                    ylabel={$y$},
+                    xmin=0, xmax=6.5,
+                    ymin=-2, ymax=30,
+                    xtick={1,2,3,4,5,6},
+                    ymajorgrids=true, xmajorgrids=true,
+                    grid style={dashed, gray!30},
+                    legend pos=north west,
+                    legend style={font=\scriptsize, fill=white, fill opacity=0.9, draw=gray!40},
+                    legend cell align=left,
+                    width=\linewidth, height=0.75\linewidth,
+                    tick label style={font=\scriptsize},
+                    label style={font=\small},
+                ]
+                    \addplot[color=red, line width=1pt, samples=120, domain=0.5:6.4, smooth]
+                        {2.5 + (x-1) + (x-1)*(x-2) - (2/3)*(x-1)*(x-2)*(x-3) + (1/3)*(x-1)*(x-2)*(x-3)*(x-4)};
+                    \addlegendentry{Polinômio grau 4}
+                    \addplot[color=blue, line width=1pt, domain=0:6.4]
+                        {2*x + 0.1};
+                    \addlegendentry{Reta $\hat y = 2x + 0.1$}
+                    \addplot[only marks, color=black, mark=*, mark size=2pt]
+                        coordinates {(1,2.5)(2,3.5)(3,6.5)(4,7.5)(5,10.5)};
+                    \addlegendentry{Treino}
+                    \addplot[only marks, color=orange, mark=triangle*, mark size=4pt, mark options={draw=orange!70!black, line width=0.5pt}]
+                        coordinates {(6,12)};
+                    \addlegendentry{Teste $(6,\,12)$}
+                \end{axis}
+            \end{tikzpicture}}
+            \\
+            \scriptsize\textbf{Em $x=6$:} reta prediz $12.1$ (acerta), polinômio prediz $27.5$ (erra muito).
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{figure}
+                \includegraphics[width=\textwidth]{slides/img/aula00/efeitotesoura.png}
+                \caption{Adaptado de \citeauthoryear{braga-neto_fundamentals_2020}}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Trade-off Viés-Variância}
+    \begin{columns}
+        \begin{column}{0.55\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{slides/img/aula00/tradeoffviesvar.png}
+                \caption{Adaptado de \citeauthoryear{braga-neto_fundamentals_2020}.}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \begin{block}{Decomposição}
+                \small
+                \[
+                    \text{Erro}_{\text{teste}}(x) = \text{Viés}^{2}(x) + \text{Variância}(x) + \sigma^{2}
+                \]
+            \end{block}
+            \begin{itemize}
+                \item \textbf{Viés alto}: modelo simples demais, não captura o padrão.
+                \item \textbf{Variância alta}: modelo sensível à amostra de treino.
+                \item \textbf{Ruído} ($\sigma^{2}$): limite irredutível.
+            \end{itemize}
+            \footnotesize Derivação completa em \textit{Regularização} (Aula 07).
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+\section{Modelos Lineares}
+
+\begin{frame}{Modelos Lineares}
+\begin{itemize}
+    \item Modelos lineares baseados em variações dos Método dos Mínimos Quadrados talvez sejam o tipo de modelo mais estudado por todas as áreas do conhecimento.
+    \item Faremos uma breve revisão com viés de \textit{Machine Learning}
+\end{itemize}
+
+\end{frame}
+\subsection{Regressão Linear}
+
+\begin{frame}{Intuição}
+\only<1-2>{
+Queremos ajustar um \textit{hiperplano}\footnote{No $\mathbb{R}^2$ um hiperplano é equivalente a uma reta} aos nossos dados
+
+$$\hat{\mltarget}=\mlinstance_1\cdot\theta_1+\theta_0$$
+}
+\only<3-4>{
+Qual é a melhor \alert{hipótese}?
+\[J_{\text{SSR}}=\sum_{i=1}^{N}\left(\mltargethati - \mltargeti\right)^2\]
+}
+\only<2->{
+\begin{columns}[onlytextwidth]
+    \begin{column}{0.1\textwidth}
+        \scriptsize
+        \begin{table}[]
+            \centering
+            \begin{tabular}{|c|c|}
+            \hline
+                $\mlinstance$ & $\mltarget$  \\
+                \hline
+                 1 & 20  \\
+                 \hline
+                 2 & 10 \\
+                 \hline
+                 3 & 30 \\
+                 \hline
+            \end{tabular}
+            \caption{\scriptsize Conjunto de Dados}
+        \end{table}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+        \begin{tikzpicture}[font=\tiny]
+        \begin{axis}[
+            %scale only axis,
+            width=\textwidth,
+            legend pos=south east,% <-- this line controls the width
+            xlabel={$\mlinstance_1$},
+            ylabel={$\mltarget$},
+            xmin=0, xmax=5,
+            ymin=0, ymax=50,
+            xtick={0,1,2,3,4,5},
+            ytick={0,10,20,30,40,50},
+            ymajorgrids=true,
+            xmajorgrids=true,
+            grid style=dashed,
+        ]
+        
+        \addplot[
+            only marks,
+            color=red,
+            mark=*,
+            ]
+            coordinates {
+            (1,20)(2,10)(3,30)
+            };
+        \addplot[
+            color=blue,
+            line width=1pt,
+            ]
+            coordinates {
+            (0,15)(5,40)
+            };
+        \addplot[
+            color=green,
+            line width=1pt,
+            ]
+            coordinates {
+            (0,20)(5,20)
+            };
+        \node at (4,40) {\tiny Hipótese 2};
+        \node at (4,22) {\tiny Hipótese 1};
+        \end{axis}
+        \end{tikzpicture}
+        
+        
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{block}{\only<4>{\emoji{check-mark-button}} Hipótese 1}
+        \scriptsize
+            \[ \theta_0=20, \theta_1=0\]
+            \[\hat{\mltarget}=0\mlinstance_1+20\]
+            \only<4>{$J_{\text{SSR}}=(20-20)^2+(10-20)^2+(30-20)^2=200$}
+        \end{block}
+        \begin{block}{\only<4>{\emoji{cross-mark}} Hipótese 2}
+        \scriptsize
+            \[ \theta_0=15, \theta_1=5\]
+            \[\hat{\mltarget}=5\mlinstance_1+15\]
+            \only<4>{$J_{\text{SSR}}=(20-20)^2+(10-25)^2+(30-30)^2=225
+$}
+        \end{block}
+    \end{column}
+\end{columns}
+}   
+\end{frame}
+\normalsize
+\begin{frame}{Treinamento}
+Como encontrar a melhor hipótese?
+\begin{itemize}
+    \item\(\argmin_{\theta_0,\theta_1}\left[J_{\text{SSR}}\right]\)
+    \item \(J_{\text{SSR}}=\sum_{i=1}^{N}\left(\mltargethati - \mltargeti\right)^2=(\mltargethat - \mltarget)^\top(\mltargethat - \mltarget)\)
+    \item \(\hat{\mltarget}=\mlinstance_1\cdot\theta_1+\theta_0\)
+\end{itemize}
+
+    \[
+    \begin{array}{|c|}
+      \hline
+        \mlinstance_1  \\
+        \hline
+        1   \\
+        \hline
+        2   \\
+        \hline
+        3   \\
+        \hline
+      \end{array}
+      \quad
+      \begin{array}{|c|}
+      \hline
+        \mltarget  \\
+        \hline
+        20   \\
+        \hline
+        10   \\
+        \hline
+        30   \\
+        \hline
+      \end{array}
+      \quad
+      \begin{array}{|c|}
+      \hline
+        \theta_0  \\
+        \hline
+      \end{array}
+      \quad
+      \begin{array}{|c|}
+      \hline
+        \theta_1  \\
+        \hline
+      \end{array}
+    \]
+\end{frame}
+
+\begin{frame}{\textit{Notation Trick}}
+
+\begin{itemize}
+    \item Colocamos o parâmetro livre junto do vetor $\theta$ fazendo um \textit{truque de notação}
+    \item Imagine que existe um novo atributo cujo valor é 1 para todas as instâncias
+    \item Assim todos os parâmetros treináveis podem ser tratados da mesma forma.
+    \item $\mllinearregression$
+\end{itemize}
+
+
+    \[
+    \begin{array}{|>{\columncolor{PastelPink}}c|>{\columncolor{PastelGreen}}c|}
+      \hline
+        \mlinstance_0 &  \mlinstance_1  \\
+        \hline
+        1 & 1   \\
+        \hline
+        1 & 2   \\
+        \hline
+        1 & 3   \\
+        \hline
+      \end{array}_{N\times M}
+      \quad
+      \begin{array}{|c|}
+      \hline
+        \mltarget  \\
+        \hline
+        20   \\
+        \hline
+        10   \\
+        \hline
+        30   \\
+        \hline
+      \end{array}_{N\times 1}
+      \quad
+      \begin{array}{|c|}
+      \hline
+      \bm{{\theta}} \\
+        \hline
+        \cellcolor{PastelPink}\theta_0  \\
+        \hline
+        \cellcolor{PastelGreen}\theta_1  \\
+        \hline
+      \end{array}_{M\times 1}
+    \]
+\end{frame}
+
+\begin{frame}{Treinamento}
+Como encontrar a melhor hipótese?
+\begin{itemize}
+    \item\(\argmin_{\theta_0,\theta_1}\left[J_{\text{SSR}}\right]\)
+    \item \(J_{\text{SSR}}=\sum_{i=1}^{N}\left(\mltargethati - \mltargeti\right)^2=(\mltargethat - \mltarget)^\top(\mltargethat - \mltarget)\)
+    \item \(\mllinearregression\)
+\end{itemize}
+\begin{columns}
+    \begin{column}{.5\textwidth}
+    \[
+    \underset{N\times M}{
+    \begin{array}{|c|c|}
+      \hline
+        \mlinstance_0 &  \mlinstance_1  \\
+        \hline
+        1 & 1   \\
+        \hline
+        1 & 2   \\
+        \hline
+        1 & 3   \\
+        \hline
+      \end{array}
+      }
+      \quad
+      \underset{N\times 1}{
+      \begin{array}{|c|}
+      \hline
+        \mltarget  \\
+        \hline
+        20   \\
+        \hline
+        10   \\
+        \hline
+        30   \\
+        \hline
+      \end{array}}
+      \quad
+      \underset{M\times 1}{
+      \begin{array}{|c|}
+      \hline
+      \bm{{\theta}} \\
+        \hline
+        \theta_0  \\
+        \hline
+        \theta_1  \\
+        \hline
+      \end{array}}
+    \]    
+    \end{column}
+    \begin{column}{.5\textwidth} 
+        \begin{block}{Sabendo que..}
+            \begin{itemize}
+                \item A soma dos quadrados dos resíduos é uma \textit{função de custo convexa} para o problema da regressão linear
+                \item Logo, \textit{possui apenas um mínimo}
+                \item Podemos utilizar o gradiente da função de custo em um processo iterativo de otimização
+            \end{itemize}
+        \end{block}
+
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Treinamento}
+    
+        Vamos derivar $J_{\text{SSR}}$ em relação a $\theta$ e igualar a 0
+        \begin{align*}
+            \frac{\partial J_{\text{SSR}}}{\partial\theta}&=\frac{\partial ((\mltargethat - \mltarget)^\top(\mltargethat - \mltarget))}{\partial\theta}\\
+            &=\frac{\partial (\mltargethat^\top\mltargethat - \mltargethat^\top\mltarget-\mltarget^\top\mltargethat + \mltarget^\top\mltarget)}{\partial\theta}\\
+            &=\frac{\partial (\mltargethat^\top\mltargethat - 2\mltargethat^\top\mltarget + \mltarget^\top\mltarget)}{\partial\theta}\\
+            &=\frac{\partial (\bm{\theta}^\top\mlinstance^\top\mlinstance\bm{\theta} - 2\bm{\theta}^\top\mlinstance^\top\mltarget + \mltarget^\top\mltarget)}{\partial\theta}\\
+            &=\frac{\partial (\bm{\theta}^\top\mlinstance^\top\mlinstance\bm{\theta})}{\partial\theta} - \frac{\partial(2\bm{\theta}^\top\mlinstance^\top\mltarget)}{\partial\theta}\\
+            &=2\mlinstance^\top\mlinstance\bm{\theta} - 2\mlinstance^\top\mltarget\\
+            &=2\mlinstance^\top(\mlinstance\bm{\theta} - \mltarget)
+        \end{align*}
+\end{frame}
+
+\begin{frame}{Treinamento}
+    
+        Vamos derivar $J_{\text{SSR}}$ em relação a $\theta$ e igualar a 0
+        \begin{align*}
+            2\mlinstance^\top(\mlinstance\bm{\theta} - \mltarget) &= 0\\
+            \mlinstance^\top(\mlinstance\bm{\theta} - \mltarget) &= 0\\
+            \mlinstance^\top\mlinstance\bm{\theta} - \mlinstance^\top\mltarget &= 0\\
+            \mlinstance^\top\mlinstance\bm{\theta} &= \mlinstance^\top\mltarget\\
+            \bm{\theta} &= (\mlinstance^\top\mlinstance)^{-1}\mlinstance^\top\mltarget\\
+        \end{align*}
+\end{frame}
+
+\begin{frame}{Solução analítica para $\bm{\theta}$}
+
+        $$\bm{\theta} = (\mlinstance^\top\mlinstance)^{-1}\mlinstance^\top\mltarget$$
+\only<1>{
+     \[
+     \left (\mlexampleinstancetranspose
+    \times
+        \mlexampleinstance
+      \right)^{-1}
+      \times
+      \mlexampleinstancetranspose
+      \times
+      \mlexampletarget
+      =
+      \underset{M\times 1}{
+      \bm{{\theta}}}
+    \] } 
+
+    \only<2>{
+     \[
+     \left (
+     \underset{M\times M}{
+     \begin{array}{|c|c|}
+        \hline
+        3 & 6  \\
+        \hline
+        6 & 14  \\
+        \hline
+      \end{array}}
+      \right)^{-1}
+      \times
+      \mlexampleinstancetranspose
+      \times
+      \mlexampletarget
+      =
+      \underset{M\times 1}{
+      \bm{{\theta}}}
+    \] }
+
+    \only<3>{
+     \[
+     \underset{M\times M}{
+     \begin{array}{|c|c|}
+        \hline
+        2.33 & -1  \\
+        \hline
+        -1 & 0.5  \\
+        \hline
+      \end{array}}
+      \times
+      \mlexampleinstancetranspose
+      \times
+      \mlexampletarget
+      =
+      \underset{M\times 1}{
+      \bm{{\theta}}}
+    \] }
+
+    \only<4>{
+     \[
+     \underset{M\times N}{
+     \begin{array}{|c|c|c|}
+        \hline
+        1.33 & 0.333  & -0.666\\
+        \hline
+        -0.5 & 0 & 0.5\\
+        \hline
+      \end{array}}
+      \times
+      \mlexampletarget
+      =
+    \underset{M\times 1}{
+      \bm{{\theta}}}
+    \] }
+
+    \only<5>{
+     \[
+     \underset{M\times 1}{
+     \begin{array}{|c|}
+        \hline
+        10\\
+        \hline
+        5\\
+        \hline
+      \end{array}}
+      =
+      \underset{M\times 1}{
+      \bm{{\theta}}}
+    \] 
+    \begin{alertblock}{Sobre a solução analítica para $\bm{\theta}$}
+    \begin{itemize}
+        \item Esse é o vetor de pesos que minimiza a soma dos quadrados dos resíduos ($J_{\text{SSR}}$).
+        \item Repare que existe uma operação de inversão da matriz $\mlinstance^\top\mlinstance$. Essa operação gera um custo computacional $\mathcal{O}(M^3)$ em relação à quantidade de atributos do problema
+        \begin{itemize}
+            \item Esse custo pode inviabilizar a solução analítica
+        \end{itemize}
+    \end{itemize}
+    
+    \end{alertblock}
+    } 
+\end{frame}
+
+\begin{frame}{Qual é a melhor \alert{hipótese}?}
+    \begin{columns}[onlytextwidth]
+    \begin{column}{0.1\textwidth}
+        \scriptsize
+        \begin{table}[]
+            \centering
+            \begin{tabular}{|c|c|}
+            \hline
+                $\mlinstance$ & $\mltarget$  \\
+                \hline
+                 1 & 20  \\
+                 \hline
+                 2 & 10 \\
+                 \hline
+                 3 & 30 \\
+                 \hline
+            \end{tabular}
+            \caption{\scriptsize Conjunto de Dados}
+        \end{table}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+        \begin{tikzpicture}[font=\tiny]
+        \begin{axis}[
+            %scale only axis,
+            width=\textwidth,
+            legend pos=south east,% <-- this line controls the width
+            xlabel={$\mlinstance_1$},
+            ylabel={$\mltarget$},
+            xmin=0, xmax=5,
+            ymin=0, ymax=50,
+            xtick={0,1,2,3,4,5},
+            ytick={0,10,20,30,40,50},
+            ymajorgrids=true,
+            xmajorgrids=true,
+            grid style=dashed,
+        ]
+        
+        \addplot[
+            only marks,
+            color=red,
+            mark=*,
+            ]
+            coordinates {
+            (1,20)(2,10)(3,30)
+            };
+        \addplot[
+            color=blue,
+            line width=1pt,
+            ]
+            coordinates {
+            (0,15)(5,40)
+            };
+        \addplot[
+            color=green,
+            line width=1pt,
+            ]
+            coordinates {
+            (0,20)(5,20)
+            };
+        \addplot[
+            color=magenta,
+            line width=1pt,
+            ]
+            coordinates {
+            (0,10)(5,35)
+            };
+        \node at (4,40) {\tiny Hipótese 2};
+        \node at (4,25) {\tiny Hipótese 3};
+        \node at (4,17) {\tiny Hipótese 1};
+        \end{axis}
+        \end{tikzpicture}
+        
+    \end{column}
+    \begin{column}{0.5\textwidth}
+        \begin{block}{\emoji{cross-mark} Hipótese 1}
+        \scriptsize
+            \[ \theta_0=20, \theta_1=0, \hat{\mltarget}=0\mlinstance_1+20\]
+            $J_{\text{SSR}}=(20-20)^2+(10-20)^2+(30-20)^2=200$
+        \end{block}
+        \begin{block}{\emoji{cross-mark} Hipótese 2}
+        \scriptsize
+            \[ \theta_0=15, \theta_1=5, \hat{\mltarget}=5\mlinstance_1+15\]
+            $J_{\text{SSR}}=(20-20)^2+(10-25)^2+(30-30)^2=225$
+        \end{block}
+        \begin{block}{\emoji{check-mark-button} Hipótese 3}
+        \scriptsize
+            \[ \theta_0=10, \theta_1=5,\hat{\mltarget}=5\mlinstance_1+10\]
+            $J_{\text{SSR}}=(20-15)^2+(10-20)^2+(30-25)^2=150$
+        \end{block}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Descida de Gradiente}
+\begin{itemize}
+    \item Algoritmo Iterativo
+    \item $\bm{\theta}_{t+1}=\bm{\theta}_{t}-\eta\nabla_ J$
+    \item $\bm{\theta}_{0}$ inicializado com valores aleatórios
+    \item $\eta\in(0,1]$ taxa de aprendizado
+    \item Valores típicos para $\eta$ são $10^{-3}, 10^{-4}$ ou $10^{-5}$
+\end{itemize}    
+\end{frame}
+
+\begin{frame}{Descida de Gradiente}
+\begin{columns}
+    \begin{column}{.45\linewidth}
+    \begin{itemize}
+        \item Ao lado temos um algoritmo para \textit{Batch Gradient Descent} 
+        \item Se selecionarmos apenas uma instância $\mlinstancei$ para estimar o valor do gradiente teremos o \textit{Stochastic Gradient Descent}
+        \item A diferença entre $J_{\text{SSR}}$ de diferentes iterações pode ser usado como condição de convergência
+    \end{itemize}
+
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \begin{algorithmic}[1]
+        \Require $\mlinstance_{n\times m}$ matriz de instâncias
+        \Require $\mltarget_{n\times 1}$ variável alvo
+        \Require $\eta\in(0,1]$ taxa de aprendizado
+        \Procedure{Gradient Descent}{}
+        \State $\bm{\theta} \sim \mathcal{N}(0,1)$ 
+        \Repeat 
+            \State $\bm{\theta} \gets \bm{\theta}-\eta\mlinstance^\top(\mlinstance\bm{\theta}-\mltarget)$
+            \State $\mltargethat\gets\mlinstance\bm{\theta}$
+            \State $J_{\text{SSR}} \gets (\mltarget-\mltargethat)^\top(\mltarget-\mltargethat)$ 
+        \Until{Condição de convergência}
+        \State \Return $\bm{\theta}$
+        \EndProcedure
+        \end{algorithmic}        
+    \end{column}
+\end{columns}
+    
+\end{frame}
+
+
+\begin{frame}{Descida de Gradiente}
+\begin{table}[]
+    \centering
+    \begin{tabular}{cc}
+        \toprule
+       Descida de Gradiente  & Equação Normal \\
+       \hline
+       $\bm{\theta}_{t+1}=\bm{\theta}_{t}-\eta\mlinstance^\top(\mlinstance\bm{\theta}_{t}-\mltarget)$&$\bm{\theta} = (\mlinstance^\top\mlinstance)^{-1}\mlinstance^\top\mltarget$\\
+        solução iterativa & solução analítica \\
+          Possui o hiperparâmetro $\eta$ & Sem hiperparâmetros \\
+     arbitrariamente próxima ao melhor $\bm{\theta}$  & encontra exatamente o melhor $\bm{\theta}$ \\
+          $\mathcal{O}(i\cdot N\cdot M)$ em implementações vetoriais& $\mathcal{O}(M^3)$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+\end{frame}
+
+
+\subsection{Regressão Logística}
+\begin{frame}{Como aplicar Regressão Linear para Classificação?}
+A \textit{imagem} da Regressão Linear é incompatível com uma classificação
+\begin{itemize}
+    \item $p\left(\mltargethati=c|\mlinstancei\right)\in[0,1]$
+    \item $\mlinstancei\bm{\theta}\in(-\infty,+\infty)$
+\end{itemize}
+
+Precisamos encontrar algum valor relacionado a probabilidade de pertencimento a uma classe $p\left(\mltargethati=c|\mlinstancei\right)$ que tenha um contradomínio similar a Regressão Linear $\mlinstancei\bm{\theta}$
+    
+\end{frame}
+
+\begin{frame}{Como aplicar Regressão Linear para Classificação?}
+
+\begin{itemize}
+    \item<1-> $p\left(\mltargethati=c|\mlinstancei\right)\in[0,1]$: probabilidade de pertencimento a classe $c$ 
+    \item<2-> $\frac{p\left(\mltargethati=c|\mlinstancei\right)}{1-p\left(\mltargethati=c|\mlinstancei\right)}\in[0,+\infty)$: chance de pertencimento a classe $c$
+    \item<3-> $\ln{\left(\frac{p\left(\mltargethati=c|\mlinstancei\right)}{1-p\left(\mltargethati=c|\mlinstancei\right)}\right)}\in(-\infty,+\infty)$: log da chance de pertencimento a classe $c$: 
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Aplicando Regressão Linear para estimar o log das chances}
+\small
+\begin{align*}
+    \ln{\left(\frac{p\left(\mltargethati=c|\mlinstancei\right)}{1-p\left(\mltargethati=c|\mlinstancei\right)}\right)} &= \mlinstancei\bm{\theta}\\
+    \frac{p\left(\mltargethati=c|\mlinstancei\right)}{1-p\left(\mltargethati=c|\mlinstancei\right)} &= e^{\mlinstancei\bm{\theta}}\\
+    p\left(\mltargethati=c|\mlinstancei\right) &= e^{\mlinstancei\bm{\theta}}\left(1-p\left(\mltargethati=c|\mlinstancei\right)\right)\\
+    p\left(\mltargethati=c|\mlinstancei\right) +p\left(\mltargethati=c|\mlinstancei\right)e^{\mlinstancei\bm{\theta}} &= e^{\mlinstancei\bm{\theta}}\\
+    p\left(\mltargethati=c|\mlinstancei\right)(1+e^{\mlinstancei\bm{\theta}}) &= e^{\mlinstancei\bm{\theta}}\\
+    p\left(\mltargethati=c|\mlinstancei\right) &= \frac{e^{\mlinstancei\bm{\theta}}}{(1+e^{\mlinstancei\bm{\theta}})}= \frac{1}{e^{-\mlinstancei\bm{\theta}}(1+e^{\mlinstancei\bm{\theta}})}\\
+    p\left(\mltargethati=c|\mlinstancei\right) &= \frac{1}{\left(1+e^{-\mlinstancei\bm{\theta}}\right)}\\
+\end{align*}
+\end{frame}
+
+\begin{frame}{Regressão Logística}
+\begin{itemize}
+    \item Ao adaptar a Regressão Linear para a tarefa de classificação binária obtemos a Regressão Logística
+    \item $\mltargethat = \frac{1}{\left(1+e^{-\mlinstancei\bm{\theta}}\right)}$
+    \item Precisamos de uma nova função de custo
+    \begin{itemize}
+        \item $J_{\text{SSR}}$ não é convexo para a Regressão Logística
+        \item $J_{\text{BCE}}=-\frac{1}{N}\sum_{i=1}^{N}\Big[\mltargeti\ln\mltargethati +(1-\mltargeti)\ln{(1-\mltargethati)}\Big]$
+    \end{itemize}
+\end{itemize}
+    
+\end{frame}
+
+\begin{frame}{Treinamento}
+Vamos derivar $J_{\text{BCE}}$ em relação aos $\bm{\theta}$
+\begin{align*}
+    \frac{\partial J_{\text{BCE}}}{\partial\bm{\theta}} &=     \frac{\partial (-\mltarget\ln\mltargethat -(1-\mltarget)\ln{(1-\mltargethat)})}{\partial\bm{\theta}}\\
+    &= -\frac{\partial (\mltarget\ln\mltargethat)}{\partial\bm{\theta}} -\frac{\partial((1-\mltarget)\ln{(1-\mltargethat)})}{\partial\bm{\theta}}\\
+    &= -\mltarget\frac{\partial (\ln\mltargethat)}{\partial\bm{\theta}} -(1-\mltarget)\frac{\partial\ln{(1-\mltargethat)}}{\partial\bm{\theta}}\\
+    &= -\mltarget\frac{\partial (\ln\mltargethat)}{\partial\mltargethat}\frac{\partial\mltargethat}{\partial\bm{\theta}} -(1-\mltarget)\frac{\partial\ln{(1-\mltargethat)}}{\partial\mltargethat}\frac{\partial\mltargethat}{\partial\bm{\theta}}\\
+    &= -\mlinstance^\top\mltarget\frac{1}{\mltargethat}\mltargethat(1-\mltargethat) -\mlinstance^\top(1-\mltarget)\left(-\frac{1}{1-\mltargethat}\right)\mltargethat(1-\mltargethat)\\
+    &= \mlinstance^\top\left(-\mltarget+\mltarget\mltargethat +\mltargethat-\mltargethat\mltarget\right)\\
+    &= \mlinstance^\top\left(\mltargethat-\mltarget\right)\\
+\end{align*}
+    
+\end{frame}
+
+\begin{frame}{Regressão Logística}
+\begin{itemize}
+    \item Função de Custo $J_{\text{BCE}}$ é convexa, mas não admite solução analítica
+    \item O gradiente tem exatamente a mesma forma da Regressão Linear
+    \item Gera uma fronteira de decisão linear (hiperplano) no espaço de atributos
+    \end{itemize}
+    
+\end{frame}
+
+\section*{Referências e Leituras}
+%------------------------------------------------
+\begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+        \item Seções 3.1 a 3.3 de: \fullcite{abu-mostafa_learning_2012}
+    \end{itemize}
+
+\end{frame}
+
+
+%------------------------------------------------
+
+\begin{frame}{Referências}
+    \printbibliography
+
+\end{frame}
+
+%------------------------------------------------
+
+% \begin{frame}
+%     \Huge{\centerline{\textbf{The End}}}
+% \end{frame}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

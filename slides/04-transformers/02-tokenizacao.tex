@@ -1,0 +1,1103 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+% Tokenization-specific colors (used by \tok commands below)
+\definecolor{pucrsblue}{RGB}{0, 60, 113}
+\definecolor{lightblue}{RGB}{220, 235, 252}
+\definecolor{lightgreen}{RGB}{220, 245, 220}
+\definecolor{lightyellow}{RGB}{255, 252, 220}
+\definecolor{lightred}{RGB}{255, 225, 225}
+\definecolor{lightorange}{RGB}{255, 237, 210}
+\definecolor{darkgreen}{RGB}{0, 120, 0}
+
+% Extra packages needed for this lecture
+\usepackage{array}
+\usepackage{multirow}
+
+% fontawesome5 not available; using text symbols instead
+\newcommand{\faCheck}{\textcolor{darkgreen}{\checkmark}}
+\newcommand{\faTimes}{\textcolor{red}{$\times$}}
+
+% --- Custom commands ---
+\newcommand{\tok}[1]{\fcolorbox{pucrsblue}{lightblue}{\strut\textcolor{black}{\texttt{#1}}}}
+\newcommand{\toka}[1]{\fcolorbox{darkgreen}{lightgreen}{\strut\textcolor{black}{\texttt{#1}}}}
+\newcommand{\tokb}[1]{\fcolorbox{red!70!black}{lightred}{\strut\textcolor{black}{\texttt{#1}}}}
+\newcommand{\tokc}[1]{\fcolorbox{orange!80!black}{lightorange}{\strut\textcolor{black}{\texttt{#1}}}}
+\newcommand{\mergetok}[1]{\fcolorbox{orange!80!black}{lightyellow}{\strut\textcolor{black}{\textbf{\texttt{#1}}}}}
+
+% --- Title ---
+\title{Deep Learning}
+\subtitle{Tokenização em Modelos de Linguagem}
+\author{Lucas Silveira Kupssinskü}
+\institute{Machine Learning Theory and Applications Laboratory \\ PUCRS}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+% ============================================================
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ============================================================
+\begin{frame}{Visão Geral}
+\tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Por que a Tokenization Importa}
+% ============================================================
+
+\begin{frame}{O que é Tokenization?}
+
+Tokenization é o processo de converter texto bruto em uma sequência de unidades discretas (\textbf{tokens}) que um modelo pode processar.
+
+\vspace{6pt}
+
+\begin{block}{O tokenizer define:}
+\begin{enumerate}
+    \item O \textbf{vocabulário}: quais tokens existem
+    \item A \textbf{segmentação}: como o texto é dividido em tokens
+    \item O \textbf{mapeamento}: tokens $\leftrightarrow$ IDs inteiros
+\end{enumerate}
+\end{block}
+
+\vspace{6pt}
+
+\centering
+\begin{tikzpicture}[node distance=0.4cm, >=Stealth, font=\small]
+    \node[draw, rounded corners, fill=lightyellow, minimum width=3.5cm, minimum height=0.7cm] (text) {\texttt{"Hello world"}};
+    \node[draw, rounded corners, fill=lightblue, minimum width=3.5cm, minimum height=0.7cm, right=1.5cm of text] (tokens) {\tok{Hello} \tok{world}};
+    \node[draw, rounded corners, fill=lightgreen, minimum width=3.5cm, minimum height=0.7cm, right=1.5cm of tokens] (ids) {\texttt{[15496, 995]}};
+    \draw[->, thick] (text) -- node[above]{\scriptsize tokenize} (tokens);
+    \draw[->, thick] (tokens) -- node[above]{\scriptsize encode} (ids);
+\end{tikzpicture}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Por que isso importa?}
+
+A tokenization \textbf{molda silenciosamente} tudo que vem a seguir:
+
+\vspace{8pt}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{alertblock}{Problemas causados pela tokenization}
+\begin{itemize}
+    \item O GPT não consegue contar letras de forma confiável em \texttt{"strawberry"} (3 r's)
+    \item Desigualdade multilíngue: o inglês usa menos tokens que outros idiomas
+    \item \texttt{"123 + 456"} pode ser dividido de forma inconsistente entre os dígitos
+\end{itemize}
+\end{alertblock}
+
+\column{0.48\textwidth}
+\begin{exampleblock}{Trade-offs de design}
+\begin{itemize}
+    \item Vocabulário pequeno $\rightarrow$ sequências longas
+    \item Vocabulário grande $\rightarrow$ mais parâmetros e tokens raros subtreinados
+    \item Dificilmente encontraremos uma ``granularidade correta''
+\end{itemize}
+\end{exampleblock}
+\end{columns}
+
+\vspace{8pt}
+\centering
+\textbf{O tokenizer não é um detalhe de pré-processamento; é uma decisão arquitetural.}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{O Problema da Fertility}
+
+\textbf{Fertility} = número de tokens necessários para representar uma palavra ou frase.
+
+\vspace{6pt}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Idioma} & \textbf{Frase} & \textbf{Tokens GPT-2} \\
+\midrule
+Inglês   & ``Hello, how are you?'' & 6 tokens \\
+Espanhol & ``Hola, \textquestiondown c\'omo est\'as?'' & 9 tokens \\
+Japonês  & (equivalente) & 14+ tokens \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+
+\begin{alertblock}{Consequência}
+Maior fertility $=$ mais tokens $=$ mais custo computacional, janela de contexto efetiva menor, e frequentemente pior desempenho para esse idioma.
+\end{alertblock}
+
+\end{frame}
+
+% ============================================================
+\section{Abordagens Ingênuas}
+% ============================================================
+
+\begin{frame}{Nosso Exemplo Recorrente}
+
+Ao longo desta aula usamos o mesmo \textbf{corpus de treinamento}:
+
+\vspace{6pt}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lc}
+\toprule
+\textbf{Palavra} & \textbf{Frequência no corpus} \\
+\midrule
+\texttt{low}    & 5 \\
+\texttt{lower}  & 2 \\
+\texttt{newest} & 6 \\
+\texttt{widest} & 3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+
+\begin{block}{Por que as frequências importam}
+Um tokenizer é \textbf{aprendido} a partir de um corpus. A frequência de cada palavra
+(e de cada par de caracteres) determina quais tokens são adicionados ao vocabulário.
+\end{block}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Tokenization em Nível de Caractere}
+
+\textbf{Ideia:} Cada caractere é um token.
+
+\vspace{4pt}
+
+\begin{exampleblock}{Exemplo Recorrente}
+\texttt{"low lower newest widest"} \\[4pt]
+$\rightarrow$ \tok{l}\tok{o}\tok{w}\tok{\_}~\tok{l}\tok{o}\tok{w}\tok{e}\tok{r}\tok{\_}~\tok{n}\tok{e}\tok{w}\tok{e}\tok{s}\tok{t}\tok{\_}~\tok{w}\tok{i}\tok{d}\tok{e}\tok{s}\tok{t} \\[4pt]
+Vocabulário: \{~\texttt{l, o, w, \_, e, r, n, s, t, i, d}~\} $\quad|\mathcal{V}| = 11$
+\end{exampleblock}
+
+\vspace{4pt}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textcolor{darkgreen}{\faCheck~\textbf{Vantagens}}
+\begin{itemize}
+    \item Vocabulário reduzido ($\sim$256 para ASCII)
+    \item Sem palavras fora do vocabulário (OOV)
+    \item Agnóstico ao idioma
+\end{itemize}
+
+\column{0.48\textwidth}
+\textcolor{red}{\faTimes~\textbf{Desvantagens}}
+\begin{itemize}
+    \item Sequências muito longas
+    \item Perde a semântica em nível de palavra
+    \item O modelo precisa ``aprender'' a ortografia
+\end{itemize}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Tokenization em Nível de Palavra}
+
+\textbf{Ideia:} Dividir por espaço em branco (e pontuação). Cada palavra é um token.
+
+\vspace{2pt}
+
+\begin{exampleblock}{Exemplo Recorrente}
+\texttt{"low lower newest widest"} \\[4pt]
+$\rightarrow$ \tok{low} \tok{lower} \tok{newest} \tok{widest} \\[4pt]
+Vocabulário: \{~\texttt{low, lower, newest, widest}~\} $\quad|\mathcal{V}| = 4$
+\end{exampleblock}
+
+\vspace{4pt}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textcolor{darkgreen}{\faCheck~\textbf{Vantagens}}
+\begin{itemize}
+    \item Sequências curtas
+    \item Tokens carregam significado semântico
+    \item Simples de implementar
+\end{itemize}
+
+\column{0.48\textwidth}
+\textcolor{red}{\faTimes~\textbf{Desvantagens}}
+\begin{itemize}
+    \item Vocabulário gigantesco (100K+)
+    \item Não lida com palavras OOV
+    \item Sem compartilhamento morfológico: \texttt{low} e \texttt{lowest} são tokens sem relação
+\end{itemize}
+\end{columns}
+
+\vspace{2pt}
+\centering
+\textbf{A sacada principal:} Queremos algo \textit{entre} caracteres e palavras.\\
+$\Rightarrow$ \textbf{Tokenization por subwords}
+
+\end{frame}
+
+% ============================================================
+\section{Byte Pair Encoding (BPE)}
+% ============================================================
+
+\begin{frame}{BPE: Ideia Central}
+
+\textbf{Byte Pair Encoding} (Sennrich et al., 2016) mescla iterativamente o par de símbolos adjacentes mais frequente.
+
+\vspace{6pt}
+
+\begin{block}{Algoritmo}
+\begin{enumerate}
+    \item Começa com um vocabulário de todos os caracteres individuais
+    \item Conta todos os pares de símbolos adjacentes no corpus
+    \item Mescla o par mais frequente em um novo símbolo
+    \item Repete os passos 2--3 por $k$ merges (hiperparâmetro)
+\end{enumerate}
+\end{block}
+
+\vspace{6pt}
+
+\textbf{Propriedades principais:}
+\begin{itemize}
+    \item Bottom-up, guloso, baseado em frequência
+    \item A tabela de merges é aprendida a partir de um corpus de treinamento
+    \item Codificação determinística na inferência (aplica os merges na ordem aprendida)
+\end{itemize}
+
+\vspace{4pt}
+\centering
+\textbf{Utilizado em:} GPT, GPT-2, GPT-3, RoBERTa, CodeGen, \ldots
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{BPE: Configuração do Exemplo Simplificado}
+
+\textbf{Corpus de treinamento} (com frequências de palavras e marcador de fim de palavra \texttt{\_}):
+
+\vspace{4pt}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcl}
+\toprule
+\textbf{Palavra} & \textbf{Freq} & \textbf{Divisão inicial} \\
+\midrule
+\texttt{low\_}    & 5 & \tok{l}~\tok{o}~\tok{w}~\tok{\_} \\
+\texttt{lower\_}  & 2 & \tok{l}~\tok{o}~\tok{w}~\tok{e}~\tok{r}~\tok{\_} \\
+\texttt{newest\_} & 6 & \tok{n}~\tok{e}~\tok{w}~\tok{e}~\tok{s}~\tok{t}~\tok{\_} \\
+\texttt{widest\_} & 3 & \tok{w}~\tok{i}~\tok{d}~\tok{e}~\tok{s}~\tok{t}~\tok{\_} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+
+\textbf{Vocabulário inicial:}
+$\mathcal{V} = \{$ \texttt{l, o, w, \_, e, r, n, s, t, i, d} $\}$ \quad $|\mathcal{V}| = 11$
+
+\vspace{6pt}
+Vamos executar os merges passo a passo\ldots
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=20]{BPE: Merge Passo 1}
+
+\textbf{Contagem de todos os pares adjacentes:}
+
+\vspace{2pt}
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{lclclclc}
+\toprule
+\textbf{Par} & \textbf{Contagem} & \textbf{Par} & \textbf{Contagem} & \textbf{Par} & \textbf{Contagem} & \textbf{Par} & \textbf{Contagem} \\
+\midrule
+(e, s) & \textbf{9} & (l, o) & 7 & (o, w) & 7 & (s, t) & 9 \\
+(e, w) & 6 & (w, \_) & 5 & (t, \_) & 9 & (e, r) & 2 \\
+(w, e) & 8 & (n, e) & 6 & (w, i) & 3 & (d, e) & 3 \\
+(i, d) & 3 & (r, \_) & 2 & & & & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+
+Mais frequentes: \textbf{(e, s)}, \textbf{(s, t)} e \textbf{(t, \_)} têm contagem 9. \\
+\textit{(Desempate: escolher (e, s) primeiro.)}
+
+\vspace{4pt}
+
+\begin{exampleblock}{Merge 1: (e, s) $\rightarrow$ \mergetok{es} \quad (contagem: 9)}
+\begin{tabular}{lcl}
+\texttt{low\_}    & 5 & \tok{l}~\tok{o}~\tok{w}~\tok{\_} \\
+\texttt{lower\_}  & 2 & \tok{l}~\tok{o}~\tok{w}~\tok{e}~\tok{r}~\tok{\_} \\
+\texttt{newest\_} & 6 & \tok{n}~\tok{e}~\tok{w}~\mergetok{es}~\tok{t}~\tok{\_} \\
+\texttt{widest\_} & 3 & \tok{w}~\tok{i}~\tok{d}~\mergetok{es}~\tok{t}~\tok{\_} \\
+\end{tabular}
+\end{exampleblock}
+
+$\mathcal{V} = \{$ \texttt{l, o, w, \_, e, r, n, s, t, i, d, \textbf{es}} $\}$ \quad $|\mathcal{V}| = 12$
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=15]{BPE: Merges Passos 2--4}
+
+\begin{exampleblock}{Merge 2: (es, t) $\rightarrow$ \mergetok{est} \quad (contagem: 9)}
+\begin{tabular}{lcl}
+\texttt{newest\_} & 6 & \tok{n}~\tok{e}~\tok{w}~\mergetok{est}~\tok{\_} \\
+\texttt{widest\_} & 3 & \tok{w}~\tok{i}~\tok{d}~\mergetok{est}~\tok{\_} \\
+\end{tabular}
+\quad\quad (demais inalterados)
+\end{exampleblock}
+
+\begin{exampleblock}{Merge 3: (est, \_) $\rightarrow$ \mergetok{est\_} \quad (contagem: 9)}
+\begin{tabular}{lcl}
+\texttt{newest\_} & 6 & \tok{n}~\tok{e}~\tok{w}~\mergetok{est\_} \\
+\texttt{widest\_} & 3 & \tok{w}~\tok{i}~\tok{d}~\mergetok{est\_} \\
+\end{tabular}
+\end{exampleblock}
+
+\begin{exampleblock}{Merge 4: (l, o) $\rightarrow$ \mergetok{lo} \quad (contagem: 7)}
+\begin{tabular}{lcl}
+\texttt{low\_}    & 5 & \mergetok{lo}~\tok{w}~\tok{\_} \\
+\texttt{lower\_}  & 2 & \mergetok{lo}~\tok{w}~\tok{e}~\tok{r}~\tok{\_} \\
+\end{tabular}
+\end{exampleblock}
+
+$\mathcal{V} = \{$ \texttt{l, o, w, \_, e, r, n, s, t, i, d, es, est, est\_, lo} $\}$ \quad $|\mathcal{V}| = 15$
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{BPE: Merges Passos 5--7}
+
+\begin{exampleblock}{Merge 5: (lo, w) $\rightarrow$ \mergetok{low} \quad (contagem: 7)}
+\begin{tabular}{lcl}
+\texttt{low\_}    & 5 & \mergetok{low}~\tok{\_} \\
+\texttt{lower\_}  & 2 & \mergetok{low}~\tok{e}~\tok{r}~\tok{\_} \\
+\end{tabular}
+\end{exampleblock}
+
+\begin{exampleblock}{Merge 6: (n, e) $\rightarrow$ \mergetok{ne} \quad (contagem: 6)}
+\begin{tabular}{lcl}
+\texttt{newest\_} & 6 & \mergetok{ne}~\tok{w}~\tok{est\_} \\
+\end{tabular}
+\end{exampleblock}
+
+\begin{exampleblock}{Merge 7: (ne, w) $\rightarrow$ \mergetok{new} \quad (contagem: 6)}
+\begin{tabular}{lcl}
+\texttt{newest\_} & 6 & \mergetok{new}~\tok{est\_} \\
+\end{tabular}
+\end{exampleblock}
+
+\vspace{4pt}
+
+Após 7 merges, o corpus é representado como:
+
+\begin{center}
+\tok{low}~\tok{\_} ~~(5) \quad\quad
+\tok{low}~\tok{e}~\tok{r}~\tok{\_} ~~(2) \quad\quad
+\tok{new}~\tok{est\_} ~~(6) \quad\quad
+\tok{w}~\tok{i}~\tok{d}~\tok{est\_} ~~(3)
+\end{center}
+
+Observe como \tok{est\_} é compartilhado entre ``newest'' e ``widest''!
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=25]{BPE: Codificando Novo Texto}
+
+Na inferência, aplica-se os merges aprendidos \textbf{em ordem}:
+
+\vspace{6pt}
+
+\begin{exampleblock}{Codificando a palavra ``lowest''}
+\begin{enumerate}
+    \item Início: \tok{l}~\tok{o}~\tok{w}~\tok{e}~\tok{s}~\tok{t}~\tok{\_}
+    \item Aplicar merge 1 (e,s)$\rightarrow$es: \tok{l}~\tok{o}~\tok{w}~\tok{es}~\tok{t}~\tok{\_}
+    \item Aplicar merge 2 (es,t)$\rightarrow$est: \tok{l}~\tok{o}~\tok{w}~\tok{est}~\tok{\_}
+    \item Aplicar merge 3 (est,\_)$\rightarrow$est\_: \tok{l}~\tok{o}~\tok{w}~\tok{est\_}
+    \item Aplicar merge 4 (l,o)$\rightarrow$lo: \tok{lo}~\tok{w}~\tok{est\_}
+    \item Aplicar merge 5 (lo,w)$\rightarrow$low: \tok{low}~\tok{est\_}
+\end{enumerate}
+\end{exampleblock}
+
+\vspace{4pt}
+
+\textbf{Resultado:} \tok{low}~\tok{est\_} compartilha subwords com ``low'', ``newest'', ``widest''!
+
+\vspace{4pt}
+
+Mesmo que ``lowest'' \textbf{nunca tenha aparecido no corpus de treinamento}, o modelo consegue compô-la a partir de subwords aprendidos.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[fragile,shrink=25]{BPE: Esboço em Python}
+\begin{lstlisting}[style=vscode-light, numbers=none]
+import re, collections
+
+def get_stats(vocab):
+    """Conta a frequência de pares de símbolos adjacentes."""
+    pairs = collections.Counter()
+    for word, freq in vocab.items():
+        symbols = word.split()
+        for i in range(len(symbols) - 1):
+            pairs[(symbols[i], symbols[i+1])] += freq
+    return pairs
+
+def merge_vocab(pair, vocab):
+    """Mescla todas as ocorrências de um par no vocabulário."""
+    bigram = re.escape(' '.join(pair))
+    pattern = re.compile(r'(?<!\S)' + bigram + r'(?!\S)')
+    new_vocab = {}
+    for word in vocab:
+        new_word = pattern.sub(''.join(pair), word)
+        new_vocab[new_word] = vocab[word]
+    return new_vocab
+
+# Corpus de treinamento (frequências de palavras)
+vocab = {'l o w _': 5, 'l o w e r _': 2,
+         'n e w e s t _': 6, 'w i d e s t _': 3}
+
+num_merges = 7
+for i in range(num_merges):
+    pairs = get_stats(vocab)
+    best = max(pairs, key=pairs.get)
+    vocab = merge_vocab(best, vocab)
+    print(f"Merge {i+1}: {best} -> {''.join(best)}")
+\end{lstlisting}
+\end{frame}
+
+% ============================================================
+\section{WordPiece}
+% ============================================================
+
+\begin{frame}{WordPiece: Ideia Central}
+
+\textbf{WordPiece} (Schuster \& Nakajima, 2012; Wu et al., 2016) é similar ao BPE, mas seleciona merges com base na \textbf{likelihood} em vez da frequência.
+
+\vspace{3pt}
+
+\begin{block}{Diferença principal em relação ao BPE}
+Em vez de mesclar o par mais \textit{frequente}, o WordPiece mescla o par que \textbf{maximiza a likelihood dos dados de treinamento}:
+$$
+\text{score}(x, y) = \frac{\text{freq}(xy)}{\text{freq}(x) \cdot \text{freq}(y)}
+$$
+Isso favorece mesclar pares cuja combinação é muito mais provável do que o acaso.
+\end{block}
+
+\vspace{2pt}
+
+\textbf{Outras diferenças:}
+\begin{itemize}
+    \item Usa o prefixo \texttt{\#\#} para tokens de continuação: ``playing'' $\rightarrow$ \tok{play}~\tok{\#\#ing}
+    \item Longest-match guloso da esquerda para a direita na inferência
+\end{itemize}
+
+\vspace{2pt}
+\centering
+\textbf{Utilizado em:} BERT, DistilBERT, Electra, \ldots
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{WordPiece: Exemplo Simplificado}
+
+\textbf{Mesmo corpus, scores diferentes:}
+
+\vspace{4pt}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lcccl}
+\toprule
+\textbf{Par} & \textbf{freq(xy)} & \textbf{freq(x)$\cdot$freq(y)} & \textbf{Score} & \\
+\midrule
+(e, s) & 9 & $17 \times 9 = 153$  & 0.0588 & \\
+(s, t) & 9 & $9 \times 9 = 81$   & 0.111  & \\
+(i, d) & 3 & $3 \times 3 = 9$    & \textbf{0.333} & $\leftarrow$ highest \\
+(n, e) & 6 & $6 \times 17 = 102$ & 0.0588 & \\
+(l, o) & 7 & $7 \times 7 = 49$   & 0.143  & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+
+\textbf{O WordPiece mescla (i, d) primeiro}, não (e, s)!
+
+\vspace{2pt}
+
+\begin{alertblock}{Intuição}
+(i, d) aparecem quase \textit{exclusivamente} juntos $\rightarrow$ alta informação mútua. \\
+(e, s) aparecem com frequência, mas também de forma independente $\rightarrow$ score menor.
+\end{alertblock}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{WordPiece: Inferência: Longest Match}
+
+Na inferência, o WordPiece usa \textbf{longest-match-first guloso} da esquerda para a direita.
+
+\vspace{6pt}
+
+\begin{exampleblock}{Exemplo: codificando ``unhappiness'' com um vocabulário estilo BERT}
+
+Suponha que o vocabulário contém: \texttt{un}, \texttt{happy}, \texttt{\#\#happi}, \texttt{\#\#ness}, \texttt{\#\#ly}, \ldots
+
+\vspace{4pt}
+
+\begin{enumerate}
+    \item Varredura da esquerda: maior correspondência = \tok{un}
+    \item Restante: ``happiness''. Maior correspondência = \tok{\#\#happi}
+    \item Restante: ``ness''. Maior correspondência = \tok{\#\#ness}
+\end{enumerate}
+
+\vspace{4pt}
+Resultado: \tok{un}~\tok{\#\#happi}~\tok{\#\#ness}
+\end{exampleblock}
+
+\vspace{6pt}
+
+O prefixo \texttt{\#\#} indica ``este token é uma continuação da palavra anterior'' (não é o início de uma palavra).
+
+\end{frame}
+
+% ============================================================
+\section{Unigram Language Model (SentencePiece)}
+% ============================================================
+
+\begin{frame}{Unigram: Ideia Central}
+
+\textbf{Unigram LM} (Kudo, 2018) adota a \textbf{abordagem oposta} à do BPE:
+
+\vspace{6pt}
+
+\begin{block}{Algoritmo}
+\begin{enumerate}
+    \item Começa com um vocabulário inicial \textbf{grande} (ex.: todos os substrings até certo comprimento)
+    \item Define um modelo de linguagem unigrama: $P(x) = \prod_{i=1}^{n} P(x_i)$
+    \item Para cada token, calcula o quanto a likelihood \textbf{cai} se ele for removido
+    \item Remove os tokens com a \textbf{menor perda} (menos úteis)
+    \item Repete até o vocabulário atingir o tamanho desejado
+\end{enumerate}
+\end{block}
+
+\vspace{6pt}
+
+\begin{alertblock}{Diferença principal em relação ao BPE}
+BPE: começa pequeno, cresce (bottom-up) \\
+Unigram: começa grande, poda (top-down)
+\end{alertblock}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Unigram: Exemplo Simplificado (1/2)}
+
+\textbf{Corpus:} ``low'' (freq 10), ``er'' (freq 10), ``lower'' (freq 1)
+
+\vspace{6pt}
+
+\textbf{Passo 1:} Começa com vocabulário de todos os substrings; $P(t) = \tfrac{\text{count}(t)}{N}$, onde $N = \sum_{t'}\text{count}(t')$:
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{lclclc}
+\toprule
+\textbf{Token} & $P(\cdot)$ & \textbf{Token} & $P(\cdot)$ & \textbf{Token} & $P(\cdot)$ \\
+\midrule
+\texttt{low}   & 0.105 & \texttt{lo}   & 0.105 & \texttt{l} & 0.105 \\
+\texttt{er}    & 0.105 & \texttt{ow}   & 0.105 & \texttt{o} & 0.105 \\
+\texttt{lower} & 0.010 & \texttt{we}   & 0.010 & \texttt{w} & 0.105 \\
+\texttt{owe}   & 0.010 & \texttt{wer}  & 0.010 & \texttt{e} & 0.105 \\
+\texttt{lowe}  & 0.010 & \texttt{ower} & 0.010 & \texttt{r} & 0.105 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+{\footnotesize Substrings de ``low'' ou de ``er'' têm count $= 11$ ($= 10$ ocorrências da sua palavra $+ 1$ de ``lower''); substrings exclusivas de ``lower'' têm count $= 1$; $N = 9{\times}11 + 6{\times}1 = 105$.}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Unigram: Exemplo Simplificado (2/2)}
+
+\textbf{Corpus:} ``low'' (freq 10), ``er'' (freq 10), ``lower'' (freq 1)
+
+\vspace{6pt}
+
+\textbf{Passo 2:} Melhor segmentação de ``lower'' sob este modelo:
+
+\vspace{4pt}
+\hspace{1cm}$P(\texttt{low}) \times P(\texttt{er}) = 0.105 \times 0.105 \approx \mathbf{0.011}$ \quad $\leftarrow$ melhor \\
+\hspace{1cm}$P(\texttt{lower}) = 0.010$ \quad (token único; ligeiramente inferior ao par) \\
+\hspace{1cm}$P(\texttt{l}) \times P(\texttt{owe}) \times P(\texttt{r}) = 0.105 \times 0.010 \times 0.105 \approx 0.0001$
+
+\vspace{10pt}
+
+\textbf{Passo 3:} Poda do vocabulário:
+
+\vspace{4pt}
+\hspace{1cm}$P(\texttt{owe}) = 0.010$, nunca entra na melhor segmentação $\rightarrow$ podá-lo. \\[4pt]
+\hspace{1cm}$P(\texttt{low}) = 0.105$, essencial em 11 segmentações $\rightarrow$ mantê-lo.
+
+\end{frame}
+
+
+% ============================================================
+
+\begin{frame}{SentencePiece: O Framework}
+
+\textbf{SentencePiece} (Kudo \& Richardson, 2018) é um \textbf{framework}, não um algoritmo.
+
+\vspace{6pt}
+
+\begin{block}{O que torna o SentencePiece especial?}
+\begin{enumerate}
+    \item \textbf{Agnóstico ao idioma:} trata a entrada como um fluxo bruto de bytes/unicode
+    \item \textbf{Sem pre-tokenization:} não depende de divisão por espaço em branco
+    \item O espaço em branco é tratado como um caractere regular (substituído por \texttt{\textunderscore})
+    \item Suporta \textbf{tanto} BPE quanto Unigram como algoritmo subjacente
+\end{enumerate}
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Exemplo}
+\texttt{"New York"} $\rightarrow$ \tok{\_New}~\tok{\_York}
+
+O \texttt{\_} codifica o espaço, tornando a tokenization \textbf{totalmente reversível}.
+\end{exampleblock}
+
+\vspace{4pt}
+\centering
+\textbf{Utilizado em:} T5, LLaMA, ALBERT, XLNet, Gemma, \ldots
+
+\end{frame}
+
+% ============================================================
+\section{Byte-Level BPE}
+% ============================================================
+
+\begin{frame}[shrink=10]{Byte-Level BPE: Motivação}
+
+\textbf{Problema:} O BPE padrão opera sobre caracteres Unicode. Mas o Unicode tem 150K+ pontos de código; o vocabulário base é enorme, e scripts raros geram muitos tokens \texttt{<unk>}.
+
+\vspace{6pt}
+
+\begin{block}{Solução: Byte-Level BPE (Radford et al., 2019, GPT-2)}
+\begin{itemize}
+    \item Opera sobre \textbf{bytes brutos} (sempre 256 tokens base)
+    \item Todo texto pode ser codificado: \textbf{nunca há tokens desconhecidos}
+    \item Em seguida, aplica-se os merges padrão do BPE sobre os bytes
+\end{itemize}
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Exemplo}
+O emoji caveira ``\emoji{skull}'' (\texttt{U+1F480}) ocupa 4 bytes em UTF-8, \texttt{0xF0 0x9F 0x92 0x80}:
+
+\vspace{2pt}
+\hspace{1cm} $\rightarrow$ \tok{0xF0}~\tok{0x9F}~\tok{0x92}~\tok{0x80} \quad (4 tokens de byte)
+
+\vspace{2pt}
+Mesmo fora do vocabulário, ele \textbf{nunca vira \texttt{<unk>}}: todo caractere é representável byte a byte, e bytes frequentes ainda podem ser mesclados pelo BPE.
+\end{exampleblock}
+
+\vspace{4pt}
+\centering
+\textbf{Utilizado em:} GPT-2, GPT-3, GPT-4, Codex, LLaMA 2/3, \ldots
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Byte-Level BPE vs.\ BPE Padrão}
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.7cm,
+    box/.style={draw, rounded corners, minimum width=3.2cm, minimum height=0.7cm, font=\small, align=center},
+]
+    % Standard BPE
+    \node[font=\bfseries] (title1) {BPE Padrão};
+    \node[box, fill=lightyellow, below=0.3cm of title1] (raw1) {Texto bruto (Unicode)};
+    \node[box, fill=lightred, below=0.4cm of raw1] (base1) {Vocabulário base: chars Unicode\\(potencialmente 150K+)};
+    \node[box, fill=lightblue, below=0.4cm of base1] (merge1) {BPE merges};
+    \node[box, fill=lightgreen, below=0.4cm of merge1] (out1) {Pode gerar \texttt{<unk>}};
+    
+    \draw[->, thick] (raw1) -- (base1);
+    \draw[->, thick] (base1) -- (merge1);
+    \draw[->, thick] (merge1) -- (out1);
+    
+    % Byte-level BPE
+    \node[font=\bfseries, right=3.5cm of title1] (title2) {Byte-Level BPE};
+    \node[box, fill=lightyellow, below=0.3cm of title2] (raw2) {Texto bruto (Unicode)};
+    \node[box, fill=lightgreen, below=0.4cm of raw2] (base2) {Vocabulário base: 256 bytes\\(fixo, completo)};
+    \node[box, fill=lightblue, below=0.4cm of base2] (merge2) {BPE merges};
+    \node[box, fill=lightgreen, below=0.4cm of merge2] (out2) {Sem \texttt{<unk>} possível};
+    
+    \draw[->, thick] (raw2) -- (base2);
+    \draw[->, thick] (base2) -- (merge2);
+    \draw[->, thick] (merge2) -- (out2);
+\end{tikzpicture}
+\end{center}
+
+\vspace{4pt}
+
+O GPT-2 usa um \textbf{mapeamento byte-para-unicode}: cada byte é representado como um caractere Unicode imprimível, de modo que o código BPE baseado em strings existente funciona sem modificações.
+
+\end{frame}
+
+% ============================================================
+\section{Comparação e Considerações Práticas}
+% ============================================================
+
+\begin{frame}{OOV e Pré-tokenização}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Tratamento de OOV (Out-Of-Vocabulary)}
+\scriptsize
+Tokens ou palavras que \textbf{não apareceram} no corpus de treinamento.
+\begin{itemize}
+    \item \textbf{Caractere:} cobertura total; o vocabulário são os próprios bytes/chars, nada é OOV
+    \item \textbf{BPE / Unigram:} decompõe até chegar nos caracteres do vocabulário base (\textit{chars raros})
+    \item \textbf{WordPiece:} substitui pelo token especial \texttt{[UNK]} se não conseguir segmentar
+\end{itemize}
+\end{block}
+
+\column{0.48\textwidth}
+\begin{block}{Pré-tokenização}
+\scriptsize
+Etapa \textbf{anterior} ao algoritmo: divide o texto em ``palavras'' por espaço e/ou pontuação.
+\begin{itemize}
+    \item \textbf{WordPiece (Sim):} o BERT sempre divide por espaço antes de aplicar o algoritmo
+    \item \textbf{BPE (Geralmente):} o GPT-2 usa regras de pré-tokenização (ex.: nunca mescla letra com espaço)
+    \item \textbf{SentencePiece (Opcional):} trata o espaço como caractere normal (\texttt{\_}) essencial para idiomas sem separação por espaço (japonês, chinês)
+\end{itemize}
+\end{block}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}{Comparação de Métodos de Tokenization}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{>{\bfseries}l c c c c}
+\toprule
+& \textbf{Caractere} & \textbf{BPE} & \textbf{WordPiece} & \textbf{Unigram} \\
+\midrule
+Direção            & --- & Bottom-up & Bottom-up & Top-down \\
+Critério de merge  & --- & Frequência & Likelihood & Baseado em perda \\
+Tratamento de OOV  & Total & Chars raros & \texttt{[UNK]} & Chars raros \\
+Determinístico     & Sim & Sim & Sim & Não$^*$ \\
+Pre-tokenization?  & Não & Geralmente & Sim & Opcional \\
+\midrule
+\multicolumn{5}{l}{\textbf{Modelos notáveis}} \\
+\midrule
+& ByT5 & Família GPT & BERT & T5, LLaMA \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+
+{\footnotesize $^*$O Unigram pode produzir múltiplas segmentações válidas; durante o treinamento, isso pode servir como forma de \textbf{subword regularization} (data augmentation).}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Qual Tokenizer Cada Modelo Usa?}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lll}
+\toprule
+\textbf{Modelo} & \textbf{Tokenizer} & \textbf{Tamanho do Vocabulário} \\
+\midrule
+BERT         & WordPiece                & 30,522 \\
+GPT-2        & Byte-level BPE           & 50,257 \\
+GPT-3        & Byte-level BPE (\texttt{r50k\_base})    & 50,257 \\
+GPT-4        & Byte-level BPE (\texttt{cl100k\_base})  & 100,256 \\
+T5           & SentencePiece (Unigram)  & 32,000 \\
+LLaMA 1/2    & SentencePiece (BPE)       & 32,000 \\
+LLaMA 3      & Byte-level BPE (tiktoken) & 128,256 \\
+Gemma        & SentencePiece (BPE)      & 256,000 \\
+Mistral      & SentencePiece (BPE)      & 32,000 \\
+Claude       & Byte-level BPE (custom)  & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+
+\textbf{Tendência:} Modelos modernos estão migrando para vocabulários maiores e abordagens byte-level para melhorar a cobertura multilíngue.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Subword Regularization e BPE Dropout}
+
+\textbf{Ideia:} A tokenization não precisa ser determinística durante o treinamento!
+
+\vspace{6pt}
+
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Subword Regularization (Kudo, 2018)}
+O Unigram pode amostrar entre múltiplas segmentações válidas:
+
+\vspace{4pt}
+\texttt{"lowest"} pode ser:
+\begin{itemize}
+    \item \tok{low}~\tok{est} (probabilidade 0.7)
+    \item \tok{lo}~\tok{we}~\tok{st} (probabilidade 0.2)
+    \item \tok{l}~\tok{o}~\tok{w}~\tok{est} (probabilidade 0.1)
+\end{itemize}
+\end{block}
+
+\column{0.48\textwidth}
+\begin{block}{BPE Dropout (Provilkov et al., 2020)}
+Ignora aleatoriamente alguns merges do BPE durante o treinamento:
+
+\vspace{4pt}
+Com dropout $p=0.1$:
+\begin{itemize}
+    \item Normal: \tok{low}~\tok{est}
+    \item Ignorado: \tok{lo}~\tok{w}~\tok{est}
+    \item Ignorado: \tok{low}~\tok{e}~\tok{st}
+\end{itemize}
+\end{block}
+\end{columns}
+
+\vspace{6pt}
+
+Ambos atuam como \textbf{data augmentation}, tornando os modelos mais robustos a segmentações raras.
+
+\end{frame}
+
+% ============================================================
+\section{De Tokens a Embeddings}
+% ============================================================
+
+\begin{frame}[shrink=10]{De Token IDs a Embeddings}
+
+O tokenizer produz uma sequência de \textbf{inteiros} (IDs). O transformer precisa de \textbf{vetores densos}.
+
+\vspace{8pt}
+
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{A tabela de embedding}
+Uma matriz $E \in \mathbb{R}^{|V| \times d}$, onde cada linha é o vetor de um token:
+\[
+  \mathbf{e}_i = E[i] \in \mathbb{R}^d
+\]
+\texttt{nn.Embedding} é uma \textbf{tabela de lookup}, não uma transformação linear: apenas seleciona uma linha.
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{tabular}{c|ccc}
+\textbf{ID} & \multicolumn{3}{c}{$\mathbf{e} \in \mathbb{R}^d$} \\
+\midrule
+0   & $0.12$ & $-0.43$ & $\cdots$ \\
+$\vdots$ & $\vdots$ & $\vdots$ & $\vdots$ \\
+\rowcolor{lightblue}
+\textbf{15496} & $\mathbf{0.31}$ & $\mathbf{-1.20}$ & $\mathbf{\cdots}$ \\
+$\vdots$ & $\vdots$ & $\vdots$ & $\vdots$ \\
+$|V|-1$ & $-0.07$ & $0.88$ & $\cdots$ \\
+\end{tabular}
+
+\vspace{4pt}
+\small ID 15496 $\rightarrow$ linha 15496 $\rightarrow$ $\mathbf{e} \in \mathbb{R}^{768}$
+\end{center}
+\end{column}
+\end{columns}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Pipeline completo}
+\centering
+texto $\xrightarrow{\text{tokenizer}}$ [IDs] $\xrightarrow{\texttt{nn.Embedding}}$ [vetores] $\xrightarrow{+\,\text{PE}}$ entrada do transformer
+\end{exampleblock}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[fragile,shrink=10]{De Token IDs a Embeddings (código)}
+
+\begin{exampleblock}{GPT-2 com HuggingFace + PyTorch}
+\begin{verbatim}
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+model     = AutoModelForCausalLM.from_pretrained("gpt2")
+
+ids  = tokenizer("Olá mundo", return_tensors="pt").input_ids
+# ids.shape -> (1, seq_len)  -- tensor de inteiros
+
+embs = model.transformer.wte(ids)   # nn.Embedding lookup
+# embs.shape -> (1, seq_len, 768)  -- tensor de floats
+\end{verbatim}
+\end{exampleblock}
+
+\vspace{6pt}
+
+\begin{itemize}
+    \item \texttt{wte} = \textit{word token embedding}, o nome usado internamente pelo GPT-2
+    \item Após este passo, os embeddings posicionais são somados e a sequência entra na pilha de transformers
+    \item O \texttt{model.transformer.wte} é uma instância de \texttt{torch.nn.Embedding(50257, 768)}
+\end{itemize}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=15]{Quantos Parâmetros Custam os Embeddings?}
+
+\[
+  \text{params}_{\text{embedding}} = |V| \times d
+\]
+
+\vspace{6pt}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Modelo} & $|V|$ & $d$ & \textbf{Params emb.} & \textbf{Total} & \textbf{\% do total} \\
+\midrule
+GPT-2 Small  & 50,257 & 768   & 38.6M & 117M  & \textbf{33\%} \\
+GPT-2 Medium & 50,257 & 1,024 & 51.5M & 345M  & \textbf{15\%} \\
+GPT-2 Large  & 50,257 & 1,280 & 64.3M & 762M  & \textbf{8.4\%} \\
+GPT-2 XL     & 50,257 & 1,600 & 80.4M & 1.5B & \textbf{5.4\%} \\
+LLaMA 2 7B   & 32,000 & 4,096 & 131M    & 7B    & \textbf{1.9\%} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{6pt}
+
+\begin{alertblock}{Conclusões}
+\begin{itemize}
+    \item \textbf{Vocabulário maior = mais parâmetros}: escolhas de tokenization têm custo direto no tamanho do modelo
+    \item \textbf{Modelos menores pagam mais}: em GPT-2 Small, $\frac{1}{3}$ dos parâmetros estão na tabela de embedding
+    \item \textbf{Weight tying}: GPT-2 e muitos outros modelos \textbf{reutilizam} a mesma matriz como camada de saída (\texttt{lm\_head}), sem custo extra de parâmetros para a projeção final
+\end{itemize}
+\end{alertblock}
+
+\end{frame}
+
+% ============================================================
+\section{Resumo}
+% ============================================================
+
+\begin{frame}{Principais Conclusões}
+
+\begin{enumerate}
+    \item \textbf{A tokenization é uma decisão arquitetural}, não uma etapa de pré-processamento
+
+    \vspace{4pt}
+
+    \item \textbf{Nível de caractere e de palavra} são extremos demais; métodos por subword encontram o ponto de equilíbrio
+
+    \vspace{4pt}
+
+    \item \textbf{BPE}: mescla os pares mais frequentes (bottom-up, baseado em frequência)
+
+    \vspace{4pt}
+
+    \item \textbf{WordPiece}: mescla pares maximizando a likelihood (bottom-up, baseado em probabilidade)
+
+    \vspace{4pt}
+
+    \item \textbf{Unigram}: começa grande, poda os tokens menos úteis (top-down, baseado em perda)
+
+    \vspace{4pt}
+
+    \item \textbf{SentencePiece}: um framework para tokenization agnóstica ao idioma (suporta BPE ou Unigram)
+
+    \vspace{4pt}
+
+    \item \textbf{Byte-level BPE}: garante cobertura total com 256 tokens base
+
+\end{enumerate}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Referências}
+
+\small
+
+\textbf{Artigos principais:}
+\begin{itemize}
+    \item Sennrich, R., Haddow, B., \& Birch, A. (2016). Neural Machine Translation of Rare Words with Subword Units. \textit{ACL}.
+    \item Schuster, M. \& Nakajima, K. (2012). Japanese and Korean Voice Search. \textit{ICASSP}.
+    \item Wu, Y. et al. (2016). Google's Neural Machine Translation System. \textit{arXiv:1609.08144}.
+    \item Kudo, T. (2018). Subword Regularization. \textit{ACL}.
+    \item Kudo, T. \& Richardson, J. (2018). SentencePiece. \textit{EMNLP}.
+\end{itemize}
+
+\vspace{4pt}
+
+\textbf{Leitura complementar:}
+\begin{itemize}
+    \item Radford, A. et al. (2019). Language Models are Unsupervised Multitask Learners. (GPT-2)
+    \item Xue, L. et al. (2022). ByT5: Towards a Token-Free Future. \textit{NAACL}.
+    \item Yu, L. et al. (2023). MegaByte: Predicting Million-Byte Sequences. \textit{NeurIPS}.
+    \item Provilkov, I. et al. (2020). BPE-Dropout. \textit{ACL}.
+\end{itemize}
+
+\end{frame}
+
+
+
+\end{document}

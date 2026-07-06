@@ -1,0 +1,2145 @@
+\documentclass[aspectratio=169, xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    EXTRA COLORS / COMMANDS FOR THIS LECTURE
+%----------------------------------------------------------------------------------------
+\definecolor{LightBlue}{HTML}{DBEAFE}
+\definecolor{DarkBlue}{HTML}{1565C0}
+\definecolor{DarkRed}{HTML}{C62828}
+\definecolor{LightGray}{HTML}{F5F5F5}
+\definecolor{MidGray}{HTML}{757575}
+\definecolor{CellGreen}{HTML}{C8E6C9}
+\definecolor{CellYellow}{HTML}{FFF9C4}
+\definecolor{CellRed}{HTML}{FFCDD2}
+\definecolor{CellBlue}{HTML}{BBDEFB}
+\definecolor{CellPurple}{HTML}{E1BEE7}
+\definecolor{DarkGreen}{HTML}{1B5E20}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{\textit{Modelos Encoder-Only e Sentence Embeddings}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{ Machine Learning Theory and Applications Laboratory \\ PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 1: PARADIGMAS ARQUITETURAIS
+  %======================================================================================
+  \section{Paradigmas Arquiteturais do Transformer}
+
+  %--- Slide: Three families ---
+  \begin{frame}{As Três Famílias de Transformers}
+    Desde o início da arquitetura \textit{Transformer} deu origem a três famílias:
+    \begin{columns}[T]
+      \begin{column}{0.32\textwidth}
+        \begin{block}{\textit{Encoder-Decoder}}
+          \begin{itemize}
+            \item T5, BART, mT5
+            \item \textit{Seq2seq}: entrada $\to$ saída
+            \item \textit{Cross-attention} liga os dois lados
+            \item Tradução, sumarização
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.32\textwidth}
+        \begin{block}{\textit{Decoder-Only}}
+          \begin{itemize}
+            \item GPT, LLaMA, Mistral
+            \item Atenção \textbf{causal} (mascarada)
+            \item Geração autorregressiva
+            \item \textit{Chatbots}, \textit{code completion}
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.32\textwidth}
+        \begin{block}{\textit{Encoder-Only}}
+          \begin{itemize}
+            \item BERT, RoBERTa, DeBERTa
+            \item Atenção \textbf{bidirecional}
+            \item Foco em \textit{compreensão}
+            \item Classificação, busca, NER
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Attention pattern visual ---
+  \begin{frame}{Padrões de Atenção: Visualizando a Diferença}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      cell/.style={draw, minimum width=0.55cm, minimum height=0.55cm, font=\scriptsize},
+      on/.style={cell, fill=CellGreen},
+      off/.style={cell, fill=LightGray},
+    ]
+      % ENCODER (bidirectional)
+      \node[font=\bfseries\small, DarkGreen] at (1.75,3.5) {Encoder (bidirecional)};
+      \foreach \i in {0,1,2,3,4} {
+        \foreach \j in {0,1,2,3,4} {
+          \node[on] at (\j*0.6, 3 - \i*0.6) {};
+        }
+      }
+      \foreach \i/\l in {0/$q_1$,1/$q_2$,2/$q_3$,3/$q_4$,4/$q_5$} {
+        \node[font=\tiny, left] at (-0.2, 3 - \i*0.6) {\l};
+      }
+
+      % DECODER (causal)
+      \node[font=\bfseries\small, DarkBlue] at (6.75,3.5) {Decoder (causal)};
+      \foreach \i in {0,1,2,3,4} {
+        \foreach \j in {0,1,2,3,4} {
+          \ifnum\j>\i
+            \node[off] at (5 + \j*0.6, 3 - \i*0.6) {};
+          \else
+            \node[on] at (5 + \j*0.6, 3 - \i*0.6) {};
+          \fi
+        }
+      }
+      \foreach \i/\l in {0/$q_1$,1/$q_2$,2/$q_3$,3/$q_4$,4/$q_5$} {
+        \node[font=\tiny, left] at (4.8, 3 - \i*0.6) {\l};
+      }
+
+      % ENC-DEC (cross)
+      \node[font=\bfseries\small, DarkRed] at (11.75,3.5) {Enc-Dec (\textit{cross})};
+      \foreach \i in {0,1,2,3,4} {
+        \foreach \j in {0,1,2,3,4} {
+          \node[on] at (10 + \j*0.6, 3 - \i*0.6) {};
+        }
+      }
+      \foreach \i/\l in {0/$q_1^{dec}$,1/$q_2^{dec}$,2/$q_3^{dec}$,3/$q_4^{dec}$,4/$q_5^{dec}$} {
+        \node[font=\tiny, left] at (9.7, 3 - \i*0.6) {\l};
+      }
+      \node[font=\tiny] at (11.25, -0.2) {$k^{enc}_1 \ldots k^{enc}_5$};
+    \end{tikzpicture}}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textcolor{DarkGreen}{\textbf{Encoder}}: cada \textit{token} vê \textbf{todos} os outros $\to$ representação rica em contexto
+      \item \textcolor{DarkBlue}{\textbf{Decoder}}: cada \textit{token} vê apenas o passado $\to$ geração autorregressiva
+      \item \textcolor{DarkRed}{\textbf{Enc-Dec}}: \textit{decoder} consulta \textit{encoder} via \textit{cross-attention}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: when to use ---
+  \begin{frame}{Qual Família Usar? Uma Árvore de Decisão}
+    \centering
+    \resizebox{0.85\linewidth}{!}{%
+    \begin{tikzpicture}[
+      node distance=0.5cm,
+      box/.style={draw, rounded corners, minimum width=3.2cm, minimum height=0.8cm, align=center, font=\small},
+      q/.style={box, fill=CellYellow},
+      enc/.style={box, fill=CellRed},
+      dec/.style={box, fill=CellBlue},
+      encdec/.style={box, fill=CellGreen},
+      arrow/.style={->, >=stealth, thick},
+    ]
+      \node[q] (q1) {Sua tarefa gera texto?};
+      \node[q, below left=0.8 and 0.5 of q1] (q2) {Entende / classifica / busca?};
+      \node[q, below right=0.8 and 0.5 of q1] (q3) {Geração condicionada a um texto de entrada?};
+
+      \node[enc, below=1.2 of q2] (enc) {\textbf{Encoder-Only} \\ BERT, RoBERTa, SBERT};
+      \node[dec, below=1.2 of q3, xshift=1.8cm] (dec) {\textbf{Decoder-Only} \\ GPT, LLaMA};
+      \node[encdec, below=1.2 of q3, xshift=-1.8cm] (encdec) {\textbf{Encoder-Decoder} \\ T5, BART};
+
+      \draw[arrow] (q1) -- node[above left, font=\tiny] {não} (q2);
+      \draw[arrow] (q1) -- node[above right, font=\tiny] {sim} (q3);
+      \draw[arrow] (q2) -- (enc);
+      \draw[arrow] (q3) -- node[left, font=\tiny] {sim} (encdec);
+      \draw[arrow] (q3) -- node[right, font=\tiny] {não} (dec);
+    \end{tikzpicture}}
+    \vspace{0.5em}
+    \begin{itemize}
+      \item Tarefas de \textit{compreensão} (classificação, busca, NER, STS) $\to$ \textbf{encoder-only}
+      \item Geração aberta (\textit{chat}, \textit{code}, criação) $\to$ \textbf{decoder-only}
+      \item Tradução / sumarização em que entrada e saída são muito diferentes $\to$ \textbf{encoder-decoder}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: positioning ---
+  \begin{frame}{O Ramo da Compreensão}
+    \begin{columns}
+      \begin{column}{0.55\textwidth}
+        Enquanto modelos \textcolor{DarkBlue}{\textit{decoder-only}} (GPT, LLaMA) trabalham com \textcolor{DarkBlue}{geração de texto}, modelos \textcolor{DarkRed}{\textit{encoder-only}} trabalham com:
+        \begin{itemize}
+          \item Como transformar texto em vetores \textit{densos} e \textit{contextuais}
+          \item Como usar esses vetores para tarefas discriminativas
+          \item Como treinar embeddings de \textbf{frases inteiras} que alimentam sistemas de busca semântica e RAG
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \begin{exampleblock}{Onde usamos \textit{encoder-only}?}
+          \begin{itemize}
+            \item \textit{Retrieval} para RAG
+            \item Busca semântica
+            \item Classificação de palavras/sentenças
+            \item \textit{Reranking} barato
+            \item \textit{Clustering} e deduplicação
+            \item Detecção de conteúdo
+          \end{itemize}
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 2: STATIC -> CONTEXTUAL EMBEDDINGS
+  %======================================================================================
+  \section{De Embeddings Estáticos a Contextuais}
+
+  %--- Slide: why embeddings ---
+  \begin{frame}{Por que Precisamos de \textit{Word Embeddings}?}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \textbf{Representação \textit{one-hot}}:
+        \begin{itemize}
+          \item Vocabulário de $|V| = 50\text{k}$ $\to$ vetores de 50k dimensões
+          \item \textbf{Esparsa} (um único 1, resto zeros)
+          \item Ortogonal: $\text{cos}(\text{rei}, \text{rainha}) = 0$
+          \item Nenhuma semântica capturada
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \textbf{\textit{Word embedding}}:
+        \begin{itemize}
+          \item Vetor de baixa dimensão ($d = 300$, $768$, \ldots)
+          \item \textbf{Denso} (todas as entradas ativas)
+          \item Palavras semanticamente próximas $\to$ vetores próximos
+          \item Aprendido a partir de grandes \textit{corpora}
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    \begin{block}{Hipótese distribucional (Harris, 1954)}
+      ``\textit{You shall know a word by the company it keeps.}'', palavras que aparecem em contextos similares tendem a ter significado similar.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Word2Vec / GloVe ---
+  \begin{frame}{Embeddings Estáticos: Word2Vec e GloVe}
+    % \begin{columns}[T]
+      % \begin{column}{0.5\textwidth}
+        \textbf{Word2Vec} \footfullcite{mikolov2013word2vec}
+        \begin{itemize}
+          \item \textbf{Skip-gram}: prever palavras do contexto a partir da palavra central
+          \item \textbf{CBOW}: prever palavra central a partir do contexto
+          \item Resultado: uma matriz $E \in \mathbb{R}^{|V| \times d}$
+        \end{itemize}
+      % \end{column}
+      % \begin{column}{0.5\textwidth}
+        \textbf{GloVe} \footfullcite{pennington2014glove}
+        \begin{itemize}
+          \item Fatoração de matriz de co-ocorrência global
+          \item Combina estatística global (como LSA) com janelas locais (como W2V)
+          \item Resultado: uma matriz $E \in \mathbb{R}^{|V| \times d}$
+        \end{itemize}
+      % \end{column}
+    % \end{columns}
+      Cada palavra é representada por \textit{UM} único vetor, independente do contexto.
+  \end{frame}
+
+  %--- Slide: classic analogy ---
+  \begin{frame}{A Visualização Clássica}
+    \centering
+    \begin{tikzpicture}[scale=0.9]
+      % axes
+      \draw[->, gray] (-0.3,0) -- (6.5,0);
+      \draw[->, gray] (0,-0.3) -- (0,4.5);
+
+      % Points
+      \node[circle, fill=DarkBlue, inner sep=1.5pt, label={[font=\small, DarkBlue]above left:rei}] (king) at (0.9,3.0) {};
+      \node[circle, fill=DarkBlue, inner sep=1.5pt, label={[font=\small, DarkBlue]below:homem}] (man) at (0.6,0.6) {};
+      \node[circle, fill=DarkRed, inner sep=1.5pt, label={[font=\small, DarkRed]above right:rainha}] (queen) at (4.3,3.3) {};
+      \node[circle, fill=DarkRed, inner sep=1.5pt, label={[font=\small, DarkRed]below:mulher}] (woman) at (4.0,0.9) {};
+
+      % Arrows
+      \draw[->, thick, DarkGreen] (man) -- (king) node[midway, left, font=\tiny, DarkGreen] {realeza};
+      \draw[->, thick, DarkGreen] (woman) -- (queen) node[midway, right, font=\tiny, DarkGreen] {realeza};
+      \draw[->, thick, DarkBlue, dashed] (man) -- (woman);
+      \draw[->, thick, DarkBlue, dashed] (king) -- (queen);
+
+      \node[font=\small] at (8.5, 3) {$\mathbf{v}_{\text{rei}} - \mathbf{v}_{\text{homem}}$};
+      \node[font=\small] at (8.5, 2.3) {$+\, \mathbf{v}_{\text{mulher}}$};
+      \node[font=\small] at (8.5, 1.6) {$\approx \mathbf{v}_{\text{rainha}}$};
+    \end{tikzpicture}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Direções no espaço codificam \textbf{relações semânticas}
+      \item Mas: \textbf{um único vetor por palavra}, independente do contexto
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: polysemy problem ---
+  \begin{frame}{O Problema da Polissemia}
+    \begin{exampleblock}{Duas frases em português}
+      \begin{enumerate}
+        \item ``Ele sacou dinheiro no \textbf{banco} da esquina.''
+        \item ``Ela sentou no \textbf{banco} do parque.''
+      \end{enumerate}
+    \end{exampleblock}
+    \vspace{0.5em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \textbf{Embeddings estáticos}:
+        \begin{itemize}
+          \item \textcolor{DarkRed}{$\mathbf{v}_{\text{banco}}^{(1)} = \mathbf{v}_{\text{banco}}^{(2)}$}
+          \item O vetor é uma \textit{média} dos dois sentidos
+          \item O modelo ``confunde'' instituição financeira com assento
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \textbf{Embeddings contextuais}:
+        \begin{itemize}
+          \item \textcolor{DarkGreen}{$\mathbf{v}_{\text{banco}}^{(1)} \neq \mathbf{v}_{\text{banco}}^{(2)}$}
+          \item Cada ocorrência recebe um vetor diferente
+          \item O contexto \textit{molda} o vetor final
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    A função que gera o \textit{embedding} deve depender do contexto $f(\text{palavra}, \text{contexto}) \to \mathbb{R}^d$.
+  \end{frame}
+
+  %--- Slide: ELMo bridge ---
+  \begin{frame}{A Ponte: ELMo (2018) \footfullcite{peters2018elmo}}
+   
+    \begin{columns}
+      \begin{column}{0.65\textwidth}
+        \textbf{Ideia}: em vez de uma tabela \textit{lookup}, use um \textbf{modelo de linguagem bidirecional} pré-treinado.
+        
+        Duas LSTMs profundas:
+        \begin{itemize}
+          \item Uma da esquerda para direita $p(w_t|w_{<t})$
+          \item A outra da direita para a esquerda $p(w_t|w_{>t})$
+          \item \textit{Embedding} final = combinação linear das camadas das duas LSTMs
+        \end{itemize}
+        \vspace{0.3em}
+        \textbf{Primeiros embeddings verdadeiramente contextuais a ganhar tração em NLP.}
+      \end{column}
+      \begin{column}{0.32\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          node distance=0.4cm,
+          tok/.style={draw, fill=LightGray, minimum width=0.9cm, minimum height=0.45cm, font=\scriptsize},
+          lstm/.style={draw, fill=CellBlue, rounded corners, minimum width=0.9cm, minimum height=0.45cm, font=\scriptsize},
+          arrow/.style={->, >=stealth, thin},
+        ]
+          \node[tok] (w1) {O};
+          \node[tok, right=of w1] (w2) {gato};
+          \node[tok, right=of w2] (w3) {sentou};
+
+          \node[lstm, above=of w1] (f1) {$\to$};
+          \node[lstm, above=of w2] (f2) {$\to$};
+          \node[lstm, above=of w3] (f3) {$\to$};
+
+          \node[lstm, fill=CellRed, above=of f1] (b1) {$\leftarrow$};
+          \node[lstm, fill=CellRed, above=of f2] (b2) {$\leftarrow$};
+          \node[lstm, fill=CellRed, above=of f3] (b3) {$\leftarrow$};
+
+          \draw[arrow] (w1) -- (f1);
+          \draw[arrow] (w2) -- (f2);
+          \draw[arrow] (w3) -- (f3);
+          \draw[arrow] (f1) -- (f2);
+          \draw[arrow] (f2) -- (f3);
+          \draw[arrow] (f1) -- (b1);
+          \draw[arrow] (f2) -- (b2);
+          \draw[arrow] (f3) -- (b3);
+          \draw[arrow] (b3) -- (b2);
+          \draw[arrow] (b2) -- (b1);
+        \end{tikzpicture}}
+
+        \vspace{0.3em}
+        {\scriptsize Duas LSTMs empilhadas, direções opostas.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: contextual via transformers ---
+  \begin{frame}{Embeddings Contextuais via \textit{Transformers}}
+    Com a chegada do \textit{Transformer}, as LSTMs do ELMo foram substituídas por \textbf{camadas de \textit{self-attention}}:
+    \begin{itemize}
+      \item Cada \textit{token} atende a \textbf{todos} os outros da sequência
+      \item A representação final de cada \textit{token} é uma mistura de todos os outros, ponderada pelos \textit{scores} de atenção
+      \item Paralelizável (ao contrário de LSTMs)
+      \item Captura dependências de longo alcance sem o \textit{vanishing gradient}
+    \end{itemize}
+    \vspace{0.5em}
+    \begin{block}{Formalizando}
+      Dado um \textit{token} $w_i$ na posição $i$, o \textit{embedding} contextual na camada $\ell$ é:
+      \[
+        \mathbf{h}_i^{(\ell)} = f_\ell\!\left( \mathbf{h}_0^{(\ell-1)}, \mathbf{h}_1^{(\ell-1)}, \ldots, \mathbf{h}_{L-1}^{(\ell-1)}, \; i \right)
+      \]
+      onde $f_\ell$ é uma camada \textit{Transformer encoder} (self-attention + FFN).
+    \end{block}
+  \end{frame}
+
+  %--- Slide: visual example ---
+  \begin{frame}{``Banco'' em dois contextos}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      tok/.style={draw, rounded corners, minimum width=1.1cm, minimum height=0.55cm, font=\footnotesize, fill=LightGray},
+      tgt/.style={draw, rounded corners, minimum width=1.1cm, minimum height=0.55cm, font=\footnotesize\bfseries, fill=CellYellow},
+      vec/.style={draw, rounded corners, fill=CellBlue, minimum width=2.8cm, minimum height=0.5cm, font=\scriptsize},
+    ]
+      % Sentence 1
+      \node[tok] (s1a) at (0,2.5) {sacou};
+      \node[tok, right=0.1 of s1a] (s1b) {no};
+      \node[tgt, right=0.1 of s1b] (s1c) {banco};
+      \node[tok, right=0.1 of s1c] (s1d) {da};
+      \node[tok, right=0.1 of s1d] (s1e) {esquina};
+
+      \node[vec, right=0.6 of s1e] (v1) {$\mathbf{h}^{(1)} = [0.8,\, -0.3,\, 0.6,\, \ldots]$};
+
+      % Sentence 2
+      \node[tok] (s2a) at (0,1.3) {sentou};
+      \node[tok, right=0.1 of s2a] (s2b) {no};
+      \node[tgt, right=0.1 of s2b] (s2c) {banco};
+      \node[tok, right=0.1 of s2c] (s2d) {do};
+      \node[tok, right=0.1 of s2d] (s2e) {parque};
+
+      \node[vec, right=0.6 of s2e] (v2) {$\mathbf{h}^{(2)} = [-0.2,\, 0.7,\, -0.5,\, \ldots]$};
+
+      % Similarity
+      \node[font=\small, DarkRed] at (5.5, 0.3) {$\cos(\mathbf{h}^{(1)}, \mathbf{h}^{(2)}) \approx 0.15$};
+      \node[font=\small, DarkGreen] at (13, 0.3) {$\cos(\mathbf{h}^{(1)}, \mathbf{h}_{\text{agência}}) \approx 0.82$};
+
+      \draw[->, dashed, DarkBlue] (s1c) -- (v1);
+      \draw[->, dashed, DarkBlue] (s2c) -- (v2);
+    \end{tikzpicture}}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item A \textbf{mesma palavra} produz \textbf{vetores diferentes} em contextos diferentes
+      \item No primeiro contexto, ``banco'' fica próximo de ``agência'', ``caixa'', ``conta''
+      \item No segundo, fica próximo de ``cadeira'', ``praça'', ``sentar''
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 3: WORD-LEVEL TASKS
+  %======================================================================================
+  \section{Tarefas em Nível de \textit{Token}}
+
+  %--- Slide: general recipe ---
+  \begin{frame}{A Receita Geral}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        Para qualquer tarefa em nível de \textit{token}:
+        \begin{enumerate}
+          \item Passe a frase por um \textit{encoder} pré-treinado
+          \item Extraia os \textit{embeddings} contextuais $\mathbf{h}_1, \ldots, \mathbf{h}_L$
+          \item Adicione uma pequena cabeça linear \textcolor{DarkBlue}{$W \in \mathbb{R}^{d \times C}$}
+          \item $\text{logits}_i = W^\top \mathbf{h}_i$
+          \item \textit{Softmax} sobre $C$ classes
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          node distance=0.25cm,
+          tok/.style={draw, fill=LightGray, minimum width=1.0cm, minimum height=0.45cm, font=\scriptsize},
+          enc/.style={draw, fill=CellGreen, rounded corners, minimum width=5.0cm, minimum height=0.55cm, font=\small},
+          h/.style={draw, fill=CellBlue, minimum width=1.0cm, minimum height=0.45cm, font=\scriptsize},
+          head/.style={draw, fill=CellYellow, minimum width=1.0cm, minimum height=0.45cm, font=\scriptsize},
+          arrow/.style={->, >=stealth, thin},
+        ]
+          \node[tok] (t1) {$w_1$};
+          \node[tok, right=of t1] (t2) {$w_2$};
+          \node[tok, right=of t2] (t3) {$w_3$};
+          \node[tok, right=of t3] (t4) {$w_4$};
+
+          \node[enc, above=0.3 of t2, xshift=0.7cm] (enc) {\textit{Transformer Encoder}};
+
+          \node[h, above=0.3 of enc.north west, xshift=0.5cm] (h1) {$\mathbf{h}_1$};
+          \node[h, right=of h1] (h2) {$\mathbf{h}_2$};
+          \node[h, right=of h2] (h3) {$\mathbf{h}_3$};
+          \node[h, right=of h3] (h4) {$\mathbf{h}_4$};
+
+          \node[head, above=0.3 of h1] (y1) {$y_1$};
+          \node[head, above=0.3 of h2] (y2) {$y_2$};
+          \node[head, above=0.3 of h3] (y3) {$y_3$};
+          \node[head, above=0.3 of h4] (y4) {$y_4$};
+
+          \foreach \t in {t1,t2,t3,t4} \draw[arrow] (\t) -- (\t |- enc.south);
+          \foreach \h in {h1,h2,h3,h4} \draw[arrow] (\h |- enc.north) -- (\h);
+          \foreach \h/\y in {h1/y1,h2/y2,h3/y3,h4/y4} \draw[arrow] (\h) -- (\y);
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    \begin{exampleblock}{Fine-tuning da Cabeça de Classificação }
+      A cabeça tem tipicamente \textbf{$ < 1\%$} dos parâmetros totais. Quase todo o conhecimento vem do \textit{pré-treino}.
+    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: NER ---
+  \begin{frame}{Tarefa: \textit{Named Entity Recognition} (NER)}
+    Classificar cada \textit{token} em uma categoria de entidade (Pessoa, Local, Organização, \ldots).
+
+    \vspace{0.4em}
+    \textbf{Esquema BIO}: \textbf{B}egin, \textbf{I}nside, \textbf{O}utside de uma entidade.
+
+    \vspace{0.5em}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      tok/.style={draw, rounded corners, fill=LightGray, minimum width=1.4cm, minimum height=0.55cm, font=\small},
+      pl/.style={draw, rounded corners, fill=CellRed, minimum width=1.4cm, minimum height=0.45cm, font=\scriptsize},
+      pp/.style={draw, rounded corners, fill=CellBlue, minimum width=1.4cm, minimum height=0.45cm, font=\scriptsize},
+      o/.style={draw, rounded corners, fill=LightGray, minimum width=1.4cm, minimum height=0.45cm, font=\scriptsize},
+    ]
+      \node[tok] (t1) at (0,1) {Lucas};
+      \node[tok, right=0.1 of t1] (t2) {trabalha};
+      \node[tok, right=0.1 of t2] (t3) {na};
+      \node[tok, right=0.1 of t3] (t4) {PUCRS};
+      \node[tok, right=0.1 of t4] (t5) {em};
+      \node[tok, right=0.1 of t5] (t6) {Porto};
+      \node[tok, right=0.1 of t6] (t7) {Alegre};
+
+      \node[pp, below=0.2 of t1] (l1) {B-PER};
+      \node[o, below=0.2 of t2] (l2) {O};
+      \node[o, below=0.2 of t3] (l3) {O};
+      \node[pp, below=0.2 of t4, fill=CellGreen] (l4) {B-ORG};
+      \node[o, below=0.2 of t5] (l5) {O};
+      \node[pl, below=0.2 of t6] (l6) {B-LOC};
+      \node[pl, below=0.2 of t7] (l7) {I-LOC};
+    \end{tikzpicture}}
+    \vspace{0.4em}
+    \begin{itemize}
+      \item \textbf{Entidades multi-\textit{token}} (``Porto Alegre'') são capturadas por \textbf{B-} seguido de \textbf{I-}
+      \item Cabeça linear $W \in \mathbb{R}^{d \times C}$ com $C = 2k+1$ (um B- e um I- por tipo, mais O), onde $k$ é o número de categorias presentes no NER
+      \item \textit{Benchmark} clássico: CoNLL-2003 \footfullcite{tjongkimsang2003conll}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: POS ---
+  \begin{frame}{Tarefa: \textit{Part-of-Speech Tagging} (POS)}
+    Classificar cada \textit{token} em uma categoria gramatical (substantivo, verbo, adjetivo, \ldots).
+
+    \vspace{0.5em}
+    \centering
+    \resizebox{0.9\linewidth}{!}{%
+    \begin{tikzpicture}[
+      tok/.style={draw, rounded corners, fill=LightGray, minimum width=1.5cm, minimum height=0.55cm, font=\small},
+      tag/.style={draw, rounded corners, fill=CellYellow, minimum width=1.5cm, minimum height=0.45cm, font=\scriptsize\bfseries},
+    ]
+      \node[tok] (t1) at (0,1) {O};
+      \node[tok, right=0.1 of t1] (t2) {gato};
+      \node[tok, right=0.1 of t2] (t3) {preto};
+      \node[tok, right=0.1 of t3] (t4) {dorme};
+      \node[tok, right=0.1 of t4] (t5) {tranquilamente};
+
+      \node[tag, below=0.2 of t1] {DET};
+      \node[tag, below=0.2 of t2] {NOUN};
+      \node[tag, below=0.2 of t3] {ADJ};
+      \node[tag, below=0.2 of t4] {VERB};
+      \node[tag, below=0.2 of t5] {ADV};
+    \end{tikzpicture}}
+    \vspace{0.5em}
+    \begin{itemize}
+      \item Problema clássico de NLP, resolvido com \textbf{altíssima precisão} por encoders modernos ($>97\%$)
+      \item \textit{Embeddings contextuais} são ideais: a mesma palavra pode ter \textit{tag} diferente em contextos diferentes
+      \begin{itemize}
+          \item O \textbf{jogo} de ontem foi muito disputado.
+          \item Eu \textbf{jogo} playstation todas as terças-feiras
+      \end{itemize}
+      \item \textit{Universal Dependencies}: esquema de \textit{tags} compartilhado entre $>100$ línguas
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: QA ---
+  \begin{frame}{Tarefa: \textit{Extractive Question Answering} (SQuAD)\footfullcite{rajpurkar2016squad}}
+   
+    Dado uma frase no seguinte formato:  \textcolor{DarkBlue}{\textbf{Contexto}}\texttt{[SEP]}\textcolor{DarkRed}{\textbf{Pergunta}}\texttt{[SEP]}, identificar o \textbf{trecho} do parágrafo que responde a pergunta.
+    
+      \begin{exampleblock}{Exemplo}
+      ``\texttt{[CLS]}\texttt{\textcolor{DarkBlue}{A PUCRS foi fundada em 1948 na cidade de Porto Alegre.}}\texttt{[SEP]}\texttt{\textcolor{DarkRed}{Quando a PUCRS foi fundada?}}\texttt{[SEP]}'' \\
+      \textbf{Resposta}: \textcolor{DarkRed}{\textbf{1948}} $\to$ \textit{span} com início no \textit{token} 5, fim no \textit{token} 5
+      \end{exampleblock}
+    
+    Duas saídas: posição de início e posição do final da resposta.
+    \begin{itemize}
+      \item $\mathbf{w}_{\text{start}}, \mathbf{w}_{\text{end}} \in \mathbb{R}^d$
+      \item $p_{\text{start}}(i) = \text{softmax}(\mathbf{w}_{\text{start}}^\top \mathbf{h}_i)$
+      \item $p_{\text{end}}(i) = \text{softmax}(\mathbf{w}_{\text{end}}^\top \mathbf{h}_i)$
+      \item Treino: cross-entropy nos índices de início e fim
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: why contextual matters for these tasks ---
+  \begin{frame}{Por que Embeddings Contextuais Dominam Essas Tarefas?}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \textbf{Com embeddings estáticos (pré-2018)}:
+        \begin{itemize}
+          \item Necessário \textit{feature engineering}, regras feitas a mão
+          \item Desempenho limitado pela ambiguidade lexical
+          \item NER no CoNLL-2003: $\sim 90\%$ F1 com modelos específicos
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \textbf{Com embeddings contextuais}:
+        \begin{itemize}
+          \item Uma camada linear acima do \textit{encoder}
+          \item Resolução de ambiguidade é ``gratuita'' (já contextual)
+          \item NER no CoNLL-2003: $>94\%$ F1 com BERT
+          \item SQuAD: humano $\approx 91\%$, BERT-Large $\approx 93\%$
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    \begin{block}{A lição}
+      \textit{Pré-treinar um \textbf{encoder} em grande escala + cabeça linear pequena na tarefa alvo tornou-se a \textbf{receita padrão} de NLP entre 2018 e 2022.}
+    \end{block}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 4: BERT
+  %======================================================================================
+  \section{BERT}
+
+  %--- Slide: BERT intro ---
+  \begin{frame}{BERT: \textit{Bidirectional Encoder Representations}\footfullcite{devlin2019bert}}
+    
+    \begin{columns}
+      \begin{column}{0.55\textwidth}
+        \textbf{Contribuições principais}:
+        \begin{itemize}
+          \item Usa apenas a \textbf{pilha encoder} do \textit{Transformer}
+          \item Pré-treino \textbf{bidirecional} com dois objetivos novos:
+            \begin{itemize}
+              \item \textit{Masked Language Modeling} (MLM)
+              \item \textit{Next Sentence Prediction} (NSP)
+            \end{itemize}
+          \item ``\textit{Fine-tuning}'': mesmo modelo + cabeça pequena resolve $> 11$ tarefas de NLP
+          \item \textit{State-of-the-art} em quase todos os \textit{benchmarks} da época
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \begin{exampleblock}{Por que ``bidirecional''?}
+          GPT-1 (2018) era unidirecional (causal). BERT mostrou que, para \textit{compreensão}, ver \textbf{o futuro} da frase melhora drasticamente.
+          \vspace{0.3em}
+          Mas: \textbf{não pode gerar texto} diretamente.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: BERT architecture ---
+  \begin{frame}{Arquitetura: Pilha de Encoders do \textit{Transformer}}
+    \begin{columns}
+      \begin{column}{0.67\textwidth}
+        BERT = $N$ camadas de \textit{encoder}, cada uma com:
+        \begin{itemize}
+          \item \textit{Multi-head self-attention} \textbf{bidirecional} (sem máscara causal)
+          \item \textit{Feed-forward network} (GELU)
+          \item \textit{Layer Norm} + conexões residuais
+        \end{itemize}
+        \vspace{0.4em}
+        \textbf{Duas versões oficiais}:
+        \begin{center}
+          \small
+          \begin{tabular}{lccc}
+            \toprule
+             & \textbf{Base} & \textbf{Large} \\
+            \midrule
+            Camadas ($L$) & 12 & 24 \\
+            \textit{Hidden} ($d$) & 768 & 1024 \\
+            \textit{Heads} ($h$) & 12 & 16 \\
+            Parâmetros & 110M & 340M \\
+            \bottomrule
+          \end{tabular}
+        \end{center}
+      \end{column}
+      \begin{column}{0.30\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[
+          enc/.style={draw, rounded corners, fill=CellGreen, minimum width=2.4cm, minimum height=0.50cm, font=\scriptsize},
+          emb/.style={draw, fill=CellBlue, minimum width=2.4cm, minimum height=0.50cm, font=\scriptsize},
+        ]
+          \node[emb] (e) at (0,0) {\textit{Input Embeddings}};
+          \node[enc, above=0.15 of e] (l1) {Encoder Layer 1};
+          \node[enc, above=0.15 of l1] (l2) {Encoder Layer 2};
+          \node[font=\scriptsize, above=0.15 of l2] (d) {$\vdots$};
+          \node[enc, above=0.15 of d] (lN) {Encoder Layer $L$};
+          \node[draw, fill=CellYellow, above=0.25 of lN, minimum width=2.4cm, minimum height=0.50cm, font=\scriptsize] (h) {Task Head};
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: training data ---
+  \begin{frame}{Dados de Pré-Treino}
+        BERT foi pré-treinado em:
+        \begin{itemize}
+          \item \textbf{BooksCorpus}: $\sim 800$M palavras de livros não publicados
+          \item \textbf{Wikipedia inglesa}: $\sim 2.5$B palavras (só texto, sem tabelas/listas)
+        \end{itemize}
+        \vspace{0.3em}
+        Total: $\sim 3.3$B palavras, $\sim 16$ GB de texto.
+        \vspace{0.4em}
+
+        \textbf{Por que esses dados?}
+        \begin{itemize}
+          \item \textbf{Gratuitos} e de \textbf{alta qualidade}
+          \item Contêm estruturas de longa distância (sentenças contíguas) $\to$ útil para NSP
+          \item Linguagem formal e variada
+        \end{itemize}
+
+  \end{frame}
+
+  %--- Slide: WordPiece reference ---
+  \begin{frame}{Tokenização: WordPiece}
+    BERT usa \textbf{WordPiece}.
+    \begin{block}{Recapitulação rápida}
+      \begin{itemize}
+        \item Vocabulário de $\sim 30$k \textit{subwords}
+        \item Palavras raras quebradas em prefixos conhecidos + sufixos marcados com \texttt{\#\#}
+        \item Exemplo: \texttt{tokenização} $\to$ \texttt{token \#\#iza \#\#ção}
+        \item Resolve o problema de OOV (\textit{out-of-vocabulary}) sem explodir o vocabulário
+      \end{itemize}
+    \end{block}
+    \vspace{0.3em}
+    \textbf{Tokens especiais} adicionados pelo tokenizer do BERT:
+    \begin{itemize}
+      \item \texttt{[CLS]}: marca o início da sequência
+      \item \texttt{[SEP]}: separador de segmentos
+      \item \texttt{[PAD]}: preenchimento para lotes
+      \item \texttt{[MASK]}: usado apenas no pré-treino (MLM)
+      \item \texttt{[UNK]}: \textit{token} desconhecido (raro com WordPiece)
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Input representation ---
+  \begin{frame}{Representação de Entrada do BERT}
+    O \textit{embedding} final de cada \textit{token} é a \textbf{soma} de três componentes:
+    \vspace{0.4em}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      ebox/.style={draw, minimum width=1.4cm, minimum height=0.55cm, font=\scriptsize},
+      tok/.style={ebox, fill=CellBlue},
+      seg/.style={ebox, fill=CellGreen},
+      posemb/.style={ebox, fill=CellYellow},
+      lbl/.style={ebox, fill=LightGray, font=\scriptsize\ttfamily},
+    ]
+      % Tokens
+      \foreach \i/\t in {0/[CLS],1/o,2/gato,3/[SEP],4/dorme,5/[SEP]} {
+        \node[lbl] (l\i) at (\i*1.5, 3.2) {\t};
+      }
+      % Token embeddings
+      \foreach \i in {0,...,5} {
+        \node[tok] (t\i) at (\i*1.5, 2.5) {$E_{\i}$};
+      }
+      % Segment embeddings
+      \foreach \i/\s in {0/A,1/A,2/A,3/A,4/B,5/B} {
+        \node[seg] (s\i) at (\i*1.5, 1.7) {$E_{\s}$};
+      }
+      % Position embeddings
+      \foreach \i in {0,...,5} {
+        \node[posemb] (p\i) at (\i*1.5, 0.9) {$E_{\i}$};
+      }
+
+      % Plus signs
+      \foreach \i in {0,...,5} {
+        \node[font=\small] at (\i*1.5, 2.1) {$+$};
+        \node[font=\small] at (\i*1.5, 1.3) {$+$};
+      }
+
+      \node[font=\scriptsize, right] at (9.3,3.2) {\textit{Tokens}};
+      \node[font=\scriptsize, right] at (9.3,2.5) {\textit{Token Embeddings}};
+      \node[font=\scriptsize, right] at (9.3,1.7) {\textit{Segment Embeddings}};
+      \node[font=\scriptsize, right] at (9.3,0.9) {\textit{Position Embeddings}};
+    \end{tikzpicture}}
+    \vspace{0.3em}
+    \[
+      \mathbf{x}_i = E_{\text{token}}(w_i) \;+\; E_{\text{segment}}(s_i) \;+\; E_{\text{position}}(i)
+    \]
+    \textbf{Tudo é aprendido} (inclusive a posição, ao contrário do PE sinusoidal).
+  \end{frame}
+
+  %--- Slide: CLS token ---
+  \begin{frame}{O \textit{Token} \texttt{[CLS]}}
+        \texttt{[CLS]} é um \textit{token} \textbf{sempre} prefixado à sequência.
+
+        \vspace{0.4em}
+        \textbf{Papel}:
+        \begin{itemize}
+          \item Não é uma palavra real, começa como um \textit{embedding} aleatório aprendido
+          \item Ao longo das $L$ camadas, acumula informação de \textbf{toda a frase} via \textit{self-attention}
+          \item Seu estado final $\mathbf{h}_{[\text{CLS}]}^{(L)}$ é usado como \textbf{representação agregada da sequência}
+          \item Cabeças de \textbf{classificação} de sentença ligam-se a ele
+        \end{itemize}
+        \begin{alertblock}{Observação}
+          $\mathbf{h}_{[\text{CLS}]}$ do BERT não é um bom \textit{sentence embedding}.
+        \end{alertblock}
+  \end{frame}
+
+  %--- Slide: SEP and segments ---
+  \begin{frame}{\texttt{[SEP]} e \textit{Segment Embeddings}}
+    BERT pode receber uma ou \textbf{duas} sentenças:
+    \vspace{0.3em}
+    \begin{block}{Formato para uma sentença}
+      \texttt{[CLS] o gato dorme [SEP]}
+    \end{block}
+    \begin{block}{Formato para duas sentenças (par)}
+      \texttt{[CLS] o gato dorme [SEP] no tapete vermelho [SEP]}
+    \end{block}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \texttt{[SEP]} marca \textbf{fronteiras} entre segmentos
+      \item \textbf{Segment embeddings}: $E_A$ adicionado aos \textit{tokens} da primeira sentença, $E_B$ aos da segunda
+      \item Permite tarefas de \textbf{pares de sentença}: NLI, similaridade, paráfrase, QA
+    \end{itemize}
+    \vspace{0.3em}
+    \textcolor{DarkBlue}{\textbf{Insight}}: sem \textit{segment embeddings}, o modelo não saberia se um \textit{token} pertence à pergunta ou ao contexto em uma tarefa de QA.
+  \end{frame}
+
+  %--- Slide: fixed length + padding ---
+  \begin{frame}{Comprimento Fixo e \textit{Padding}}
+    \textbf{BERT tem um comprimento máximo fixo de 512 \textit{tokens}}.
+    \vspace{0.4em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \textbf{Por quê fixo?}
+        \begin{itemize}
+          \item \textit{Position embeddings} aprendidos: só existem para posições $0, \ldots, 511$
+          \item Atenção $O(L^2)$ $\to$ custo proibitivo para $L$ grande
+          \item \textit{Batching} eficiente requer forma uniforme
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \textbf{Como uniformizar um \textit{batch}?}
+        \begin{itemize}
+          \item Frases \textbf{curtas} $\to$ \textbf{\textit{padding}} com \texttt{[PAD]} até o comprimento desejado
+          \item Frases \textbf{longas} $\to$ \textbf{truncagem} (ou \textit{sliding window})
+          \item \textit{Attention mask} indica quais posições são reais
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vspace{0.4em}
+    \begin{exampleblock}{Máscara de atenção}
+      \centering
+      \ttfamily\small
+      \begin{tabular}{cccccccc}
+        {[CLS]} & o & gato & {[SEP]} & {[PAD]} & {[PAD]} & {[PAD]} & {[PAD]} \\[2pt]
+        1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 \\
+      \end{tabular}
+      \rmfamily
+
+      \vspace{0.3em}
+      Posições com \texttt{0} recebem $-\infty$ nos \textit{logits} de atenção e são efetivamente ignoradas.
+    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: MLM objective ---
+  \begin{frame}{Objetivo \#1: \textit{Masked Language Modeling} (MLM)}
+    \textbf{Ideia}: esconder aleatoriamente $15\%$ dos \textit{tokens} e pedir ao modelo que os recupere.
+
+    \vspace{0.5em}
+    \centering
+    \resizebox{0.75\linewidth}{!}{%
+    \begin{tikzpicture}[
+      tok/.style={draw, rounded corners, fill=LightGray, minimum width=1.5cm, minimum height=0.55cm, font=\small},
+      mask/.style={draw, rounded corners, fill=CellRed, minimum width=1.5cm, minimum height=0.55cm, font=\small\ttfamily},
+      lbl/.style={font=\scriptsize, DarkBlue},
+    ]
+      \node[tok] (t1) at (0,1) {O};
+      \node[tok, right=0.1 of t1] (t2) {gato};
+      \node[mask, right=0.1 of t2] (t3) {[MASK]};
+      \node[tok, right=0.1 of t3] (t4) {no};
+      \node[tok, right=0.1 of t4] (t5) {tapete};
+
+      \node[lbl, below=0.2 of t3] {modelo deve prever: ``sentou''};
+    \end{tikzpicture}}
+    \vspace{0.5em}
+    \begin{itemize}
+      \item Perda: \textit{cross-entropy} sobre o vocabulário para \textbf{cada posição mascarada}
+      \item O modelo aprende \textbf{atenção bidirecional}: pode olhar para a esquerda E direita
+      \item Contraste com GPT: que só vê a esquerda $\to$ \textbf{sinal de treino mais fraco por \textit{token}}
+    \end{itemize}
+    \[
+      \mathcal{L}_{\text{MLM}} = -\frac{1}{|M|} \sum_{i \in M} \log p(w_i \mid \mathbf{w}_{\setminus M})
+    \]
+    onde $M$ é o conjunto de posições mascaradas.
+  \end{frame}
+
+  %--- Slide: 80/10/10 rule ---
+  \begin{frame}{A Regra $80/10/10$ do MLM}
+    Dos $15\%$ \textit{tokens} selecionados para máscara, \textbf{nem todos} viram \texttt{[MASK]}:
+    \vspace{0.2em}
+    \begin{columns}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Distribuição}
+          \begin{itemize}\setlength{\itemsep}{1pt}
+            \item \textbf{$80\%$}: substituído por \texttt{[MASK]}
+            \item \textbf{$10\%$}: substituído por \textbf{palavra aleatória}
+            \item \textbf{$10\%$}: \textbf{mantido} como está
+          \end{itemize}
+          \vspace{0.1em}
+          {\small Em todos os casos, o modelo deve prever a palavra original.}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \textbf{Por que essa mistura?}
+        \begin{itemize}\small\setlength{\itemsep}{1pt}
+          \item \textcolor{DarkRed}{\texttt{[MASK]} só existe no pré-treino}, nunca no \textit{fine-tuning} $\to$ \textbf{desalinhamento}
+          \item $10\%$ aleatórios forçam o modelo a ser ``cético'' sobre \textit{tokens} visíveis
+          \item $10\%$ intactos garantem representações úteis para \textit{tokens} não-mascarados
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vspace{0.2em}
+    \begin{exampleblock}{Exemplo}\small
+      \begin{itemize}\setlength{\itemsep}{1pt}
+        \item ``\textit{O gato} [MASK] \textit{no tapete}'' \hfill $80\%$
+        \item ``\textit{O gato \textbf{banana} no tapete}'' \hfill $10\%$
+        \item ``\textit{O gato sentou no tapete}'' (inalterado) \hfill $10\%$
+      \end{itemize}
+    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: MLM worked example ---
+  \begin{frame}{MLM: Exemplo Numérico}
+    Frase: ``\texttt{A capital da França é Paris}'' (6 \textit{tokens})
+    \vspace{0.3em}
+    \begin{enumerate}
+      \item $15\% \times 6 \approx 1$ \textit{token} selecionado. Suponha que seja ``\textit{Paris}''.
+      \item Com probabilidade $80\%$ $\to$ ``\texttt{A capital da França é [MASK]}''
+      \item \textit{Forward pass} pelo BERT $\to$ estado oculto $\mathbf{h}_{[\text{MASK}]} \in \mathbb{R}^{768}$
+      \item Cabeça linear $\to$ \textit{logits} sobre o vocabulário ($|V| \approx 30$k)
+      \item \textit{Softmax} $\to$ distribuição de probabilidade
+    \end{enumerate}
+    \vspace{0.3em}
+    \textbf{Topo das predições (hipotético):}
+    \vspace{0.2em}
+    \centering
+    \begin{tabular}{lr}
+      \toprule
+      \textit{Token} & Probabilidade \\
+      \midrule
+      Paris & $0.71$ \\
+      Lyon & $0.08$ \\
+      Marselha & $0.04$ \\
+      Berlim & $0.02$ \\
+      \ldots & \ldots \\
+      \bottomrule
+    \end{tabular}
+    \vspace{0.2em}
+    \flushleft
+    Perda: $-\log 0.71 \approx 0.34$ na posição mascarada.
+  \end{frame}
+
+  %--- Slide: NSP ---
+  \begin{frame}{Objetivo \#2: \textit{Next Sentence Prediction} (NSP)}
+    \textbf{Ideia}: dado um par de sentenças $(A, B)$, prever se $B$ é a sentença que \textbf{segue} $A$ no texto original, ou se é uma sentença aleatória.
+    \vspace{0.4em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \begin{exampleblock}{Exemplo positivo (\texttt{IsNext})}
+          $A$: ``Ele abriu a porta do carro.'' \\
+          $B$: ``Em seguida, entrou e ligou o motor.''
+        \end{exampleblock}
+        \begin{exampleblock}{Exemplo negativo (\texttt{NotNext})}
+          $A$: ``Ele abriu a porta do carro.'' \\
+          $B$: ``Mercúrio é o menor planeta do sistema solar.''
+        \end{exampleblock}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \textbf{Arquitetura}:
+        \begin{itemize}
+          \item Entrada: \texttt{[CLS] A [SEP] B [SEP]}
+          \item Cabeça binária sobre $\mathbf{h}_{[\text{CLS}]}^{(L)}$
+          \item \textit{Cross-entropy} binária
+        \end{itemize}
+        \vspace{0.3em}
+        \textbf{Motivação}: treinar o modelo a entender \textbf{relações entre sentenças} (útil para NLI, QA, \ldots).
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \textcolor{DarkRed}{\textbf{Spoiler}}: RoBERTa \footfullcite{liu2019roberta} mostrou que \textbf{NSP não ajuda}, modelos de \textit{word embedding} e \textit{sentence embedding} mais modernos não usam essa tarefa.
+  \end{frame}
+
+  %--- Slide: Combined loss ---
+  \begin{frame}{Perda Total de Pré-Treino}
+    As duas perdas são combinadas em um único escalar:
+    \[
+      \mathcal{L}_{\text{BERT}} = \mathcal{L}_{\text{MLM}} + \mathcal{L}_{\text{NSP}}
+    \]
+    \vspace{0.3em}
+    \begin{itemize}
+      \item O \textbf{mesmo} \textit{forward pass} gera ambas as perdas
+      \item $\mathcal{L}_{\text{MLM}}$ usa as posições mascaradas
+      \item $\mathcal{L}_{\text{NSP}}$ usa a posição \texttt{[CLS]}
+      \item \textit{Backprop} ocorre conjuntamente, com os gradientes somados
+    \end{itemize}
+    \vspace{0.4em}
+    \begin{block}{Treinamento original}
+      \begin{itemize}
+        \item $1$M passos de $256$ sequências, $\sim 40$ épocas
+        \item 4 TPU \textit{pods}, $\sim 4$ dias para BERT-Base
+        \item \textit{Adam} com \textit{warmup} linear
+      \end{itemize}
+    \end{block}
+  \end{frame}
+
+  %--- Slide: fine-tuning overview ---
+  \begin{frame}{\textit{Fine-Tuning}: Uma Cabeça, Muitas Tarefas}
+    Depois do pré-treino, o BERT pode ser \textbf{adaptado} a uma tarefa específica treinando por poucas épocas com uma \textbf{cabeça nova}.
+
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \textbf{Receita genérica}:
+        \begin{enumerate}
+          \item Carregar pesos pré-treinados
+          \item Substituir a cabeça MLM / NSP por uma cabeça específica da tarefa (inicializada aleatoriamente)
+          \item Treinar \textbf{tudo} de ponta a ponta por 2--5 épocas
+          \item \textit{Learning rate} baixa ($\sim 2 \times 10^{-5}$)
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{alertblock}{Surpreendentemente geral}
+          O \textbf{mesmo modelo base} resolve:
+          \begin{itemize}
+            \item Classificação de frase (SST-2, CoLA)
+            \item Pares de frase (NLI, paráfrase)
+            \item Marcação de \textit{token} (NER, POS)
+          \end{itemize}
+          Só muda a cabeça e o formato da entrada.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: 4 fine-tuning formats ---
+  \begin{frame}{Quatro Formatos de \textit{Fine-Tuning}}
+    \centering
+    \resizebox{0.82\linewidth}{!}{%
+    \begin{tikzpicture}[
+      enc/.style={draw, fill=CellGreen, rounded corners, minimum width=3.5cm, minimum height=0.6cm, font=\scriptsize},
+      tok/.style={draw, fill=LightGray, minimum width=0.55cm, minimum height=0.35cm, font=\tiny},
+      cls/.style={draw, fill=CellYellow, minimum width=0.55cm, minimum height=0.35cm, font=\tiny},
+      sep/.style={draw, fill=CellBlue, minimum width=0.55cm, minimum height=0.35cm, font=\tiny},
+      head/.style={draw, fill=CellRed, rounded corners, minimum width=0.55cm, minimum height=0.35cm, font=\tiny},
+    ]
+      % A: single sentence classification
+      \node[font=\footnotesize\bfseries] at (2,4) {(a) Classificação de sentença};
+      \node[cls] (a1) at (0.3,3) {\texttt{[CLS]}};
+      \node[tok, right=0.03 of a1] (a2) {$w_1$};
+      \node[tok, right=0.03 of a2] (a3) {$w_2$};
+      \node[tok, right=0.03 of a3] (a4) {$w_3$};
+      \node[sep, right=0.03 of a4] (a5) {\texttt{[SEP]}};
+      \node[enc, below=0.2 of a3] (ea) {BERT};
+      \node[head, above=0.2 of a1] {$y$};
+
+      % B: sentence pair classification
+      \node[font=\footnotesize\bfseries] at (9.5,4) {(b) Classificação de par};
+      \node[cls] (b1) at (6.8,3) {\texttt{[CLS]}};
+      \node[tok, right=0.03 of b1] (b2) {$A_1$};
+      \node[tok, right=0.03 of b2] (b3) {$A_2$};
+      \node[sep, right=0.03 of b3] (b4) {\texttt{[SEP]}};
+      \node[tok, right=0.03 of b4] (b5) {$B_1$};
+      \node[tok, right=0.03 of b5] (b6) {$B_2$};
+      \node[sep, right=0.03 of b6] (b7) {\texttt{[SEP]}};
+      \node[enc, below=0.2 of b4] (eb) {BERT};
+      \node[head, above=0.2 of b1] {$y$};
+
+
+      % C: Token-level
+      \node[font=\footnotesize\bfseries] at (2,1.4) {(c) Marcação de \textit{token}};
+      \node[cls] (c1) at (0.3,0.4) {\texttt{[CLS]}};
+      \node[tok, right=0.03 of c1] (c2) {$w_1$};
+      \node[tok, right=0.03 of c2] (c3) {$w_2$};
+      \node[tok, right=0.03 of c3] (c4) {$w_3$};
+      \node[sep, right=0.03 of c4] (c5) {\texttt{[SEP]}};
+      \node[enc, below=0.2 of c3] (ec) {BERT};
+      \node[head, above=0.2 of c2] {$y_1$};
+      \node[head, above=0.2 of c3] {$y_2$};
+      \node[head, above=0.2 of c4] {$y_3$};
+
+      % D: span
+      \node[font=\footnotesize\bfseries] at (9.5,1.4) {(d) SQuAD};
+      \node[cls] (d1) at (6.8,0.4) {\texttt{[CLS]}};
+      \node[tok, right=0.03 of d1] (d2) {$q_1$};
+      \node[sep, right=0.03 of d2] (d3) {\texttt{[SEP]}};
+      \node[tok, right=0.03 of d3] (d4) {$c_1$};
+      \node[tok, right=0.03 of d4] (d5) {$c_2$};
+      \node[tok, right=0.03 of d5] (d6) {$c_3$};
+      \node[sep, right=0.03 of d6] (d7) {\texttt{[SEP]}};
+      \node[enc, below=0.2 of d4] (ed) {BERT};
+      \node[head, above=0.2 of d4] {start};
+      \node[head, above=0.2 of d6] {end};
+    \end{tikzpicture}}
+    \vspace{0.6em}
+    \begin{itemize}\footnotesize
+      \item (a) e (b) usam $\mathbf{h}_{[\text{CLS}]}$ como representação da (pair de) frase
+      \item (c) usa os vetores por \textit{token} $\mathbf{h}_i$
+      \item (d) usa dois vetores globais $\mathbf{w}_{\text{start}}, \mathbf{w}_{\text{end}}$ para classificar cada posição
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: feature extraction vs fine-tuning ---
+  \begin{frame}{\textit{Feature Extraction} vs \textit{Fine-Tuning}}
+    Duas estratégias para usar um modelo pré-treinado:
+    \vspace{0.3em}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{\textit{Feature Extraction} (pesos congelados)}
+          \begin{itemize}
+            \item Congela BERT, treina só a cabeça
+            \item Muito mais rápido e barato
+            \item Pode \textbf{cachear} os \textit{embeddings}
+            \item Desempenho geralmente menor
+            \item Útil quando temos poucos dados ou pouca GPU
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{\textit{Fine-Tuning} (pesos descongelados)}
+          \begin{itemize}
+            \item Treina BERT \textbf{inteiro} + cabeça
+            \item \textit{Learning rate} pequena ($2\times10^{-5}$)
+            \item Melhor desempenho
+            \item Custo: $\sim 10 \times$ mais GPU
+            \item Risco de \textit{overfitting} com poucos dados
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    Ainda há possibilidade de usar adaptadores \textsc{LoRA} para treinar apenas um subconjunto pequeno de parâmetros.
+  \end{frame}
+
+  %--- Slide: BERT variants ---
+  \begin{frame}{O Ecossistema BERT: Principais Variantes}
+    \begin{itemize}\small\setlength{\itemsep}{4pt}
+      \item \textbf{RoBERTa} \cite{liu2019roberta}: Remove NSP, mais dados ($160$ GB), mascaramento dinâmico, \textit{batch} maior. \textbf{Resultado}: $+2$ pts no GLUE.
+      \item \textbf{ALBERT} \cite{lan2020albert}: Compartilhamento de parâmetros entre camadas + fatoração do \textit{embedding}. \textbf{Resultado}: $-90\%$ parâmetros.
+      \item \textbf{DeBERTa} \cite{he2021deberta}: \textit{Disentangled attention} (conteúdo e posição separados) + \textit{enhanced mask decoder}. \textbf{Resultado}: SOTA em SuperGLUE.
+      \item \textbf{ELECTRA} \cite{clark2020electra}: Substitui MLM por \textit{Replaced Token Detection}: discrimina \textit{tokens} reais de gerados. \textbf{Resultado}: mesmo desempenho com $\sim\!25\%$ do \textit{compute}.
+    \end{itemize}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Todos são \textbf{encoder-only} e mantêm a receita pré-treino $\to$ \textit{fine-tuning}
+      \item ELECTRA: treina \textbf{todas} as posições, não só os $15\%$ mascarados $\to$ sinal denso
+      \item DeBERTa-v3 ainda é competitivo em classificação e NLI
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 5: TOKEN TO SENTENCE
+  %======================================================================================
+  \section{De \textit{Tokens} a Sentenças: \textit{Sentence Embeddings}}
+
+  %--- Slide: motivation ---
+  \begin{frame}{Motivação: Um Vetor por Sentença}
+    Muitas aplicações precisam de \textbf{um único vetor} que represente uma sentença ou documento inteiro:
+    \vspace{0.4em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Aplicações}
+          \begin{itemize}
+            \item \textbf{Busca semântica}: encontrar documentos similares a uma consulta
+            \item \textbf{RAG}: recuperar contexto relevante para um LLM
+            \item \textbf{Clustering}: agrupar documentos por tópico
+            \item \textbf{Deduplicação}: detectar paráfrases
+            \item \textbf{Classificação}: \textit{zero-shot} com \textit{embeddings} comparados a rótulos
+            \item \textbf{Recomendação}: \textit{item-to-item}
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \textbf{Requisitos}:
+        \begin{itemize}
+          \item \textbf{Rápido}: milhões de vetores pré-computados, consulta em milissegundos
+          \item \textbf{Compacto}: $384$--$1024$ dimensões
+          \item \textbf{Semanticamente} estruturado: similaridade cosseno deve refletir similaridade de significado
+        \end{itemize}
+        \vspace{0.3em}
+        \textcolor{DarkBlue}{\textbf{BERT \textit{out-of-the-box} resolve isso?}}
+
+        \vspace{0.2em}
+        \textit{Não muito bem, como veremos.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: naive approaches ---
+  \begin{frame}{Abordagens Ingênuas}
+    Como extrair \textbf{um} vetor de BERT para uma sentença?
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.33\textwidth}
+        \begin{block}{\texttt{[CLS]} \textit{pooling}}
+          \begin{itemize}
+            \item Usar $\mathbf{h}_{[\text{CLS}]}^{(L)}$
+            \item ``Parece o certo'': ele foi projetado para classificação
+            \item \textcolor{DarkRed}{\textbf{Ruim}} para similaridade
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.33\textwidth}
+        \begin{block}{\textit{Mean pooling}}
+          \begin{itemize}
+            \item $\frac{1}{L} \sum_i \mathbf{h}_i^{(L)}$
+            \item Simples, robusto
+            \item Usa a máscara para ignorar \texttt{[PAD]}
+            \item Empiricamente \textbf{melhor} que \texttt{[CLS]}
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.33\textwidth}
+        \begin{block}{\textit{Max pooling}}
+          \begin{itemize}
+            \item $\max_i \mathbf{h}_i^{(L)}$ por dimensão
+            \item Captura ``\textit{features} mais salientes''
+            \item Menos usada na prática
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \begin{alertblock}{Descoberta de \cite{reimers2019sbert}}
+      \textbf{BERT \textit{vanilla} + \texttt{[CLS]} performa \textit{pior} que GloVe} em \textit{Semantic Textual Similarity} (STS) usando similaridade cosseno!
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: why CLS fails ---
+  \begin{frame}{Por Que \texttt{[CLS]} \textit{Vanilla} Falha em Similaridade?}
+        \textbf{O que o \texttt{[CLS]} aprende?}
+        \begin{itemize}
+          \item No pré-treino: \textbf{NSP} $\to$ ``esta é a próxima frase?''
+          \item Esse é um sinal \textit{binário} e ruidoso
+          \item Não há incentivo para \textbf{estruturar o espaço} de forma que frases similares fiquem próximas
+        \end{itemize}
+        \vspace{0.4em}
+        \textbf{Consequência}:
+        \begin{itemize}
+          \item O espaço de \texttt{[CLS]} é \textbf{anisotrópico}: todos os vetores ficam em um cone estreito
+          \item Distâncias cosseno são pouco informativas
+          \item Frases completamente diferentes podem ter cosseno $> 0.9$
+        \end{itemize}
+        \begin{exampleblock}{Logo...}
+          BERT foi treinado para \textit{token-level} MLM e classificação NSP, \textbf{não} para similaridade semântica.
+
+          Para obter bons \textit{sentence embeddings} precisamos de um \textbf{novo objetivo de treino}.
+        \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: bi-encoder vs cross-encoder ---
+  \begin{frame}{\textit{Bi-Encoder} vs \textit{Cross-Encoder}}
+    Duas formas de comparar duas frases com um \textit{encoder}:
+    \vspace{0.2em}
+    \centering
+    \resizebox{0.82\linewidth}{!}{%
+    \begin{tikzpicture}[
+      box/.style={draw, rounded corners, fill=CellGreen, minimum width=2.2cm, minimum height=0.6cm, font=\small},
+      pooler/.style={draw, rounded corners, fill=CellBlue, minimum width=1.4cm, minimum height=0.5cm, font=\scriptsize},
+      score/.style={draw, rounded corners, fill=CellYellow, minimum width=1.4cm, minimum height=0.5cm, font=\scriptsize},
+      arrow/.style={->, >=stealth, thick},
+    ]
+      % Bi-encoder
+      \node[font=\bfseries\small, DarkGreen] at (2.5,5.0) {Bi-Encoder};
+      \node[box] (ba) at (1,3) {BERT};
+      \node[box] (bb) at (4,3) {BERT};
+      \node[pooler, above=0.2 of ba] (pa) {pool};
+      \node[pooler, above=0.2 of bb] (pb) {pool};
+      \node[score, above=0.15 of $(pa)!0.5!(pb)$] (bs) {$\cos$};
+      \draw[arrow] (ba) -- (pa);
+      \draw[arrow] (bb) -- (pb);
+      \draw[arrow] (pa) -- (bs);
+      \draw[arrow] (pb) -- (bs);
+      \node[font=\scriptsize, below=0.1 of ba] {Frase $A$};
+      \node[font=\scriptsize, below=0.1 of bb] {Frase $B$};
+
+      % Cross-encoder
+      \node[font=\bfseries\small, DarkRed] at (10.5,5.0) {Cross-Encoder};
+      \node[box, minimum width=4.0cm] (cc) at (10.5,3) {BERT};
+      \node[score, above=0.2 of cc] (cs) {classifier};
+      \draw[arrow] (cc) -- (cs);
+      \node[font=\scriptsize, below=0.1 of cc] {\texttt{[CLS] A [SEP] B [SEP]}};
+    \end{tikzpicture}}
+    \vspace{0.2em}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \footnotesize\textbf{Bi-Encoder}:
+        \begin{itemize}\footnotesize
+          \item Codifica $A$ e $B$ \textbf{independentemente}
+          \item $A$ pode ser pré-computado e armazenado
+          \item Consulta: $1$ \textit{forward pass} por $B$ + busca em vetor
+          \item \textbf{Rápido}, escala para bilhões
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \footnotesize\textbf{Cross-Encoder}:
+        \begin{itemize}\footnotesize
+          \item Vê os dois \textbf{juntos}, atenção cruzada \textit{full}
+          \item Melhor desempenho (mais informação)
+          \item $1$ \textit{forward pass} \textbf{por par} $\to$ $O(n^2)$
+          \item \textbf{Inviável} para busca em escala
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: quantitative comparison ---
+  \begin{frame}{A Diferença de Velocidade: 65 horas $\to$ 5 segundos}
+    Experimento de \cite{reimers2019sbert}:
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Corpus: $10\,000$ frases
+      \item Tarefa: encontrar os pares mais similares
+      \item Pares possíveis: $\binom{10\,000}{2} = 49\,995\,000$
+    \end{itemize}
+    \vspace{0.4em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \begin{alertblock}{Cross-encoder BERT}
+          $\sim 65$ horas para computar todas as similaridades par-a-par.
+        \end{alertblock}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{exampleblock}{Bi-encoder SBERT}
+          \begin{itemize}
+            \item Codificar as $10$k frases: $\sim 5$ segundos
+            \item Comparar todos os pares: $\sim 0.01$ segundos (matriz dot-product)
+          \end{itemize}
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+    \vspace{0.4em}
+    \textcolor{DarkBlue}{\textbf{Mais de 40\,000$\times$ mais rápido.}} Esse é o problema que SBERT resolve.
+  \end{frame}
+
+  %--- Slide: hybrid ---
+  \begin{frame}{Arquitetura Híbrida: \textit{Retrieve} + \textit{Rerank}}
+    Na prática, usa-se os dois em uma \textbf{pipeline em dois estágios}:
+    \vspace{0.3em}
+    \centering
+    \resizebox{0.9\linewidth}{!}{%
+    \begin{tikzpicture}[
+      stage/.style={draw, rounded corners, minimum width=3.5cm, minimum height=1.2cm, font=\small, align=center},
+      a/.style={stage, fill=CellGreen},
+      b/.style={stage, fill=CellYellow},
+      arrow/.style={->, >=stealth, thick},
+    ]
+      \node[font=\small] (q) at (0,0) {Consulta};
+      \node[a, right=0.8 of q] (be) {\textbf{Bi-encoder}\\\scriptsize top-$k$ candidatos\\\scriptsize (de $10^9$ docs)};
+      \node[b, right=0.8 of be] (ce) {\textbf{Cross-encoder}\\\scriptsize rerank dos $k$\\\scriptsize (top-$k \approx 100$)};
+      \node[font=\small, right=0.8 of ce] (r) {Top-$N$ final};
+
+      \draw[arrow] (q) -- (be);
+      \draw[arrow] (be) -- (ce);
+      \draw[arrow] (ce) -- (r);
+    \end{tikzpicture}}
+    \vspace{0.4em}
+    \begin{itemize}
+      \item \textbf{Bi-encoder} filtra bilhões $\to$ centenas em milissegundos
+      \item \textbf{Cross-encoder} reordena as centenas com alta precisão
+      \item Usa o melhor dos dois mundos: escala e qualidade
+      \item Padrão em sistemas modernos de \textit{retrieval} (Google, \textit{semantic search} empresarial, RAG)
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 6: CONTRASTIVE LEARNING
+  %======================================================================================
+  \section{Aprendizado Contrastivo}
+
+  %--- Slide: intuition ---
+  \begin{frame}{Intuição: Puxar os Similares, Empurrar os Diferentes}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        O \textbf{aprendizado contrastivo} treina um \textit{encoder} $f_\theta$ tal que:
+        \[
+          \cos(f_\theta(x), f_\theta(x^+)) \gg \cos(f_\theta(x), f_\theta(x^-))
+        \]
+        \begin{itemize}
+          \item $x$: \textit{anchor}
+          \item $x^+$: positivo (semanticamente similar)
+          \item $x^-$: negativo (diferente)
+        \end{itemize}
+        \vspace{0.3em}
+        Não precisa de rótulos explícitos, basta \textbf{pares positivos}.
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \resizebox{0.85\linewidth}{!}{%
+        \begin{tikzpicture}
+          \draw[very thick, gray] (0,0) circle (2.2);
+          \node[circle, fill=DarkBlue, inner sep=2pt, label={[font=\scriptsize, DarkBlue]right:$x$}] (a) at (0.3,0.4) {};
+          \node[circle, fill=DarkGreen, inner sep=2pt, label={[font=\scriptsize, DarkGreen]above:$x^+$}] (p) at (0.8,0.9) {};
+          \node[circle, fill=DarkRed, inner sep=2pt, label={[font=\scriptsize, DarkRed]below:$x^-_1$}] (n1) at (-1.4,-0.9) {};
+          \node[circle, fill=DarkRed, inner sep=2pt, label={[font=\scriptsize, DarkRed]left:$x^-_2$}] (n2) at (-1.6,1.2) {};
+          \node[circle, fill=DarkRed, inner sep=2pt, label={[font=\scriptsize, DarkRed]right:$x^-_3$}] (n3) at (1.5,-1.3) {};
+
+          \draw[->, thick, DarkGreen] (a) -- (p);
+          \draw[->, thick, DarkRed] (a) -- (n1);
+          \draw[->, thick, DarkRed] (a) -- (n2);
+          \draw[->, thick, DarkRed] (a) -- (n3);
+        \end{tikzpicture}}
+
+        \vspace{0.3em}
+        {\scriptsize Direção do gradiente: puxa $x^+$ para perto, empurra $x^-$ para longe.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: where positive pairs come from ---
+  \begin{frame}{De Onde Vêm os Pares Positivos?}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Pares \textit{naturais} (supervisão fraca)}
+          \begin{itemize}
+            \item Pergunta $\leftrightarrow$ resposta (StackExchange, Quora)
+            \item Título $\leftrightarrow$ corpo (notícias, artigos)
+            \item Parágrafos adjacentes
+            \item Pares \textit{query}$\leftrightarrow$\textit{click} de \textit{logs}
+            \item Traduções (mesma frase em línguas diferentes)
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Pares \textit{anotados} (supervisão forte)}
+          \begin{itemize}
+            \item NLI (SNLI, MultiNLI): \textit{entailment} $\to$ positivo, \textit{contradiction} $\to$ negativo
+            \item Duplicatas do Quora
+            \item MS MARCO: \textit{query}$\to$passagem relevante (relevância humana)
+            \item Paráfrases geradas por humanos
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.4em}
+    \begin{alertblock}{Escala importa}
+      Modelos modernos (e5, bge) treinam com \textbf{centenas de milhões} de pares positivos coletados da web com supervisão fraca, depois fazem \textit{fine-tuning} em dados anotados.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: triplet loss ---
+  \begin{frame}{\textit{Triplet Loss}}
+    Originário do \textbf{FaceNet} \footfullcite{schroff2015facenet} para reconhecimento facial.
+    \vspace{0.3em}
+    \begin{block}{Formulação}
+      \[
+        \mathcal{L}_{\text{triplet}} = \max\!\left( 0,\; \| f(x) - f(x^+) \|_2^2 - \| f(x) - f(x^-) \|_2^2 + \alpha \right)
+      \]
+      onde $\alpha > 0$ é a \textbf{margem}.
+    \end{block}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item A perda é zero quando o positivo está pelo menos $\alpha$ mais próximo que o negativo
+      \item \textbf{Margem} evita colapso trivial (todas as representações iguais)
+      \item Funciona, mas precisa de \textbf{triplos} $(x, x^+, x^-)$ construídos explicitamente
+      \item Limitação: \textbf{um único negativo por \textit{anchor}} $\to$ pouco sinal por \textit{step}
+    \end{itemize}
+    \vspace{0.3em}
+    A continuação natural é usar \textbf{muitos} negativos de uma vez...
+  \end{frame}
+
+  %--- Slide: InfoNCE ---
+  \begin{frame}{\textit{InfoNCE} / \textit{Multiple Negatives Ranking Loss}\footfullcite{oord2018infonce}}
+    
+    \begin{block}{Formulação}
+      Para um \textit{batch} de $N$ pares $(x_i, x_i^+)$ e todos os outros exemplos como negativos:
+      \[
+        \mathcal{L}_{\text{NCE}} = -\frac{1}{N} \sum_{i=1}^{N} \log \frac{\exp(\text{sim}(f(x_i), f(x_i^+)) / \tau)}{\sum_{j=1}^{N} \exp(\text{sim}(f(x_i), f(x_j^+)) / \tau)}
+      \]
+    \end{block}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item $\text{sim}$: produto escalar ou cosseno
+      \item $\tau$: \textbf{temperatura} (tipicamente $\tau = 0.05$ a $0.1$)
+      \item \textbf{In-batch negatives}: cada $x_j^+$ com $j \neq i$ atua como negativo para $x_i$
+      \item Equivale a um problema de \textbf{classificação} de $N$ vias: ``qual dos $N$ candidatos é o verdadeiro par?''
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: InfoNCE worked example ---
+  \begin{frame}{\textit{In-Batch Negatives}: Exemplo Visual}
+    \textit{Batch} de 4 pares: $(q_1, d_1), (q_2, d_2), (q_3, d_3), (q_4, d_4)$.
+    \vspace{0.3em}
+    \begin{columns}[T]
+      \begin{column}{0.35\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          cell/.style={draw, minimum width=1.0cm, minimum height=0.7cm, font=\small},
+          poscell/.style={cell, fill=CellGreen},
+          negcell/.style={cell, fill=CellRed!40},
+          hdr/.style={font=\small\bfseries},
+        ]
+          % Headers
+          \node[hdr] at (-1.2, 0) {$q_1$};
+          \node[hdr] at (-1.2, -0.8) {$q_2$};
+          \node[hdr] at (-1.2, -1.6) {$q_3$};
+          \node[hdr] at (-1.2, -2.4) {$q_4$};
+
+          \node[hdr] at (0, 0.8) {$d_1$};
+          \node[hdr] at (1.0, 0.8) {$d_2$};
+          \node[hdr] at (2.0, 0.8) {$d_3$};
+          \node[hdr] at (3.0, 0.8) {$d_4$};
+
+          % Matrix
+          \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+              \ifnum\i=\j
+                \node[poscell] at (\j*1.0, -\i*0.8) {};
+              \else
+                \node[negcell] at (\j*1.0, -\i*0.8) {};
+              \fi
+            }
+          }
+
+          % Labels on diagonal
+          \node[font=\scriptsize] at (0,0) {$+$};
+          \node[font=\scriptsize] at (1.0,-0.8) {$+$};
+          \node[font=\scriptsize] at (2.0,-1.6) {$+$};
+          \node[font=\scriptsize] at (3.0,-2.4) {$+$};
+        \end{tikzpicture}}
+      \end{column}
+      \begin{column}{0.63\textwidth}
+        
+        \begin{itemize}
+          \item Matriz $S_{ij} = \text{sim}(f(q_i), f(d_j)) / \tau$
+          \item Aplica-se \textit{softmax} em cada \textbf{linha}
+          \item Alvo: classe $i$ (a diagonal) $\to$ \textit{cross-entropy}
+          \item Os $3$ elementos \textcolor{DarkRed}{fora da diagonal} de cada linha são \textbf{negativos} ``grátis''
+          \item \textit{Batches} grandes ($N = 256, 1024, \ldots$) $\to$ mais negativos $\to$ gradiente mais informativo
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: why random negatives saturate ---
+  \begin{frame}{Negativos Aleatórios Saturam}
+    \begin{columns}
+      \begin{column}{0.55\textwidth}
+        No início do treino, negativos aleatórios são informativos: quase todos dão gradiente.
+
+        \vspace{0.3em}
+        Depois de algumas épocas:
+        \begin{itemize}
+          \item A maioria dos negativos aleatórios é \textbf{trivialmente diferente} do \textit{anchor}
+          \item Já estão longe no espaço
+          \item Gradiente próximo de zero $\to$ \textbf{sem sinal de aprendizado}
+          \item O modelo ``atinge um platô''
+        \end{itemize}
+        \vspace{0.3em}
+        \textcolor{DarkBlue}{\textbf{Precisamos de negativos que o modelo \textit{ainda confunda com positivos}.}}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \begin{tikzpicture}
+          \begin{axis}[
+            width=\linewidth, height=4.8cm,
+            xlabel={passos de treino},
+            ylabel={perda},
+            xmin=0, xmax=100,
+            ymin=0, ymax=3.5,
+            ymajorgrids=true,
+            grid style=dashed,
+            label style={font=\scriptsize},
+            tick label style={font=\scriptsize},
+            legend style={font=\tiny, at={(0.98,0.98)}, anchor=north east, draw=none},
+          ]
+            \addplot[DarkRed, very thick, domain=0:100, samples=60] {3*exp(-x/13.5)+1.1};
+            \addlegendentry{neg.\ aleatórios}
+            \addplot[DarkGreen, very thick, domain=0:100, samples=60] {3*exp(-x/30)+0.15};
+            \addlegendentry{neg.\ difíceis}
+          \end{axis}
+        \end{tikzpicture}
+
+        {\scriptsize\textit{Ilustrativo: negativos aleatórios saturam, negativos duros continuam informativos.}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: hard negative mining ---
+  \begin{frame}{\textit{Hard Negative Mining}}
+    \textbf{Ideia}: buscar ativamente negativos que estão \textbf{próximos} do \textit{anchor} no espaço atual.
+
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Estratégia 1: BM25 / léxica}
+          \begin{itemize}
+            \item Para cada \textit{query}, pegue documentos \textbf{não relevantes} mas com \textbf{alta sobreposição lexical}
+            \item Rápido e sem modelo
+            \item Usado em DPR \footfullcite{karpukhin2020dpr}
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Estratégia 2: auto-mineração}
+          \begin{itemize}
+            \item Usa o \textbf{\textit{checkpoint atual}} para codificar o corpus
+            \item Seleciona os \textit{top-k} vizinhos mais próximos (excluindo o positivo)
+            \item Atualiza os negativos \textbf{periodicamente}
+            \item Usado em ANCE \footfullcite{xiong2021ance}
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \textcolor{DarkBlue}{\textbf{Ordenado por dificuldade}}: léxica $<$ auto-minerada $<$ adversarial.
+  \end{frame}
+
+  %--- Slide: false negatives ---
+  \begin{frame}{A Armadilha dos \textit{False Negatives}}
+    \begin{columns}
+      \begin{column}{0.55\textwidth}
+        Nem todo ``negativo próximo'' é realmente negativo.
+        \vspace{0.3em}
+        \begin{exampleblock}{Exemplo}
+          \textit{Query}: ``Qual a capital do Brasil?''\\
+          \textit{Positivo rotulado}: ``Brasília é a capital.''\\
+          \textit{``Negativo'' minerado}: ``A cidade de Brasília foi inaugurada em 1960 como capital.''
+        \end{exampleblock}
+        \vspace{0.3em}
+        O segundo parágrafo é \textbf{tão relevante} quanto o positivo, mas não foi anotado. Treiná-lo como negativo ensina o modelo errado.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \begin{alertblock}{Mitigações}
+          \begin{itemize}
+            \item Filtrar negativos com \textit{score} muito alto (pode ser falso negativo)
+            \item Usar um \textbf{cross-encoder} para re-verificar
+            \item \textit{Consistency filtering} entre modelos
+            \item \textbf{\textit{In-batch}} com lotes grandes é menos suscetível (muitos negativos, baixa probabilidade de colisão)
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: practical notes ---
+  \begin{frame}{Notas Práticas: Temperatura e Tamanho de \textit{Batch}}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Temperatura $\tau$}
+          \begin{itemize}
+            \item $\tau$ pequeno (\textit{e.g.}\ $0.05$) $\to$ \textit{softmax} ``afiada'', foca nos mais difíceis
+            \item $\tau$ grande (\textit{e.g.}\ $0.2$) $\to$ distribuição mais plana, gradiente mais suave
+            \item \textbf{Hiperparâmetro crítico}: valores errados podem impedir convergência
+            \item Valor típico: $0.05$--$0.1$
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Tamanho de \textit{batch} $N$}
+          \begin{itemize}
+            \item Mais \textit{in-batch} negatives $\to$ melhor treino
+            \item Modelos SOTA usam $N = 1024$--$16\,384$
+            \item Técnicas: \textit{gradient cache}, \textit{GradCache}, \textit{cross-batch} negatives
+            \item \textbf{Lei empírica}: desempenho escala com $\log N$
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \begin{exampleblock}{Receita moderna}
+      Temperatura aprendida ($\tau$ como parâmetro treinável) + \textit{batchs} grandes + mistura de positivos naturais e minerados difíceis. Similar ao \textit{CLIP} em visão computacional.
+    \end{exampleblock}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 7: SBERT
+  %======================================================================================
+  \section{SBERT: \textit{Sentence-BERT}}
+
+  %--- Slide: SBERT intro ---
+  \begin{frame}{SBERT: O Primeiro \textit{Sentence Encoder} Prático\footfullcite{reimers2019sbert}}
+    
+    \begin{block}{Problema}
+      BERT \textit{vanilla} é lento demais para busca semântica em escala (cross-encoder $O(n^2)$) e seus \textit{embeddings} ingênuos são \textbf{piores que GloVe} em STS.
+    \end{block}
+    \vspace{0.3em}
+    \begin{block}{Solução}
+      Fazer \textbf{fine-tuning supervisionado} no BERT usando uma arquitetura \textbf{siamesa} que produz embeddings densos, rápidos e semanticamente estruturados.
+    \end{block}
+    \vspace{0.3em}
+    \textbf{Impacto}: a \textit{library} \texttt{sentence-transformers} popularizou a técnica e hoje é a base de quase todos os sistemas de busca semântica em produção.
+  \end{frame}
+
+  %--- Slide: SBERT architecture ---
+  \begin{frame}{Arquitetura Siamesa do SBERT}
+  \vspace{0.3em}
+    \centering
+    \resizebox{0.68\linewidth}{!}{%
+    \begin{tikzpicture}[
+      bert/.style={draw, rounded corners, fill=CellGreen, minimum width=3cm, minimum height=1.2cm, font=\small},
+      pool/.style={draw, rounded corners, fill=CellBlue, minimum width=3cm, minimum height=0.5cm, font=\scriptsize},
+      vec/.style={draw, rounded corners, fill=CellYellow, minimum width=2cm, minimum height=0.5cm, font=\scriptsize},
+      obj/.style={draw, rounded corners, fill=CellPurple, minimum width=4cm, minimum height=0.6cm, font=\small},
+      arrow/.style={->, >=stealth, thick},
+    ]
+      % Left tower
+      \node[font=\scriptsize] (sa) at (0,-0.5) {Frase $A$};
+      \node[bert, above=0.2 of sa] (ba) {BERT (pesos $\theta$)};
+      \node[pool, above=0.2 of ba] (pa) {mean pooling};
+      \node[vec, above=0.2 of pa] (va) {$\mathbf{u}$};
+
+      % Right tower
+      \node[font=\scriptsize] (sb) at (6,-0.5) {Frase $B$};
+      \node[bert, above=0.2 of sb] (bb) {BERT (pesos $\theta$)};
+      \node[pool, above=0.2 of bb] (pb) {mean pooling};
+      \node[vec, above=0.2 of pb] (vb) {$\mathbf{v}$};
+
+      % Objective
+      \node[obj, above=1.2 of $(va)!0.5!(vb)$] (o) {Objetivo (cosseno / softmax / triplet)};
+
+      \draw[arrow] (sa) -- (ba);
+      \draw[arrow] (ba) -- (pa);
+      \draw[arrow] (pa) -- (va);
+      \draw[arrow] (sb) -- (bb);
+      \draw[arrow] (bb) -- (pb);
+      \draw[arrow] (pb) -- (vb);
+      \draw[arrow] (va) -- (o);
+      \draw[arrow] (vb) -- (o);
+
+      % Shared weights
+      \draw[<->, dashed, DarkRed] (ba.east) -- (bb.west) node[midway, above, font=\tiny, DarkRed] {pesos compartilhados};
+    \end{tikzpicture}}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textbf{Dois} \textit{forward passes} com o \textbf{mesmo} BERT 
+      \item \textit{Mean pooling} sobre os \textit{tokens} (ignorando \textit{padding})
+      \item A função-objetivo depende da tarefa de treinamento
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: SBERT objectives ---
+  \begin{frame}{Três Objetivos de Treinamento}
+    \begin{columns}[T]
+      \begin{column}{0.33\textwidth}
+        \begin{block}{(1) Classificação (NLI)}
+          Concatenar $(\mathbf{u}, \mathbf{v}, |\mathbf{u} - \mathbf{v}|)$ e alimentar um classificador linear de 3 classes:
+          \[
+            y = W^\top [\mathbf{u};\mathbf{v};|\mathbf{u}-\mathbf{v}|]
+          \]
+          Usado em SNLI + MultiNLI ($\sim 1$M pares).
+        \end{block}
+      \end{column}
+      \begin{column}{0.33\textwidth}
+        \begin{block}{(2) Regressão (STS)}
+          Perda MSE entre o cosseno e o \textit{score} humano:
+          \[
+            \mathcal{L} = (\cos(\mathbf{u},\mathbf{v}) - s_{\text{humano}})^2
+          \]
+          Usado no STS-Benchmark.
+        \end{block}
+      \end{column}
+      \begin{column}{0.33\textwidth}
+        \begin{block}{(3) Triplet}
+          $\mathcal{L} = \max(0, \|\mathbf{u}_a - \mathbf{u}_p\| - \|\mathbf{u}_a - \mathbf{u}_n\| + \alpha)$
+
+          \vspace{0.3em}
+          Usado quando se tem triplas (\textit{anchor}, positivo, negativo).
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.4em}
+    \textbf{Receita no paper}: treinar primeiro em NLI (classificação), depois fazer \textit{fine-tuning} em STS (regressão) $\to$ melhor \textit{transfer}.
+  \end{frame}
+
+  %--- Slide: SBERT results ---
+  \begin{frame}{Resultados do SBERT}
+    \centering
+    \begin{tabular}{lc}
+      \toprule
+      \textbf{Modelo} & \textbf{Spearman em STS-b} \\
+      \midrule
+      GloVe (média) & $58.02$ \\
+      BERT \texttt{[CLS]} \textit{vanilla} & $20.29$ \\
+      BERT \textit{mean pooling} & $46.35$ \\
+      \midrule
+      \textbf{SBERT-base} & \textbf{$\mathbf{77.03}$} \\
+      \textbf{SBERT-large} & \textbf{$\mathbf{79.23}$} \\
+      \bottomrule
+    \end{tabular}
+    \vspace{0.5em}
+    \begin{itemize}
+      \item \textcolor{DarkRed}{\textbf{BERT \textit{vanilla} é pior que GloVe}} $\to$ motivação original
+      \item \textcolor{DarkGreen}{\textbf{SBERT}} melhora $\sim 30+$ pontos sobre BERT, $\sim 20$ sobre GloVe
+      \item Mesma arquitetura base, apenas \textbf{mudou o objetivo de treino}
+    \end{itemize}
+    \vspace{0.3em}
+    \textcolor{DarkBlue}{\textbf{Lição fundamental}}: o \textbf{objetivo de treino} importa tanto quanto a arquitetura.
+  \end{frame}
+
+  %--- Slide: SBERT applications ---
+  \begin{frame}{Aplicações do SBERT (e Descendentes)}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Busca semântica}
+          \begin{itemize}
+            \item Substitui BM25 ou o complementa
+            \item Base de motores de busca empresariais
+            \item Indexação com FAISS / HNSW
+          \end{itemize}
+        \end{block}
+        \begin{block}{RAG (\textit{Retrieval-Augmented Generation})}
+          \begin{itemize}
+            \item Recupera contexto para LLMs
+            \item Reduz alucinações
+            \item Permite atualizações sem re-treino
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Deduplicação}
+          \begin{itemize}
+            \item Detecção de quase-duplicatas em grandes corpora
+            \item Limpeza de dados de treino para LLMs
+          \end{itemize}
+        \end{block}
+        \begin{block}{Recomendação item-a-item}
+          \begin{itemize}
+            \item Produtos, artigos, \textit{posts}
+            \item ``Mais como este'' baseado em texto
+          \end{itemize}
+        \end{block}
+        \begin{block}{Análise de tópicos}
+          \begin{itemize}
+            \item Clustering + visualização
+            \item \textit{BERTopic}, \textit{Top2Vec}
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: modern embedders ---
+  \begin{frame}{O Legado do SBERT: Modelos Modernos}
+    Os melhores modelos de \textit{embedding} de hoje seguem \textbf{a mesma receita} do SBERT.
+
+    \begin{center}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lll}
+      \toprule
+      \textbf{Família} & \textbf{Organização} & \textbf{Característica distintiva} \\
+      \midrule
+      \textbf{e5} \cite{wang2022e5} & Microsoft & Pré-treino contrastivo fraco + \textit{fine-tuning} supervisionado \\
+      \textbf{bge} \cite{xiao2024bge} & BAAI & Multilíngue, forte \textit{retrieval}, variante \textit{reranker} \\
+      \textbf{GTE} & Alibaba & Foco em generalização entre domínios \\
+      \textbf{Nomic} & Nomic AI & Código aberto, dados públicos, alto \textit{context length} \\
+      \textbf{Jina} & Jina AI & \textit{Long context} ($8$k+), multilíngue \\
+      \bottomrule
+    \end{tabular}}
+    \end{center}
+    \vspace{0.4em}
+    \begin{itemize}
+      \item Todos usam \textbf{aprendizado contrastivo} em \textbf{centenas de milhões} de pares
+      \item Maioria usa \textbf{hard negative mining}
+      \item \textbf{Top-10 do MTEB} inclui modelos de $\sim 7$B parâmetros, treinados com \textit{instruction tuning}
+      \item A receita SBERT (2019) continua fundamentalmente válida
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: takeaway SBERT family ---
+  \begin{frame}{O Legado do SBERT: A Receita}
+    \begin{block}{A receita que dominou o campo}
+      \begin{enumerate}
+        \item Comece de um \textit{encoder} pré-treinado (BERT, RoBERTa, \ldots)
+        \item Arquitetura siamesa com \textit{mean pooling}
+        \item Aprendizado contrastivo com \textbf{in-batch negatives}
+        \item \textit{Hard negative mining} para a fase final
+        \item Treinar em dados diversos e supervisionados
+      \end{enumerate}
+    \end{block}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Funciona do tamanho de $110$M até $7$B parâmetros
+      \item Funciona em inglês, português, multilingue
+      \item Base de todos os sistemas de RAG em produção
+      \item Ainda é a forma \textbf{mais eficiente} de comparar textos em escala
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 8: TASKS & EVALUATION
+  %======================================================================================
+  \section{Tarefas e Avaliação de \textit{Sentence Embeddings}}
+
+  %--- Slide: retrieval ---
+  \begin{frame}{Tarefa: \textit{Retrieval} (Busca Semântica)}
+    \textbf{Objetivo}: dado uma \textit{query}, encontrar os documentos mais relevantes em um corpus de milhões/bilhões.
+    \vspace{0.4em}
+        \textbf{Pipeline offline}:
+        \begin{enumerate}
+          \item Codifica todo o corpus em vetores
+          \item Armazena em um índice vetorial (FAISS, HNSW, ScaNN)
+        \end{enumerate}
+        \vspace{0.3em}
+        \textbf{Pipeline online}:
+        \begin{enumerate}
+          \item Codifica a \textit{query}
+          \item Busca \textit{top-k} por similaridade cosseno
+          \item Retorna os documentos (ou passa para um \textit{reranker})
+        \end{enumerate}
+        \begin{alertblock}{Fundamental para RAG}
+          \textbf{RAG} (\textit{Retrieval-Augmented Generation}):
+          \begin{enumerate}
+            \item Recupera documentos relevantes (\textbf{bi-encoder})
+            \item Alimenta um LLM com eles
+            \item LLM gera resposta \textit{grounded}
+          \end{enumerate}
+        \end{alertblock}
+  \end{frame}
+
+  %--- Slide: clustering ---
+  \begin{frame}{Tarefa: \textit{Clustering}}
+    \textbf{Objetivo}: agrupar documentos semanticamente similares \textbf{sem rótulos}.
+    \textbf{Pipeline}:
+    \begin{enumerate}
+      \item Codifica os documentos
+      \item Aplica $k$-means, \textit{agglomerative clustering} ou HDBSCAN
+      \item Extrai tópicos / rótulos por \textit{cluster}
+    \end{enumerate}
+    \vspace{0.3em}
+    \textbf{Aplicações}:
+    \begin{itemize}
+      \item Descoberta de tópicos em \textit{feedback} de usuários
+      \item Organização de \textit{base} de conhecimento
+      \item Detecção de spam / clones
+      \item Visualização exploratória (com UMAP/t-SNE)
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: classification ---
+  \begin{frame}{Tarefa: Classificação via \textit{Linear Probe}}
+    \textbf{Ideia}: congelar o \textit{encoder}, treinar apenas um classificador linear sobre os \textit{embeddings}.
+    \vspace{0.4em}
+        \textbf{Receita}:
+        \begin{enumerate}
+          \item Codifica $n$ exemplos rotulados em vetores
+          \item Treina \textit{logistic regression} ou SVM
+          \item Avalia em \textit{test set}
+        \end{enumerate}
+        \vspace{0.3em}
+        \begin{block}{Benchmark de qualidade de embeddings}
+          O \textit{linear probe accuracy} é uma medida padrão de \textbf{quão útil} um \textit{embedding} é para tarefas \textit{downstream}:
+          \begin{itemize}
+            \item Alta acurácia $\to$ informação linear-separável presente
+            \item Baixa acurácia $\to$ \textit{embedding} ruim ou precisa de cabeça não-linear
+          \end{itemize}
+        \end{block}
+  \end{frame}
+
+  %--- Slide: STS ---
+  \begin{frame}{Tarefa: \textit{Semantic Textual Similarity} (STS)\footfullcite{cer2017sts}}
+    
+    Prever um \textit{score} de similaridade em $[0, 5]$ para um par de frases.
+    \vspace{0.4em}
+    \begin{exampleblock}{Exemplos do \textit{benchmark} STS}
+      \small
+      \begin{tabular}{p{5.3cm}p{5.3cm}c}
+        \toprule
+        \textbf{Frase A} & \textbf{Frase B} & \textbf{Score} \\
+        \midrule
+        Um homem está tocando piano. & Um cara toca teclado. & $4.2$ \\
+        Um gato preto dorme. & Um cão branco corre. & $0.8$ \\
+        A menina está comendo. & A garota está jantando. & $3.9$ \\
+        \bottomrule
+      \end{tabular}
+    \end{exampleblock}
+    \vspace{0.4em}
+    \begin{itemize}
+      \item \textbf{Avaliação}: \textbf{correlação de Spearman} entre cosseno predito e \textit{score} humano
+      \item Mede quão bem o espaço de \textit{embeddings} reflete similaridade semântica
+      \item Não requer \textit{fine-tuning}: avalia diretamente a similaridade cosseno
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Spearman vs Pearson ---
+  \begin{frame}{Spearman vs Pearson: Por quê?}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+      \small
+        \textbf{Pearson}: correlação \textbf{linear}
+        \[
+          r = \frac{\text{cov}(x,y)}{\sigma_x \sigma_y}
+        \]
+        Exige que a relação entre $x$ e $y$ seja \textbf{linear}.
+
+        \vspace{0.4em}
+        \textbf{Spearman}: correlação \textbf{monotônica}
+        \[
+          \rho = \text{Pearson}(\text{rank}(x), \text{rank}(y))
+        \]
+        Exige apenas que a \textbf{ordem} seja preservada.
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \textbf{Por que Spearman em STS?}
+        \begin{itemize}\small
+          \item \textit{Scores} humanos em $[0,5]$ são subjetivos; a escala \textbf{não é linear}
+          \item Cosseno $\in [-1,1]$ vive numa escala diferente, só o \textbf{ranking} importa
+          \item Queremos que pares mais similares fiquem \textbf{acima} de pares menos similares
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+  \begin{frame}{Spearman vs Pearson: Exemplo}
+
+  \begin{itemize}
+      \item Suponha que o modelo preveja \textbf{o quadrado} do \textit{score} humano ($\hat{y} = y^2$)
+      \item \textbf{Pearson} $\approx 0.98$ (penaliza a não-linearidade).
+      \item \textbf{Spearman} $= 1.00$ (ordem idêntica) 
+      \item Com curvatura maior, Pearson degrada ainda mais, apesar do ranking \textbf{continuar perfeito}.
+      
+  \end{itemize}
+      
+      \centering
+      \begin{tabular}{lcrrrrr}
+        \toprule
+        Humano & $y$ & $1$ & $2$ & $3$ & $4$ & $5$ \\
+        Modelo & $\hat{y}$ & $1$ & $4$ & $9$ & $16$ & $25$ \\
+        \bottomrule
+      \end{tabular}
+      
+            
+\end{frame}
+
+  %--- Slide: NLI ---
+  \begin{frame}{Tarefa: \textit{Natural Language Inference} (NLI)\footfullcite{bowman2015snli}}
+    
+    \textbf{Tarefa}: dada uma \textit{premissa} $P$ e uma \textit{hipótese} $H$, classificar em:
+    \begin{itemize}
+      \item \textbf{\textit{Entailment}}: $P$ implica $H$
+      \item \textbf{\textit{Contradiction}}: $P$ e $H$ se contradizem
+      \item \textbf{\textit{Neutral}}: nem uma coisa nem outra
+    \end{itemize}
+    \centering
+    \begin{tabular}{llc}
+      \toprule
+      \textbf{Premise} & \textbf{Hypothesis} & \textbf{Rótulo} \\
+      \midrule
+      Um homem joga futebol. & Uma pessoa pratica esporte. & \textcolor{DarkGreen}{entailment} \\
+      Um homem joga futebol. & Ele está dormindo. & \textcolor{DarkRed}{contradiction} \\
+      Um homem joga futebol. & Ele é profissional. & neutral \\
+      \bottomrule
+    \end{tabular}
+    \flushleft
+    \vspace{0.3em}
+    \textbf{Duplo papel}: NLI é (1) tarefa de avaliação \textbf{e} (2) fonte de sinal de treino para SBERT, através do mapeamento \textit{entailment} $\to$ positivo, \textit{contradiction} $\to$ negativo duro.
+  \end{frame}
+
+  %--- Slide: MTEB ---
+  \begin{frame}{MTEB: \textit{Massive Text Embedding Benchmark}}
+    \footfullcite{muennighoff2023mteb}
+    O \textbf{MTEB} é o \textit{benchmark} padrão moderno para \textit{sentence embeddings}.
+    \vspace{0.3em}
+    \begin{columns}
+      \begin{column}{0.5\textwidth}
+        \begin{itemize}
+          \item 8 tarefas de \textit{embedding}
+            \begin{itemize}
+              \item Classification
+              \item Clustering
+              \item Pair Classification
+              \item Reranking
+              \item Retrieval
+              \item STS
+              \item Summarization
+              \item \textit{Bitext Mining} (multilíngue)
+            \end{itemize}
+          \item \textbf{$>60$} \textit{datasets}
+          \item \textbf{$>100$} línguas
+          \item \textit{Leaderboard} público no Hugging Face
+        \end{itemize}
+        \vspace{0.3em}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{alertblock}{Por que ele mudou o jogo}
+          Antes do MTEB, cada \textit{paper} escolhia seu próprio \textit{benchmark} favorito.
+
+          \vspace{0.3em}
+          O MTEB forçou avaliação \textbf{uniforme} e revelou que modelos ``\textit{SOTA em STS}'' eram muito mais fracos em \textit{retrieval}.
+
+          \vspace{0.3em}
+          Um \textbf{embedding generalista} é aquele que vai bem em \textbf{todas} as categorias.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================================
+  % WRAP-UP
+  %======================================================================================
+  \section{Encerramento}
+
+  %--- Slide: decision summary ---
+  \begin{frame}{Recap: Quando Usar o Quê}
+    \begin{columns}[T]
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Encoder-only}
+          \begin{itemize}
+            \item Classificação de texto
+            \item NER, POS, QA extrativa
+            \item \textbf{Busca semântica / RAG retrieval}
+            \item \textit{Clustering}, deduplicação
+            \item Quando latência e custo importam
+            \item Modelos pequenos ($30$M--$7$B) são suficientes
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.5\textwidth}
+        \begin{block}{Decoder-only}
+          \begin{itemize}
+            \item Geração aberta
+            \item \textit{Chat}, criação de conteúdo
+            \item \textit{Reasoning}, código
+            \item \textit{In-context learning} e \textit{few-shot}
+            \item Quando qualidade de geração importa mais que latência
+            \item Modelos grandes ($7$B+) dominam
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \textcolor{DarkBlue}{\textbf{Sistemas reais usam os dois}}: encoder-only para indexar e buscar, decoder-only para gerar a resposta final (RAG).
+  \end{frame}
+
+  %--- Slide: key takeaways ---
+  \begin{frame}{\textit{Takeaways}}
+    \begin{enumerate}
+      \item \textbf{Contextual embeddings} (BERT, RoBERTa) resolvem a polissemia que atormentava Word2Vec/GloVe, e são a base de quase todas as tarefas de compreensão de texto.
+      \vspace{0.2em}
+      \item \textbf{BERT} popularizou a receita \textit{pré-treino MLM $\to$ fine-tuning}. A contribuição duradoura não é o modelo em si, mas o \textbf{paradigma}.
+      \vspace{0.2em}
+      \item \textbf{BERT \textit{vanilla} é ruim para similaridade de frases}. Precisamos treinar explicitamente para isso $\to$ \textbf{aprendizado contrastivo}.
+      \vspace{0.2em}
+      \item \textbf{SBERT} mostrou como: arquitetura siamesa, \textit{mean pooling}, perda contrastiva com \textit{in-batch negatives} e \textit{hard negative mining}.
+      \vspace{0.2em}
+      \item Modelos de \textit{embedding} modernos (\textbf{e5, bge, GTE, Nomic}) seguem a mesma receita em escala. 
+    \end{enumerate}
+  \end{frame}
+
+  %--- Slide: References ---
+  \begin{frame}[allowframebreaks]{Referências}
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,930 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Conexões Residuais}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Visão Geral}
+    \tableofcontents
+\end{frame}
+
+%========================================================================
+\section{Contexto}
+%========================================================================
+
+\begin{frame}{Contexto}
+\begin{itemize}
+    \item Até agora vimos que:
+    \begin{itemize}
+        \item MLPs são bons para resolver problemas de regressão e classificação.
+        \item Camadas convolucionais são boas para trabalhar com imagens.
+        \item Aumentar a profundidade da rede tende a melhorar os resultados.
+        \item Gradiente que se dissipa e gradiente explosivo são problemas, principalmente em redes mais profundas.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{O que vamos ver agora}
+\begin{itemize}
+    \item \textbf{O problema:} redes muito profundas podem treinar \textbf{pior} que redes mais rasas, o \textbf{problema da degradação}, apesar de terem mais capacidade.
+    \item \textbf{A solução:} \textbf{conexões residuais} (ou \textit{skip connections}), atalhos \textbf{aditivos} que somam a entrada de volta à saída de cada bloco.
+    \item E o \textit{batch norm}, para estabilizar a variância das ativações ao longo da profundidade.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Processamento Sequencial}
+%========================================================================
+
+\begin{frame}{Processamento Sequencial}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Tanto as CNNs quanto os MLPs vistos até aqui processam sequencialmente cada uma das suas camadas.
+        \end{itemize}
+        \begin{align*}
+            h_1 &= f_1[x,\theta_1] \\
+            h_2 &= f_2[h_1,\theta_2] \\
+            h_3 &= f_3[h_2,\theta_3] \\
+            &\;\;\vdots \\
+            h_n &= f_n[h_{n-1},\theta_n]
+        \end{align*}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\small}, node distance=0.6cm]
+            \node (x) at (0,0) {$x$};
+            \node[draw, fill=PastelGreen, minimum size=24pt, right=of x] (f1) {$f_1$};
+            \node[draw, fill=PastelGreen, minimum size=24pt, right=of f1] (f2) {$f_2$};
+            \node[draw, fill=PastelGreen, minimum size=24pt, right=of f2] (f3) {$f_3$};
+            \node[draw, fill=PastelGreen, minimum size=24pt, right=of f3] (f4) {$f_4$};
+            \node[right=of f4] (y) {$y$};
+            \draw[->, thick] (x) -- (f1);
+            \draw[->, thick] (f1) -- (f2);
+            \draw[->, thick] (f2) -- (f3);
+            \draw[->, thick] (f3) -- (f4);
+            \draw[->, thick] (f4) -- (y);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Composição de Funções}
+\begin{itemize}
+    \item Uma forma alternativa de pensar é escrever a mesma expressão como uma \textbf{composição de funções}:
+\end{itemize}
+\begin{align*}
+    h_1 &= f_1[x,\theta_1] \\
+    h_n &= f_n[\dots f_3[f_2[f_1[x,\theta_1],\theta_2],\theta_3],\theta_n]
+\end{align*}
+\vspace{0.5em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}, node distance=0.6cm]
+    \node (x) at (0,0) {$x$};
+    \node[draw, fill=PastelGreen, minimum size=24pt, right=of x] (f1) {$f_1$};
+    \node[draw, fill=PastelGreen, minimum size=24pt, right=of f1] (f2) {$f_2$};
+    \node[draw, fill=PastelGreen, minimum size=24pt, right=of f2] (f3) {$f_3$};
+    \node[draw, fill=PastelGreen, minimum size=24pt, right=of f3] (f4) {$f_4$};
+    \node[right=of f4] (y) {$y$};
+    \draw[->, thick] (x) -- (f1);
+    \draw[->, thick] (f1) -- (f2);
+    \draw[->, thick] (f2) -- (f3);
+    \draw[->, thick] (f3) -- (f4);
+    \draw[->, thick] (f4) -- (y);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Profundidade vs Acurácia}
+\begin{itemize}
+    \item \textbf{AlexNet}\footfullcite{krizhevsky2012imagenet}.
+    \begin{itemize}
+        \item 8 camadas.
+        \item Acurácia $84.7\%$ (top-5).
+    \end{itemize}
+    \item \textbf{VGG-16}\footfullcite{simonyan2014vgg}.
+    \begin{itemize}
+        \item 16 camadas.
+        \item Acurácia $92.7\%$ (top-5).
+    \end{itemize}
+    \item Por que não aumentar ainda mais a profundidade?
+    \begin{itemize}
+        \item A partir de certo ponto, a acurácia \textbf{piora}: é o \textbf{problema da degradação}.
+        \item \textbf{Não é \textit{overfitting}}: o \textbf{erro de treino} também aumenta.
+        \item Paradoxo: uma rede de 56 camadas deveria, no mínimo, igualar uma de 20 copiando as camadas extras como \textbf{identidade}, mas, na prática, treina pior.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Gradiente Quebrado (\textit{Shattered Gradient})}
+\begin{itemize}
+    \item A causa da \textbf{degradação} ainda não é completamente compreendida.
+    \item \textbf{Uma das hipóteses} é a do ``gradiente quebrado'' (\textit{shattered gradient})\footfullcite{balduzzi2017shattered}.
+    \item Pequenas mudanças nos pesos causam mudanças erráticas nas camadas seguintes.
+    \begin{itemize}
+        \item A diferença do passo ``infinitesimal'' das equações para o passo finito utilizado na prática faz cada vez mais diferença.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Gradiente Quebrado: Intuição}
+\begin{itemize}
+    \item Pela regra da cadeia:
+\end{itemize}
+\begin{equation*}
+    \frac{\partial f_4}{\partial f_1} = \frac{\partial f_4}{\partial f_3}\,\frac{\partial f_3}{\partial f_2}\,\frac{\partial f_2}{\partial f_1}
+\end{equation*}
+\begin{itemize}
+    \item Uma mudança em $f_1$ altera todas as funções subsequentes.
+    \item Em redes muito profundas, $\partial y / \partial x$ se torna extremamente errático em relação à entrada.
+    \item Quanto mais camadas, menos correlacionado o gradiente fica entre passos próximos.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Conexões Residuais}
+%========================================================================
+
+\begin{frame}{Conexões Residuais (\textit{Residual} ou \textit{Skip Connections})}
+\begin{itemize}
+    \item Criamos ramos no grafo computacional, adicionando uma cópia da entrada a cada camada:
+\end{itemize}
+\begin{columns}
+    \begin{column}{.45\linewidth}
+        \begin{align*}
+            h_1 &= x + f_1[x,\theta_1] \\
+            h_2 &= h_1 + f_2[h_1,\theta_2] \\
+            h_3 &= h_2 + f_3[h_2,\theta_3] \\
+            h_4 &= h_3 + f_4[h_3,\theta_4]
+        \end{align*}
+    \end{column}
+    \begin{column}{.55\linewidth}
+        \centering
+        \begin{tikzpicture}[every node/.style={font=\footnotesize}]
+            \node (x) at (0,0) {$x$};
+            \node[draw, fill=PastelGreen, minimum size=18pt] (f1) at (0.9,0) {$f_1$};
+            \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s1) at (1.7,0) {$+$};
+            \node[draw, fill=PastelGreen, minimum size=18pt] (f2) at (2.6,0) {$f_2$};
+            \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s2) at (3.4,0) {$+$};
+            \node[draw, fill=PastelGreen, minimum size=18pt] (f3) at (4.3,0) {$f_3$};
+            \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s3) at (5.1,0) {$+$};
+            \node[draw, fill=PastelGreen, minimum size=18pt] (f4) at (6.0,0) {$f_4$};
+            \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s4) at (6.8,0) {$+$};
+            \node (y) at (7.5,0) {$y$};
+            \draw[->, thick] (x) -- (f1);
+            \draw[->, thick] (f1) -- (s1);
+            \draw[->, thick] (s1) -- (f2);
+            \draw[->, thick] (f2) -- (s2);
+            \draw[->, thick] (s2) -- (f3);
+            \draw[->, thick] (f3) -- (s3);
+            \draw[->, thick] (s3) -- (f4);
+            \draw[->, thick] (f4) -- (s4);
+            \draw[->, thick] (s4) -- (y);
+            \draw[->, thick] (x.north) to[bend left=45] (s1.north);
+            \draw[->, thick] (s1.north) to[bend left=45] (s2.north);
+            \draw[->, thick] (s2.north) to[bend left=45] (s3.north);
+            \draw[->, thick] (s3.north) to[bend left=45] (s4.north);
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
+\vspace{0.6em}
+\begin{itemize}
+    \item \textbf{Por que ``residual''?} O bloco aprende só o \textbf{resíduo} $f(x){=}H(x){-}x$ (a correção a aplicar sobre $x$). Se a transformação ideal for a identidade, basta $f{\to}0$, fácil de aprender, o que resolve o paradoxo da degradação.
+    \item Cada bloco $f_i$ com sua conexão residual é um \textit{residual block}; a saída precisa ter o mesmo tamanho da entrada.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Expansão da Expressão}
+\begin{itemize}
+    \item Abrindo as expressões anteriores temos:
+\end{itemize}
+\begin{align*}
+    y = \;& x + f_1[x] \\
+        & + f_2\bigl[\,x + f_1[x]\,\bigr] \\
+        & + f_3\bigl[\,x + f_1[x] + f_2[x + f_1[x]]\,\bigr] \\
+        & + f_4\bigl[\,x + f_1[x] + f_2[x + f_1[x]] + f_3[x + f_1[x] + f_2[x + f_1[x]]]\,\bigr]
+\end{align*}
+\begin{itemize}
+    \item Observe que a saída é uma soma de várias contribuições, cada uma percorrendo um \textbf{caminho} diferente da entrada até a saída.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Múltiplos Caminhos da Entrada à Saída}
+\begin{itemize}
+    \item Em uma rede com 4 blocos residuais, $f_1$ contribui por $\mathbf{8} = 2^{4-1}$ caminhos distintos para a saída.
+    \item De forma geral, em uma rede com $n$ blocos residuais existem $\mathbf{2^n}$ caminhos da entrada à saída (cada bloco escolhe entre ser pulado ou aplicado), e $2^{n-1}$ desses caminhos passam por cada função $f_i$ específica.
+    \item Cada caminho pode ser ``ativo'' ou ``ignorado'' por um bloco, dependendo da combinação das ramificações.
+    \item A saída pode ser entendida como um ensemble implícito de redes de profundidades diferentes\footfullcite{veit2016ensembles}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Gradiente em Redes Residuais}
+\begin{itemize}
+    \item A derivada com relação a $f_1$ também tem múltiplos termos:
+\end{itemize}
+\begin{equation*}
+\small
+    \frac{\partial y}{\partial f_1} = I + \frac{\partial f_2}{\partial f_1} + \left(\frac{\partial f_3}{\partial f_1} + \frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right) + \left(\frac{\partial f_4}{\partial f_1} + \frac{\partial f_4}{\partial f_2}\frac{\partial f_2}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right)
+\end{equation*}
+\begin{itemize}
+    \item Intuição: a derivada de $x + f(x)$ é $1 + f'(x)$; o \textbf{``1''} (o termo $I$) é um \textbf{piso} que impede o gradiente de zerar.
+    \item O termo $I$ garante um caminho de gradiente que \textbf{não passa} por nenhum produto de derivadas.
+    \begin{itemize}
+        \item Mesmo que algumas derivadas se aproximem de zero, o gradiente não desaparece completamente.
+    \end{itemize}
+    \item Isso ataca diretamente o problema do gradiente que se dissipa.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Bloco Residual}
+%========================================================================
+
+\begin{frame}{Bloco Residual}
+\begin{itemize}
+    \item Até aqui parece que $f_i[x]$ poderia ser uma camada qualquer.
+    \begin{itemize}
+        \item Tecnicamente é verdade, mas na prática algumas escolhas funcionam melhor.
+    \end{itemize}
+    \item Abaixo uma ilustração do que seria uma conexão residual em uma camada típica:
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin) at (1.6,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=22pt] (relu) at (3.2,0) {ReLU};
+    \node[circle, draw, inner sep=1pt] (s) at (4.6,0) {$+$};
+    \node (y) at (5.6,0) {};
+    \draw[->, thick] (x) -- (lin);
+    \draw[->, thick] (lin) -- (relu);
+    \draw[->, thick] (relu) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (x) to[bend left=35] (s);
+\end{tikzpicture}
+\end{center}
+\vspace{0.6em}
+\begin{itemize}
+    \item Nessa configuração, a conexão residual só consegue \textbf{aumentar} o valor da representação recebida como entrada, nunca diminuir.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Bloco Residual: Inverter Ordem}
+\begin{itemize}
+    \item Inverter a ordem da ativação e da transformação linear permite que a representação sofra adições e subtrações.
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=PastelGreen, minimum size=22pt] (relu) at (1.6,0) {ReLU};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin) at (3.2,0) {Linear};
+    \node[circle, draw, inner sep=1pt] (s) at (4.6,0) {$+$};
+    \node (y) at (5.6,0) {};
+    \draw[->, thick] (x) -- (relu);
+    \draw[->, thick] (relu) -- (lin);
+    \draw[->, thick] (lin) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (x) to[bend left=35] (s);
+\end{tikzpicture}
+\end{center}
+\vspace{0.6em}
+\begin{itemize}
+    \item Porém agora temos um problema novo: se a entrada chegar toda negativa, a ReLU ``mata'' a propagação \textit{forward}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Bloco Residual: Linear Inicial}
+\begin{itemize}
+    \item Solução: começamos a rede com uma transformação linear \textbf{antes} dos blocos residuais.
+    \item Dentro do bloco usamos a ordem ReLU $\to$ Linear, que pode somar ou subtrair.
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin0) at (1.6,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=22pt] (relu) at (3.4,0) {ReLU};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin1) at (5.0,0) {Linear};
+    \node[circle, draw, inner sep=1pt] (s) at (6.4,0) {$+$};
+    \node (y) at (7.2,0) {};
+    \draw[->, thick] (x) -- (lin0);
+    \draw[->, thick] (lin0) -- (relu);
+    \draw[->, thick] (relu) -- (lin1);
+    \draw[->, thick] (lin1) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (lin0.north) ++(0.1,0.1) to[bend left=35] (s);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Bloco Residual: Múltiplas Transformações}
+\begin{itemize}
+    \item Podemos adicionar mais de uma transformação no mesmo bloco residual.
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\footnotesize}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=20pt] (lin0) at (1.3,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=20pt] (relu1) at (2.7,0) {ReLU};
+    \node[draw, fill=BrickRed!60, minimum size=20pt] (lin1) at (4.1,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=20pt] (relu2) at (5.5,0) {ReLU};
+    \node[draw, fill=BrickRed!60, minimum size=20pt] (lin2) at (6.9,0) {Linear};
+    \node[circle, draw, inner sep=1pt] (s) at (8.0,0) {$+$};
+    \node (y) at (8.7,0) {};
+    \draw[->, thick] (x) -- (lin0);
+    \draw[->, thick] (lin0) -- (relu1);
+    \draw[->, thick] (relu1) -- (lin1);
+    \draw[->, thick] (lin1) -- (relu2);
+    \draw[->, thick] (relu2) -- (lin2);
+    \draw[->, thick] (lin2) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (lin0.north) ++(0.1,0.1) to[bend left=30] (s);
+\end{tikzpicture}
+\end{center}
+\vspace{0.6em}
+\begin{itemize}
+    \item A ramificação ``salta'' por cima de um conjunto inteiro de operações.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Aumentando a Profundidade}
+\begin{itemize}
+    \item Ao adicionar conexões residuais conseguimos dobrar a profundidade das redes convolucionais e ainda assim manter o aumento de performance.
+    \begin{itemize}
+        \item Mas ainda existem fenômenos que nos impedem de ir mais profundamente.
+        \item Para entender isso, precisamos estudar a \textbf{variância das ativações} em redes com \textit{skip connections}.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Variância das Ativações}
+%========================================================================
+
+\begin{frame}{Variância em Linear + ReLU}
+\begin{itemize}
+    \item A inicialização He\footfullcite{he2015delving} garante que a variância de uma variável aleatória após uma transformação Linear + ReLU não será modificada:
+\end{itemize}
+\begin{equation*}
+    \sigma_{\text{in}}^2 = \sigma_{\text{out}}^2
+\end{equation*}
+\vspace{0.4em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin) at (1.6,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=22pt] (relu) at (3.2,0) {ReLU};
+    \node (y) at (4.4,0) {};
+    \draw[->, thick] (x) -- (lin);
+    \draw[->, thick] (lin) -- (relu);
+    \draw[->, thick] (relu) -- (y);
+    \node[font=\scriptsize] at (0.8,-0.45) {$\sigma_{\text{in}}^2$};
+    \node[font=\scriptsize] at (3.95,-0.45) {$\sigma_{\text{out}}^2$};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Variância com Conexão Residual}
+\begin{itemize}
+    \item Porém agora temos a \textit{skip connection}.
+    \item Como a variância da saída se comporta?
+\end{itemize}
+\begin{equation*}
+    \sigma_{\text{out}}^2 = \;?
+\end{equation*}
+\vspace{0.4em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=22pt] (lin) at (1.6,0) {Linear};
+    \node[draw, fill=PastelGreen, minimum size=22pt] (relu) at (3.2,0) {ReLU};
+    \node[circle, draw, inner sep=1pt] (s) at (4.6,0) {$+$};
+    \node (y) at (5.6,0) {};
+    \draw[->, thick] (x) -- (lin);
+    \draw[->, thick] (lin) -- (relu);
+    \draw[->, thick] (relu) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (x) to[bend left=35] (s);
+    \node[font=\scriptsize] at (0.8,-0.45) {$\sigma_{\text{in}}^2$};
+    \node[font=\scriptsize] at (3.9,-0.45) {$\sigma_{\text{in}}^2$};
+    \node[font=\scriptsize] at (3.0,1.05) {$\sigma_{\text{in}}^2$};
+    \node[font=\scriptsize] at (5.5,-0.45) {$\sigma_{\text{out}}^2$};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Variância de uma Soma}
+\begin{itemize}
+    \item Voltando aos fundamentos:
+\end{itemize}
+\begin{align*}
+    \mathrm{Var}[X] &= \mathbb{E}\bigl[(X - \mathbb{E}[X])^2\bigr] \\
+    \mathrm{Var}[X+Y] &= \mathbb{E}\bigl[\bigl((X+Y) - \mathbb{E}[X+Y]\bigr)^2\bigr] \\
+                     &= \mathbb{E}\bigl[(X - \mathbb{E}[X])^2\bigr] + 2\,\mathbb{E}\bigl[(X - \mathbb{E}[X])(Y - \mathbb{E}[Y])\bigr] + \mathbb{E}\bigl[(Y - \mathbb{E}[Y])^2\bigr] \\
+                     &= \mathrm{Var}[X] + 2\,\mathrm{Cov}(X,Y) + \mathrm{Var}[Y]
+\end{align*}
+\end{frame}
+
+\begin{frame}{Variância Após o Bloco Residual}
+\begin{itemize}
+    \item Assumindo independência entre $X$ (entrada) e $Y$ (saída do ramo processado):
+\end{itemize}
+\begin{equation*}
+    \mathrm{Var}[X+Y] = \mathrm{Var}[X] + \cancelto{0}{2\,\mathrm{Cov}(X,Y)} + \mathrm{Var}[Y] = \mathrm{Var}[X] + \mathrm{Var}[Y]
+\end{equation*}
+\vspace{0.4em}
+\begin{itemize}
+    \item Como ambos os ramos têm variância $\sigma_{\text{in}}^2$, a variância de saída é:
+\end{itemize}
+\begin{equation*}
+    \sigma_{\text{out}}^2 = 2\,\sigma_{\text{in}}^2
+\end{equation*}
+\begin{itemize}
+    \item Ou seja, a variância \textbf{dobra} depois de cada bloco residual.
+    \item A premissa de independência entre $X$ e $Y$ é razoável \textbf{na inicialização}, quando ativações ainda não foram acopladas pelo treino. Durante o treinamento a covariância deixa de ser nula, mas a intuição de variância crescente continua valendo como motivação.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Variância Explosiva}
+\begin{itemize}
+    \item Em uma rede com muitas camadas, rapidamente podemos exceder a precisão de ponto flutuante.
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\footnotesize}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=PastelGreen, minimum size=20pt] (f1) at (1.6,0) {$f_1$};
+    \node[circle, draw, inner sep=1pt] (s1) at (3.0,0) {$+$};
+    \node[draw, fill=PastelGreen, minimum size=20pt] (f2) at (4.6,0) {$f_2$};
+    \node[circle, draw, inner sep=1pt] (s2) at (6.0,0) {$+$};
+    \node[draw, fill=PastelGreen, minimum size=20pt] (f3) at (7.6,0) {$f_3$};
+    \node[circle, draw, inner sep=1pt] (s3) at (9.0,0) {$+$};
+    \node (y) at (10.0,0) {};
+    \draw[->, thick] (x) -- node[above, font=\scriptsize]{1} (f1);
+    \draw[->, thick] (f1) -- node[above, font=\scriptsize]{1} (s1);
+    \draw[->, thick] (s1) -- node[above, font=\scriptsize]{2} (f2);
+    \draw[->, thick] (f2) -- node[above, font=\scriptsize]{2} (s2);
+    \draw[->, thick] (s2) -- node[above, font=\scriptsize]{4} (f3);
+    \draw[->, thick] (f3) -- node[above, font=\scriptsize]{4} (s3);
+    \draw[->, thick] (s3) -- node[above, font=\scriptsize]{8} (y);
+    \draw[->, thick] (x) to[bend left=40] node[above, font=\scriptsize]{1} (s1);
+    \draw[->, thick] (s1) to[bend left=40] node[above, font=\scriptsize]{2} (s2);
+    \draw[->, thick] (s2) to[bend left=40] node[above, font=\scriptsize]{4} (s3);
+\end{tikzpicture}
+\end{center}
+\vspace{0.6em}
+\begin{itemize}
+    \item Sob a hipótese de independência, a variância dobra a cada bloco. A solução para esse problema é o \textit{batch norm}.
+    \item Em ResNets reais a variância \textbf{não} dobra estritamente, justamente porque o \textit{batch norm} renormaliza as ativações após cada bloco. O argumento aqui motiva por que essa renormalização é necessária.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Batch Norm}
+%========================================================================
+
+\begin{frame}{\textit{Batch Norm}}
+\begin{itemize}
+    \item É uma normalização aplicada a ativações em camadas ocultas da rede\footfullcite{ioffe2015batchnorm}.
+    \begin{itemize}
+        \item Desloca e reescala média e desvio padrão dos \textit{batches} para valores aprendidos durante o treinamento.
+    \end{itemize}
+    \item Necessita que utilizemos \textit{batch size} $> 1$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Como Funciona}
+\begin{itemize}
+    \item Computa a média e o desvio padrão empíricos do \textit{mini batch} atual:
+\end{itemize}
+\begin{equation*}
+    \mu_h = \frac{1}{|B|}\sum_{i \in B} h_i, \qquad
+    \sigma_h = \sqrt{\frac{1}{|B|}\sum_{i \in B} (h_i - \mu_h)^2}
+\end{equation*}
+\begin{itemize}
+    \item Padroniza as ativações para média $0$ e desvio padrão $1$:
+\end{itemize}
+\begin{equation*}
+    h_i \leftarrow \frac{h_i - \mu_h}{\sigma_h + \epsilon}, \quad \forall\, i \in B
+\end{equation*}
+\begin{itemize}
+    \item Reescala as ativações por $\gamma$ e desloca por $\beta$:
+\end{itemize}
+\begin{equation*}
+    h_i \leftarrow \gamma\,h_i + \beta, \quad \forall\, i \in B
+\end{equation*}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Parâmetros}
+\begin{itemize}
+    \item Existe um $\gamma$, um $\beta$, um $\mu$ e um $\sigma$ por unidade oculta em uma camada densa.
+    \begin{itemize}
+        \item São 4 valores por unidade oculta. Apenas $\gamma$ e $\beta$ são \textbf{treináveis} via \textit{backprop}.
+        \item $\mu$ e $\sigma$ não são treinados, são calculados a partir do \textit{mini batch} a cada passo e \textbf{mantidos como buffers} (médias móveis $\mu_{\text{mov}}$ e $\sigma_{\text{mov}}$) para uso em inferência.
+        \item $\gamma$ e $\beta$ são inicializados em $1$ e $0$, respectivamente.
+    \end{itemize}
+    \item Em uma camada convolucional, existe um conjunto $(\gamma, \beta, \mu, \sigma)$ por \textbf{canal}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Estrutura}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    % features in (mini-batch)
+    \node[font=\footnotesize] at (-1.0,2.4) {atributos};
+    \draw[->, thick] (-1.9,2.1) -- (-0.1,2.1);
+    \node[font=\footnotesize, rotate=90, anchor=south] at (-2.5,1.0) {amostras};
+    \draw[->, thick] (-2.2,2.0) -- (-2.2,0.0);
+    \foreach \r in {0,1,2} {
+        \foreach \c in {0,1,2,3} {
+            \draw[fill=PastelOrange, draw=PastelOrange!90!black] (-2.0 + \c*0.5, 1.5 - \r*0.5) rectangle ++(0.45,0.45);
+        }
+    }
+    \draw[red, very thick] (-1.55,0.0) rectangle (-1.05,1.95);
+
+    % Big BN box
+    \draw[rounded corners=8pt, fill=blue!5, draw=blue!30] (0.3,-2.0) rectangle (9.2,2.6);
+    \node[font=\footnotesize] at (4.7,2.2) {\textit{batch norm}};
+
+    % mean & std box
+    \draw[dashed, rounded corners=2pt] (0.7,0.7) rectangle (3.3,1.9);
+    \node[font=\scriptsize] at (2.0,2.05) {média e desvio};
+    \foreach \i/\lab in {0/$\mu_1$, 1/$\mu_2$, 2/$\mu_3$, 3/$\mu_4$} {
+        \node[draw, fill=PastelBlue2!90, text=white, minimum size=12pt, font=\scriptsize] at (1.0 + \i*0.55, 1.5) {\lab};
+    }
+    \foreach \i/\lab in {0/$\sigma_1$, 1/$\sigma_2$, 2/$\sigma_3$, 3/$\sigma_4$} {
+        \node[draw, fill=PastelBlue2!90, text=white, minimum size=12pt, font=\scriptsize] at (1.0 + \i*0.55, 1.0) {\lab};
+    }
+
+    % standardized output
+    \foreach \r in {0,1,2} {
+        \foreach \c in {0,1,2,3} {
+            \draw[fill=yellow!70, draw=yellow!50!black] (3.7 + \c*0.5, 1.5 - \r*0.5) rectangle ++(0.45,0.45);
+        }
+    }
+
+    % scale & shift box
+    \draw[dashed, rounded corners=2pt] (5.9,0.7) rectangle (8.5,1.9);
+    \node[font=\scriptsize] at (7.2,2.05) {escala e desloc.};
+    \foreach \i/\lab in {0/$\gamma_1$, 1/$\gamma_2$, 2/$\gamma_3$, 3/$\gamma_4$} {
+        \node[draw, fill=BrickRed!70, text=white, minimum size=12pt, font=\scriptsize] at (6.2 + \i*0.55, 1.5) {\lab};
+    }
+    \foreach \i/\lab in {0/$\beta_1$, 1/$\beta_2$, 2/$\beta_3$, 3/$\beta_4$} {
+        \node[draw, fill=BrickRed!70, text=white, minimum size=12pt, font=\scriptsize] at (6.2 + \i*0.55, 1.0) {\lab};
+    }
+
+    % moving averages
+    \draw[dashed, rounded corners=2pt] (0.7,-1.7) rectangle (3.3,-0.5);
+    \node[font=\scriptsize] at (2.0,-0.35) {médias móveis};
+    \foreach \i/\lab in {0/$\mu_{m1}$, 1/$\mu_{m2}$, 2/$\mu_{m3}$, 3/$\mu_{m4}$} {
+        \node[draw, fill=PastelBlue2!90, text=white, minimum size=12pt, font=\tiny] at (1.0 + \i*0.55, -0.9) {\lab};
+    }
+    \foreach \i/\lab in {0/$\sigma_{m1}$, 1/$\sigma_{m2}$, 2/$\sigma_{m3}$, 3/$\sigma_{m4}$} {
+        \node[draw, fill=PastelBlue2!90, text=white, minimum size=12pt, font=\tiny] at (1.0 + \i*0.55, -1.4) {\lab};
+    }
+
+    % features out
+    \node[font=\footnotesize] at (10.7,2.4) {atributos};
+    \draw[->, thick] (9.8,2.1) -- (11.6,2.1);
+    \draw[->, thick] (11.9,2.0) -- (11.9,0.0);
+    \foreach \r in {0,1,2} {
+        \foreach \c in {0,1,2,3} {
+            \draw[fill=PastelOrange!80!black, draw=PastelOrange!90!black] (9.8 + \c*0.5, 1.5 - \r*0.5) rectangle ++(0.45,0.45);
+        }
+    }
+
+    % Arrows
+    \draw[->, very thick, PastelGreen!70!black] (-0.05,1.0) -- (0.65,1.0);
+    \draw[->, very thick, PastelGreen!70!black] (3.35,1.3) -- (3.65,1.3);
+    \draw[->, very thick, PastelGreen!70!black] (5.85,1.3) -- (5.95,1.3);
+    \draw[->, very thick, PastelGreen!70!black] (8.55,1.3) -- (9.75,1.3);
+    \draw[->, dashed, gray] (2.0,0.65) -- (2.0,-0.45);
+\end{tikzpicture}}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Exemplo}
+\begin{itemize}
+    \item Considere um \textit{mini batch} com uma \textit{feature} de valores $\{3, -1, 2\}$.
+    \begin{itemize}
+        \item Média: $\mu = 1.33$. Desvio padrão: $\sigma = 1.7$.
+        \item Padronizando: $\frac{3 - 1.33}{1.7} \approx 0.98$, $\frac{-1 - 1.33}{1.7} \approx -1.37$, $\frac{2 - 1.33}{1.7} \approx 0.39$.
+    \end{itemize}
+    \item Com $\gamma = 2$ e $\beta = 1$ aprendidos:
+    \begin{itemize}
+        \item $h_1 = 2 \cdot 0.98 + 1 = 2.96$.
+        \item $h_2 = 2 \cdot (-1.37) + 1 = -1.74$.
+        \item $h_3 = 2 \cdot 0.39 + 1 = 1.78$.
+    \end{itemize}
+    \item Em treinamento, mantemos uma média móvel exponencial (EMA) das estatísticas:
+\end{itemize}
+\begin{equation*}
+    \mu_{\text{mov}} \leftarrow \alpha\,\mu_{\text{mov}} + (1-\alpha)\,\mu, \qquad
+    \sigma_{\text{mov}} \leftarrow \alpha\,\sigma_{\text{mov}} + (1-\alpha)\,\sigma
+\end{equation*}
+\begin{itemize}
+    \item \textbf{Atenção à convenção do PyTorch}: o argumento \texttt{momentum} em \texttt{nn.BatchNorm*} corresponde a $(1-\alpha)$ nesta fórmula (peso da estatística \emph{atual}), não a $\alpha$ (peso da média móvel). O valor padrão é \texttt{momentum=0.1}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Inferência}
+\begin{itemize}
+    \item Em treinamento usamos a média e o desvio padrão do próprio \textit{mini batch}.
+    \item Em inferência (sem \textit{mini batch}), precisamos de estatísticas fixas.
+    \item Solução: usar a média móvel acumulada durante o treinamento.
+    \begin{itemize}
+        \item $\mu_{\text{mov}}$ e $\sigma_{\text{mov}}$ são guardados como parte da camada e usados em substituição a $\mu$ e $\sigma$ no momento da inferência.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Skip Connections} + \textit{Batch Norm}}
+\begin{itemize}
+    \item Com \textit{batch norm} ativo, conseguimos treinar redes muito mais profundas, sem explosão nem dissipação de gradiente.
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\footnotesize}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[draw, fill=BrickRed!60, minimum size=18pt] (b1) at (1.4,0) {BN};
+    \node[draw, fill=PastelGreen, minimum size=18pt] (f1) at (2.6,0) {$f_1$};
+    \node[circle, draw, inner sep=1pt] (s1) at (3.7,0) {$+$};
+    \node[draw, fill=BrickRed!60, minimum size=18pt] (b2) at (5.0,0) {BN};
+    \node[draw, fill=PastelGreen, minimum size=18pt] (f2) at (6.2,0) {$f_2$};
+    \node[circle, draw, inner sep=1pt] (s2) at (7.3,0) {$+$};
+    \node[draw, fill=BrickRed!60, minimum size=18pt] (b3) at (8.6,0) {BN};
+    \node[draw, fill=PastelGreen, minimum size=18pt] (f3) at (9.8,0) {$f_3$};
+    \node[circle, draw, inner sep=1pt] (s3) at (10.9,0) {$+$};
+    \node (y) at (11.7,0) {};
+    \draw[->, thick] (x) -- node[above, font=\tiny]{1} (b1);
+    \draw[->, thick] (b1) -- node[above, font=\tiny]{1} (f1);
+    \draw[->, thick] (f1) -- node[above, font=\tiny]{1} (s1);
+    \draw[->, thick] (s1) -- node[above, font=\tiny]{2} (b2);
+    \draw[->, thick] (b2) -- node[above, font=\tiny]{1} (f2);
+    \draw[->, thick] (f2) -- node[above, font=\tiny]{1} (s2);
+    \draw[->, thick] (s2) -- node[above, font=\tiny]{3} (b3);
+    \draw[->, thick] (b3) -- node[above, font=\tiny]{1} (f3);
+    \draw[->, thick] (f3) -- node[above, font=\tiny]{1} (s3);
+    \draw[->, thick] (s3) -- node[above, font=\tiny]{4} (y);
+    \draw[->, thick] (x) to[bend left=35] node[above, font=\tiny]{1} (s1);
+    \draw[->, thick] (s1) to[bend left=35] node[above, font=\tiny]{2} (s2);
+    \draw[->, thick] (s2) to[bend left=35] node[above, font=\tiny]{3} (s3);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Outras Vantagens}
+\begin{itemize}
+    \item Torna a rede invariante a mudanças de escala nos parâmetros.
+    \begin{itemize}
+        \item Se os parâmetros dobrarem de magnitude, as ativações também dobram, e a variância também dobra (a primeira etapa do \textit{batch norm} compensa esse aumento).
+    \end{itemize}
+    \item \textit{Forward} mais estável.
+    \item Permite taxas de aprendizado ($\eta$) mais elevadas.
+    \item Regulariza o processo de treinamento.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Arquiteturas Residuais}
+%========================================================================
+
+\begin{frame}{Skip Connections + Batch Norm}
+\begin{itemize}
+    \item Usando \textit{skip connections} e \textit{batch norm} temos redes convolucionais com aplicações em praticamente todas as áreas de visão computacional.
+    \begin{itemize}
+        \item Permitem treinamento de redes com $\sim 1000$ camadas ocultas.
+    \end{itemize}
+    \item Ainda hoje são o padrão para a maioria das atividades de visão computacional, apesar do recente sucesso de \textit{transformers}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{ResNet}
+\begin{itemize}
+    \item Redes convolucionais constituídas de blocos residuais\footfullcite{he2016resnet}.
+    \begin{itemize}
+        \item Cada bloco foi projetado por ``tentativa e erro''.
+        \item Apresenta resultados bons, mas tem um número elevado de parâmetros.
+    \end{itemize}
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\footnotesize}]
+    \node (x) at (0,0) {};
+    \node[draw, fill=BrickRed!60, minimum size=18pt] (b1) at (1.0,0) {BN};
+    \node[draw, fill=PastelGreen, minimum size=18pt] (r1) at (2.2,0) {ReLU};
+    \node[draw, fill=black!15, minimum size=18pt] (c1) at (3.7,0) {Conv $3\times 3$};
+    \node[draw, fill=BrickRed!60, minimum size=18pt] (b2) at (5.2,0) {BN};
+    \node[draw, fill=PastelGreen, minimum size=18pt] (r2) at (6.4,0) {ReLU};
+    \node[draw, fill=black!15, minimum size=18pt] (c2) at (7.9,0) {Conv $3\times 3$};
+    \node[circle, draw, inner sep=1pt] (s) at (9.1,0) {$+$};
+    \node (y) at (9.8,0) {};
+    \draw[->, thick] (x) -- (b1);
+    \draw[->, thick] (b1) -- (r1);
+    \draw[->, thick] (r1) -- (c1);
+    \draw[->, thick] (c1) -- (b2);
+    \draw[->, thick] (b2) -- (r2);
+    \draw[->, thick] (r2) -- (c2);
+    \draw[->, thick] (c2) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (0.3,0) -- (0.3,0.9) -- (9.1,0.9) -- (s);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{ResNet: Bloco com Gargalo}
+\begin{itemize}
+    \item \textit{Bottleneck Residual Block}, introduzido para reduzir o número de parâmetros treináveis.
+    \begin{itemize}
+        \item A primeira convolução $1\times 1$ \textbf{reduz} o número de canais.
+        \item A segunda convolução $1\times 1$ \textbf{aumenta} o número de canais para possibilitar a adição no fim do bloco.
+    \end{itemize}
+\end{itemize}
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\tiny}, scale=0.95, transform shape]
+    \node (x) at (-0.4,0) {};
+    \node[draw, fill=BrickRed!60, inner sep=2pt] (b1) at (0.3,0) {BN};
+    \node[draw, fill=PastelGreen, inner sep=2pt] (r1) at (1.1,0) {ReLU};
+    \node[draw, fill=black!15, inner sep=2pt] (c1) at (2.2,0) {Conv $1{\times}1$};
+    \node[draw, fill=BrickRed!60, inner sep=2pt] (b2) at (3.3,0) {BN};
+    \node[draw, fill=PastelGreen, inner sep=2pt] (r2) at (4.1,0) {ReLU};
+    \node[draw, fill=black!15, inner sep=2pt] (c2) at (5.2,0) {Conv $3{\times}3$};
+    \node[draw, fill=BrickRed!60, inner sep=2pt] (b3) at (6.3,0) {BN};
+    \node[draw, fill=PastelGreen, inner sep=2pt] (r3) at (7.1,0) {ReLU};
+    \node[draw, fill=black!15, inner sep=2pt] (c3) at (8.2,0) {Conv $1{\times}1$};
+    \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s) at (9.0,0) {$+$};
+    \node (y) at (9.5,0) {};
+    \draw[->, thick] (x) -- (b1);
+    \draw[->, thick] (b1) -- (r1);
+    \draw[->, thick] (r1) -- (c1);
+    \draw[->, thick] (c1) -- (b2);
+    \draw[->, thick] (b2) -- (r2);
+    \draw[->, thick] (r2) -- (c2);
+    \draw[->, thick] (c2) -- (b3);
+    \draw[->, thick] (b3) -- (r3);
+    \draw[->, thick] (r3) -- (c3);
+    \draw[->, thick] (c3) -- (s);
+    \draw[->, thick] (s) -- (y);
+    \draw[->, thick] (-0.1,0) -- (-0.1,0.85) -- (9.0,0.85) -- (s);
+    \node[font=\scriptsize, align=center] at (2.2,-0.85) {Reduz canais\\por fator de 4};
+    \node[font=\scriptsize, align=center] at (8.2,-0.85) {Aumenta canais\\por fator de 4};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{ResNet-200}
+\begin{itemize}
+    \item $4.8\%$ de erro no ImageNet (\textit{top-5}, teste multi-escala).
+    \item Utiliza o bloco residual com gargalo.
+    \item Estrutura geral: começa com uma convolução $7\times 7$ com \textit{stride} 2 e \textit{max pooling}, seguida por blocos residuais agrupados por resolução.
+    \begin{itemize}
+        \item Estágio 1: $56\times 56$, 256 canais (64 internos).
+        \item Estágio 2: $28\times 28$, 512 canais (128 internos).
+        \item Estágio 3: $14\times 14$, 1024 canais (256 internos), 36 blocos.
+        \item Estágio 4: $7\times 7$, 2048 canais (512 internos).
+    \end{itemize}
+    \item No fim, \textit{average pooling} global, camada totalmente conectada e \textit{softmax} para 1000 classes.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DenseNet}
+\begin{itemize}
+    \item Em vez de \textbf{somar} a representação da entrada com a saída, podemos \textbf{concatenar} os canais da entrada com os canais de saída\footfullcite{huang2017densenet}.
+    \begin{itemize}
+        \item Menos comum que ResNet, mas atinge resultados similares.
+        \item Quando ocorre \textit{downsampling}, a representação não é concatenada.
+    \end{itemize}
+\end{itemize}
+\vspace{0.4em}
+\begin{center}
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \foreach \i in {0,1,2,3} {
+        \pgfmathsetmacro{\bx}{\i*4.0}
+        \node[draw, fill=PastelBlue2!50, minimum width=0.4cm, minimum height=1.6cm] (b\i) at (\bx, 0) {};
+    }
+    \node[font=\scriptsize] at (0,-1.2) {3 canais};
+    \node[font=\scriptsize] at (4.0,-1.2) {$3+32 = 35$};
+    \node[font=\scriptsize] at (8.0,-1.2) {$35+32 = 67$};
+    \node[font=\scriptsize] at (12.0,-1.2) {$67+32 = 99$};
+    \foreach \i in {0,1,2} {
+        \pgfmathtruncatemacro{\next}{\i+1}
+        \pgfmathsetmacro{\bx}{\i*4.0}
+        \node[draw, fill=BrickRed!60, font=\tiny, inner sep=2pt] (bn\i) at (\bx+0.8,0) {BN};
+        \node[draw, fill=PastelGreen, font=\tiny, inner sep=2pt] (rl\i) at (\bx+1.7,0) {ReLU};
+        \node[draw, fill=black!15, font=\tiny, inner sep=2pt] (cv\i) at (\bx+2.9,0) {Conv $3{\times}3$};
+        \draw[->, thick] (b\i.east) -- (bn\i.west);
+        \draw[->, thick] (bn\i.east) -- (rl\i.west);
+        \draw[->, thick] (rl\i.east) -- (cv\i.west);
+        \draw[->, thick] (cv\i.east) -- (b\next.west);
+        \draw[->, thick, BrickRed] (b\i.north) -- ++(0,0.7) -| (b\next.north);
+        \node[font=\tiny, BrickRed] at (\bx+2.0, 1.05) {Concatena com a saída};
+    }
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{U-Net}
+\begin{itemize}
+    \item Arquitetura \textit{encoder-decoder} com \textit{skip connections} laterais\footfullcite{ronneberger2015unet}. Originalmente proposta para segmentação biomédica.
+    \item Características essenciais:
+    \begin{enumerate}
+        \item \textbf{Dois caminhos}: o \textit{encoder} (contracting path) reduz a resolução espacial e aumenta a profundidade, o \textit{decoder} (expanding path) faz o inverso, recuperando a resolução original via \textit{upsampling} / convolução transposta.
+        \item \textbf{Skip connections laterais}: \textit{features} do \textit{encoder} são \textbf{concatenadas} (não somadas, como nas ResNets) com as do \textit{decoder} na mesma resolução, preservando detalhes espaciais que seriam perdidos no \textit{bottleneck}.
+    \end{enumerate}
+    \item Muito utilizada em segmentação semântica e em modelos de difusão.
+    \begin{itemize}
+        \item Como a convolução no paper original foi feita sem \textit{padding}, é necessário cortar (\textit{crop}) o lado do \textit{encoder} antes de concatenar para que as dimensões espaciais batam.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{U-Net: Arquitetura}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    % Encoder boxes (descending heights left to right)
+    \foreach \i/\h/\y in {0/2.4/0, 1/1.8/-0.3, 2/1.3/-0.55, 3/0.9/-0.75} {
+        \node[draw, fill=PastelBlue2!50, minimum width=0.35cm, minimum height=\h cm] (e\i) at (\i*0.9, \y) {};
+    }
+    % Bottleneck
+    \node[draw, fill=BrickRed!50, minimum width=0.35cm, minimum height=0.55cm] (bot) at (3.6,-0.95) {};
+    % Decoder boxes (ascending heights left to right)
+    \foreach \i/\h/\y in {0/0.9/-0.75, 1/1.3/-0.55, 2/1.8/-0.3, 3/2.4/0} {
+        \node[draw, fill=PastelOrange!70, minimum width=0.35cm, minimum height=\h cm] (d\i) at (4.5+\i*0.9, \y) {};
+    }
+    % Encoder direction
+    \draw[->, thick] (e0.east) -- (e1.west);
+    \draw[->, thick] (e1.east) -- (e2.west);
+    \draw[->, thick] (e2.east) -- (e3.west);
+    \draw[->, thick] (e3.east) -- (bot.west);
+    \draw[->, thick] (bot.east) -- (d0.west);
+    \draw[->, thick] (d0.east) -- (d1.west);
+    \draw[->, thick] (d1.east) -- (d2.west);
+    \draw[->, thick] (d2.east) -- (d3.west);
+    % Skip arrows from encoder top to decoder top
+    \foreach \i/\j in {0/3, 1/2, 2/1, 3/0} {
+        \draw[->, thick, BrickRed] (e\i.north) to[bend left=25] (d\j.north);
+    }
+    \node[font=\tiny, BrickRed] at (4.05,2.4) {Crop e concatena};
+    \node[font=\scriptsize] at (1.4,-2.0) {Encoder (\textit{downsampling})};
+    \node[font=\scriptsize] at (6.7,-2.0) {Decoder (\textit{upsampling})};
+\end{tikzpicture}
+
+\vspace{0.8em}
+{\small O \textit{encoder} reduz a resolução; o \textit{decoder} a recupera; as \textit{skip connections} laterais \textbf{concatenam} (não somam) \textit{features} da mesma resolução, preservando detalhes espaciais.}
+\end{frame}
+
+%========================================================================
+\section{Referências}
+%========================================================================
+
+\begin{frame}[allowframebreaks]{Referências}
+\begin{itemize}
+    \item Sugere se \textbf{fortemente} a leitura do Capítulo 11 de \textit{Understanding Deep Learning}\footfullcite{prince2023understanding}.
+    \begin{itemize}
+        \item Disponível em \url{https://udlbook.github.io/udlbook/}.
+    \end{itemize}
+    \item Artigos de referência sobre o tema:
+    \begin{itemize}
+        \item He et al., \textit{Deep Residual Learning for Image Recognition}, CVPR 2016.
+        \item Ioffe e Szegedy, \textit{Batch Normalization}, ICML 2015.
+        \item Huang et al., \textit{Densely Connected Convolutional Networks}, CVPR 2017.
+        \item Ronneberger et al., \textit{U-Net}, MICCAI 2015.
+        \item Balduzzi et al., \textit{The Shattered Gradients Problem}, ICML 2017.
+    \end{itemize}
+\end{itemize}
+\printbibliography
+\end{frame}
+
+\end{document}

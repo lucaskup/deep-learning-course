@@ -1,0 +1,276 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova G2, Unidades 4 e 5}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+6 & & & & & & & & \\\hline
+7 & & & & & & & & \\\hline
+8 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (8 x 1,0 = 8,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (8{,}0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1 (U4): numeric — LoRA trainable parameters ----------
+\item (1{,}0) No LoRA, uma matriz congelada $W_0 \in \mathbb{R}^{d \times k}$ recebe a correção \textit{low rank} $h = W_0 x + \frac{\alpha}{r} B A x$, com $B \in \mathbb{R}^{d \times r}$ e $A \in \mathbb{R}^{r \times k}$; apenas $B$ e $A$ são treináveis. Você aplica LoRA com $r = 8$ às projeções $W_Q$ e $W_V$ (ambas $1024 \times 1024$) de \textbf{cada uma} das $12$ camadas de um \textit{transformer}. Quantos parâmetros treináveis o ajuste introduz no total?
+
+\begin{enumerate}[a)]
+    \item $16\,384$
+    \item $32\,768$
+    \item $98\,304$
+    \item $196\,608$
+    \item $393\,216$
+    \item $589\,824$
+    \item $786\,432$
+    \item $25\,165\,824$
+\end{enumerate}
+
+%% ---------- Q2 (U4): OBJ-B I/II/III — LLM alignment pipeline ----------
+\pagebreak
+\item (1{,}0) Sobre as asserções abaixo a respeito do treinamento e alinhamento de LLMs:
+
+\textbf{I.} No \textit{SFT} (\textit{supervised fine-tuning}) com \textit{prompt masking}, a função de perda é computada apenas sobre os \textit{tokens} da resposta; os \textit{tokens} do \textit{prompt} são mascarados e não contribuem para o gradiente.
+
+\textbf{II.} O DPO otimiza diretamente sobre pares de preferência $(y_w, y_l)$, dispensando o treinamento de um \textit{reward model} explícito e o loop de \textit{policy gradient} usado no RLHF com PPO.
+
+\textbf{III.} No RLHF com PPO, o termo de penalização $\mathrm{KL}(\pi_\theta \,\|\, \pi_{\text{ref}})$ tem como função principal acelerar a convergência, permitindo o uso de taxas de aprendizado maiores na atualização da política.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q3 (U4): OBJ-C scenario diagnostic + TikZ — catastrophic forgetting ----------
+\item (1{,}0) Você faz \textit{fine-tuning} completo (todos os pesos) de um LLM pré-treinado em um corpus jurídico, com taxa de aprendizado $3 \cdot 10^{-4}$ por $10$ épocas. As curvas abaixo mostram a acurácia ao longo das épocas em duas avaliações, ambas sobre dados de teste não vistos no treino: um \textit{benchmark} da tarefa jurídica alvo (linha cheia) e um \textit{benchmark} de conhecimentos gerais que o modelo dominava antes do ajuste (linha tracejada). Qual o diagnóstico mais consistente e a melhor mitigação?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}, xscale=0.55, yscale=3.2]
+    \draw[->] (0,0) -- (11.2,0) node[below left] {épocas};
+    \draw[->] (0,0) -- (0,1.12) node[above] {acurácia};
+    \draw (0,1) node[left] {$1{,}0$} -- (0.15,1);
+    \draw (0,0.5) node[left] {$0{,}5$} -- (0.15,0.5);
+    % target legal task: rises
+    \draw[thick] plot[smooth] coordinates {(0,0.52) (2,0.68) (4,0.78) (6,0.85) (8,0.88) (10,0.90)}
+        node[right] {\textit{benchmark} jurídico};
+    % general benchmark: falls
+    \draw[thick, dashed] plot[smooth] coordinates {(0,0.72) (2,0.66) (4,0.56) (6,0.47) (8,0.40) (10,0.35)}
+        node[right] {\textit{benchmark} geral};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item O modelo está em \textit{overfitting} no corpus jurídico; treinar por mais épocas no mesmo corpus faria as duas curvas de acurácia voltarem a subir simultaneamente.
+    \item Há vazamento de dados entre treino e teste jurídicos; refazer a divisão dos dados corrige tanto a curva da tarefa jurídica quanto a do \textit{benchmark} geral.
+    \item Trata-se de esquecimento catastrófico do pré-treino; mitigações incluem taxa de aprendizado menor, menos épocas, misturar dados gerais ao \textit{fine-tuning} ou usar PEFT (LoRA) com os pesos base congelados.
+    \item Trata-se de \textit{reward hacking}: o modelo explora falhas da métrica de avaliação; substituir o \textit{benchmark} geral por outro conjunto de tarefas resolve o problema observado.
+    \item O \textit{tokenizer} não cobre o vocabulário jurídico e fragmenta os termos técnicos; retreinar o \textit{tokenizer} recupera simultaneamente as duas curvas de acurácia.
+    \item A janela de contexto foi excedida pelos documentos jurídicos longos; truncar as entradas do \textit{fine-tuning} evita a degradação observada no \textit{benchmark} geral.
+    \item A taxa de aprendizado alta causou explosão de gradiente e \texttt{NaN} nos pesos; nesse caso ambas as curvas deveriam despencar, logo o gráfico é inconsistente com um treino real.
+    \item O modelo está subtreinado no regime de Chinchilla ($D^{*} \approx 20N$); aumentar o volume de dados jurídicos melhora as duas curvas por leis de escala.
+\end{enumerate}
+
+%% ---------- Q4 (U4): OBJ-H matching — positional encoding methods ----------
+\pagebreak
+\item (1{,}0) Associe cada método de \textit{positional encoding} (coluna da esquerda) ao seu mecanismo (coluna da direita).
+
+\begin{center}
+\begin{tabular}{p{0.34\linewidth} p{0.58\linewidth}}
+\textbf{1.} \textit{PE} sinusoidal & \textbf{(i)} tabela de \textit{embeddings} treináveis somada à entrada, limitada ao comprimento máximo $L_{\text{max}}$ visto no treino. \\
+\textbf{2.} \textit{PE} absoluto aprendido & \textbf{(ii)} função fixa e determinística da posição, somada à entrada, sem nenhum parâmetro treinável. \\
+\textbf{3.} RoPE & \textbf{(iii)} não altera a entrada: subtrai do \textit{score} de atenção uma penalidade proporcional à distância $|i - j|$, com inclinação própria por cabeça. \\
+\textbf{4.} ALiBi & \textbf{(iv)} rotaciona os vetores $q$ e $k$ dentro da atenção, fazendo o \textit{score} depender apenas do deslocamento relativo $j - i$. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(ii); \quad 2-(i); \quad 3-(iii); \quad 4-(iv)
+    \item 1-(i); \quad 2-(ii); \quad 3-(iv); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(i); \quad 4-(iii)
+    \item 1-(i); \quad 2-(ii); \quad 3-(iii); \quad 4-(iv)
+    \item 1-(iv); \quad 2-(i); \quad 3-(ii); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iii); \quad 3-(iv); \quad 4-(i)
+    \item 1-(ii); \quad 2-(i); \quad 3-(iv); \quad 4-(iii)
+    \item 1-(iii); \quad 2-(i); \quad 3-(iv); \quad 4-(ii)
+\end{enumerate}
+
+%% ---------- Q5 (U5): numeric — saturating vs non-saturating generator loss gradients ----------
+\item (1{,}0) Em uma GAN, seja $d = f[g[z,\thetav],\phi]$ o \textit{logit} do discriminador para uma amostra gerada; a \textit{loss} original do gerador contribui com $L = \ln(1 - \sigma(d))$ e a \textit{non-saturating} com $L_{\text{ns}} = -\ln \sigma(d)$. No início do treino o discriminador rejeita as amostras geradas: $\sigma(d) = 0{,}05$. Sabendo que $\sigma'(d) = \sigma(d)\,(1 - \sigma(d))$, quais os módulos de $\left|\partial L / \partial d\right|$ e $\left|\partial L_{\text{ns}} / \partial d\right|$, e qual \textit{loss} fornece sinal útil ao gerador?
+
+\begin{enumerate}[a)]
+    \item $0{,}05$ e $0{,}95$; a \textit{loss} original fornece o maior sinal de aprendizado.
+    \item $0{,}95$ e $0{,}05$; a \textit{loss} original fornece o maior sinal de aprendizado.
+    \item $0{,}05$ e $0{,}05$; as duas \textit{losses} saturam igualmente no início do treino.
+    \item $0{,}05$ e $0{,}95$; a \textit{loss} \textit{non-saturating} fornece o maior sinal de aprendizado.
+    \item $0{,}95$ e $0{,}05$; a \textit{loss} \textit{non-saturating} fornece o maior sinal de aprendizado.
+    \item $0{,}0475$ e $0{,}0475$; as duas \textit{losses} fornecem exatamente o mesmo sinal.
+    \item $0{,}95$ e $0{,}95$; as duas \textit{losses} fornecem sinal forte no início do treino.
+    \item $0$ e $1$; apenas a \textit{loss} \textit{non-saturating} tem gradiente definido nesse ponto.
+\end{enumerate}
+
+%% ---------- Q6 (U5): OBJ-F assertion-reason — classifier-free guidance ----------
+\item (1{,}0) Considere as asserções abaixo e a relação proposta entre elas.
+
+\textbf{I.} No treinamento de um modelo difusor com \textit{classifier-free guidance}, a condição $c$ é descartada (substituída por $\varnothing$) em uma pequena fração dos exemplos, tipicamente com probabilidade próxima de $0{,}1$.
+
+\begin{center}\textbf{PORQUE}\end{center}
+
+\textbf{II.} Desse modo uma única rede aprende tanto a predição condicional $g_t[z_t, c]$ quanto a incondicional $g_t[z_t, \varnothing]$, que são combinadas na amostragem como $\tilde{g}_t = (1+w)\,g_t[z_t, c] - w\,g_t[z_t, \varnothing]$, com $w \geq 0$.
+
+Assinale a alternativa correta:
+\begin{enumerate}[a)]
+    \item As asserções I e II são verdadeiras, e a II é uma justificativa correta da I.
+    \item As asserções I e II são verdadeiras, mas a II não é uma justificativa correta da I.
+    \item As asserções I e II são verdadeiras, e a I é uma justificativa correta da II, mas não o contrário.
+    \item A asserção I é verdadeira, e a II é falsa.
+    \item A asserção I é falsa, e a II é verdadeira.
+    \item As asserções I e II são falsas.
+    \item A asserção I é verdadeira somente quando o peso de guiamento é $w = 0$, e a II é verdadeira.
+    \item A asserção I é falsa para modelos de difusão latente, e a II é falsa.
+\end{enumerate}
+
+%% ---------- Q7 (U5): OBJ-G ordering — DDPM training iteration ----------
+\item (1{,}0) Considere os passos abaixo de \textbf{uma} iteração de treinamento de um modelo difusor (DDPM), conforme o algoritmo visto em aula:
+
+\begin{itemize}
+    \item[\textbf{I.}] Amostrar uma instância $x$ do conjunto de treinamento.
+    \item[\textbf{II.}] Amostrar $t \sim \mathrm{Uniforme}\{1, \dots, T\}$ e $\epsilon \sim \mathcal{N}(0, \mathbf{I})$.
+    \item[\textbf{III.}] Computar $z_t = \sqrt{\alpha_t}\,x + \sqrt{1 - \alpha_t}\,\epsilon$ (kernel de difusão).
+    \item[\textbf{IV.}] Computar a perda $\lVert g_t[z_t, \thetav_t] - \epsilon\rVert^{2}$.
+    \item[\textbf{V.}] Atualizar os parâmetros por descida de gradiente.
+\end{itemize}
+
+Assinale a alternativa que apresenta uma ordem válida para os passos:
+\begin{enumerate}[a)]
+    \item I, III, II, IV, V
+    \item II, III, I, IV, V
+    \item I, II, IV, III, V
+    \item III, I, II, IV, V
+    \item I, II, III, V, IV
+    \item V, I, II, III, IV
+    \item II, I, IV, III, V
+    \item I, II, III, IV, V
+\end{enumerate}
+
+%% ---------- Q8 (U5): numeric — change of variables (normalizing flow) ----------
+\item (1{,}0) Um \textit{normalizing flow} de camada única usa a transformação linear $Y = 3X + 1$ sobre a variável de base $X \sim \mathcal{N}(0, 1)$. Usando a fórmula de mudança de variável e sabendo que $p_X(0) = \tfrac{1}{\sqrt{2\pi}} \approx 0{,}399$, qual o valor aproximado da densidade $p_Y(1)$?
+
+\begin{enumerate}[a)]
+    \item $1{,}197$
+    \item $0{,}798$
+    \item $0{,}399$
+    \item $0{,}242$
+    \item $0{,}199$
+    \item $0{,}133$
+    \item $0{,}081$
+    \item $0{,}044$
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions  (2 x 1,0 = 2,0 pts)
+%% =============================================================
+\pagebreak
+\section*{Questões Dissertativas (2{,}0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{8}
+
+%% ---------- Q9 (U4): DISS-A — reward model + DPO by hand ----------
+\item (1{,}0) No alinhamento de LLMs por preferências, o \textit{reward model} é treinado com a perda de Bradley--Terry
+\[
+\mathcal{L}_{RM} = -\log \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right),
+\]
+e o DPO otimiza diretamente
+\[
+\mathcal{L}_{DPO} = -\log \sigma\!\left(\beta\left[\log\tfrac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log\tfrac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right]\right),
+\]
+em que $y_w$ é a resposta preferida e $y_l$ a preterida. Pode arredondar para $4$ casas decimais.
+
+\begin{enumerate}[a)]
+    \item (0{,}5) Para um par com $r_\phi(x, y_w) = 2{,}2$ e $r_\phi(x, y_l) = 0{,}7$, compute a probabilidade de o \textit{reward model} preferir $y_w$ (modelo de Bradley--Terry) e o valor de $\mathcal{L}_{RM}$.
+    \vspace{3cm}
+
+    \item (0{,}5) No DPO com $\beta = 0{,}2$, os log-\textit{ratios} valem $\log\tfrac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = 1{,}5$ e $\log\tfrac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = -1{,}0$. Compute $\mathcal{L}_{DPO}$ e explique em uma frase o que o DPO dispensa em relação ao \textit{pipeline} completo do RLHF.
+    \vspace{3.4cm}
+\end{enumerate}
+
+%% ---------- Q10 (U5): DISS-B — diffusion forward + reverse step ----------
+\item (1{,}0) Considere um modelo difusor com $T = 2$ e \textit{noise schedule} $\beta = (0{,}4;\ 0{,}25)$. Pode arredondar para $4$ casas decimais.
+
+\begin{enumerate}[a)]
+    \item (0{,}5) Compute $\alpha_1$ e $\alpha_2$ e, para a instância $x = 2$ com ruído $\epsilon = 0{,}5$, o valor de $z_2$ obtido pelo kernel de difusão.
+    \vspace{3cm}
+
+    \item (0{,}5) Com a estimativa de ruído $g_2[z_2, \thetav_2] = 0{,}6$ e tomando $\sigma_2 = 0$ (amostragem determinística), compute $\hat{z}_1$ pela equação de amostragem reversa. Em seguida, explique em uma frase o papel do termo $\sigma_t\,\epsilon$ que foi ignorado.
+    \vspace{3.4cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

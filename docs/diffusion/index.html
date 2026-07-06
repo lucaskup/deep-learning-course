@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Diffusion Models: processo forward, noise schedule, kernel de difusão e treinamento ao vivo de um mini modelo difusor." />
+  <title>Diffusion Models — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="diffusion.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Forward</a></li>
+      <li><a href="#s2">Schedule</a></li>
+      <li><a href="#s3">Gaussianas</a></li>
+      <li><a href="#s4">Treinar</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Diffusion <span>Models</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de modelos difusores</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o processo de difusão (forward),
+        o noise schedule, a álgebra gaussiana por trás do kernel e da posterior,
+        e o treinamento ao vivo de um mini modelo difusor em 2D, direto no navegador.
+        Notação dos slides: <span class="formula">z<sub>t</sub></span>,
+        <span class="formula">β<sub>t</sub></span>,
+        <span class="formula">α<sub>t</sub> = ∏<sub>s≤t</sub>(1−β<sub>s</sub>)</span>.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Forward ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Processo de difusão (forward)</h2>
+      <p class="demo-text">
+        Partimos de amostras de uma distribuição simples e aplicamos a regra sequencial
+        <span class="formula">z<sub>t</sub> = √(1−β<sub>t</sub>)·z<sub>t−1</sub> + √β<sub>t</sub>·ε<sub>t</sub></span>,
+        com <span class="formula">ε<sub>t</sub> ∼ 𝒩(0, I)</span>.
+        Arraste o tempo e observe a distribuição marginal (roxo) convergir para a
+        normal padrão (tracejado).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s1-tab-1d" type="button">1D bimodal</button>
+            <button class="tab" id="s1-tab-2d" type="button">2D two moons</button>
+          </div>
+          <button class="btn-ctl" id="s1-play" type="button">▶ Difundir</button>
+          <label class="slider-label">t = <span id="s1-t-val">0</span> / <span id="s1-T-val">50</span>
+            <input type="range" id="s1-t" min="0" max="50" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+        </div>
+        <div class="canvas-row" id="s1-row-1d">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Trajetórias z<sub>t</sub> no tempo (3 instâncias destacadas)</p>
+            <canvas id="s1-traj"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Marginal q(z<sub>t</sub>) no instante atual</p>
+            <canvas id="s1-density"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row hidden" id="s1-row-2d">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Two moons difundindo para 𝒩(0, I) (círculos 1σ e 2σ)</p>
+            <canvas id="s1-moons"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Schedule ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Explorador do noise schedule</h2>
+      <p class="demo-text">
+        Os hiperparâmetros <span class="formula">β<sub>t</sub></span> controlam a velocidade da difusão.
+        Acumulando <span class="formula">α<sub>t</sub> = ∏(1−β<sub>s</sub>)</span> obtemos quanto
+        <em>sinal</em> (<span class="formula">√α<sub>t</sub></span>) e quanto <em>ruído</em>
+        (<span class="formula">√(1−α<sub>t</sub>)</span>) compõem
+        <span class="formula">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs">
+            <button class="tab active" id="s2-linear" type="button">Linear</button>
+            <button class="tab" id="s2-cosine" type="button">Cosseno</button>
+          </div>
+          <label class="slider-label">T = <span id="s2-T-val">50</span>
+            <input type="range" id="s2-T" min="0" max="100" value="35" step="1" />
+          </label>
+          <label class="slider-label" id="s2-bmax-wrap">β<sub>max</sub> = <span id="s2-bmax-val">0.20</span>
+            <input type="range" id="s2-bmax" min="0.05" max="0.5" value="0.2" step="0.01" />
+          </label>
+          <button class="btn-ctl" id="s2-preset" type="button">Exemplo da aula (T=4)</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">β<sub>t</sub></p>
+            <canvas id="s2-beta"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">α<sub>t</sub> = ∏(1−β<sub>s</sub>)</p>
+            <canvas id="s2-alpha"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">√α<sub>t</sub> (sinal) vs √(1−α<sub>t</sub>) (ruído)</p>
+            <canvas id="s2-signal"></canvas>
+          </div>
+        </div>
+        <div class="controls">
+          <label class="slider-label">t = <span id="s2-t-val">0</span> / <span id="s2-t-max">50</span>
+            <input type="range" id="s2-t" min="0" max="50" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s2-resample" type="button">🎲 Reamostrar ε</button>
+          <span class="readout formula" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box img-box">
+            <p class="canvas-caption">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε aplicado pixel a pixel</p>
+            <canvas id="s2-image"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Álgebra gaussiana ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Álgebra gaussiana: kernel e posterior</h2>
+
+      <h3 class="sub-title">3a · Kernel q(z<sub>t</sub> | x): sequencial ≡ um passo só</h3>
+      <p class="demo-text">
+        Da mesma instância <span class="formula">x</span> saem várias trajetórias estocásticas.
+        O kernel <span class="formula">q(z<sub>t</sub>|x) = 𝒩(√α<sub>t</sub>·x, (1−α<sub>t</sub>)·I)</span>
+        permite amostrar o resultado de <span class="formula">t</span> passos de uma vez.
+        Compare o histograma das trajetórias sequenciais (ciano) com amostras diretas do kernel (verde):
+        ambas seguem a mesma densidade (roxo). Arraste o marcador de <span class="formula">x</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">t = <span id="s3a-t-val">25</span> / 50
+            <input type="range" id="s3a-t" min="1" max="50" value="25" step="1" />
+          </label>
+          <label class="slider-label">x = <span id="s3a-x-val">1.5</span>
+            <input type="range" id="s3a-x" min="-2.5" max="2.5" value="1.5" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s3a-resample" type="button">🎲 Reamostrar</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">30 trajetórias sequenciais a partir do mesmo x</p>
+            <canvas id="s3a-traj"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Em t: trajetórias vs kernel vs densidade exata</p>
+            <canvas id="s3a-dist"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub-title">3b · Posterior q(z<sub>t−1</sub> | z<sub>t</sub>, x): produto de gaussianas</h3>
+      <p class="demo-text">
+        A difusão revertida no tempo, condicionada em <span class="formula">x</span>, é proporcional ao produto
+        <span class="formula">q(z<sub>t</sub>|z<sub>t−1</sub>) · q(z<sub>t−1</sub>|x)</span>.
+        O produto de duas gaussianas é gaussiano: a posterior (roxo) fica entre a verossimilhança (ciano)
+        e a prior (laranja), e é mais estreita que ambas. Arraste os marcadores de
+        <span class="formula">x</span> e <span class="formula">z<sub>t</sub></span> no gráfico.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">t = <span id="s3b-t-val">25</span> / 50
+            <input type="range" id="s3b-t" min="2" max="50" value="25" step="1" />
+          </label>
+          <span class="readout formula" id="s3b-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Curvas sobre o eixo z<sub>t−1</sub> (arraste x e z<sub>t</sub>)</p>
+            <canvas id="s3b-plot"></canvas>
+          </div>
+        </div>
+        <p class="demo-text formula formula-lines" id="s3b-formula"></p>
+        <p class="demo-text small">
+          💡 Observe com o slider: com <span class="formula">t</span> pequeno a prior é estreita
+          (pouco ruído acumulado, variância <span class="formula">1−α<sub>t−1</sub></span> pequena)
+          e a posterior praticamente coincide com ela, a informação vem de
+          <span class="formula">x</span>. Com <span class="formula">t</span> grande a prior fica
+          quase plana e a posterior cola na verossimilhança, a informação vem de
+          <span class="formula">z<sub>t</sub></span>. É por isso que a amostragem reversa pode
+          partir de ruído puro: perto de <span class="formula">t = T</span>, condicionar em
+          <span class="formula">x</span> quase não muda a posterior (teste arrastando
+          <span class="formula">x</span> com <span class="formula">t = 50</span>).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Treinar ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Treine um mini diffusion model ao vivo</h2>
+      <p class="demo-text">
+        Uma MLP <span class="formula">g(z, t, c)</span> (13→64→64→2, ~5,6 mil parâmetros) é treinada
+        aqui no navegador com o algoritmo dos slides: sorteia
+        <span class="formula">t ∼ U{1..T}</span> e <span class="formula">ε ∼ 𝒩(0,I)</span>,
+        monta <span class="formula">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε</span>
+        pelo kernel e minimiza <span class="formula">‖g(z<sub>t</sub>, t) − ε‖²</span>.
+        Depois, a amostragem reversa transforma ruído puro nas duas luas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl primary" id="s4-train" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Resetar pesos</button>
+          <button class="btn-ctl primary" id="s4-sample" type="button" disabled>✨ Amostrar</button>
+          <span class="readout" id="s4-status">passos: 0 · loss: —</span>
+        </div>
+        <div class="controls">
+          <label class="slider-label">Condição:
+            <select id="s4-class">
+              <option value="-1">sem condição</option>
+              <option value="0">lua A</option>
+              <option value="1">lua B</option>
+            </select>
+          </label>
+          <label class="slider-label">guidance w = <span id="s4-w-val">0.0</span>
+            <input type="range" id="s4-w" min="0" max="4" value="0" step="0.5" />
+          </label>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Loss (média móvel, escala log). O patamar ≈ variância irredutível do ruído, não é bug.</p>
+            <canvas id="s4-loss"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Amostragem reversa: z<sub>T</sub> ∼ 𝒩(0,I) → dados</p>
+            <canvas id="s4-samples"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          Amostragem (slides): <span class="formula">ẑ<sub>t−1</sub> = z<sub>t</sub>/√(1−β<sub>t</sub>) −
+          (β<sub>t</sub>/(√(1−α<sub>t</sub>)·√(1−β<sub>t</sub>)))·g(z<sub>t</sub>, t)</span>,
+          depois <span class="formula">z<sub>t−1</sub> = ẑ<sub>t−1</sub> + σ<sub>t</sub>·ε</span>.
+          Com condição de classe, usa-se classifier-free guidance:
+          <span class="formula">g̃ = (1+w)·g(z, t, c) − w·g(z, t, ∅)</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Diffusion Models</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="js/utils.js"></script>
+  <script defer src="js/plot.js"></script>
+  <script defer src="js/section1-forward.js"></script>
+  <script defer src="js/section2-schedule.js"></script>
+  <script defer src="js/section3-gaussian.js"></script>
+  <script defer src="js/section4-train.js"></script>
+  <script defer src="js/main.js"></script>
+</body>
+</html>

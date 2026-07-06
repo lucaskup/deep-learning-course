@@ -1,0 +1,759 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Neurônio MP e Perceptron}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS % Your institution for the title page
+}
+\date{\mespor de \the\year}
+ % Date, can be changed to a custom date
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    % Print the title page as the first slide
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    % Throughout your presentation, if you choose to use \section{} and \subsection{} commands, these will automatically be printed on this slide as an overview of your presentation
+    \tableofcontents
+\end{frame}
+\section{Introdução}
+%------------------------------------------------
+\begin{frame}{Bioinspiração}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+            \item Quando não sabemos como fazer algo podemos copiar!
+            \item Temos diversos exemplos de inteligência na natureza
+            \item Computação Bioinspirada
+            \begin{itemize}
+                \item Algoritmos Genéticos 
+                \item Computação Evolutiva
+                \item Redes Neurais Artificiais...
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+          \centering
+          \includegraphics[width=\linewidth]{slides/img/aula10/pessoavoando.jpeg}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+\section{Neurônio MP}
+
+\begin{frame}{MP Neuron\footfullcite{mcculloch1943logical}}
+\begin{columns}
+
+    \begin{column}{.7\linewidth}
+        \begin{itemize}
+            \item Importância histórica por ser o primeiro modelo computacional de um neurônio
+            \item Possibilitou mapear a lógica proposicional em neurônios artificiais
+            \item Possível origem do termo \textit{neurônio artificial} e \textit{redes neurais artificiais}
+            \item Modelo matemático, sem implementação concreta em um dispositivo computacional
+        \end{itemize}
+    \end{column}
+    \begin{column}{.3\linewidth}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/aula10/mculochpits.png}
+        \caption{Warren S. McCulloch (à direita) e Walter Pitts (à esquerda).}
+    \end{figure}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{MP Neuron – Funcionamento}
+\begin{columns}
+    \begin{column}{.6\textwidth}
+        \begin{itemize}
+            \item Entradas binárias
+            \item Estímulos podem ser:
+            \begin{itemize}
+                \item Excitatórios: Ativos quando a entrada é Verdadeira
+                \item Inibitórios: Ativos quando a entrada é Falsa
+            \end{itemize}
+            \item Neurônio dispara quando a quantidade de estímulos excitatórios ultrapassa um limiar $\theta$
+        \end{itemize}
+    \end{column}
+    \begin{column}{.4\linewidth}
+    \resizebox{\linewidth}{!}{
+        \providecommand{\figxzerovalue}{$\mlinstance_{0}$}
+        \providecommand{\figxonevalue}{$\mlinstance_{1}$}
+        \providecommand{\figyhatvalue}{$\mltargethat$}
+        \input{slides/img/tikz/mpneuron.tikz}
+        }
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{MP Neuron – Exemplo como \textit{AND}}
+    \centering
+    \resizebox{.6\linewidth}{!}{
+        \providecommand{\figxzerovalue}{$\mlinstance_{0}=\textcolor{blue}{\text{true}}$}
+        \providecommand{\figxonevalue}{$\mlinstance_{1}=\textcolor{red}{\text{false}}$}
+        \providecommand{\figyhatvalue}{$\mltargethat=\textcolor{red}{\text{false}}$}
+        \providecommand{\figpreactivation}{$2$}
+        \input{slides/img/tikz/mpneuron.tikz}
+        }
+\end{frame}
+
+\begin{frame}{MP Neuron – Exemplo como \textit{OR}}
+    \centering
+    \resizebox{.6\linewidth}{!}{
+        \providecommand{\figxzerovalue}{$\mlinstance_{0}=\textcolor{blue}{\text{true}}$}
+        \providecommand{\figxonevalue}{$\mlinstance_{1}=\textcolor{red}{\text{false}}$}
+        \providecommand{\figyhatvalue}{$\mltargethat=\textcolor{blue}{\text{true}}$}
+        \providecommand{\figpreactivation}{$1$}
+        \input{slides/img/tikz/mpneuron.tikz}
+        }
+\end{frame}
+
+\begin{frame}{MP Neuron – Entrada inibitória $\mlinstance_{0}\  \text{\textit{AND}}\ \text{NOT}\ \mlinstance_{1}$}
+    \centering
+    \resizebox{.6\linewidth}{!}{
+        \providecommand{\figxzerovalue}{$\mlinstance_{0}=\textcolor{blue}{\text{true}}$}
+        \providecommand{\figxonevalue}{$\mlinstance_{1}=\textcolor{red}{\text{false}}$}
+        \providecommand{\figyhatvalue}{$\mltargethat=\textcolor{blue}{\text{true}}$}
+        \providecommand{\figpreactivation}{$2$}
+        \input{slides/img/tikz/mpneuroninhib.tikz}
+        }
+\end{frame}
+
+\section{Perceptron}
+
+\begin{frame}{Perceptron}
+
+Frank Rosenblatt\footfullcite{rosenblatt1958perceptron} fez algumas modificações no Neurônio MP
+\begin{equation*}
+    \mltargethat = \varphi(\mlinstance\thetav^{\top})
+\end{equation*}
+\begin{itemize}
+    \item Entradas são números reais
+    \item Cada entrada é ponderada por um parâmetro
+    \item Existe um algoritmo de aprendizado para definir $\thetav$
+    \item Função de ativação $\varphi(z)=\text{sinal}(z)=\begin{cases}
+        +1,\quad z\geq0\\
+        -1,\quad z<0
+    \end{cases}$ 
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Perceptron}
+
+\large ``(...) identities of this sort must be \textit{learned} (...) the number of functional units in the storage system or memory, should be less than the number of forms or memories to be retained.''\footfullcite{rosenblatt1958perceptron}
+\end{frame}
+
+\begin{frame}{Perceptron}
+\begin{columns}
+    \begin{column}{.6\textwidth}
+        \begin{itemize}
+            \item Classificador de imagens
+            \item Resolução $20\times20$
+            \item 400 fotocélulas capturavam a imagem
+            \item Pesos eram controlados por potenciômetros 
+        \end{itemize}
+        
+    \end{column}
+    \begin{column}{.4\textwidth}
+        \begin{figure}
+            \centering
+            \includegraphics[width=\linewidth]{slides/img/aula10/perceptron_rosenblatt.jpg}
+            \caption{\href{https://news.cornell.edu/stories/2019/09/professors-perceptron-paved-way-ai-60-years-too-soon}{Frank Rosenblatt e o Perceptron}{}}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{Algoritmo de Aprendizado do Perceptron (PLA)}
+\begin{algorithmic}[1]
+\State Assuma $\X^{(i)}$ com primeira componente igual a $1$ (truque do bias)
+\State Inicialize os pesos $\thetav$ aleatoriamente
+\While{existirem observações mal classificadas}
+  \State Selecione $\X^{(i)}$ tal que $\text{sinal}(\X^{(i)} \thetav^\top) \neq \y^{(i)}$
+  \State Atualize: $\thetav \gets \thetav + \y^{(i)} \X^{(i)}$
+\EndWhile
+\end{algorithmic}
+\end{frame}
+
+\begin{frame}{Algoritmo de Aprendizado do Perceptron (PLA)}
+\begin{columns}
+    \begin{column}{.6\textwidth}
+    \begin{itemize}
+        \item Vamos ver um exemplo de treinamento com base no conjunto de dados abaixo
+        \item À direita teremos uma representação do espaço de \textit{features} junto da fronteira de decisão
+    \end{itemize}
+        \begin{table}
+            \centering
+            \begin{tabular}{|r|r|r|}
+                \hline
+                $\X_1$ & $\X_2$  & $\y$  \\
+                \hline
+                1 & 1&\textcolor{blue}{1} \\
+                \hline
+                -1 & 1&\textcolor{blue}{1} \\
+                \hline
+                1 & -1&\textcolor{blue}{1} \\
+                \hline
+                -1 & -1&\textcolor{red}{-1} \\
+                \hline
+            \end{tabular}
+        \end{table} 
+    \end{column}
+    \begin{column}{.4\textwidth}
+    \centering
+    \providecommand{\figfuncdecision}{x*x}
+    \resizebox{\linewidth}{!}{
+        \input{slides/img/tikz/perceptronfronteiradecisao.tikz}
+    }
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Algoritmo de Aprendizado do Perceptron (PLA)}
+
+\begin{columns}
+    \begin{column}{.6\textwidth}
+        \begin{algorithmic}[1]
+            \State Assuma $\X^{(i)}$ com primeira componente igual a $1$ (truque do bias)
+            \State Inicialize os pesos $\thetav$ aleatoriamente
+            \While{existirem observações mal classificadas}
+              \State Selecione $\X^{(i)}$ tal que $\text{sinal}(\X^{(i)} \thetav^\top) \neq \y^{(i)}$
+              \State Atualize: $\thetav \gets \thetav + \y^{(i)} \X^{(i)}$
+            \EndWhile
+        \end{algorithmic}
+    \centering
+    \resizebox{.5\linewidth}{!}{
+        \input{slides/img/tikz/perceptron.tikz}
+    }    
+    \end{column}
+    \begin{column}{.4\textwidth}
+    \centering
+    \providecommand{\figfuncdecision}{x*x}
+
+    \resizebox{\linewidth}{!}{
+        \input{slides/img/tikz/perceptronfronteiradecisao.tikz}
+    }
+    \end{column}
+\end{columns}
+    
+\end{frame}
+
+\begin{frame}{Algoritmo de Aprendizado do Perceptron (PLA)}
+% Inicialize
+
+
+% %first data
+% \tikzarrow{10.75}{5.2}
+% \tikzarrow{13.75}{5.2}
+% \tikzarrow{10.75}{2.6}
+% \tikzarrow{13.75}{2.6}
+% \tikzarrow{10}{-1.7}
+% \tikzarrow{13}{-1.7}
+% \tikzarrow{13}{-4.2}
+% \tikzarrow{10}{-4.2}
+    % \only<1>{
+    % }
+    % \only<2,5,8,11,14>{
+    % }
+    % \only<3,6,9,12,15>{
+    % }
+    % \only<4,7,10,13,16>{
+    % }
+    
+%
+
+
+    % \only<3,4,5,6>{
+    % }
+    % \only<7,8,9>{
+    %     \tikzarrow{13}{-1.7}
+    % }
+    % \only<10,11,12>{
+    %     \tikzarrow{13}{-4.2}
+    %     }
+    % \only<13,14,15>{
+    %     \tikzarrow{10}{-4.2}
+    % }
+
+    
+%
+
+\begin{columns}
+    \begin{column}{.6\textwidth}
+    \visible<1>{
+        \tikzarrow{0.25}{7.1}
+    }
+    \visible<2,5,8,11,14>{
+        \tikzarrow{0.25}{6.65}
+    }
+    \visible<3,6,9,12>{
+        \tikzarrow{0.25}{6.15}
+    }
+    \visible<4,7,10,13>{
+        \tikzarrow{0.25}{5.7}
+    }
+    \visible<15>{
+        \tikzarrow{0.25}{5.15}
+    }
+    
+        \begin{algorithmic}[1]
+        \State Inicialize os pesos $\thetav$ aleatoriamente
+        \While{existirem observações mal classificadas}
+          \State Selecione $\X^{(i)}$ tal que $\text{sinal}(\X^{(i)} \thetav^\top) \neq \y^{(i)}$
+          \State Atualize: $\thetav \gets \thetav + \y^{(i)} \X^{(i)}$
+        \EndWhile
+        \end{algorithmic}
+        \vspace{10pt}
+        
+        \only<1-3>{
+            \providecommand{\figthetazero}{$-1$}
+            \providecommand{\figthetaone}{$-1$}
+            \providecommand{\figthetatwo}{$-1$}
+            \(\thetav^\top=[-1,-1,-1]\)
+        }
+        \only<4>{
+            \providecommand{\figthetazero}{$0$}
+            \providecommand{\figthetaone}{$-2$}
+            \providecommand{\figthetatwo}{$0$}
+            \(\thetav^\top=[0,-2,0]=[-1,-1,-1]+[1,-1,1]\)
+        }
+        \only<5-6>{
+            \providecommand{\figthetazero}{$0$}
+            \providecommand{\figthetaone}{$-2$}
+            \providecommand{\figthetatwo}{$0$}
+            \(\thetav^\top=[0,-2,0]\)
+        }
+        \only<7>{
+            \providecommand{\figthetazero}{$1$}
+            \providecommand{\figthetaone}{$-1$}
+            \providecommand{\figthetatwo}{$1$}
+            \(\thetav^\top=[1,-1,1]=[0,-2,0]+[1,1,1]\)
+        }
+        \only<8-9>{
+            \providecommand{\figthetazero}{$1$}
+            \providecommand{\figthetaone}{$-1$}
+            \providecommand{\figthetatwo}{$1$}
+            \(\thetav^\top=[1,-1,1]\)
+        }
+        \only<10>{
+            \providecommand{\figthetazero}{$2$}
+            \providecommand{\figthetaone}{$0$}
+            \providecommand{\figthetatwo}{$0$}
+            \(\thetav^\top=[2,0,0]=[1,-1,1]+[1,1,-1]\)
+        }
+        \only<11-12>{
+            \providecommand{\figthetazero}{$2$}
+            \providecommand{\figthetaone}{$0$}
+            \providecommand{\figthetatwo}{$0$}
+            \(\thetav^\top=[2,0,0]\)
+        }
+        \only<13>{
+            \providecommand{\figthetazero}{$1$}
+            \providecommand{\figthetaone}{$1$}
+            \providecommand{\figthetatwo}{$1$}
+            \(\thetav^\top=[1,1,1]=[2,0,0]+(-1)[1,-1,-1]\)
+        }
+        \only<14->{
+            \providecommand{\figthetazero}{$1$}
+            \providecommand{\figthetaone}{$1$}
+            \providecommand{\figthetatwo}{$1$}
+            \(\thetav^\top=[1,1,1]\)
+        }
+        \\
+    \centering
+    \resizebox{.5\linewidth}{!}{
+        \input{slides/img/tikz/perceptron.tikz}
+    }    
+    \end{column}
+    \begin{column}{.4\textwidth}
+    \only<3,4>{
+        \tikzarrow{10.75}{5.9}
+    }
+    \only<6,7>{
+        \tikzarrow{13.75}{5.9}
+    }
+    \only<9,10>{
+        \tikzarrow{13.75}{3.4}
+    }
+    \only<12,13>{
+        \tikzarrow{10.75}{3.4}
+    }
+    \centering
+    \only<1,2,3>{
+        \providecommand{\figfuncdecision}{-x-1}
+    }
+    \only<4,5,6>{
+        \providecommand{\figvertical}{0}
+        \providecommand{\figleftcolor}{PastelBlue}
+        \providecommand{\figrightcolor}{PastelRed}
+    }
+    \only<7,8,9>{
+        \providecommand{\figtopcolor}{PastelBlue}
+        \providecommand{\figbottomcolor}{PastelRed}
+        \providecommand{\figfuncdecision}{x-1}
+
+    }
+    \only<10,11,12>{
+        \providecommand{\figtopcolor}{PastelRed}
+        \providecommand{\figbottomcolor}{PastelBlue}
+        \providecommand{\figfuncdecision}{x*x}
+    }
+    \only<13->{
+        \providecommand{\figtopcolor}{PastelBlue}
+        \providecommand{\figbottomcolor}{PastelRed}
+        \providecommand{\figfuncdecision}{-x-1}
+    }
+
+    \resizebox{\linewidth}{!}{
+        \input{slides/img/tikz/perceptronfronteiradecisao.tikz}
+    }
+    \end{column}
+\end{columns}
+    
+\end{frame}
+
+
+
+
+
+
+\begin{frame}{Considerações sobre o PLA}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Descoberto empiricamente
+          \item Intuição geométrica: produto escalar
+          \begin{itemize}
+              \item positivo quando $\alpha<90^{\circ}$
+              \item negativo quando $\alpha>90^{\circ}$
+          \end{itemize}
+          \item A regra de atualização de $\thetav$ ajusta o ângulo do vetor de pesos em relação às instâncias
+          \item Sempre converge para problemas linearmente separáveis
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+\begin{tikzpicture}[scale=2, >=Latex]
+    % Axes
+    \draw[->, gray!60] (-1.5,0) -- (1.5,0) node[right] {};
+    \draw[->, gray!60] (0,-.2) -- (0,1.5) node[above] {};
+
+    % Vectors u and v
+    \coordinate (O) at (0,0);
+    \coordinate (U) at (1.5,0.5);
+    \coordinate (V) at (0.5,1.2);
+    \coordinate (X) at (-1,0.7);
+
+    \draw[->, thick, blue] (O) -- (U) node[above right] {$\X^{(i)}$};
+    \draw[->, thick, red] (O) -- (V) node[above left] {$\thetav$};
+    \draw[->, thick, orange] (O) -- (X) node[above left] {$\thetav-\X^{(i)}$};
+    \draw[-, dotted, thick, gray!60] (V) -- (X) node[above left] {};
+    \pic [draw=green!50!black, fill=green!20, angle eccentricity=1.3, angle radius=1cm] {angle = U--O--V};
+    \node at (0.2,0.2) {$\alpha$};
+    \node at (-0.4,1.2) {$\yhat=-1$};
+    % Angle between vectors
+\end{tikzpicture}
+
+    \end{column}
+\end{columns}
+\end{frame}
+
+\section{O problema XOR}
+\begin{frame}{Limitação do Perceptron}
+\begin{itemize}
+  \item O Perceptron é um modelo linear (traça um hiperplano como fronteira de decisão)
+  \item Marvin Minsky e Seymour Papert salientaram essa limitação com o problema  XOR\footfullcite{minsky1969perceptron}
+\end{itemize}
+\vspace{5pt}
+\centering
+\providecommand{\figtopcolor}{white}
+\providecommand{\figbottomcolor}{white}
+\providecommand{\figfuncdecision}{x*x}
+\resizebox{.38\linewidth}{!}{
+\input{slides/img/tikz/perceptronfronteiradecisaoxor.tikz}
+}
+
+\end{frame}
+
+
+
+
+\begin{frame}{Vamos observar esses dois Perceptrons}
+\begin{columns}
+  \column{0.5\textwidth}
+  \centering
+  \providecommand{\figthetazero}{$0.5$}
+  \providecommand{\figthetaone}{$1$}
+  \providecommand{\figthetatwo}{$1$}
+  \resizebox{.6\linewidth}{!}{
+  \input{slides/img/tikz/perceptron.tikz}
+  }
+  
+  \visible<2>{\textbf{OR}}\\
+  \begin{tabular}{|r|r|r|}
+  \hline
+  $\X_1$ & $\X_2$ & $\y$ \\
+  \hline
+  -1 & -1 & \visible<2>{\textcolor{red}{-1}} \\
+  \hline
+  -1 & 1  & \visible<2>{\textcolor{blue}{1}} \\
+  \hline
+   1 & -1 & \visible<2>{\textcolor{blue}{1}} \\
+   \hline
+   1 & 1  & \visible<2>{\textcolor{blue}{1}} \\
+   \hline
+  \end{tabular}
+
+  \column{0.5\textwidth}
+  \centering
+  \providecommand{\figthetazero}{$-1.5$}
+  \providecommand{\figthetaone}{$1$} \providecommand{\figthetatwo}{$1$}
+  \resizebox{.6\linewidth}{!}{
+  \input{slides/img/tikz/perceptron.tikz}
+  }
+  
+  \visible<2>{\textbf{AND:}}\\
+  \begin{tabular}{|r|r|r|}
+  \hline
+  $\X_1$ & $\X_2$ & $\y$ \\
+  \hline
+  -1 & -1 & \visible<2>{\textcolor{red}{-1}} \\
+  \hline
+  -1 & 1  & \visible<2>{\textcolor{red}{-1}} \\
+  \hline
+   1 & -1 & \visible<2>{\textcolor{red}{-1}} \\
+   \hline
+   1 & 1  & \visible<2>{\textcolor{blue}{1}} \\
+   \hline
+  \end{tabular}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Resolvendo XOR}
+\begin{columns}
+    \begin{column}{0.4\linewidth}
+        \begin{tikzpicture}
+            \pgfmathsetmacro{\ex}{0.5}
+            \pgfmathsetmacro{\ey}{1.}
+            \pgfmathsetmacro{\eradius}{0.5}
+            \pgfmathsetmacro{\yone}{1.5}
+            \pgfmathsetmacro{\ytwo}{0}
+            \pgfmathsetmacro{\ythree}{-1.5}
+            % \draw[help lines] (-2,-2) grid (3,3);
+            % first
+            \fill (-2, \yone) circle [x radius=0.15, y radius=0.15];    
+            \node at (-2, \yone+0.5) {$\mlinstance_{0}=1$};
+        
+            % second
+            \fill (-2, \ytwo) circle [x radius=0.15, y radius=0.15];    
+            \node at (-2, \ytwo+0.5) {$\mlinstance_{1}$};
+        
+            % third
+            \fill (-2, \ythree) circle [x radius=0.15, y radius=0.15];    
+            \node at (-2, \ythree+0.5) {$\mlinstance_{2}$};
+            
+
+
+        \visible<1,3>{
+            \draw[thick] (-2, \yone) -- (\ex, \ey-1);
+            \draw[thick] (-2, \ytwo) -- (\ex, \ey-1);
+            \draw[thick] (-2, \ythree) -- (\ex, \ey-1);
+            \node at (-1.5,{\yone}) {\small \textcolor{blue}{$-1.5$}};
+            \node at (-1.5,{\ytwo+0.2}) {\small \textcolor{blue}{$1$}};
+            \node at (-1.5,{\ythree+0.6}) {\small \textcolor{blue}{$-1$}};
+            \draw[thick] (\ex, 0) -- (\ex+2, 0);
+            \filldraw[color=black,fill=PastelBlue](\ex,\ey-1) circle (0.5);
+            \node[font=\tiny] at (\ex, 0) {$\varphi(z^{(i)})$};
+            
+            }           
+
+        \visible<2->{
+            \node at (-1.5,{\yone-1}) {\small \textcolor{green}{$-1.5$}};
+            \node at (-1.5,{\ytwo-0.2}) {\small \textcolor{green}{$-1$}};
+            \node at (-1.5,{\ythree-0.3}) {\small \textcolor{green}{$1$}};
+            \draw[thick] (-2, \yone) -- (\ex, \ythree);
+            \draw[thick] (-2, \ytwo) -- (\ex, \ythree);
+            \draw[thick] (-2, \ythree) -- (\ex, \ythree);
+        
+            \draw[thick] (\ex,\ythree) -- (\ex+2, 0);
+            
+            \filldraw[color=black,fill=PastelGreen](\ex,\ythree) circle (0.5);
+
+            \node[font=\tiny] at (\ex, \ythree) {$\varphi(z^{(i)})$};%
+            }
+            \visible<3>{
+                \draw[thick] (-2, \yone) -- (\ex+2, 0);
+                \node at (1.7,{\yone-1}) {\small \textcolor{red}{$0.5$}};
+                \node at (1.7,{\ytwo-0.2}) {\small \textcolor{red}{$1$}};
+                \node at (1.7,{\ytwo-0.8}) {\small \textcolor{red}{$1$}};
+                
+                \draw[thick,->] (\ex+2, 0) -- (\ex+3, 0);
+                \filldraw[color=black,fill=PastelRed]({\ex+2},{\ey-1}) circle (0.5);
+                \node[font=\tiny] at (\ex+2, 0) {$\varphi(z^{(i)})$};%
+            }
+        \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.6\linewidth}
+    \centering
+    \resizebox{.9\linewidth}{!}{
+    \begin{tikzpicture}
+        \begin{axis}[
+            legend pos=south east,% <-- this line controls the width
+            xlabel={$\mlinstance_1$},
+            ylabel={$\mlinstance_2$},
+            xmin=-1.5, xmax=1.5,
+            ymin=-1.5, ymax=1.5,
+            xtick={-1, 0, 1},
+            ytick={-1, 0, 1},
+            ymajorgrids=true,
+            xmajorgrids=true,
+            grid style=dashed,
+        ]
+            
+                
+            \path [name path=bottom](\pgfkeysvalueof{/pgfplots/xmin},\pgfkeysvalueof{/pgfplots/ymin}) --
+            (\pgfkeysvalueof{/pgfplots/xmax},\pgfkeysvalueof{/pgfplots/ymin});
+            
+            \path [name path=top]
+            (\pgfkeysvalueof{/pgfplots/xmin},\pgfkeysvalueof{/pgfplots/ymax}) --
+            (\pgfkeysvalueof{/pgfplots/xmax},\pgfkeysvalueof{/pgfplots/ymax});
+            
+            \only<2>{
+            \addplot [
+                name path=g,
+                domain=-1.5:1.5, 
+                samples=2, 
+                color=black,
+                dashed,
+                thick,
+                ]
+                {x+1};    
+                \addplot[PastelBlue, opacity=0.3] fill between [of=g and top]; 
+                \addplot[PastelRed, opacity=0.3] fill between [of=g and bottom]; 
+            }
+            \only<1>{
+            \addplot [
+                    name path=f,
+                    domain=-1.5:1.5, 
+                    samples=2, 
+                    color=black,
+                    dashed,
+                    thick,
+                    ]
+                    {x-1};
+            
+                \addplot[PastelRed, opacity=0.3] fill between [of=f and top]; 
+                \addplot[PastelBlue, opacity=0.3] fill between [of=f and bottom]; 
+            }
+            \only<3>{
+            \addplot [
+                    name path=f,
+                    domain=-1.5:1.5, 
+                    samples=2, 
+                    color=black,
+                    dashed,
+                    thick,
+                    ]
+                    {x-1};
+            \addplot [
+                name path=g,
+                domain=-1.5:1.5, 
+                samples=2, 
+                color=black,
+                dashed,
+                thick,
+                ]
+                {x+1};
+                \addplot[PastelBlue, opacity=0.3] fill between [of=g and top]; 
+                \addplot[PastelRed, opacity=0.3] fill between [of=f and g]; 
+                \addplot[PastelBlue, opacity=0.3] fill between [of=f and bottom]; 
+            }
+            \addplot[
+                only marks,
+                ultra thick,
+                 color=red,
+                 mark=-,
+                 mark options={scale=3}
+                ]
+                coordinates {
+                (-1,-1)(1,1)
+                };
+            \addplot[
+                only marks,
+                ultra thick,
+                 color=blue,
+                 mark=+,
+                 mark options={scale=3}
+                ]
+                coordinates {
+                (-1,1)(1,-1)
+                };
+        \end{axis}
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+    
+\end{frame}
+
+\begin{frame}{Resolvendo XOR}
+\begin{itemize}
+    \item Quando organizamos vários Perceptrons em camadas chamamos de \textit{MultiLayer Perceptron} (MLP)
+    \item PLA não funciona para MLP
+    \item Essa limitação minou o interesse por redes neurais durante anos (Inverno da IA)
+    \item Para treinar um MLP vamos precisar usar retropropagação de erros (\textit{backpropagation}) e descida de gradiente (\textit{gradient descent})
+\end{itemize}
+    
+\end{frame}
+\section*{Referências e Leituras}
+%------------------------------------------------
+\begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+        \item Capítulo 1: \fullcite{abu-mostafa_learning_2012}
+        \item Capítulo 1: \fullcite{haykin2009neural}
+    \end{itemize}
+
+\end{frame}
+
+
+
+%------------------------------------------------
+
+\begin{frame}{Referências}
+    \printbibliography
+
+\end{frame}
+
+%------------------------------------------------
+
+% \begin{frame}
+%     \Huge{\centerline{\textbf{The End}}}
+% \end{frame}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

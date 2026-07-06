@@ -1,0 +1,74 @@
+\documentclass{dlproblemset}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\title{Tarefas de Visão Computacional}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\begin{enumerate}[I)]
+
+\item Por que usamos arquiteturas baseadas em \textit{encoder-decoder} para realizar segmentação semântica?
+
+\item Explique como as tarefas de localização e detecção de objetos são diferentes.
+
+\item Explique como aproveitar uma VGG-16 pré-treinada no ImageNET para realizar classificação de cães e gatos. Sua explicação deve contemplar quais as camadas da VGG-16 você deveria manter e quais você deveria treinar novamente. Suponha que você dispõe de um conjunto de dados relativamente pequeno, com cerca de 250 instâncias para cada classe.
+
+\item Considere a tarefa de localização de um único objeto, em que a cabeça de localização produz uma \textit{bounding box} $\mathbf{y} = (x, y, h, w)$. Suponha uma caixa de \textit{ground truth} $A$ com canto superior esquerdo em $(1, 1)$ e canto inferior direito em $(5, 4)$, e uma caixa prevista $B$ com canto superior esquerdo em $(3, 2)$ e canto inferior direito em $(7, 5)$. Calcule a \textit{Intersection over Union} (IoU) e o \textit{Dice Score} entre $A$ e $B$.
+
+\item Na arquitetura usada para localização, a cabeça densa termina em 4 unidades com ativação sigmoide e a função de custo é o erro quadrático médio (MSE).
+\begin{enumerate}[a)]
+    \item Por que usamos 4 unidades sigmoide e MSE, em vez de uma \textit{softmax} com entropia cruzada como na classificação?
+    \item Qual hipótese implícita sobre a posição da caixa essa parametrização assume?
+    \item Como você adaptaria a saída para representar caixas que ultrapassam as bordas da imagem?
+\end{enumerate}
+
+\item Para resolver classificação e localização simultaneamente, compartilhamos o \textit{backbone} convolucional e usamos duas cabeças densas independentes, com a função de custo combinada $\mathcal{L} = \mathcal{L}_{\text{classif.}} + \lambda\,\mathcal{L}_{\text{loc.}}$. Explique o papel do hiperparâmetro $\lambda$ e descreva o que tende a acontecer com o treinamento se $\lambda$ for muito grande ou muito pequeno.
+
+\item A detecção de objetos não pode ser resolvida com a mesma cabeça de saída de tamanho fixo (uma \textit{softmax} mais 4 unidades sigmoide) usada na tarefa de classificação com localização.
+\begin{enumerate}[a)]
+    \item Qual é a dificuldade central da detecção que torna uma saída de tamanho fixo inadequada?
+    \item Contraste detectores de dois estágios (como o Faster R-CNN) com detectores de estágio único (como o YOLO) quanto à forma de propor regiões e ao compromisso entre velocidade e precisão.
+\end{enumerate}
+
+\item Explique a diferença entre segmentação semântica e segmentação de instâncias. Use como exemplo uma imagem com dois gatos lado a lado e descreva como cada tarefa representaria esses dois animais na saída.
+
+\end{enumerate}
+
+\newpage
+\subsection*{Gabarito}
+\color{blue}
+
+\begin{enumerate}[I)]
+
+\item Teríamos duas alternativas se não fossemos fazer com \textit{encoder-decoder}:
+1 - Usar convoluções sem fazer \textit{downsampling}, o que ficaria inviável devido ao número de parâmetros necessários e quantidade de processamento gasto;
+2 - Fazer uma rede convolucional que tem \textit{downsampling} e rodar ela várias vezes em diferentes patches da imagem, o que seria proibitivo também em termos de custo computacional. Para realizar a segmentação da imagem em apenas uma passada, a arquitetura \textit{encoder-decoder} possibilita toda a segmentação ser realizada em uma passada e mantém o número de parâmetros baixo.
+
+\item A localização é uma tarefa mais simples que detecção de objetos pois só estamos trabalhando com a posição do objeto de interesse na imagem, não com a determinação de sua classe. Por outro lado, na detecção de objetos tipicamente realizamos tanto a classificação e quanto a localização de objetos em uma imagem.
+
+\item As camadas convolucionais da VGG-16 são responsáveis por extrair características básicas de baixo nível, como bordas e texturas, não necessitam de novo treinamento. Por outro lado, as camadas densas finais estão intimamente relacionadas ao conjunto de dados original (ImageNet). Uma abordagem usual é manter as camadas convolucionais e treinar novamente as camadas densas na extremidade da rede. Isso é um exemplo de \textit{transfer learning} pois estamos aproveitando um aprendizado realizado em um vasto conjunto de dados para ajustar para o nosso problema específico.
+
+\item Áreas e sobreposição: $Area(A) = 4 \times 3 = 12$ e $Area(B) = 4 \times 3 = 12$. A interseção ocorre em $x \in [3, 5]$ (largura 2) e $y \in [2, 4]$ (altura 2), logo $A \cap B = 2 \times 2 = 4$. A união é $A \cup B = Area(A) + Area(B) - A \cap B = 12 + 12 - 4 = 20$.
+$$IoU = \frac{A \cap B}{A \cup B} = \frac{4}{20} = 0.2 \qquad Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)} = \frac{2 \cdot 4}{12 + 12} = \frac{8}{24} \approx 0.333$$
+
+\item
+\begin{enumerate}[a.]
+    \item Porque a \textit{bounding box} é um problema de regressão multivariada de 4 valores contínuos e independentes, não uma escolha entre classes mutuamente exclusivas. A sigmoide mantém cada saída em $[0,1]$, compatível com coordenadas normalizadas, e o MSE mede o erro de regressão. Uma \textit{softmax} forçaria as 4 saídas a competir e somar 1, o que não faz sentido para coordenadas.
+    \item Assume que a caixa cabe inteiramente dentro da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$.
+    \item Usando outra parametrização, por exemplo \textit{logits} sem ativação (permitindo valores fora de $[0,1]$) ou regredindo \textit{offsets} em relação a uma \textit{anchor}.
+\end{enumerate}
+
+\item O \textit{backbone} convolucional extrai \textit{features} compartilhadas pelas duas cabeças. O $\lambda$ equilibra os dois termos de custo, que vivem em escalas diferentes (entropia cruzada para a classe e MSE para a caixa). Se $\lambda$ for muito grande, o treinamento prioriza a localização e a acurácia de classificação tende a piorar; se for muito pequeno, a regressão da caixa fica subtreinada e a localização fica imprecisa. O objetivo é manter os gradientes das duas tarefas em magnitudes comparáveis.
+
+\item
+\begin{enumerate}[a.]
+    \item Não sabemos de antemão quantos objetos aparecem em cada imagem, então o número de caixas e classes a prever é variável. Uma cabeça de tamanho fixo só consegue representar um número predeterminado de saídas.
+    \item Detectores de dois estágios (Faster R-CNN) primeiro propõem regiões candidatas (via \textit{Region Proposal Network}) e depois classificam e refinam cada uma; são tipicamente mais precisos, porém mais lentos. Detectores de estágio único (YOLO) dividem a imagem em uma grade e preveem classe e caixa em uma única passada; são muito mais rápidos, operando em tempo real, ao custo de menor precisão, especialmente em objetos pequenos.
+\end{enumerate}
+
+\item Na segmentação semântica cada pixel recebe uma classe, e todas as instâncias de uma mesma classe compartilham o mesmo rótulo. Os dois gatos apareceriam como uma única máscara da classe ``gato''. Na segmentação de instâncias, instâncias diferentes da mesma classe são diferenciadas, então cada gato receberia uma máscara distinta. A segmentação de instâncias combina a separação de objetos (como na detecção) com a classificação em nível de pixel.
+
+\end{enumerate}
+\end{document}

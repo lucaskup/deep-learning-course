@@ -1,0 +1,1131 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%------------------------------------------------------------------------
+%   EXTRA LECTURE-LOCAL COLORS
+%------------------------------------------------------------------------
+\definecolor{ClipBlue}{HTML}{3182BD}
+\definecolor{ClipOrange}{HTML}{E07B00}
+\definecolor{ClipGreen}{HTML}{2E8B57}
+\definecolor{ClipRed}{HTML}{C0392B}
+\definecolor{LightBlue}{HTML}{DBEAFE}
+\definecolor{LightOrange}{HTML}{FFE8CC}
+\definecolor{LightGray}{HTML}{F3F4F6}
+\definecolor{HighlightYellow}{HTML}{FEF3C7}
+
+\title{Deep Learning}
+\subtitle{CLIP: \textit{Contrastive Language-Image Pre-training}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: MOTIVAÇÃO E CONTEXTO
+  %======================================================================
+  \section{Motivação e Contexto}
+
+  %--- Slide: Antes do CLIP ---
+  \begin{frame}{Antes do CLIP: Transferência por Pré-treino Supervisionado}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Até 2020, o caminho dominante em visão computacional era:
+        \begin{itemize}
+          \item Pré-treinar uma CNN em \texttt{ImageNet} (1.28M imagens, 1000 classes)
+          \item Reaproveitar as camadas convolucionais como \textit{feature extractor}
+          \item Treinar apenas o classificador final (\textit{linear probe})
+          \item Eventualmente, \textit{fine-tuning} de mais camadas com taxa de aprendizado pequena
+        \end{itemize}
+
+        \vspace{0.4em}
+        Receita robusta, porém com dois custos altos: rótulos manuais e classes fixas.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          box/.style={draw=ClipBlue, fill=LightBlue, rounded corners=3pt,
+                      font=\small, inner sep=5pt, text width=2.6cm, align=center},
+          arr/.style={->, thick, color=ClipBlue}
+        ]
+          \node[box] (a) {Pré-treino \\ \textit{ImageNet}};
+          \node[box, below=0.6cm of a] (b) {Congelar \\ \textit{backbone}};
+          \node[box, below=0.6cm of b] (c) {Treinar \\ classificador};
+          \draw[arr] (a) -- (b);
+          \draw[arr] (b) -- (c);
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+    \note{
+      Pergunte: quem da turma já fez \textit{fine-tuning} de uma ResNet pré-treinada?
+      Esta é a base mental que CLIP vai romper.
+    }
+  \end{frame}
+
+  %--- Slide: Visão vs PLN em 2020 ---
+  \begin{frame}{Visão Computacional vs.\ PLN em 2020}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{PLN}
+          \begin{itemize}
+            \item Pré-treino \textit{auto-supervisionado} massivo (BERT, GPT-2, GPT-3)
+            \item Bilhões de tokens de texto bruto da web
+            \item Sem necessidade de rótulos humanos
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{Visão Computacional}
+          \begin{itemize}
+            \item Ainda dependente de \texttt{ImageNet} e datasets curados
+            \item Rotulação manual cara e lenta
+            \item \textit{Self-supervised} (SimCLR, MoCo) começava a aparecer, mas restrito a uma modalidade
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.6em}
+    \centering
+    \textbf{Pergunta:} podemos importar para visão a receita ``coleta web $+$ pré-treino sem rótulos''?
+    \note{
+      Comparar com a explosão de PLN entre 2018--2020. A turma deve perceber que o gargalo
+      não era o modelo, era o sinal de supervisão.
+    }
+  \end{frame}
+
+  %--- Slide: Sonho do zero-shot ---
+  \begin{frame}{O Sonho do \textit{Zero-Shot} em Visão}
+    \begin{itemize}
+      \item Modelos supervisionados só reconhecem o conjunto fixo de classes em que foram treinados
+      \item Adicionar uma classe nova exige coletar exemplos rotulados e re-treinar
+      \item \textit{Zero-shot}: classificar uma classe nunca vista no treino, descrita apenas por linguagem natural
+    \end{itemize}
+
+    \vspace{0.5em}
+    \begin{block}{Definição operacional}
+      Dado um modelo treinado e uma nova classe descrita por uma string
+      (``\texttt{a photo of a tapir}''), prever se uma imagem pertence a essa classe
+      \textbf{sem nenhum exemplo de tapir no treino}.
+    \end{block}
+
+    \vspace{0.4em}
+    Para isso, precisamos de um espaço onde \textbf{imagem} e \textbf{texto} convivam.
+  \end{frame}
+
+  %--- Slide: Hipótese chave ---
+  \begin{frame}{Hipótese-Chave: Legendas da Web São Supervisão Suficiente}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Cada imagem na web tende a vir acompanhada de um texto:
+        \begin{itemize}
+          \item \texttt{alt-text} de HTML
+          \item Legenda de Wikipedia, Instagram, Flickr
+          \item Texto adjacente em artigos de notícias
+        \end{itemize}
+
+        \vspace{0.4em}
+        Esses pares (imagem, texto) são \textbf{ruidosos} e \textbf{abundantes}:
+        anti-curadoria como filosofia de coleta.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          imgbox/.style={draw=ClipBlue, line width=0.6pt, inner sep=0pt},
+          txtbox/.style={draw=ClipOrange, fill=LightOrange, rounded corners=3pt,
+                         font=\scriptsize, inner sep=5pt, text width=3.0cm, align=center}
+        ]
+          \node[imgbox] (i1) {\includegraphics[width=1.6cm,height=1.0cm,keepaspectratio]{slides/img/06-topicos/puppy.jpg}};
+          \node[txtbox, right=0.3cm of i1] (t1) {``a fluffy puppy in the garden''};
+
+          \node[imgbox, below=0.25cm of i1] (i2)
+            {\includegraphics[width=1.6cm,height=1.0cm,keepaspectratio]{slides/img/06-topicos/eiffel.jpg}};
+          \node[txtbox, right=0.3cm of i2] (t2) {``Eiffel Tower in Paris''};
+
+          \node[imgbox, below=0.25cm of i2] (i3)
+            {\includegraphics[width=1.6cm,height=1.0cm,keepaspectratio]{slides/img/06-topicos/earth.jpg}};
+          \node[txtbox, right=0.3cm of i3] (t3) {``Earth from Apollo 17''};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    Resta projetar uma função de custo que aproveite esse sinal fraco em escala massiva.
+  \end{frame}
+
+  %--- Slide: Posicionamento ---
+  \begin{frame}{Onde CLIP se Encaixa no Espectro de Supervisão}
+    \centering
+    \begin{tikzpicture}[
+      box/.style={draw=ClipBlue, rounded corners=3pt, font=\small,
+                  inner sep=6pt, text width=3.5cm, align=center, minimum height=2.0cm},
+      lbl/.style={font=\scriptsize, text width=3.5cm, align=center}
+    ]
+      \node[box, fill=LightBlue]   (a) {\textbf{Auto-supervisionado} \\ (SimCLR, MoCo)};
+      \node[box, fill=LightOrange, right=0.6cm of a]  (b) {\textbf{CLIP} \\ Pares (imagem, texto) da web};
+      \node[box, fill=PastelGreen, right=0.6cm of b]  (c) {\textbf{Supervisionado} \\ (\texttt{ImageNet})};
+
+      \node[lbl, below=0.2cm of a] {sem rótulos \\ uma só modalidade};
+      \node[lbl, below=0.2cm of b] {supervisão fraca \\ multimodal};
+      \node[lbl, below=0.2cm of c] {rótulos humanos \\ classes fixas};
+
+      \draw[->, thick, ClipBlue] (a.east) -- (b.west);
+      \draw[->, thick, ClipBlue] (b.east) -- (c.west);
+    \end{tikzpicture}
+
+    \vspace{0.6em}
+    CLIP herda \textit{escala} do auto-supervisionado e \textit{semântica linguística} do supervisionado.
+    \note{
+      Discutir trade-offs: SimCLR não sabe o que é uma ``zebra''; supervisionado sabe, mas só
+      o conjunto fixo. CLIP combina o melhor dos dois.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 2: APRENDIZADO CONTRASTIVO
+  %======================================================================
+  \section{Aprendizado Contrastivo}
+
+  %--- Slide: Intuição contrastiva ---
+  \begin{frame}{Intuição: Aproximar Pares Positivos, Afastar Negativos}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        Para cada par \textbf{positivo} (imagem $i$, texto $t$), com \textit{embeddings} $\mathbf{u}_i$ (imagem) e $\mathbf{v}_t$ (texto) projetados no \textbf{mesmo espaço}:
+        \begin{itemize}
+          \item \textcolor{ClipGreen}{\textbf{Puxar}} $\mathbf{u}_i$ e $\mathbf{v}_t$ para perto no espaço de \textit{embeddings}
+          \item \textcolor{ClipRed}{\textbf{Empurrar}} $\mathbf{u}_i$ para longe de \textbf{todos os outros textos} do batch
+          \item Tanto de texto para imagem quanto de imagem para texto
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          % esfera de embeddings (esfera unitária, normalizado L2)
+          \draw[dashed, gray!50] (0,0) circle [radius=2.6];
+
+          % âncora: imagem (azul, grande)
+          \fill[ClipBlue] (0,0) circle [radius=0.18];
+          \node[ClipBlue, font=\bfseries, above right=1pt] at (0,0) {$\mathbf{u}_i$};
+
+          % positivo: texto correspondente, próximo à âncora
+          \fill[ClipOrange] (1.6, 0.7) circle [radius=0.16];
+          \node[ClipOrange, font=\bfseries, right] at (1.75, 0.7) {$\mathbf{v}_t$ \scriptsize(positivo)};
+
+          % negativos: textos distantes
+          \fill[ClipOrange] (-2.0, 1.4) circle [radius=0.14];
+          \node[font=\scriptsize, above] at (-2.0, 1.5) {$\mathbf{v}_{n_1}$};
+          \fill[ClipOrange] (-1.6, -1.8) circle [radius=0.14];
+          \node[font=\scriptsize, below] at (-1.6, -1.9) {$\mathbf{v}_{n_2}$};
+          \fill[ClipOrange] (1.0, -2.2) circle [radius=0.14];
+          \node[font=\scriptsize, below] at (1.0, -2.3) {$\mathbf{v}_{n_3}$};
+
+          % seta verde: PUXA o positivo para perto
+          \draw[-{Latex[length=4mm]}, ultra thick, ClipGreen]
+            (1.55, 0.65) -- (0.30, 0.13);
+          \node[ClipGreen, font=\scriptsize\bfseries] at (1.0, 0.65) {puxa};
+
+          % setas vermelhas: EMPURRA negativos para longe
+          \draw[-{Latex[length=4mm]}, ultra thick, ClipRed]
+            (-1.6, 1.1) -- (-2.7, 1.9);
+          \draw[-{Latex[length=4mm]}, ultra thick, ClipRed]
+            (-1.3, -1.5) -- (-2.2, -2.4);
+          \draw[-{Latex[length=4mm]}, ultra thick, ClipRed]
+            (0.85, -1.85) -- (1.4, -2.85);
+          \node[ClipRed, font=\scriptsize\bfseries] at (-2.2, 0.4) {empurra};
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.2em}
+    Os ``empurrões'' e ``puxões'' são gradientes da função de custo \textit{InfoNCE}.
+  \end{frame}
+
+  %--- Slide: Similaridade do cosseno ---
+  \begin{frame}{Similaridade do Cosseno}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \begin{block}{Definição}
+          \[
+            \mathrm{sim}(\mathbf{u}, \mathbf{v}) =
+            \frac{\mathbf{u}^{\top}\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}
+            = \cos\theta
+          \]
+        \end{block}
+
+        \vspace{0.3em}
+        Em CLIP, \textbf{normalizamos $\mathbf{u}$ e $\mathbf{v}$ para norma~1}
+        antes de computar a similaridade:
+        \[
+          \tilde{\mathbf{u}} = \mathbf{u}/\|\mathbf{u}\|,\quad
+          \tilde{\mathbf{v}} = \mathbf{v}/\|\mathbf{v}\|
+        \]
+        Assim $\mathrm{sim}(\tilde{\mathbf{u}},\tilde{\mathbf{v}}) =
+        \tilde{\mathbf{u}}^{\top}\tilde{\mathbf{v}} \in [-1, 1]$.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[scale=1.2]
+          \draw[->, thick] (-0.3,0) -- (2.5,0);
+          \draw[->, thick] (0,-0.3) -- (0,2.0);
+          \draw[->, ultra thick, ClipBlue]   (0,0) -- (2.0, 0.5)
+            node[right, font=\small] {$\mathbf{u}$};
+          \draw[->, ultra thick, ClipOrange] (0,0) -- (1.0, 1.7)
+            node[above, font=\small] {$\mathbf{v}$};
+          \draw (0.4,0.10) arc (14:60:0.42);
+          \node[font=\scriptsize] at (0.65, 0.45) {$\theta$};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: InfoNCE formal ---
+  \begin{frame}{A Perda \textit{InfoNCE}\footfullcite{oord2018infonce}}
+    Em um \textit{batch} de $N$ pares $\{(\mathbf{u}_i, \mathbf{v}_i)\}_{i=1}^{N}$ (já normalizados),
+    formamos $S \in \mathbb{R}^{N\times N}$ com $S_{ij}=\mathbf{u}_i^{\top}\mathbf{v}_j$. Aqui $\tau>0$ é a \textit{temperatura} (próximo slide): controle de ``afiamento'' da \textit{softmax}.
+
+    \begin{block}{Loss simétrica de CLIP}
+      \small
+      Cada direção é uma \textit{softmax} com alvo na diagonal ($i\to t$: \textbf{linha} $i$; \quad $t\to i$: \textbf{coluna} $j$):
+      \[
+        \mathcal{L}_{i\to t} = -\frac{1}{N}\sum_{i=1}^{N}
+          \log\frac{\exp(S_{ii}/\tau)}{\sum_{j=1}^{N}\exp(S_{ij}/\tau)}
+      \]
+      \[
+        \mathcal{L}_{t\to i} = -\frac{1}{N}\sum_{j=1}^{N}
+          \log\frac{\exp(S_{jj}/\tau)}{\sum_{i=1}^{N}\exp(S_{ij}/\tau)},\qquad
+        \mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}\left(\mathcal{L}_{i\to t} + \mathcal{L}_{t\to i}\right)
+      \]
+    \end{block}
+
+    \vspace{0.1em}
+    {\small InfoNCE $=$ \textbf{cross-entropy} (\textit{softmax} $+$ $-\log$) com a diagonal como rótulo: classificação de $N$ vias no \textit{batch}.}
+  \end{frame}
+
+  %--- Slide: Temperatura ---
+  \begin{frame}{Por Que a Temperatura $\tau$ Importa}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{itemize}
+          \item $\tau$ pequeno $\Rightarrow$ \textit{softmax} mais ``afiada'' (concentra probabilidade no maior \textit{logit})
+          \item $\tau$ grande $\Rightarrow$ distribuição mais uniforme, gradientes menos focados
+          \item Em CLIP, $\tau$ é \textbf{aprendido} (parâmetro $\log(1/\tau)$, inicializado em $\log 14$, recortado em $\log 100$)
+        \end{itemize}
+
+        \vspace{0.3em}
+        \footnotesize
+        Valor convergido típico: $1/\tau \approx 100$, ou seja $\tau \approx 0.01$.
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            ybar,
+            width=6cm, height=4cm,
+            ylabel={prob.},
+            xlabel={classe},
+            symbolic x coords={1,2,3,4},
+            xtick=data,
+            ymin=0, ymax=1,
+            bar width=8pt,
+            enlarge x limits=0.25,
+            legend style={font=\tiny, at={(0.5, 1.18)}, anchor=north, legend columns=3, draw=none},
+          ]
+            \addplot[fill=PastelBlue]   coordinates {(1, 0.30) (2, 0.27) (3, 0.24) (4, 0.19)};
+            \addplot[fill=PastelYellow] coordinates {(1, 0.55) (2, 0.27) (3, 0.13) (4, 0.05)};
+            \addplot[fill=PastelOrange] coordinates {(1, 0.95) (2, 0.04) (3, 0.01) (4, 0.00)};
+            \legend{$\tau{=}1$, $\tau{=}0.3$, $\tau{=}0.05$}
+          \end{axis}
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Worked example I — similaridade ---
+  \begin{frame}{Exemplo Trabalhado I: Matriz de Similaridade}
+    Batch com $N=2$. \textit{Embeddings} já normalizados em $\mathbb{R}^3$:
+    \[
+      \mathbf{u}_1 = \begin{pmatrix}0.8 \\ 0.6 \\ 0\end{pmatrix},\;
+      \mathbf{u}_2 = \begin{pmatrix}0 \\ 0.8 \\ 0.6\end{pmatrix},\;
+      \mathbf{v}_1 = \begin{pmatrix}1 \\ 0 \\ 0\end{pmatrix},\;
+      \mathbf{v}_2 = \begin{pmatrix}0 \\ 0.6 \\ 0.8\end{pmatrix}
+    \]
+
+    \vspace{0.2em}
+    Cada $S_{ij} = \mathbf{u}_i^{\top}\mathbf{v}_j$:
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item $S_{11} = 0.8\!\cdot\!1 + 0.6\!\cdot\!0 + 0 = \mathbf{0.80}$ (positivo)
+      \item $S_{12} = 0 + 0.6\!\cdot\!0.6 + 0 = \mathbf{0.36}$ (negativo)
+      \item $S_{21} = 0 + 0.8\!\cdot\!0 + 0.6\!\cdot\!0 = \mathbf{0.00}$ (negativo)
+      \item $S_{22} = 0 + 0.8\!\cdot\!0.6 + 0.6\!\cdot\!0.8 = \mathbf{0.96}$ (positivo)
+    \end{itemize}
+
+    \vspace{0.3em}
+    \[
+      S = \begin{pmatrix} \mathbf{0.80} & 0.36 \\ 0.00 & \mathbf{0.96} \end{pmatrix}
+    \]
+    Diagonal $=$ pares positivos; fora da diagonal $=$ negativos. Note que $S$ \textbf{não é simétrica}.
+    \note{
+      Aponte: a diagonal está alta. Como $S$ não é simétrica, as duas direções
+      (softmax por linha vs por coluna) darão perdas diferentes, motivando a loss
+      simétrica do próximo slide.
+    }
+  \end{frame}
+
+  %--- Slide: Worked example II — InfoNCE ---
+  \begin{frame}{Exemplo Trabalhado II: \textit{InfoNCE} com $\tau$ Diferente}
+    Aplicamos \textit{softmax} linha a linha em $S/\tau$. A perda usa a probabilidade do par correto (a \textbf{diagonal}):
+    \vspace{0.2em}
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{@{}c|cc|cc|c@{}}
+      \toprule
+      $\tau$ & $S/\tau$ linha 1 & $\mathrm{softmax}$ & $S/\tau$ linha 2 & $\mathrm{softmax}$ & $\mathcal{L}_{i\to t}$ \\
+      \midrule
+      $1.0$  & $(0.80,\, 0.36)$ & $(0.608,\, 0.392)$ & $(0.00,\, 0.96)$ & $(0.277,\, 0.723)$ & $\mathbf{0.411}$ \\
+      $0.1$  & $(8.0,\, 3.6)$   & $(0.988,\, 0.012)$ & $(0.0,\, 9.6)$  & $(\approx 0,\, \approx 1)$ & $\mathbf{0.006}$ \\
+      $0.01$ & $(80,\, 36)$         & $(\approx 1,\, \approx 0)$ & $(0,\, 96)$    & $(\approx 0,\, \approx 1)$ & $\approx \mathbf{0}$ \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.3em}
+    {\small Para $\tau{=}1$: $\mathcal{L}_{i\to t} = -\tfrac{1}{2}(\log 0.608 + \log 0.723) = 0.411$. A outra direção usa a \textit{softmax} por \textbf{coluna}: $\mathcal{L}_{t\to i} = -\tfrac{1}{2}(\log 0.690 + \log 0.646) = 0.404$ (\textbf{diferente}!), logo $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(0.411 + 0.404) = 0.408$.}
+
+    \vspace{0.2em}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Diminuir $\tau$ \textbf{recompensa fortemente} positivos já bem separados.
+      \item Mas amplifica ruído: um negativo enganoso vira gradiente enorme.
+      \item Daí a temperatura aprendível com \textit{clipping} em $\log 100$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Negativos no batch ---
+  \begin{frame}{Negativos Vêm de Graça do \textit{Batch}}
+    Em um batch com $N$ pares positivos, cada imagem ``vê'' $N{-}1$ textos negativos
+    (e vice-versa). Total:
+    \[
+      \underbrace{N}_{\text{positivos}} \;+\; \underbrace{N(N{-}1)}_{\text{negativos}}
+      = N^2 \text{ comparações na matriz } S
+    \]
+
+    \vspace{0.3em}
+    \centering
+    \begin{tabular}{@{}rrr@{}}
+      \toprule
+      $N$ & positivos & negativos \\
+      \midrule
+      32        & 32        & 992 \\
+      256       & 256       & 65\,280 \\
+      8\,192    & 8\,192    & 67\,100\,672 \\
+      32\,768   & 32\,768   & $\approx 1.07 \times 10^9$ \\
+      \bottomrule
+    \end{tabular}
+
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: ARQUITETURA DO CLIP
+  %======================================================================
+  \section{Arquitetura do CLIP}
+
+  %--- Slide: Diagrama CLIP ---
+  \begin{frame}{Arquitetura: Dois \textit{Encoders}, Uma Matriz\footfullcite{radford2021clip}}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tikzpicture}[
+      enc/.style={draw=ClipBlue, fill=LightBlue, rounded corners=3pt,
+                  font=\small, minimum width=2.4cm, minimum height=1.0cm, align=center},
+      tenc/.style={draw=ClipOrange, fill=LightOrange, rounded corners=3pt,
+                   font=\small, minimum width=2.4cm, minimum height=1.0cm, align=center},
+      proj/.style={draw=black!50, fill=LightGray, rounded corners=3pt,
+                   font=\scriptsize, minimum width=1.6cm, minimum height=0.8cm, align=center},
+      arr/.style={->, thick, color=black!60}
+    ]
+      \node                 (img) {\includegraphics[width=2.0cm,height=1.4cm,keepaspectratio]{slides/img/06-topicos/puppy.jpg}};
+      \node[enc, right=0.6cm of img] (vi) {\textit{Image} \\ \textit{Encoder}};
+      \node[proj, right=0.5cm of vi] (pi) {Projeção \\ + L2};
+      \node[font=\small, right=0.4cm of pi] (ui) {$\mathbf{u}_i \in \mathbb{R}^{d_e}$};
+
+      \node[below=2.0cm of img] (txt) {\small ``a photo of a dog''};
+      \node[tenc, right=0.6cm of txt] (vt) {\textit{Text} \\ \textit{Encoder}};
+      \node[proj, right=0.5cm of vt] (pt) {Projeção \\ + L2};
+      \node[font=\small, right=0.4cm of pt] (vj) {$\mathbf{v}_j \in \mathbb{R}^{d_e}$};
+
+      \draw[arr] (img) -- (vi);
+      \draw[arr] (vi)  -- (pi);
+      \draw[arr] (pi)  -- (ui);
+      \draw[arr] (txt) -- (vt);
+      \draw[arr] (vt)  -- (pt);
+      \draw[arr] (pt)  -- (vj);
+
+      \node[draw=black, fill=PastelYellow, rounded corners=3pt,
+            minimum width=2.0cm, minimum height=1.6cm, align=center, font=\small,
+            right=0.4cm of ui, yshift=-1.5cm] (S)
+            {$S = U V^{\top}$ \\ $N \times N$};
+
+      \draw[arr, ClipGreen, thick] (ui) -- (S);
+      \draw[arr, ClipGreen, thick] (vj) -- (S);
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    Treinamento conjunto: gradiente flui pelos dois \textit{encoders} a partir de $\mathcal{L}_{\text{CLIP}}$.
+  \end{frame}
+
+  %--- Slide: Encoder de imagem ---
+  \begin{frame}{\textit{Encoder} de Imagem: Duas Famílias}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Variantes ResNet}
+          \begin{itemize}
+            \item ResNet-50, 101, 50x4, 50x16, 50x64
+            \item Modificação: \textit{attention pooling} no lugar do \textit{global average pooling} final
+            \item Maior variante: $\sim$420M parâmetros
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Variantes ViT}
+          \begin{itemize}
+            \item ViT-B/32, ViT-B/16, ViT-L/14
+            \item Patches de 14$\times$14, 16$\times$16 ou 32$\times$32
+            \item ViT-L/14 atinge melhor desempenho final
+            \item $\sim$304M parâmetros (ViT-L/14)
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    Saída do \textit{backbone}: vetor de dimensão $d \in \{512, 768, 1024\}$,
+    depois projetado linearmente para $d_e = 512$ (ou 768 para ViT-L/14).
+  \end{frame}
+
+  %--- Slide: Encoder de texto ---
+  \begin{frame}{\textit{Encoder} de Texto: Transformer Compacto}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Detalhes do \textit{transformer} de texto:
+        \begin{itemize}
+          \item 12 camadas, dimensão 512, 8 cabeças de atenção
+          \item Tokenização \textit{Byte-Pair Encoding} (BPE), 49408 tokens
+          \item Sequência máxima de 77 tokens
+          \item Tokens especiais \texttt{[BOS]} e \texttt{[EOS]}
+          \item Pooling: \textbf{representação do token \texttt{[EOS]}} na última camada
+          \item $\sim$63M parâmetros
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          tok/.style={draw=ClipOrange, fill=LightOrange, font=\scriptsize,
+                      minimum width=1.0cm, minimum height=0.5cm},
+        ]
+          \node[tok] (a) {\texttt{[BOS]}};
+          \node[tok, right=0.05cm of a] (b) {\texttt{a}};
+          \node[tok, right=0.05cm of b] (c) {\texttt{photo}};
+          \node[tok, right=0.05cm of c] (d) {\texttt{...}};
+          \node[tok, right=0.05cm of d, fill=PastelYellow] (e) {\texttt{[EOS]}};
+
+          \draw[->, thick] (e.south) ++(0,-0.2) -- ++(0,-0.6)
+            node[below, font=\scriptsize, align=center] {pooling \\ $\to \mathbf{v}$};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Cabeças de projeção ---
+  \begin{frame}{Cabeças de Projeção: Mesmo Espaço para Texto e Imagem}
+    Cada \textit{encoder} produz um vetor em sua dimensão nativa:
+    \[
+      \mathbf{h}_i^{\text{img}} \in \mathbb{R}^{d_v},\qquad
+      \mathbf{h}_t^{\text{txt}} \in \mathbb{R}^{d_t}
+    \]
+
+    Projetamos linearmente para a \textbf{mesma dimensão} $d_e$ e normalizamos:
+    \[
+      \mathbf{u}_i = \frac{W_i\, \mathbf{h}_i^{\text{img}}}{\|W_i\, \mathbf{h}_i^{\text{img}}\|},\quad
+      \mathbf{v}_t = \frac{W_t\, \mathbf{h}_t^{\text{txt}}}{\|W_t\, \mathbf{h}_t^{\text{txt}}\|}
+    \]
+    com $W_i \in \mathbb{R}^{d_e \times d_v}$ e $W_t \in \mathbb{R}^{d_e \times d_t}$.
+
+    \vspace{0.4em}
+    \begin{block}{Por que a normalização?}
+      A perda usa cosseno; sem L2 a temperatura $\tau$ teria que absorver
+      magnitudes diferentes entre os dois ramos.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Pseudocódigo ---
+  \begin{frame}{Pseudocódigo: \textit{Forward} + \textit{Loss}}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \begin{itemize}
+          \item Entrada: batch de $N$ imagens e $N$ textos correspondentes
+          \item Saída: \textbf{escalar} $\mathcal{L}_{\text{CLIP}}$
+          \item As duas \textit{cross-entropies} compartilham a mesma matriz $S$
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \begin{algorithmic}[1]
+          \Require batch $\{(\mathrm{img}_i, \mathrm{txt}_i)\}_{i=1}^{N}$, $\tau$
+          \State $\mathbf{H}^{\text{img}} \gets \texttt{ImageEncoder}(\mathrm{img})$
+          \State $\mathbf{H}^{\text{txt}} \gets \texttt{TextEncoder}(\mathrm{txt})$
+          \State $U \gets \texttt{normalize}(W_i\, \mathbf{H}^{\text{img}})$
+          \State $V \gets \texttt{normalize}(W_t\, \mathbf{H}^{\text{txt}})$
+          \State $S \gets U\, V^{\top} / \tau$
+          \State $\mathbf{y} \gets [0, 1, \ldots, N{-}1]$
+          \State $\mathcal{L}_1 \gets \texttt{CE}(S, \mathbf{y})$
+          \State $\mathcal{L}_2 \gets \texttt{CE}(S^{\top}, \mathbf{y})$
+          \State \Return $(\mathcal{L}_1 + \mathcal{L}_2)/2$
+        \end{algorithmic}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Custos computacionais ---
+  \begin{frame}{Custos Computacionais e Memória do \textit{Batch}}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tabular}{@{}lrrrr@{}}
+      \toprule
+      Variante & Params (enc. imagem) & FLOPs/imagem & Memória de $S$ ($N{=}32{\rm k}$) & Hardware (paper)\\
+      \midrule
+      ResNet-50      & $\sim$38M & 4.1 GFLOPs & $\sim$4 GB (fp32) & --- \\
+      ResNet-50x64   & $\sim$420M & 165 GFLOPs   & $\sim$4 GB        & 592 V100 / 18 dias \\
+      ViT-B/32       & $\sim$88M & 4.4 GFLOPs & $\sim$4 GB        & --- \\
+      ViT-L/14       & $\sim$304M & 81 GFLOPs    & $\sim$4 GB        & 256 V100 / 12 dias \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.5em}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Memória de $S$ cresce \textbf{quadraticamente} com $N$
+      \item Truques: \textit{gradient checkpointing}, \textit{mixed precision}, \textit{shard} de embeddings
+      \item \textbf{Compute dominado pelos \textit{encoders}}: $\sim N \cdot \text{GFLOPs/imagem}$ contra $\sim N^2 d_e$ FLOPs do produto $U V^{\top}$ que forma $S$ (ordens de magnitude de diferença)
+      \item \textbf{Memória dominada pelas ativações dos \textit{encoders}} quando $S$ é distribuído via \textit{sharded embeddings}; sem \textit{shard}, $S$ ($\sim 4$ GB) seria competitivo
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: DATASET E TREINAMENTO
+  %======================================================================
+  \section{Dataset e Treinamento}
+
+  %--- Slide: WIT-400M ---
+  \begin{frame}{WIT-400M: O Combustível do CLIP}
+    \begin{itemize}
+      \item \textbf{WIT} (\textit{WebImageText}): $\sim$400M pares (imagem, texto) coletados da internet pela OpenAI
+      \item Pipeline: começa com $\sim$500\,000 \textit{queries} de busca; equilibra resultados por consulta
+      \item Filtragem leve (deduplicação, descarta textos muito curtos), \textbf{sem rotulação humana}
+      \item Conjunto \textbf{fechado} (não público); réplicas abertas posteriores: LAION-400M, LAION-5B
+    \end{itemize}
+
+    \vspace{0.5em}
+    \begin{block}{Filosofia anti-curadoria}
+      Ruído residual é compensado por escala. ``Mais dados, mesmo barulhentos'' supera
+      ``menos dados, perfeitamente rotulados'' nesse regime.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Comparativo datasets ---
+  \begin{frame}{Datasets de Pré-treino: Ordem de Grandeza}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tabular}{@{}llrll@{}}
+      \toprule
+      Dataset & Modalidade & Pares/imagens & Rotulagem & Acesso \\
+      \midrule
+      \texttt{ImageNet}-1k       & imagem (1k classes) & 1.28M & humana   & público \\
+      \texttt{ImageNet}-21k      & imagem (21k classes)& 14M     & humana   & público \\
+      JFT-300M (Google)          & imagem              & 300M    & semi-aut.& fechado \\
+      WIT-400M (OpenAI)          & imagem + texto      & 400M    & web      & fechado \\
+      LAION-400M\footfullcite{schuhmann2022laion5b}  & imagem + texto & 400M    & web filtr.& aberto \\
+      LAION-5B                   & imagem + texto      & 5.85B & web filtr.& aberto \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.5em}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item LAION usa o próprio CLIP para filtrar pares com baixa similaridade
+      \item Réplicas abertas permitem reproduzir CLIP em escala (OpenCLIP)
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Receita de treinamento ---
+  \begin{frame}{Receita de Treinamento}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{block}{Hiperparâmetros}
+          \begin{itemize}
+            \item Otimizador: \textbf{AdamW}, $\beta=(0.9, 0.98)$
+            \item \textit{Weight decay} desacoplado, $0.2$
+            \item Taxa de aprendizado com \textit{cosine schedule}
+            \item Batch size: \textbf{32\,768}
+            \item \textit{Mixed precision} (fp16) com \textit{loss scaling}
+            \item $\tau$ \textbf{aprendido}, \textit{clipped} em $\log 100$
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{alertblock}{Computação real (paper)}
+          \begin{itemize}
+            \item ResNet-50x64: \textbf{18 dias} em \textbf{592 V100}
+            \item ViT-L/14: \textbf{12 dias} em \textbf{256 V100}
+            \item 32 épocas sobre 400M pares
+          \end{itemize}
+          Hiperparâmetros encontrados via \textit{mix} de
+          \textit{grid}, \textit{random} e \textit{manual tuning} em
+          ResNet-50 na primeira época.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Truques de escala ---
+  \begin{frame}{Truques para Escalar o \textit{Batch}}
+    \begin{itemize}
+      \item \textbf{\textit{Sharded embeddings}}: distribuir $U$ e $V$ entre GPUs; cada GPU calcula sua fatia de $S$
+      \item \textbf{\textit{Gradient checkpointing}} nos \textit{encoders} pesados (ViT-L)
+      \item \textbf{\textit{Mixed precision}} reduz memória dos forward passes pela metade
+      \item \textbf{\textit{Local contrastive}}: cada GPU vê o batch global de $V$ via \textit{all-gather}, calcula sua linha de $S$ e devolve gradientes
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Pergunta comum}
+      \emph{Precisamos minerar negativos difíceis (\textit{hard negative mining})?}\\
+      \textbf{Não} no caso de CLIP. O batch de 32\,768 já fornece um espectro
+      suficiente de negativos a cada passo.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: AVALIAÇÃO E USO
+  %======================================================================
+  \section{Avaliação e Uso}
+
+  %--- Slide: Linear probe ---
+  \begin{frame}{\textit{Linear Probe Evaluation}}
+    Para medir a qualidade dos \textit{embeddings} aprendidos, congelamos o \textit{encoder}
+    e treinamos apenas um classificador linear:
+    \begin{enumerate}
+      \item Para cada imagem $\mathbf{x}$, computar $\mathbf{u} = f_{\text{CLIP}}(\mathbf{x})$
+      \item Treinar regressão logística sobre $(\mathbf{u}, y)$ no \textit{dataset} alvo
+      \item Reportar \textit{accuracy} no conjunto de teste
+    \end{enumerate}
+
+    \vspace{0.4em}
+    \begin{block}{Por que esse protocolo?}
+      Mede a separabilidade linear das classes no espaço de representação, isolando
+      a qualidade dos \textit{features} de qualquer ajuste fino do \textit{backbone}.
+    \end{block}
+
+    \vspace{0.3em}
+    Comparação direta com SimCLRv2, BYOL, MoCo-v3 e ResNet supervisionada na ImageNet.
+  \end{frame}
+
+  %--- Slide: Tabela accuracy ---
+  \begin{frame}{Resultados \textit{Headline} do Paper Original}
+    \centering
+    \resizebox{0.95\linewidth}{!}{%
+    \begin{tabular}{@{}lccc@{}}
+      \toprule
+      Método & ImageNet \textit{zero-shot} & ImageNet \textit{linear probe} & ObjectNet \textit{zero-shot} \\
+      \midrule
+      ResNet-50 supervisionada & --- & 76.1\% & 32.6\% \\
+      SimCLRv2 (linear)        & --- & 79.8\% & --- \\
+      \textbf{CLIP ViT-L/14}   & \textbf{75.5\%} & \textbf{83.9\%} & \textbf{72.3\%} \\
+      CLIP ViT-L/14@336        & \textbf{76.2\%} & \textbf{85.4\%} & \textbf{72.3\%} \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.6em}
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item Zero-shot CLIP \textbf{empata} com ResNet-50 \emph{supervisionada} em ImageNet
+      \item Em \texttt{ObjectNet} (distribuição shiftada) o ganho é dramático: $32.6\% \to 72.3\%$
+      \item \textit{Robustness}: CLIP cai muito menos sob mudança de domínio
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Zero-shot pipeline ---
+  \begin{frame}{\textit{Zero-Shot Classification}: o Pipeline}
+    \centering
+    \begin{tikzpicture}[
+      stage/.style={draw=ClipBlue, fill=LightBlue, rounded corners=3pt,
+                    font=\scriptsize, inner sep=5pt, text width=3.0cm, align=center},
+      tstage/.style={draw=ClipOrange, fill=LightOrange, rounded corners=3pt,
+                     font=\scriptsize, inner sep=5pt, text width=3.0cm, align=center},
+      arr/.style={->, thick, color=black!60}
+    ]
+      \node[stage] (img) {imagem $\mathbf{x}$};
+      \node[stage, right=0.5cm of img] (ui)  {$\mathbf{u} = f_{\text{img}}(\mathbf{x})$};
+
+      \node[tstage, below=0.4cm of img] (templ) {``a photo of a \{\textit{class}\}''};
+      \node[tstage, right=0.5cm of templ] (vt)  {$\{\mathbf{v}_k\}_{k=1}^{K}$};
+
+      \node[draw=PastelYellow!90!black, fill=PastelYellow,
+            rounded corners=3pt, font=\scriptsize, text width=3.0cm,
+            align=center, right=0.6cm of ui, yshift=-0.9cm] (sim) {logits $= \mathbf{u}^{\top}\mathbf{v}_k / \tau$};
+      \node[stage, right=0.5cm of sim] (sm) {\textit{softmax} $\to$ argmax};
+
+      \draw[arr] (img) -- (ui);
+      \draw[arr] (templ) -- (vt);
+      \draw[arr] (ui) -- (sim);
+      \draw[arr] (vt) -- (sim);
+      \draw[arr] (sim) -- (sm);
+    \end{tikzpicture}
+
+    \vspace{0.5em}
+    Os $K$ \textit{embeddings} de texto são \textbf{calculados uma vez} e
+    reutilizados para toda imagem que chega.
+
+    \vspace{0.3em}
+    {\small Funciona porque o treino contrastivo alinhou texto e imagem no \textbf{mesmo espaço}: uma classe nova, descrita só por texto, cai perto das imagens correspondentes, mesmo sem nenhum exemplo rotulado.}
+  \end{frame}
+
+  %--- Slide: Setup visual para Exemplo Trabalhado III ---
+  \begin{frame}{\textit{Zero-Shot} na Prática: Imagem de Entrada e \textit{Prompts}}
+    \begin{columns}[T]
+      \begin{column}{0.40\textwidth}
+        \centering
+        \begin{tikzpicture}
+          \node[draw=ClipBlue, line width=0.8pt, inner sep=0pt] (img)
+            {\includegraphics[width=4.0cm,height=2.8cm,keepaspectratio]{slides/img/06-topicos/puppy.jpg}};
+        \end{tikzpicture}
+
+        \vspace{0.4em}
+        \footnotesize Imagem de entrada $\mathbf{x}$
+      \end{column}
+      \begin{column}{0.55\textwidth}
+        Três classes candidatas, descritas por \textit{prompts} de texto:
+        \begin{itemize}\setlength{\itemsep}{0.3em}
+          \item ``a photo of a \textbf{gato}''
+          \item ``a photo of a \textbf{cachorro}''
+          \item ``a photo of a \textbf{carro}''
+        \end{itemize}
+
+        \vspace{0.3em}
+        \footnotesize Em produção, esse conjunto pode ser trocado a qualquer momento, sem re-treino.
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    \begin{block}{No próximo slide}
+      Codificamos a imagem em $\mathbf{u}$, cada \textit{prompt} em $\mathbf{v}_k$, e aplicamos \textit{softmax} sobre $s_k = \mathbf{u}^{\top}\mathbf{v}_k$.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Worked example III — zero-shot ---
+  \begin{frame}{Exemplo Trabalhado III: \textit{Zero-Shot} com 3 Classes}
+    Embedding da imagem do slide anterior: $\mathbf{u} = (0.6,\, 0.8,\, 0)^{\top}$. \textit{Embeddings} dos \textit{prompts}:
+    \[
+      \mathbf{v}_{\text{gato}}     = (0, 1.0, 0)^{\top},\;
+      \mathbf{v}_{\text{cachorro}} = (0.8, 0.6, 0)^{\top},\;
+      \mathbf{v}_{\text{carro}}    = (0, 0, 1.0)^{\top}
+    \]
+
+    Similaridades: $s_{\text{gato}} = 0.80,\; s_{\text{cachorro}} = 0.96,\; s_{\text{carro}} = 0.00$
+
+    \vspace{0.4em}
+    Com $\tau = 0.1$, logits $= (8.0,\, 9.6,\, 0)$. Subtraindo o máximo:
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item $e^{-1.6} \approx 0.202$,\quad $e^{0} = 1$,\quad $e^{-9.6} \approx 6.77\!\times\!10^{-5}$
+      \item soma $\approx 1.202$
+      \item $p_{\text{gato}} \approx 0.168$,\; $p_{\text{cachorro}} \approx 0.832$,\; $p_{\text{carro}} \approx 0.00006$
+    \end{itemize}
+
+    \vspace{0.3em}
+    \begin{block}{Predição}
+      $\hat{y} = \argmax_k p_k = \text{\textbf{cachorro}}$.
+      O classificador é montado \textbf{em tempo de inferência} a partir dos \textit{prompts};
+      basta trocar as descrições para mudar o conjunto de classes.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Prompt engineering ---
+  \begin{frame}{\textit{Prompt Engineering} e Ensemble de Templates}
+    A escolha do \textit{template} muda a \textit{accuracy} em vários pontos percentuais:
+    \begin{itemize}\setlength{\itemsep}{0pt}
+      \item \texttt{"\{class\}"} (apenas o nome): \textit{baseline}
+      \item \texttt{"a photo of a \{class\}"}: $+1$ a $+2$ pp em ImageNet
+      \item Templates específicos por dataset: \texttt{"a satellite photo of a \{class\}"}, \texttt{"a sketch of a \{class\}"}
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Ensemble de prompts}
+      O paper original usa \textbf{80 templates} por classe e calcula a média dos
+      \textit{embeddings} de texto antes da L2:
+      \[
+        \mathbf{v}_k = \mathrm{normalize}\!\left( \tfrac{1}{T} \sum_{t=1}^{T} f_{\text{txt}}(\text{prompt}_t(k)) \right)
+      \]
+      Ganho médio em ImageNet: $+3.5$ pp.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Fine-tuning ---
+  \begin{frame}{Adaptação Eficiente: Linear Head, Adapter, LoRA}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Cabeçalho linear}
+          Congelar CLIP, treinar uma camada $W \in \mathbb{R}^{K \times d_e}$
+          sobre os \textit{embeddings}.\\ \footnotesize
+          \textit{Linear probe} clássico, baixíssimo custo.
+        \end{block}
+        \begin{block}{CLIP-Adapter}
+          Pequeno MLP residual sobre $\mathbf{u}$, com mistura ponderada:
+          $\mathbf{u}' = \alpha\, \texttt{MLP}(\mathbf{u}) + (1-\alpha)\, \mathbf{u}$.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{LoRA sobre os \textit{encoders}}
+          Adicionar matrizes de baixa ordem $W + \Delta = W + B A$ nos
+          \textit{transformers} de imagem e texto.\\
+          \footnotesize Apenas $0.1$--$1\%$ dos parâmetros treinados.
+        \end{block}
+        \begin{alertblock}{Quando NÃO fazer fine-tuning}
+          Se a tarefa cabe em \textit{zero-shot} robusto, o \textit{fine-tuning}
+          piora a generalização \textit{out-of-distribution}.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Semantic retrieval ---
+  \begin{frame}{\textit{Semantic Retrieval}: Buscar Imagens com Texto}
+    \begin{enumerate}
+      \item \textbf{Indexação} (offline): para cada imagem $\mathbf{x}_n$ no acervo, salvar $\mathbf{u}_n = f_{\text{img}}(\mathbf{x}_n)$
+      \item Construir índice \textit{Approximate Nearest Neighbor} (FAISS, HNSW, ScaNN) sobre $\{\mathbf{u}_n\}$ usando produto interno
+      \item \textbf{Consulta} (online): dado um texto $q$, computar $\mathbf{v}_q = f_{\text{txt}}(q)$
+      \item Recuperar \textit{top-}$k$ pelo cosseno $\mathbf{v}_q^{\top}\mathbf{u}_n$
+    \end{enumerate}
+
+    \vspace{0.4em}
+    \begin{block}{Custo amortizado}
+      O \textit{encoder} de imagem roda \textbf{uma vez} por imagem do acervo;
+      consultas custam apenas um forward de texto $+$ \textit{look-up} no índice.
+    \end{block}
+
+    \vspace{0.2em}
+    Inverso: dada uma imagem, recuperar legendas similares no acervo de textos.
+  \end{frame}
+
+  %--- Slide: ClipCap ---
+  \begin{frame}{\textit{Image Captioning} com CLIP\footfullcite{mokady2021clipcap}}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \textbf{ClipCap}: usar o \textit{embedding} de CLIP como \textbf{prefixo} para um
+        modelo de linguagem (GPT-2) gerar a legenda.
+
+        \vspace{0.3em}
+        \begin{enumerate}
+          \item Imagem $\to$ $\mathbf{u} = f_{\text{img}}(\mathbf{x})$
+          \item Mapeamento $M: \mathbb{R}^{d_e} \to \mathbb{R}^{L \times d_{\text{LM}}}$ (\textit{prefix})
+          \item GPT-2 gera tokens condicionado nesse prefixo
+          \item Treinar $M$ (e opcionalmente fazer fine-tuning do GPT-2)
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          b/.style={draw=ClipBlue, fill=LightBlue, rounded corners=3pt,
+                    font=\scriptsize, inner sep=4pt, text width=2.4cm, align=center},
+          o/.style={draw=ClipOrange, fill=LightOrange, rounded corners=3pt,
+                    font=\scriptsize, inner sep=4pt, text width=2.4cm, align=center},
+          arr/.style={->, thick}
+        ]
+          \node[draw=ClipBlue, line width=0.6pt, inner sep=0pt] (img)
+            {\includegraphics[width=2.4cm,height=1.5cm,keepaspectratio]{slides/img/06-topicos/eiffel.jpg}};
+          \node[b, below=0.3cm of img] (u)   {$\mathbf{u}$};
+          \node[o, below=0.3cm of u]   (m)   {$M(\mathbf{u})$ \\ prefixo};
+          \node[o, below=0.3cm of m]   (lm)  {GPT-2 \\ ``Eiffel Tower in Paris''};
+          \draw[arr] (img) -- (u);
+          \draw[arr] (u)   -- (m);
+          \draw[arr] (m)   -- (lm);
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 6: LIMITAÇÕES E SUCESSORES
+  %======================================================================
+  \section{Limitações e Sucessores}
+
+  %--- Slide: Falhas conhecidas ---
+  \begin{frame}{Falhas Conhecidas do CLIP}
+    \begin{columns}[T]
+      \begin{column}{0.56\textwidth}
+        \small
+        \begin{itemize}\setlength{\itemsep}{2pt}
+          \item \textbf{Texto na imagem}: CLIP ``lê'' palavras pintadas e enviesa a classificação
+            (uma maçã com etiqueta \texttt{"iPod"} é classificada como \texttt{iPod})
+          \item \textbf{Generalização para MNIST}: $88\%$ \textit{accuracy} (pior que regressão logística simples),
+            dígitos manuscritos são raros em pares web
+          \item \textbf{Contagem de objetos}: ``três cachorros'' vs.\ ``cinco cachorros'' é difícil
+          \item \textbf{Granularidade fina}: distinguir espécies próximas exige supervisão dedicada
+          \item \textbf{Tarefas espaciais}: localização precisa, profundidade, geometria
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.40\textwidth}
+        \centering
+        \includegraphics[width=\linewidth,keepaspectratio]{slides/img/06-topicos/ipod_apple.jpeg}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Vieses sociais ---
+  \begin{frame}{Vieses Herdados da Web}
+    O paper original dedica uma seção a auditoria de vieses:
+    \begin{itemize}
+      \item Classificação errônea sistemática de pessoas negras como categorias não-humanas
+        em \texttt{FairFace}
+      \item Associações de gênero em prompts ocupacionais (``CEO'' enviesa para masculino)
+      \item Sensibilidade a vocabulário ofensivo presente nos pares web
+    \end{itemize}
+
+    \vspace{0.5em}
+    \begin{block}{Implicação prática}
+      Antes de usar CLIP em produto: auditar para o seu domínio, considerar
+      \textit{prompt} sanitizado, restringir vocabulário de classes, registrar limites
+      do modelo.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Sensibilidade a prompt ---
+  \begin{frame}{Sensibilidade a \textit{Prompt}}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \begin{itemize}
+          \item Trocar \texttt{"\{class\}"} por \texttt{"a photo of a \{class\}"} pode mudar \textit{accuracy} em $5$--$10$ pp
+          \item Templates errados podem inverter ranqueamentos
+          \item Sem \textit{ground truth}, calibrar prompt requer um conjunto de validação
+        \end{itemize}
+
+        \vspace{0.3em}
+        Em produção, recomenda-se:
+        \begin{itemize}
+          \item Ensemble de 5--80 templates
+          \item Avaliar accuracy em conjunto de validação rotulado
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\scriptsize]
+          \begin{axis}[
+            xbar,
+            width=6cm, height=4cm,
+            xmin=55, xmax=82,
+            xlabel={\textit{accuracy} \%},
+            symbolic y coords={classe,photo,ensemble,ensembleClean},
+            ytick=data,
+            yticklabels={classe, photo of a class, ensemble 80, ensemble + clean},
+            nodes near coords,
+            nodes near coords align={horizontal},
+            nodes near coords style={font=\tiny},
+          ]
+            \addplot[fill=PastelBlue]   coordinates {
+              (60.0,classe)
+              (66.0,photo)
+              (69.5,ensemble)
+              (76.2,ensembleClean)
+            };
+          \end{axis}
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Sucessores ---
+  \begin{frame}{Sucessores: ALIGN, OpenCLIP, SigLIP}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{ALIGN \citeauthoryear{jia2021align}}
+          \begin{itemize}
+            \item Google, contemporâneo do CLIP
+            \item 1.8B pares (\texttt{alt-text} bruto, ainda mais ruído)
+            \item Mostra que limpeza importa menos que escala
+          \end{itemize}
+        \end{block}
+        \begin{block}{OpenCLIP \citeauthoryear{cherti2023openclip}}
+          \begin{itemize}
+            \item Reprodução aberta sobre LAION
+            \item Estuda \textit{scaling laws} multimodais
+            \item Pesos públicos para múltiplas variantes
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{SigLIP (2023)}
+          Substitui \textit{softmax} por \textbf{sigmoide} pareada:
+          $\ell_{ij} = \log\!\left(1 + e^{-y_{ij}\, \mathbf{u}_i^{\top}\mathbf{v}_j / \tau}\right)$
+          \begin{itemize}
+            \item Não exige \textit{batch} grande
+            \item Cada par é independente
+            \item Ganho prático em \textit{batches} pequenos
+          \end{itemize}
+        \end{block}
+        \begin{block}{EVA-CLIP, MetaCLIP, DFN}
+          Variações em receita de dados, escala e arquitetura.
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: LAION-5B ---
+  \begin{frame}{LAION-5B e a Democratização do Pré-treino Multimodal}
+    \begin{itemize}
+      \item \textbf{5.85B} pares (imagem, texto), abertos, multilíngues
+      \item Filtragem usa CLIP: descarta pares com baixa similaridade $\Rightarrow$ recursão útil
+      \item Possibilita treinar variantes de CLIP, Stable Diffusion, vários modelos abertos
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{alertblock}{Implicações éticas}
+      \begin{itemize}
+        \item Conteúdo problemático (NSFW, vieses, material sensível) presente
+        \item Direitos autorais: imagens coletadas sem consentimento explícito
+        \item Auditoria: \texttt{laion.ai} disponibiliza ferramentas de inspeção
+      \end{itemize}
+    \end{alertblock}
+  \end{frame}
+
+  %======================================================================
+  % REFERÊNCIAS E LEITURAS
+  %======================================================================
+  \section*{Referências e Leituras}
+
+  \begin{frame}[allowframebreaks]{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item Paper original do CLIP: \fullcite{radford2021clip}
+      \item InfoNCE e \textit{contrastive predictive coding}: \fullcite{oord2018infonce}
+      \item ALIGN (contemporâneo, Google): \fullcite{jia2021align}
+      \item OpenCLIP e \textit{scaling laws}: \fullcite{cherti2023openclip}
+      \item LAION-5B (dataset aberto): \fullcite{schuhmann2022laion5b}
+      \item ClipCap (\textit{captioning} via prefix): \fullcite{mokady2021clipcap}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

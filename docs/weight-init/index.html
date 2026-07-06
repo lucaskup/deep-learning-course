@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de inicialização de pesos: propagação do sinal no forward e do gradiente no backward em uma MLP profunda, comparando zeros, normal com σ fixo, Xavier/Glorot e He/Kaiming." />
+  <title>Inicialização de Pesos — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Forward</a></li>
+      <li><a href="#s2">Backward</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Inicialização de <span>Pesos</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de inicialização de pesos</p>
+      <p class="course-desc">
+        Uma MLP profunda de largura 64, sem nenhum treino, mostra como a escolha dos pesos
+        iniciais controla o sinal que se propaga em forward e em backward.
+        Esquemas dos slides: <span class="formula">θ = 0</span>,
+        <span class="formula">θ ∼ 𝒩(0, σ²)</span>,
+        Xavier/Glorot com <span class="formula">σ<sub>θ</sub>² = 1/n<sup>(l−1)</sup></span>
+        (recomendada para sigmoide e tanh) e He/Kaiming com
+        <span class="formula">σ<sub>θ</sub>² = 2/n<sup>(l−1)</sup></span>
+        (recomendada para ReLU), sempre com bias inicializado em 0.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Forward ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Sinal no forward: ativações camada a camada</h2>
+      <p class="demo-text">
+        Como no estudo de caso de MNIST da aula, propagamos um batch de 256 entradas
+        <span class="formula">x ∼ 𝒩(0, I)</span> por <span class="formula">L</span> camadas
+        ocultas de 64 unidades, aplicando
+        <span class="formula">z<sup>(l)</sup> = θ<sup>(l)</sup> a<sup>(l−1)</sup></span> e
+        <span class="formula">a<sup>(l)</sup> = φ(z<sup>(l)</sup>)</span>, com
+        <span class="formula">n<sup>(l−1)</sup> = 64</span> (fan-in) em todas as camadas.
+        Antes da primeira atualização, só a inicialização e a ativação determinam a
+        magnitude das ativações. Escolha o esquema e observe os histogramas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">Inicialização:
+            <select id="s1-init">
+              <option value="zeros">zeros (θ = 0)</option>
+              <option value="normal" selected>normal 𝒩(0, σ²)</option>
+              <option value="xavier">Xavier (1/n)</option>
+              <option value="he">He (2/n)</option>
+            </select>
+          </label>
+          <label class="slider-label" id="s1-sigma-wrap">σ = <span id="s1-sigma-val">1.00</span>
+            <input type="range" id="s1-sigma" min="0.01" max="2" value="1" step="0.01" />
+          </label>
+          <label class="slider-label">Ativação:
+            <select id="s1-act">
+              <option value="tanh" selected>tanh</option>
+              <option value="sigmoid">sigmoide</option>
+              <option value="relu">ReLU</option>
+            </select>
+          </label>
+          <label class="slider-label">L = <span id="s1-depth-val">10</span> camadas
+            <input type="range" id="s1-depth" min="2" max="20" value="10" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+          <span class="readout formula" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Histogramas das ativações a<sup>(l)</sup> em camadas selecionadas (mesma escala horizontal em todas as células)</p>
+            <canvas id="s1-hist"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Desvio padrão das ativações por camada, escala log. Tracejado: desvio do input. Pontos: camadas dos histogramas acima.</p>
+            <canvas id="s1-std"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Reproduza as tentativas da aula: com <span class="formula">θ ∼ 𝒩(0, 1)</span>
+          e tanh a massa concentra em ±1, a zona morta de derivada nula; com
+          <span class="formula">σ</span> pequeno (tente 0.05) a distribuição encolhe a cada
+          camada até virar uma agulha em zero; com zeros toda unidade calcula o mesmo valor
+          e o histograma colapsa em um único ponto (a simetria nunca se quebra). Compare
+          então Xavier com tanh e He com ReLU: o desvio fica aproximadamente constante,
+          que é exatamente a condição <span class="formula">σ²<sub>z⁽ˡ⁾</sub> = σ²<sub>z⁽ˡ⁻¹⁾</sub></span>
+          derivada nos slides. Troque o par (He com tanh, Xavier com ReLU) e veja o desajuste.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Backward ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Sinal no backward: gradientes camada a camada</h2>
+      <p class="demo-text">
+        Para medir o sinal de aprendizagem, injetamos na última camada um gradiente com
+        desvio 1 e o retropropagamos pela mesma rede da seção 1:
+        <span class="formula">g<sup>(l)</sup> = (θ<sup>(l+1)</sup>)<sup>T</sup>(g<sup>(l+1)</sup> ⊙ φ′(z<sup>(l+1)</sup>))</span>,
+        sem precisar de uma loss. É o argumento simétrico dos slides: no backward o mesmo
+        produto de pesos e derivadas decide se o gradiente chega ou não às primeiras camadas.
+        A configuração é compartilhada com a seção 1, qualquer ajuste lá atualiza os dois painéis.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <span class="readout" id="s2-config"></span>
+          <span class="readout formula" id="s2-ratio"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Histogramas do gradiente g<sup>(l)</sup> = ∂out/∂a<sup>(l)</sup> em camadas selecionadas (mesma escala horizontal em todas as células)</p>
+            <canvas id="s2-hist"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Desvio padrão do gradiente por camada, escala log. Tracejado: desvio do gradiente injetado na saída. Pontos: camadas dos histogramas acima.</p>
+            <canvas id="s2-std"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">σ</span> pequeno (tente 0.05) o gradiente encolhe a
+          cada camada e some antes de chegar às primeiras (vanishing): a razão acima fica
+          minúscula. Com <span class="formula">σ = 1</span> acontece o oposto, tanto com ReLU
+          quanto com tanh: mesmo com a tanh saturada (<span class="formula">φ′</span> pequena),
+          os pesos grandes amplificam mais do que a derivada atenua e o gradiente explode em
+          direção às primeiras camadas (exploding). Com zeros,
+          <span class="formula">θ<sup>T</sup>g = 0</span> e o gradiente das
+          ativações é exatamente zero abaixo da última camada; por simetria, as unidades de
+          uma mesma camada receberiam atualizações idênticas. Com Xavier e tanh, ou He e
+          ReLU, a curva fica aproximadamente plana e a razão fica perto de 1.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Inicialização</span> de Pesos · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-forward.js"></script>
+  <script defer src="js/section2-backward.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

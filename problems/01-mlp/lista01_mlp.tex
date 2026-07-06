@@ -1,0 +1,884 @@
+\documentclass{dlproblemset}
+\usepackage{emoji}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\title{Multilayer Perceptron}
+\subtitle{Lista de Exercícios da Unidade 1}
+
+\begin{document}
+
+\begin{enumerate}[1)]
+
+\subsection*{Introdução a Machine Learning}
+
+    \item Segundo a discussão feita em aula sobre \textit{software} com e sem \textit{Machine Learning}, em qual das situações abaixo \textit{Machine Learning} é uma abordagem mais adequada do que escrever uma solução programada explicitamente?
+    \begin{enumerate}[(a)]
+        \item Problemas em que as regras que transformam a entrada na saída são conhecidas e podem ser enumeradas como uma sequência finita de instruções.
+        \item Problemas em que a solução exata tem custo computacional baixo, mas a equipe deseja reduzir o tempo de desenvolvimento do sistema.
+        \item Problemas em que não sabemos escrever diretamente um algoritmo para a tarefa, mas dispomos de exemplos nos quais é possível encontrar padrões.
+        \item Problemas em que a saída esperada é determinística e uma mesma entrada deve produzir sempre exatamente o mesmo resultado.
+    \end{enumerate}
+    %c
+
+    \item A tabela abaixo apresenta o erro médio de quatro modelos no conjunto de treino e em um conjunto de teste formado apenas por dados novos, que não foram utilizados durante o treinamento. Considerando que o objetivo é obter o menor erro esperado para novos dados, qual modelo deve ser escolhido?
+
+    \begin{center}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Modelo & Erro no treino & Erro no teste \\
+        \hline
+        A & 12.0 & 12.4 \\
+        \hline
+        B & 5.8 & 6.3 \\
+        \hline
+        C & 1.5 & 13.9 \\
+        \hline
+        D & 0.2 & 19.7 \\
+        \hline
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item Modelo A.
+        \item Modelo B.
+        \item Modelo C.
+        \item Modelo D.
+    \end{enumerate}
+    %b
+
+    \item Você precisa treinar uma Regressão Linear em um conjunto de dados com um número muito grande de atributos ($M$ na ordem de centenas de milhares). Sobre a escolha entre a equação normal $\boldsymbol{\theta} = (\textbf{X}^\top\textbf{X})^{-1}\textbf{X}^\top\textbf{y}$ e a descida de gradiente nesse cenário, é correto afirmar que:
+    \begin{enumerate}[(a)]
+        \item A equação normal é preferível, pois encontra exatamente o melhor $\boldsymbol{\theta}$ sem depender da escolha de uma taxa de aprendizado.
+        \item A descida de gradiente é preferível, pois a função de custo $J_{\text{SSR}}$ deixa de ser convexa quando o número de atributos é grande.
+        \item A equação normal é preferível, pois seu custo cresce linearmente com o número de atributos, enquanto o da descida de gradiente cresce cubicamente.
+        \item A descida de gradiente é preferível, pois o custo de inverter a matriz $\textbf{X}^\top\textbf{X}$ cresce cubicamente com o número de atributos.
+    \end{enumerate}
+    %d
+
+    \item Ao adaptar a Regressão Linear para a tarefa de classificação binária obtemos a Regressão Logística, $\hat{y}^{(i)} = \frac{1}{1+e^{-\textbf{X}^{(i)}\boldsymbol{\theta}}}$. Nessa adaptação, a função de custo $J_{\text{SSR}}$ é substituída pela $J_{\text{BCE}}$. Qual alternativa apresenta a justificativa correta para essa substituição?
+    \begin{enumerate}[(a)]
+        \item A função $J_{\text{SSR}}$ deixa de ser convexa para a Regressão Logística, e a otimização pode ficar presa em mínimos que não são o global.
+        \item A função $J_{\text{SSR}}$ deixa de ser diferenciável quando composta com a função sigmoide, e o gradiente fica indefinido em parte do domínio.
+        \item A função $J_{\text{BCE}}$ admite solução analítica semelhante à equação normal, e o treinamento passa a dispensar métodos iterativos.
+        \item A função $J_{\text{BCE}}$ torna a fronteira de decisão não linear, e o modelo passa a resolver problemas que não são linearmente separáveis.
+    \end{enumerate}
+    %a
+
+    \item Dentre as alternativas abaixo, qual melhor descreve o processo de \textit{hyperparameter tuning}?
+    \begin{enumerate}[(a)]
+	    \item É um processo de otimização de parâmetros da rede neural que é feito via decida de gradiente.
+	    \item É um processo de busca cujo objetivo é encontrar valores ideais para parâmetros que não são aprendidos durante o processo de treino.
+	    \item É o processo de busca pela hipótese que melhor descreve a relação entre um conjunto de atributos e a variável alvo conforme uma função loss.
+	    \item É o processo equivalente a regularização, que visa limitar a complexidade do modelo para melhorar a sua capacidade de generalizar.
+    \end{enumerate}
+    %b
+
+    \item No exemplo numérico do efeito tesoura (\textit{Scissor Effect}) visto em aula, um polinômio de grau 4 passa exatamente pelos cinco pontos do conjunto de treino, obtendo erro de treino igual a zero, enquanto a reta $\hat{y} = 2x + 0.1$ apresenta erro de treino maior do que zero. No entanto, no ponto de teste $(6, 12)$ a reta prediz $12.1$ e o polinômio prediz $27.5$. Explique com suas próprias palavras a diferença entre ajustar bem o conjunto de treino e generalizar para novos dados. Em seguida, relacione o comportamento dos dois modelos com os termos da decomposição do erro de teste (viés, variância e ruído) e com o efeito tesoura: em qual regime de quantidade de dados a hipótese mais simples tende a ser a melhor escolha?
+
+\subsection*{Perceptron}
+
+    \item Por que o \textit{Perceptron} como proposto originalmente ($\hat{y}^{(i)} = sign(\textbf{X}^{(i)}\boldsymbol{\theta})$) não pode ser organizado em uma rede para formar um \textit{Multi Layer Perceptron}?
+    \begin{enumerate}[(a)]
+        \item Pois a derivada da função de ativação em relação aos pesos ou é igual a zero ou indefinida.
+        \item Pois o \textit{dot product} dos pesos com as \textit{features} não pode ser derivado.
+        \item Pois \textbf{apenas} a descontinuidade na função de ativação $sign(x)$ em $x = 0$ impede o processo de otimização via descida de gradiente.
+        \item Pois o perceptron possui a limitação de modelar apenas problemas que são linearmente separáveis.
+    \end{enumerate}
+    %a
+
+    \item Por que uma rede de Perceptrons de Rosenblatt não pode ser treinada via descida de gradiente e \textit{backpropagation}?
+
+    \item Prove que um Perceptron com duas entradas $\hat{y}=sinal(\theta_0 + X_1\theta_1 + X_2\theta_2)$ gera uma fronteira de decisão linear.
+
+    \item Crie um Perceptron que se comporta como uma função \textit{and}.
+
+\subsection*{MLP e Backpropagation}
+
+    \item Em uma unidade (neurônio) de uma rede neural artificial, qual a operação realizada entre as entradas e os pesos durante o \textit{forward pass}?
+    \begin{enumerate}[(a)]
+        \item Produto Escalar (\textit{Dot Product}).
+        \item Função de Ativação (\textit{Activation Function}).
+        \item  Retropropagação de Erros (\textit{Backpropagation}).
+        \item Descida de Gradiente (\textit{Gradient Descent}).
+    \end{enumerate}
+    %a
+
+    \item Em uma rede perceptron multicamadas (\textit{Multi Layer Perceptron}). Qual das alternativas abaixo melhor descreve o \textit{Forward Pass} e o \textit{Backward Pass} respectivamente?
+    \begin{enumerate}[(a)]
+        \item Computar as saídas de cada uma das unidades e as entradas.
+        \item Computar as saídas de cada uma das unidades e o gradiente em relação aos pesos.
+        \item Computar as entradas de cada uma das unidades e as saídas.
+        \item  Realizar a Retropropagação de Erros (\textit{Backpropagation}) e a Descida de Gradiente (\textit{Gradient Descent}).
+        \item  Realizar a Descida de Gradiente (\textit{Gradient Descent}) e a Retropropagação de Erros (\textit{Backpropagation}).
+    \end{enumerate}
+    %b
+
+    \item Considere um MLP com uma unidade na entrada, uma unidade na saída, $K$ camadas ocultas e $D$ unidades em cada camada. Quantos parâmetros esse MLP possui?
+
+    \item Quais são os quatro passos realizados para fazer o treinamento de um MLP?
+
+    \item Considerando a rede da Figura \ref{fig:mlp}, resolva os itens abaixo:
+
+    \begin{figure}[H]
+        \centering
+        \resizebox{0.82\linewidth}{!}{\input{problems/01-mlp/images/lista2_mlp_backprop.tikz.tex}}
+        \caption{Multilayer Perceptron}
+        \label{fig:mlp}
+    \end{figure}
+
+    \begin{enumerate}[a)]
+        \item Compute o \textit{Forward Pass}.
+        \item Compute o valor da Loss $J=\frac{1}{N}\sum_{i=1}^{N}\left(\hat{y}^{(i)}-y^{(i)}\right)^2$.
+        \item Compute o \textit{Backward Pass}.
+        \item Realize a atualização de todos os parâmetros treináveis da rede conforme o otimizador SGD $\theta_{t+1}=\theta_t - \eta \nabla J$.
+    \end{enumerate}
+
+\subsection*{Softmax, Entropia Cruzada e Grafo Computacional}
+
+    \item Em um grafo computacional, o \textit{backward pass} percorre o grafo na ordem inversa aplicando a regra da cadeia localmente em cada nó. Para calcular o gradiente que envia às suas arestas de entrada, o que cada nó precisa conhecer?
+    \begin{enumerate}[(a)]
+        \item O gradiente \textit{upstream} que chega pela sua saída e a derivada local da sua operação em relação a cada entrada.
+        \item A expressão simbólica completa da função representada pelo grafo e a derivada algébrica dela em relação a cada folha.
+        \item O valor da \textit{loss} avaliada duas vezes, com cada entrada perturbada por um passo $h$, para estimar a derivada por diferença finita.
+        \item O gradiente da \textit{loss} em relação a todos os parâmetros da rede, obtido antes do início do percurso na ordem inversa.
+    \end{enumerate}
+    %a
+
+    \item Considere o grafo computacional da função $f(a,b,c) = (a + b)\cdot(b \cdot c)$, com nós intermediários $u = a + b$ e $v = b \cdot c$. Note que a variável $b$ alimenta dois nós do grafo. Para $a = 1$, $b = 2$ e $c = 3$, após o \textit{forward pass} e o \textit{backward pass} iniciado com $\partial f / \partial f = 1$, qual o valor de $\partial f / \partial b$?
+    \begin{enumerate}[(a)]
+        \item $6$
+        \item $9$
+        \item $15$
+        \item $18$
+    \end{enumerate}
+    %c
+
+    \item Considere a função $f(a,b,c) = (a + b)\cdot\max(b, c)$, decomposta em um grafo computacional com três nós de operação: $u = a + b$ (\textit{gate} de soma), $v = \max(b, c)$ (\textit{gate} de máximo) e $f = u \cdot v$ (\textit{gate} de produto). Repare que a variável $b$ alimenta dois nós. Para $a = 2$, $b = 3$ e $c = 4$, resolva os itens abaixo:
+    \begin{enumerate}[a)]
+        \item Compute o \textit{forward pass}, informando o valor de cada nó intermediário e da saída $f$.
+        \item Compute o \textit{backward pass} nó a nó, iniciando com $\partial f/\partial f = 1$, e informe os gradientes $\partial f/\partial a$, $\partial f/\partial b$ e $\partial f/\partial c$. Indique, em cada nó, qual padrão de \textit{gate} foi aplicado (distribuidor, comutador ou roteador) e como os gradientes que chegam em $b$ são combinados.
+    \end{enumerate}
+
+    \item A regressão logística $\hat{y} = \sigma(\theta_0 + \theta_1 x_1 + \theta_2 x_2)$, treinada com a \textit{Binary Cross Entropy} $L = -\left(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\right)$, pode ser vista como um grafo computacional. Resolva os itens abaixo:
+    \begin{enumerate}[a)]
+        \item Decomponha a computação de $L$ em nós elementares, explicitando os nós de produto, os nós de soma, o nó sigmoide (já agrupado em uma única operação, como visto em aula) e o nó da \textit{loss}.
+        \item Derive $\partial L/\partial \theta_0$, $\partial L/\partial \theta_1$ e $\partial L/\partial \theta_2$ aplicando a regra da cadeia nó a nó, no sentido inverso do grafo, informando o gradiente que atravessa cada nó. Simplifique as expressões finais.
+    \end{enumerate}
+
+    \item \textit{Frameworks} de programação diferenciável como PyTorch representam a computação como um grafo construído automaticamente durante a execução do código \textit{forward}. Explique por que essa representação é necessária para o cálculo automático de gradientes e descreva o que precisa ser armazenado durante o \textit{forward pass} para que o \textit{backward pass} seja possível. Ilustre com pelo menos dois \textit{gates} concretos cujas derivadas locais dependem de valores calculados no \textit{forward}.
+
+\subsection*{Descida de Gradiente}
+
+    \item Quando usamos a seguinte expressão $w_{(t+1)} = w_{(t)} - \eta \nabla \mathcal{L}$ para a atualização dos pesos de uma rede neural do tipo \textit{multilayer perceptron}, considerando que o gradiente está sendo estimado com base em uma única observação, temos qual variação do algoritmo de descida de gradiente?
+    \begin{enumerate}[(a)]
+	    \item \textit{Batch Gradient Descent}.
+	    \item \textit{Mini Batch Gradient Descent}.
+	    \item \textit{Stochastic Gradient Descent}.
+	    \item \textit{Deterministic Gradient Descent}.
+    \end{enumerate}
+    %c
+
+    \item Uma das modificações mais comuns no algoritmo de descida de gradiente envolve alterar a atualização dos pesos para que considere dois termos: um dos termos é o gradiente da função \textit{loss} em relação aos pesos considerando \textit{batch} atual; enquanto o segundo termo é um valor definido recursivamente que leva em consideração os gradientes anteriores. Essa modificação obedece a seguinte equação:
+
+    \begin{align*}
+        W_{(t+1)} &= W_{(t)} - \eta \mathcal{V}_{(t)} \\
+        \mathcal{V}_{(t)} &= \beta \mathcal{V}_{(t-1)} + (1-\beta)\nabla \mathcal{L}
+    \end{align*}
+    \noindent Sendo que por definição $\mathcal{V}_{(0)} = 0$.
+
+    Qual nome se dá para essa modificação na descida de gradiente?
+    \begin{enumerate}[(a)]
+        \item \textit{Batch Gradient Descent}
+        \item \textit{Momentum}
+        \item \textit{L2 Regularization}
+        \item \textit{Stochastic Gradient Descent}
+        \item \textit{Batch Normalization}
+    \end{enumerate}
+    %b
+
+    \item O valor da função \textit{loss} da sua rede neural está oscilando ao invés de decrescer constantemente conforme esperado durante o treinamento. Supondo que você esteja utilizando \textit{Mini-Batch Gradient Descent}, quais das opções abaixo são boas modificações que você pode introduzir para tentar resolver esse problema?
+
+	\begin{enumerate}[(a)]
+	    \item Aparentemente isso é um problema dos dados, obter uma quantidade maior de dados para efetuar o treinamento é uma alternativa razoável.
+	    \item Aumentar o valor hiperparâmetro \textit{learning rate} pode ajudar pois o processo de otimização vai chegar a um mínimo mais rápido.
+	    \item Diminuir o valor hiperparâmetro \textit{learning rate} pode ajudar pois o processo de otimização para garantir que um mínimo local seja encontrado e não ``pulado''.
+	    \item Aumentar o hiperparâmetro \textit{batch size} pode ajudar pois vai introduzir maior variabilidade em cada \textit{mini-batch}. Assim as chances de cada um dos passos da otimização gerar uma diminuição no loss aumenta.
+	\end{enumerate}
+    %c, d
+
+    \item Você está experimentando com diferentes \textit{learning rates} ao treinar uma rede neural específica. A evolução do valor da função \textit{loss} no decorrer das épocas usando \textit{learning rates} $0.1$ e $10^{-6}$ estão retratados na figura abaixo. Com base nesses resultados, qual seria um bom valor de \textit{learning rate} para testar a seguir?
+
+    \begin{figure}[H]
+        \centering
+        \resizebox{0.55\linewidth}{!}{\input{problems/01-mlp/images/question_training_loss.tex}}
+    \end{figure}
+
+    \begin{enumerate}[(a)]
+	    \item $0.2$
+	    \item $10^{-4}$
+	    \item $10^{-8}$
+    \end{enumerate}
+    %b
+
+    \item François Chollet, o criador do \textit{Keras}, comentou em 2022 que você não deve tentar aproveitar um \textit{scheduler} de \textit{learning rate} que funcionou bem em outro conjunto de dados para treinar em um novo conjunto de dados. A afirmação de Chollet vale mesmo nos casos nos quais a arquitetura da rede se mantém igual. Dentre as opções abaixo, quais são racionais razoáveis para essa afirmação?
+
+	\begin{enumerate}[(a)]
+	    \item \textit{Learning rate schedulle} deve variar conforme o número de observações no conjunto de dados. Dessa forma se os dados mudarem precisamos mudar o \textit{scheduller}.
+	    \item O \textit{learning rate schedulle} deve mudar sempre que a distribuição alvo mudar. Nos casos que ela se mantém igual não é necessário realizar modificação.
+	    \item Um novo conjunto de dados modifica o \textit{tradeoff} entre otimização e regularização. Dessa forma, o \textit{learning rate scheduller} é específico para um conjunto de dados.
+	\end{enumerate}
+    %c
+
+    \item Você se depara com uma situação na qual o seu time de pesquisa está usando o maior \textit{batch size} possível, respeitando apenas a limitação da memória disponível na GPU. Você entende existem argumentos a favor de um \textit{batch size} grande, contudo você quer trazer para a discussão argumentos contrários para incentivar o uso de \textit{batch sizes} menores. Dentre as alternativas abaixo, quais seriam bons argumentos para diminuir o \textit{batch size}?
+
+    \begin{enumerate}[(a)]
+        \item Um \textit{batch size} menor torna o processo de treino mais ruidoso, auxiliando na diminuição de \textit{overfitting}.
+        \item Um \textit{batch size} menor pode tornar a paralelização mais otimizada e portanto o treinamento mais rápido.
+        \item Um \textit{batch size} menor pode levar a uma maior generalização da rede, evitando mínimos locais.
+        \item Um \textit{batch size} menor reduz o ruído no treinamento, melhorando a generalização do modelo treinado.
+        \item O hiperparâmetro \textit{batch size} apenas diz respeito a limitações de \textit{hardware} e não influencia a solução que será otimizada.
+    \end{enumerate}
+    %a, c
+
+    \item Dado que a descida de gradiente possui na sua formalização original a seguinte regra de atualização $\theta_{t+1}=\theta_t-\eta \nabla_\theta J$. Por que a atualização dos pesos com $-\nabla_\theta J$ diminui o valor da função de custo?
+
+    \item Por que dizemos que a formulação original do \textit{momentum} calcula o gradiente ``no local errado''?
+
+    \item Qual o efeito prático de normalizar o gradiente (conforme feito no Adam)?
+
+    \item Qual a diferença de uma iteração para uma época?
+
+    \item Considerando que $\theta_t$ denota o vetor de parâmetros treináveis de uma rede neural na iteração $t$ e as seguintes informações:
+    \begin{align*}
+    \eta &= 0.1,\quad \beta=0.8, \quad \theta_{0} =
+      \begin{bmatrix}
+        5 \\
+        10
+      \end{bmatrix},
+      \quad v_{0} =
+      \begin{bmatrix}
+        0 \\
+        0
+      \end{bmatrix},
+    \\
+    \nabla_{\theta_{0}} J &=
+      \begin{bmatrix}
+        -2 \\
+        5
+      \end{bmatrix},
+      \quad
+      \nabla_{\theta_{1}} J =
+      \begin{bmatrix}
+        -1 \\
+        8
+      \end{bmatrix},
+      \quad
+      \nabla_{\theta_{2}} J =
+      \begin{bmatrix}
+        1 \\
+        -1
+      \end{bmatrix}
+    \end{align*}
+    \begin{enumerate}
+        \item Como fica $\theta_{1}$ ao seguir a regra de atualização do SGD?
+        \item Como fica $\theta_{1}$ ao seguir a regra de atualização da descida de gradiente com \textit{normalização}?
+        \item Como fica $\theta_{2}$ ao seguir a regra de atualização da descida de gradiente com \textit{momentum}?
+        \item \emoji{skull-and-crossbones} Como fica $\theta_{2}$ ao seguir a regra de atualização do otimizador \textsc{Adam}? (\textit{Nota}: ignore o $\beta = 0.8$ usado nos itens anteriores; aqui usamos os hiperparâmetros padrão do Adam, $\beta_1 = 0.9$ e $\beta_2 = 0.999$)
+    \end{enumerate}
+
+\subsection*{Funções de Custo e Funções de Ativação}
+
+    \item Dentre as funções de ativação abaixo, qual é a opção mais adequada para modelar um problema de classificação \textbf{multiclasse} no qual você quer interpretar a saída da rede como as probabilidades da observação pertencer a uma dada classe?
+    \begin{enumerate}[(a)]
+        \item ReLU: $f(x_{i}) = max(0,x_{i})$
+        \item Sigmoid: $f(x_{i}) = \frac{1}{1 + e^{-x_{i}}}$
+        \item Tanh: $f(x_{i}) = \frac{2}{1 + e^{-2x_{i}}}-1$
+        \item Softplus: $f(x_{i}) = \log_{e}(1 + e^{x_{i}})$
+        \item Softmax $f(x_{i}) = \frac{e^{x_{i}}}{\sum_{z} e^{x_{z}}}$
+        \item Linear $f(x_{i}) = x_{i}$
+    \end{enumerate}
+    %e
+
+    \item Dentre as funções de ativação abaixo, qual é a opção mais adequada para modelar um problema de classificação \textbf{multilabel} no qual você quer interpretar a saída da rede como as probabilidades da observação pertencer a uma dada classe?
+    \begin{enumerate}[(a)]
+        \item ReLU: $f(x_{i}) = max(0,x_{i})$
+        \item Sigmoid: $f(x_{i}) = \frac{1}{1 + e^{-x_{i}}}$
+        \item Tanh: $f(x_{i}) = \frac{2}{1 + e^{-2x_{i}}}-1$
+        \item Softplus: $f(x_{i}) = \log_{e}(1 + e^{x_{i}})$
+        \item Softmax $f(x_{i}) = \frac{e^{x_{i}}}{\sum_{z} e^{x_{z}}}$
+        \item Linear $f(x_{i}) = x_{i}$
+    \end{enumerate}
+    %b
+
+    \item ``Para um problema de classificação \textbf{multilabel} onde a saída pode ter 10 classes diferentes (simultaneamente ou não) a função de ativação na camada de saída do MLP deve ser \_\_\_\_\_\_\_  e o treinamento deve buscar otimizar a função de perda \_\_\_\_\_\_\_''. Quais opções abaixo melhor preenchem as lacunas da afirmação acima?
+
+    \begin{enumerate}[(a)]
+        \item ReLU: $f(x_{i}) = max(0,x_{i})$
+        \item Sigmoid: $f(x_{i}) = \frac{1}{1 + e^{-x_{i}}}$
+        \item Tanh: $f(x_{i}) = \frac{2}{1 + e^{-2x_{i}}}-1$
+        \item Softplus: $f(x_{i}) = \log_{e}(1 + e^{x_{i}})$
+        \item Softmax $f(x_{i}) = \frac{e^{x_{i}}}{\sum_{z} e^{x_{z}}}$
+        \item Linear $f(x_{i}) = x_{i}$
+	    \item \textit{Binary Cross Entropy Loss}: $L_{\text{bce}} = -(ylog(\hat{y}) + (1 - y)log(1-\hat{y}))$.
+	    \item \textit{Categorical Cross Entropy Loss}: $L_{\text{cce}} = - \sum_{i=1}^{c}y_{i}\log\hat{y}_{i}$
+	    \item \textit{Sum of Squared Residuals}: $L_{\text{ssr}} = (y - \hat{y})^{2}$.
+	    \item \textit{Absolute Error Loss}: $L_{\text{abs}} = \left |y - \hat{y}\right|$.
+	    \item \textit{Zero-One Loss}: $L_{01} = I(y \neq \hat{y})$.
+    \end{enumerate}
+    %b, g
+
+    \item Durante o treinamento de uma rede neural você percebe que os gradientes diminuem rapidamente até que se aproximam de zero, fazendo que os pesos da rede permaneçam praticamente sem mudança. Você rapidamente identifica que se trata de um caso de \textit{vanishing gradient}, marque dentre as opções abaixo possíveis causas para esse problema.
+
+	\begin{enumerate}[(a)]
+	    \item As camadas ocultas usam função de ativação \textit{Tanh}.
+	    \item As camadas ocultas usam função de ativação \textit{ReLU}.
+	    \item As camadas ocultas usam função de ativação \textit{Sigmoid}.
+	    \item A rede usa \textit{batch normalization}.
+	\end{enumerate}
+    %a, c
+
+    \item A função de ativação \textit{Rectified Linear Unit (ReLU)} é uma das funções de ativação mais utilizadas em redes neurais. A \textit{ReLU} é definida como $f(x) = \max(0,x)$. Sobre essa função de ativação, é correto afirmar que:
+    \begin{enumerate}[(a)]
+	    \item Minimiza o problema de \textit{vanishing gradient} em comparação com a função de ativação sigmoid.
+	    \item É continua e diferenciável em todo seu domínio.
+	    \item Não é contínua e não é diferenciável em todo seu domínio.
+	    \item É contínua e não é diferenciável em todo seu domínio.
+    \end{enumerate}
+    %a, d
+
+    \item Dentre as opções abaixo, quais adicionam não linearidades na rede neural.
+
+    \begin{enumerate}[(a)]
+        \item Adicionar camadas de convolução.
+        \item Diminuir a taxa de aprendizado.
+        \item Embaralhar o conjunto de treinamento.
+        \item Usar função de ativação ReLU.
+        \item Adicionar regularização.
+    \end{enumerate}
+    %d
+
+    \item O preço de um determinado veículo $i$ pode ser modelado satisfatoriamente pela seguinte função $f(\mathbf{X}^{(i)}) = 10000 X^{(i)}_{1} + 50000 X^{(i)}_{2} + 3500$. Responda as questões abaixo supondo que você está utilizando um \textit{MultiLayer Perceptron} para aproximar o preço do veículo e justifique sua resposta.
+    \begin{enumerate}[(a)]
+	    \item Quantos neurônios/unidades são necessários no mínimo para modelar o preço dos veículos?
+	    \item Qual função de ativação você deveria utilizar?
+    \end{enumerate}
+
+    \item Cite e explique duas características desejáveis de uma função de ativação em redes neurais.
+
+    \item Por que é usual trabalhar com funções de ativação não-lineares em redes neurais?
+
+    \item Calcule as derivadas das seguintes funções de ativação:
+    \begin{enumerate}[a)]
+        \item ReLU $\varphi(x)=max(0,x)$
+        \item Sigmoid $\varphi(x)=\frac{1}{(1+e^{-x})}$
+        \item \emoji{skull-and-crossbones} Softmax $\varphi(\textbf{x})=S_i=\frac{e^{x_i}}{\Sigma e^{x_j}}$, (encontrar a matriz Jacobiana)
+    \end{enumerate}
+
+    \item Qual a utilidade das funções de ativação nas camadas ocultas de um MLP?
+
+    \item Qual a utilidade das funções de ativação na camada de saída de um MLP?
+
+    \item Calcule as derivadas das seguintes funções de custo:
+    \begin{enumerate}[a)]
+        \item  $L_{l2}=\sum\left(y^{(i)}-\hat{y}^{(i)}\right)^2$
+        \item $L_{BCE}=-yln(\hat{y})-(1-y)ln(1-\hat{y})$
+    \end{enumerate}
+
+    \item Desenvolva a função de custo do Erro Médio Quadrático a partir da distribuição Gaussiana.
+    \begin{equation*}
+        Pr(y|\mu,\sigma^2)=\frac{1}{\sqrt{2\pi\sigma^2}}exp\left(-\frac{(y-\mu)^2}{2\sigma^2}\right)
+    \end{equation*}
+
+    \item Desenvolva a função de custo Entropia Binária Cruzada a partir da distribuição de Bernoulli.
+    \begin{equation*}
+        Pr(y|\lambda)= (1-\lambda)^{(1-y)}\lambda^y
+    \end{equation*}
+
+    \item \emoji{skull-and-crossbones} Suponha que você quer criar uma rede neural para estimar a direção $y$ (em radianos) do vento a partir de medições de pressão $\textbf{x}$.
+    Uma distribuição que trabalha no domínio circular é a distribuição de von Mises:
+    \begin{equation*}
+        Pr(y|\mu,k) = \frac{exp[k*cos(y-\mu)]}{2\pi * Bessel_0[k]}
+    \end{equation*}
+    \noindent onde $\mu$ é a direção média e $k$ é o inverso da variância. O termo $Bessel_0[k]$ é uma função modificada de Bessel com grau 0.
+    Crie uma função de custo para aprender o parâmetro $\mu$ dessa distribuição.
+
+    \item \emoji{skull-and-crossbones} Suponha que você quer criar uma rede neural para estimar o número de pedestres $y \in \{0,1,2,...\}$ que passam em uma rua da cidade em algum determinado momento. Você possui um vetor de atributos \textbf{x} que contém informações sobre a hora do dia, sobre o clima e sobre o dia ser feriado ou não.
+    Uma distribuição de probabilidade adequada para trabalhar com esse problema é a distribuição de Poisson:
+    \begin{equation*}
+        Pr(y=k) = \frac{\lambda^ke^{-\lambda}}{k!}
+    \end{equation*}
+    \noindent onde $\lambda$ é o único parâmetro, que representa a média da distribuição.
+    Crie uma função de custo assumindo que temos acesso a $I$ instâncias de treinamento compostas por pares $\{x^{i},y^{i}\}$.
+
+\subsection*{Inicialização de Pesos}
+
+    \item Você inicializa todos os pesos de um MLP com um mesmo valor constante $c \neq 0$ e todos os bias com zero. As camadas ocultas usam a função de ativação tanh. Qual o principal problema que esse esquema de inicialização causa durante o treinamento?
+
+    \begin{enumerate}[(a)]
+        \item Os gradientes da primeira camada são nulos já na primeira iteração e os pesos dessa camada nunca são atualizados.
+        \item A função de custo se torna não diferenciável nos pontos em que pesos de camadas distintas possuem o mesmo valor.
+        \item As unidades de uma mesma camada computam a mesma saída e recebem gradientes idênticos, permanecendo cópias umas das outras.
+        \item As pré-ativações crescem exponencialmente com a profundidade já no primeiro \textit{forward pass}, causando \textit{overflow} numérico.
+    \end{enumerate}
+    %c
+
+    \item Um MLP profundo com ativações sigmoid nas camadas ocultas tem os pesos inicializados com $\theta \sim \mathcal{N}(0, \sigma^2)$, onde $\sigma$ é muito maior do que o recomendado pelas heurísticas de inicialização (He, Xavier). Qual comportamento você espera observar nas primeiras iterações do treinamento?
+
+    \begin{enumerate}[(a)]
+        \item Unidades mortas em todas as camadas ocultas, com saída exatamente zero independentemente da entrada apresentada.
+        \item Pré-ativações com magnitude grande, unidades saturadas e gradientes próximos de zero nas camadas iniciais da rede.
+        \item Pré-ativações próximas de zero, unidades operando na região aproximadamente linear e gradientes estáveis em todas as camadas.
+        \item Convergência acelerada nas primeiras épocas, seguida de estagnação quando a magnitude dos pesos diminui ao longo do treino.
+    \end{enumerate}
+    %b
+
+    \item Que problemas podemos ter com unidades na camada oculta que usam a função sigmoid?
+
+    \item Que problemas podemos ter com unidades na camada oculta que usam a função relu?
+
+    \item Qual a motivação das inicializações \textit{He} e \textit{Xavier}.
+
+    \item Seja $a$ uma variável aleatória contínua, com distribuição simétrica em torno de $E[a]=0$ e variância $\mathrm{Var}[a]=\sigma^2$. Mostre que
+    \begin{equation*}
+        E\!\left[\mathrm{ReLU}(a)^2\right]=\frac{\sigma^2}{2}
+    \end{equation*}
+    \textit{Dica: escreva a esperança como uma integral, use a simetria da distribuição para relacionar a integral na metade positiva do domínio com $E[a^2]$ e lembre que $E[a^2]=\mathrm{Var}[a]+(E[a])^2$.}
+
+    \item Considere a pré-ativação da unidade $i$ na camada $l$ de um MLP cuja camada anterior possui $n^{(l-1)}$ unidades:
+    \begin{equation*}
+        z^{(l)}_i = b^{(l)}_i + \sum_{j=1}^{n^{(l-1)}}\theta^{(l)}_{ij}\,\varphi\!\left(z^{(l-1)}_j\right)
+    \end{equation*}
+    \noindent onde os bias são inicializados em zero, os pesos $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$ são independentes entre si e independentes de $\varphi(z^{(l-1)}_j)$, e as pré-ativações $z^{(l-1)}_j$ têm distribuição simétrica em torno de zero com variância $\sigma^2_{z^{(l-1)}}$. Resolva os itens abaixo:
+    \begin{enumerate}[a)]
+        \item Mostre que $E[z^{(l)}_i]=0$.
+        \item Supondo $\varphi=\mathrm{ReLU}$, use o resultado do exercício anterior para mostrar a recorrência $\sigma^2_{z^{(l)}} = \frac{n^{(l-1)}}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$.
+        \item Imponha que a variância se preserve de uma camada para a outra, isto é, $\sigma^2_{z^{(l)}}=\sigma^2_{z^{(l-1)}}$, e derive a variância da inicialização \textit{He}.
+        \item Supondo agora $\varphi=\tanh$ e usando a aproximação $\varphi(z)\approx z$ para $z$ próximo da origem, refaça o argumento dos itens (b) e (c) e derive a variância da inicialização \textit{Xavier}.
+    \end{enumerate}
+
+\subsection*{Regularização}
+
+    \item \textit{Label Smoothing} é uma técnica de regularização que visa diminuir a tendência de \textit{overfitting} do modelo combatendo principalmente inferências com \textit{overconfidence}. Essa técnica redefine os valores alvo da seguinte forma:
+    \begin{equation*}
+     \mathbf{y}^{(i)}_{ls} = (1 - \alpha)\mathbf{y}^{(i)}_{\text{oh}} + \frac{\alpha}{C}
+    \end{equation*}
+    \noindent onde $y^{(i)}_{\text{oh}}$ é a variável alvo codificada em \textit{one-hot encoding}, $\alpha$ é a constante de \textit{smoothing} e $C$ é o número de classes do problema. Sobre \textit{Label Smoothing}, marque as alternativas verdadeiras:
+
+    \begin{enumerate}[(a)]
+	    \item Quando $\alpha=1$ a variável alvo fica distribuída uniformemente entre as classes.
+	    \item Quando $\alpha=0$ a variável alvo permanece inalterada em formato \textit{one-hot encoding}.
+	    \item Para encontrar o valor ideal de $\alpha$ devemos considerar a quantidade de observações no conjunto de dados.
+	    \item Quando $\alpha=0$ temos a maior intensidade de \textit{smoothing}.
+    \end{enumerate}
+    %a, b
+
+    \item Sobre as penalidades de regularização L1 e L2 adicionadas à função de custo, $\tilde{\mathcal{L}}(\theta) = \mathcal{L}(\theta) + \lambda\,\Omega(\theta)$ com $\Omega_{L1} = \|\theta\|_1$ e $\Omega_{L2} = \|\theta\|_2^2$, é correto afirmar que:
+    \begin{enumerate}[(a)]
+        \item A penalidade L2 tende a zerar exatamente alguns componentes do vetor de pesos, induzindo soluções esparsas.
+        \item A penalidade L1 tende a zerar exatamente alguns componentes do vetor de pesos, induzindo soluções esparsas.
+        \item A penalidade L1 equivale, na visão probabilística, a adicionar um \textit{prior} gaussiano sobre os pesos no critério de máxima verossimilhança.
+        \item A penalidade L2 aumenta a magnitude dos pesos durante o treinamento para compensar o termo adicional na função de custo.
+    \end{enumerate}
+    %b
+
+    \item Uma rede foi treinada com \textit{dropout}, desligando cada unidade oculta com probabilidade $p$ a cada \textit{forward pass}. Na inferência, todas as unidades permanecem ativas. Sobre o ajuste necessário nesse cenário, é correto afirmar que:
+    \begin{enumerate}[(a)]
+        \item As ativações devem ser multiplicadas por $p$ na inferência, restaurando a fração de unidades que era desligada durante o treino.
+        \item Nenhum ajuste é necessário, pois o \textit{dropout} altera apenas o \textit{backward pass} e não muda a escala das ativações.
+        \item As ativações devem ser multiplicadas por $(1-p)$ na inferência, compensando a diferença de magnitude esperada em relação ao treino.
+        \item Os pesos devem ser reamostrados com variância $(1-p)$ antes da inferência, igualando a distribuição das pré-ativações à do treino.
+    \end{enumerate}
+    %c
+
+    \item Demonstre que uma regularização L2 na função de custo de uma unidade com função de ativação identidade é equivalente a diminuir a magnitude do vetor de pesos antes de realizar a atualização. \textit{Dica: escreva a função de custo com o termo de regularização $||\theta||^2$ e use essa função de custo na expressão de atualização dos pesos da descida de gradiente. Colocando o $\theta$ em evidência ficará claro que os pesos estão sendo multiplicados por um valor na faixa $(0,1)$.}
+
+    \item Durante o treinamento com \textit{dropout}, a ativação $a$ de uma unidade oculta é multiplicada por uma máscara binária $m \sim \text{Bernoulli}(1-p)$, onde $p$ é a probabilidade de desligamento. Resolva os itens abaixo:
+    \begin{enumerate}[a)]
+        \item Calcule $E[m \cdot a]$ e compare o resultado com a magnitude da ativação em inferência, quando a unidade está sempre ativa.
+        \item Explique as duas formas vistas em aula de corrigir essa diferença de escala: o \textit{rescaling} determinístico em inferência e o \textit{inverted dropout} adotado como padrão por PyTorch e Keras.
+    \end{enumerate}
+
+    \item Explique o funcionamento do \textit{early stopping}: o que é monitorado durante o treinamento, qual o papel do hiperparâmetro \textit{patience} e por que a técnica tem efeito análogo ao da regularização L2. Cite também o benefício adicional que ela traz além do efeito regularizador.
+
+\end{enumerate}
+
+\newpage
+
+\subsection*{Gabarito}
+\color{blue}
+\begin{enumerate}[1)]
+
+    \item c. \textit{Machine Learning} é indicado justamente quando não sabemos escrever o algoritmo que transforma a entrada na saída, mas dispomos de exemplos nos quais um padrão pode ser aprendido. As alternativas (a) e (d) descrevem cenários ideais para uma solução programada explicitamente, e em (b) o desejo de reduzir tempo de desenvolvimento não justifica a troca de paradigma quando a solução exata é conhecida e barata.
+
+    \item b. O erro no conjunto de teste é a estimativa do desempenho em dados novos, e o modelo B tem o menor erro de teste ($6.3$). O modelo A sofre de viés alto (erros altos em treino e teste), enquanto C e D exibem \textit{overfitting}: erro de treino baixo com erro de teste alto.
+
+    \item d. A equação normal exige inverter $\textbf{X}^\top\textbf{X}$, uma matriz $M \times M$, operação de custo cúbico em $M$; com centenas de milhares de atributos isso é inviável, enquanto a descida de gradiente escala bem. A alternativa (a) afirma algo verdadeiro sobre a equação normal, mas não a torna preferível nesse cenário; (b) é falsa pois $J_{\text{SSR}}$ permanece convexa na Regressão Linear; (c) inverte os custos dos dois métodos.
+
+    \item a. Ao compor $J_{\text{SSR}}$ com a sigmoide, a função de custo deixa de ser convexa e a descida de gradiente pode estacionar em mínimos locais; a $J_{\text{BCE}}$ é convexa para a Regressão Logística. Em (b), a composição continua diferenciável; em (c), a $J_{\text{BCE}}$ não admite solução analítica; em (d), a fronteira de decisão da Regressão Logística continua linear.
+
+    \item b. Hiperparâmetros (taxa de aprendizado, \textit{batch size}, arquitetura) não são aprendidos pela descida de gradiente, então seus valores são encontrados por um processo de busca externo ao treino. A alternativa (a) descreve o treinamento dos parâmetros, (c) descreve o próprio aprendizado da hipótese e (d) confunde o processo com regularização.
+
+    \item Ajustar bem o conjunto de treino significa encontrar uma hipótese que minimiza a função de custo sobre os exemplos já observados. Generalizar significa obter erro baixo em dados novos, vindos da mesma relação entre atributos e variável alvo, que é o objetivo real de um sistema de \textit{Machine Learning}. As duas coisas não são equivalentes: o polinômio de grau 4 tem parâmetros suficientes para passar exatamente por todos os pontos de treino, então ele ajusta inclusive as flutuações particulares daquela amostra e não apenas a tendência geral. Fora dos pontos de treino ele oscila, e por isso erra muito no ponto de teste. Em termos da decomposição $\text{Erro}_{\text{teste}} = \text{Viés}^2 + \text{Variância} + \sigma^2$, o polinômio é um modelo de variância alta: se sorteássemos outro conjunto de treino de mesmo tamanho, a curva ajustada mudaria drasticamente. A reta pertence a uma família de hipóteses mais simples, então tem viés maior (não consegue representar qualquer padrão) e erro de treino diferente de zero, mas tem variância baixa e captura a tendência geral dos dados, o que resulta em erro de teste menor. O termo $\sigma^2$ é o ruído irredutível, que nenhum dos dois modelos consegue eliminar. Isso ilustra o efeito tesoura: com poucos dados, regras mais simples tendem a obter erros menores em novos dados, pois a variância domina o erro dos modelos complexos; com muitos dados, a variância dos modelos complexos diminui e eles passam a obter erros menores, pois seu viés é menor.
+
+    \item a. A derivada da função $sign$ é zero em todo ponto onde é definida (e indefinida em $x=0$), então nenhum gradiente flui pelas unidades e o \textit{backpropagation} não tem como atualizar os pesos. A alternativa (c) erra ao afirmar que \textbf{apenas} a descontinuidade em $x=0$ impede a otimização, pois a derivada nula no restante do domínio também impede; (d) é uma limitação verdadeira do Perceptron isolado, mas não é o que impede organizá-lo em rede.
+
+    \item Pois a derivada da função de ativação sinal é zero ou indefinida em todo domínio da função. Devido a isso, não conseguimos propagar os erros.
+
+    \item A fronteira de decisão é o conjunto de pontos onde o argumento da função sinal troca de sinal, isto é, onde $\theta_0 + X_1\theta_1 + X_2\theta_2=0$. Supondo $\theta_2 \neq 0$, isolamos $X_2 = -\frac{\theta_0 + \theta_1 X_1}{\theta_2}$, que é a equação de uma reta no plano $(X_1, X_2)$ com coeficiente angular $-\theta_1/\theta_2$ e intercepto $-\theta_0/\theta_2$. De um lado dessa reta a saída é $+1$ e do outro é $-1$, portanto a fronteira de decisão é linear.
+
+    \item $\hat{y}=sinal(\theta_0 + X_1\theta_1 + X_2\theta_2)$, onde $\theta_0=-1$, $\theta_1=1$, $\theta_2=1$ e as entradas falsas são codificadas como $-1$ e as entradas verdadeiras como $+1$. Verificação nas quatro combinações: $(-1,-1)\!: z=-3 \Rightarrow -1$; $(+1,-1)\!: z=-1 \Rightarrow -1$; $(-1,+1)\!: z=-1 \Rightarrow -1$; $(+1,+1)\!: z=+1 \Rightarrow +1$, exatamente a tabela-verdade do \textit{and}.
+
+    \item a. Cada unidade computa o produto escalar entre o vetor de entradas e o vetor de pesos (somado ao bias) para formar a pré-ativação; a função de ativação é aplicada depois, sobre esse resultado. \textit{Backpropagation} e descida de gradiente pertencem ao treinamento, não ao \textit{forward pass}.
+
+    \item b. O \textit{forward pass} computa as saídas de cada unidade até produzir a predição, e o \textit{backward pass} computa os gradientes da função de custo em relação aos pesos. As alternativas (d) e (e) confundem as duas fases com os algoritmos que as utilizam.
+
+    \item $3D + 1 + (K - 1)D(D + 1)$. Repare que essa expressão não é a única resposta possível para o exercício. Dependendo de como você desenvolver a questão poderá chegar em expressões equivalentes como por exemplo: $2D + (K - 1)DD + KD + 1$. Contagem por partes: da entrada para a primeira camada oculta são $D$ pesos e $D$ bias; entre camadas ocultas são $(K-1)$ transições com $D^2$ pesos e $D$ bias cada; da última camada oculta para a saída são $D$ pesos e $1$ bias. Somando: $2D + (K-1)D(D+1) + D + 1 = 3D + 1 + (K-1)D(D+1)$
+
+    \item \textit{Forward Pass}: onde as saídas são calculadas; \textit{Loss Function}: onde a diferença entre a saída e o valor esperado são comparadas; \textit{Backward Pass}: onde os gradientes da função de custo em relação a cada um dos pesos é calculado; \textit{Optimizer}: onde os pesos são atualizados.
+
+    \item Considerando ReLU $\varphi(z)=\max(0,z)$ em todas as unidades (inclusive na saída) e taxa de aprendizado $\eta = 0.1$.
+
+    \textit{Forward Pass:}
+    \begin{align*}
+        z^{(1)} &= \theta^{(1)}X + \beta^{(1)} = \begin{bmatrix}0.5 & -0.2\\ 0.1 & 0.2\end{bmatrix}\begin{bmatrix}2\\ 1\end{bmatrix} + \begin{bmatrix}0.2\\ -0.1\end{bmatrix} = \begin{bmatrix}1.0\\ 0.3\end{bmatrix}, \quad a^{(1)}=\varphi(z^{(1)})=\begin{bmatrix}1.0\\ 0.3\end{bmatrix}\\
+        z^{(2)} &= \theta^{(2)}a^{(1)} + \beta^{(2)} = \begin{bmatrix}0.2 & -0.1\end{bmatrix}\begin{bmatrix}1.0\\ 0.3\end{bmatrix} + 0.4 = 0.57, \quad \hat{y}=a^{(2)}=\varphi(0.57)=0.57
+    \end{align*}
+
+    \textit{Loss:} $J=(\hat{y}-y)^2 = (0.57-1)^2 = 0.1849$.
+
+    \textit{Backward Pass:} como $\frac{\partial J}{\partial \hat{y}}=2(\hat{y}-y)=-0.86$ e $\varphi'(z)=1$ para $z>0$,
+    \begin{align*}
+        \delta^{(2)} &= 2(\hat{y}-y)\odot\varphi'(z^{(2)}) = -0.86\\
+        \frac{\partial J}{\partial \theta^{(2)}} &= \delta^{(2)}a^{(1)\top} = \begin{bmatrix}-0.86 & -0.258\end{bmatrix}, \quad \frac{\partial J}{\partial \beta^{(2)}} = \delta^{(2)} = -0.86\\
+        \delta^{(1)} &= (\delta^{(2)}\theta^{(2)})\odot\varphi'(z^{(1)}) = \begin{bmatrix}-0.172 & 0.086\end{bmatrix}\\
+        \frac{\partial J}{\partial \theta^{(1)}} &= \delta^{(1)\top}X^\top = \begin{bmatrix}-0.172\\ 0.086\end{bmatrix}\begin{bmatrix}2 & 1\end{bmatrix} = \begin{bmatrix}-0.344 & -0.172\\ 0.172 & 0.086\end{bmatrix}, \quad \frac{\partial J}{\partial \beta^{(1)}} = \delta^{(1)} = \begin{bmatrix}-0.172 & 0.086\end{bmatrix}
+    \end{align*}
+
+    \textit{Atualização (SGD, $\theta_{t+1}=\theta_t-\eta\nabla J$):}
+    \begin{align*}
+        \theta^{(1)} &\leftarrow \begin{bmatrix}0.5 & -0.2\\ 0.1 & 0.2\end{bmatrix} - 0.1\begin{bmatrix}-0.344 & -0.172\\ 0.172 & 0.086\end{bmatrix} = \begin{bmatrix}0.5344 & -0.1828\\ 0.0828 & 0.1914\end{bmatrix}\\
+        \beta^{(1)} &\leftarrow \begin{bmatrix}0.2 & -0.1\end{bmatrix} - 0.1\begin{bmatrix}-0.172 & 0.086\end{bmatrix} = \begin{bmatrix}0.2172 & -0.1086\end{bmatrix}\\
+        \theta^{(2)} &\leftarrow \begin{bmatrix}0.2 & -0.1\end{bmatrix} - 0.1\begin{bmatrix}-0.86 & -0.258\end{bmatrix} = \begin{bmatrix}0.286 & -0.0742\end{bmatrix}\\
+        \beta^{(2)} &\leftarrow 0.4 - 0.1(-0.86) = 0.486
+    \end{align*}
+
+    \item a. A regra da cadeia local exige apenas o gradiente \textit{upstream}, que resume todo o caminho da \textit{loss} até a saída do nó, e a derivada local da operação do nó em relação a cada entrada. Essa localidade é o que torna o \textit{backpropagation} eficiente. A alternativa (b) descreve diferenciação simbólica e (c) descreve diferenças finitas, métodos que a diferenciação automática substitui; (d) inverte a lógica, pois os gradientes dos parâmetros são o resultado do percurso, não um pré-requisito.
+
+    \item c. \textit{Forward}: $u = 3$, $v = 6$, $f = 18$. No \textit{backward}, $b$ recebe contribuição por dois caminhos: via $u$, $\frac{\partial f}{\partial u} \cdot 1 = v = 6$; via $v$, $\frac{\partial f}{\partial v} \cdot c = u \cdot c = 9$. Somando, $\frac{\partial f}{\partial b} = 6 + 9 = 15$. Os distratores $6$ e $9$ são os caminhos isolados e $18$ é o valor do \textit{forward}. Verificação analítica: com $a=1$ e $c=3$, $f(b) = 3b + 3b^2$ e $f'(2) = 3 + 12 = 15$.
+
+    \item
+    \begin{enumerate}[a)]
+        \item \textit{Forward pass}, na ordem topológica:
+        \begin{align*}
+            u &= a + b = 2 + 3 = 5\\
+            v &= \max(b, c) = \max(3, 4) = 4\\
+            f &= u \cdot v = 5 \cdot 4 = 20
+        \end{align*}
+        \item \textit{Backward pass}, iniciando com $\partial f/\partial f = 1$ e percorrendo o grafo na ordem inversa:
+        \begin{itemize}
+            \item Nó $f = u \cdot v$ (comutador): cada entrada recebe o gradiente \textit{upstream} multiplicado pelo valor da outra entrada, logo $\frac{\partial f}{\partial u} = 1 \cdot v = 4$ e $\frac{\partial f}{\partial v} = 1 \cdot u = 5$.
+            \item Nó $u = a + b$ (distribuidor): copia o gradiente \textit{upstream} para as duas entradas, logo $\frac{\partial f}{\partial a} = 4$ e a contribuição para $b$ por este caminho é $4$.
+            \item Nó $v = \max(b, c)$ (roteador): como $c = 4 > b = 3$, a entrada vencedora é $c$, que recebe o gradiente inteiro, $\frac{\partial f}{\partial c} = 5$. A contribuição para $b$ por este caminho é $0$.
+            \item Variável $b$ usada em dois nós (somador no \textit{backward}): os gradientes que chegam são somados, $\frac{\partial f}{\partial b} = 4 + 0 = 4$.
+        \end{itemize}
+        Resultado: $\frac{\partial f}{\partial a} = 4$, $\frac{\partial f}{\partial b} = 4$ e $\frac{\partial f}{\partial c} = 5$. Verificação: na região em que $c > b$ vale $f = (a+b)\,c$, portanto $\frac{\partial f}{\partial a} = c = 4$, $\frac{\partial f}{\partial b} = c = 4$ e $\frac{\partial f}{\partial c} = a + b = 5$.
+    \end{enumerate}
+
+    \item
+    \begin{enumerate}[a)]
+        \item Decomposição em nós elementares, na ordem do \textit{forward}:
+        \begin{align*}
+            t_1 &= \theta_1 \cdot x_1 \quad (\text{produto})\\
+            t_2 &= \theta_2 \cdot x_2 \quad (\text{produto})\\
+            s_1 &= \theta_0 + t_1 \quad (\text{soma})\\
+            z &= s_1 + t_2 \quad (\text{soma})\\
+            \hat{y} &= \sigma(z) \quad (\text{sigmoide agrupada})\\
+            L &= -\left(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\right) \quad (\textit{loss})
+        \end{align*}
+        \item \textit{Backward pass} nó a nó, iniciando com $\partial L/\partial L = 1$:
+        \begin{itemize}
+            \item Nó da \textit{loss}: derivando $L$ em relação a $\hat{y}$,
+            $$\frac{\partial L}{\partial \hat{y}} = -\frac{y}{\hat{y}} + \frac{1-y}{1-\hat{y}} = \frac{\hat{y} - y}{\hat{y}(1-\hat{y})}.$$
+            \item Nó sigmoide: a derivada local é $\sigma'(z) = \hat{y}(1-\hat{y})$, então
+            $$\frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \hat{y}(1-\hat{y}) = \frac{\hat{y} - y}{\hat{y}(1-\hat{y})} \cdot \hat{y}(1-\hat{y}) = \hat{y} - y.$$
+            \item Nós de soma (distribuidores): copiam $\hat{y} - y$ para todas as entradas, logo
+            $$\frac{\partial L}{\partial s_1} = \frac{\partial L}{\partial t_2} = \frac{\partial L}{\partial \theta_0} = \frac{\partial L}{\partial t_1} = \hat{y} - y.$$
+            \item Nós de produto (comutadores): multiplicam o gradiente \textit{upstream} pelo valor da outra entrada, logo
+            $$\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1 \quad \text{e} \quad \frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2.$$
+        \end{itemize}
+        Resumo: $\frac{\partial L}{\partial \theta_0} = \hat{y} - y$, $\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1$ e $\frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2$. A simplificação ocorre porque o denominador $\hat{y}(1-\hat{y})$ da derivada da BCE cancela exatamente com a derivada da sigmoide, deixando o gradiente na pré-ativação igual ao erro $\hat{y} - y$.
+    \end{enumerate}
+
+    \item O \textit{backward pass} é a aplicação repetida da regra da cadeia sobre uma composição de operações elementares. Para automatizar esse processo (diferenciação automática, \textit{autodiff}), o \textit{framework} precisa saber quais operações foram executadas e em que ordem de dependência, e é exatamente isso que o grafo (um DAG) registra: cada operação executada no \textit{forward} vira um nó, e as arestas indicam de quais valores cada nó depende. Com o grafo montado, basta percorrê-lo na ordem topológica inversa multiplicando o gradiente \textit{upstream} pela derivada local de cada nó (\textit{reverse mode}), o que é eficiente no caso típico de redes neurais, com uma \textit{loss} escalar e muitos parâmetros.
+
+    Durante o \textit{forward pass}, três coisas precisam ser armazenadas: (1) a estrutura do grafo, ou seja, quais nós alimentam quais, pois sem ela não há como saber para onde propagar cada gradiente; (2) a operação realizada em cada nó, pois cada operação elementar conhece a própria regra de derivada local; (3) os valores intermediários calculados no \textit{forward} que as derivadas locais consomem. Exemplos do item (3): o \textit{gate} de produto $z = x \cdot y$ precisa guardar os valores das entradas, pois no \textit{backward} cada entrada recebe o gradiente multiplicado pelo valor da outra ($\partial z/\partial x = y$ e $\partial z/\partial y = x$); o nó sigmoide precisa guardar a própria saída, pois $\sigma'(z) = \sigma(z)(1 - \sigma(z))$; o \textit{gate} de máximo precisa registrar qual entrada venceu para rotear o gradiente inteiro para ela. Em PyTorch isso acontece de forma dinâmica: tensores com \texttt{requires\_grad=True} fazem cada operação registrar um nó no grafo, reconstruído a cada \textit{forward}, e \texttt{loss.backward()} percorre esse grafo acumulando os gradientes em \texttt{parameter.grad}.
+
+    \item c. Estimar o gradiente com uma única observação caracteriza o \textit{Stochastic Gradient Descent}. O \textit{Batch Gradient Descent} usa o conjunto de treino inteiro em cada passo e o \textit{Mini Batch} usa subconjuntos com mais de uma observação; \textit{Deterministic Gradient Descent} não é uma variação padrão do algoritmo.
+
+    \item b. A equação define uma média móvel exponencial dos gradientes: $\mathcal{V}_t$ acumula o histórico com peso $\beta$ e o gradiente atual com peso $1-\beta$, que é exatamente o \textit{momentum}. Não há termo de penalidade sobre os pesos (L2) nem normalização de ativações (\textit{batch normalization}) na expressão.
+
+    \item c, d. A oscilação indica passos grandes ou ruidosos demais. Diminuir a taxa de aprendizado reduz o tamanho do passo e permite assentar no vale (c), e aumentar o \textit{batch size} coloca mais exemplos em cada estimativa do gradiente, tornando os passos mais estáveis (d). Obter mais dados (a) não muda a dinâmica do passo, e aumentar a taxa de aprendizado (b) agrava a oscilação.
+
+    \item b. Com $0.1$ a \textit{loss} cai rápido mas se comporta de forma instável (taxa alta demais) e com $10^{-6}$ o decaimento é lento demais. O próximo palpite razoável fica entre os dois extremos em escala logarítmica, como $10^{-4}$. Testar $0.2$ (a) aumentaria a instabilidade e $10^{-8}$ (c) seria ainda mais lento que o caso já inviável.
+
+    \item c. O \textit{scheduler} interage com o equilíbrio entre otimizar bem o conjunto de treino e regularizar o modelo, e esse equilíbrio muda quando os dados mudam; por isso o \textit{scheduler} é específico do conjunto de dados. O número de observações (a) e a distribuição alvo (b), isoladamente, não capturam essa dependência.
+
+    \item a, c. O ruído da estimativa do gradiente com \textit{batches} menores atua como regularização implícita, dificultando a memorização do conjunto de treino (a) e ajudando a escapar de mínimos ruins (c). A alternativa (b) é falsa pois \textit{batches} menores aproveitam pior o paralelismo da GPU, (d) afirma o oposto de (a) e (e) ignora o efeito do \textit{batch size} na solução encontrada.
+
+    \item O gradiente aponta na direção de maior crescimento local da função de custo, então atualizar os pesos na direção contrária diminui o custo. Formalmente, pela expansão de primeira ordem, $J(\theta - \eta\nabla_\theta J) \approx J(\theta) - \eta\,\|\nabla_\theta J\|^2$, e como $\|\nabla_\theta J\|^2 \geq 0$, um passo suficientemente pequeno na direção $-\nabla_\theta J$ reduz o valor de $J$.
+
+    \item Dizemos que o gradiente está atrasado pois, devido ao \textit{momentum}, já existe uma atualização dos pesos conforme o histórico dos gradientes. Essa observação leva a definição do \textit{Nesterov Accelerated Momentum}: como a atualização vai deslocar os pesos pelo termo de histórico $\beta v_t$ de qualquer forma, é mais informativo avaliar o gradiente no ponto para onde os pesos estão indo (o ponto \textit{lookahead}) do que no ponto atual, e o Nesterov faz exatamente essa correção.
+
+    \item Ao normalizar o gradiente, fica mais fácil definir uma taxa de aprendizado que funcione igualmente bem para todos os parâmetros da rede. Sem normalização, parâmetros com gradientes de escalas muito diferentes exigiriam taxas de aprendizado diferentes; ao dividir cada componente pela raiz do segundo momento acumulado, o passo efetivo de cada parâmetro fica com magnitude comparável, próxima de $\eta$.
+
+    \item Uma iteração consiste na apresentação de algumas instâncias para o modelo, sob as quais são realizados \textit{Forward Pass}, cálculo da função de custo, \textit{Backward Pass} e otimização. Uma época ocorre quando foram feitas iterações suficientes para ver todas as instâncias do conjunto de treinamento 1 vez.
+
+    \item
+    \begin{align*}
+    \eta &= 0.1, \quad \theta_{0} =
+      \begin{bmatrix}
+        5 \\
+        10
+      \end{bmatrix},
+      \quad v_{0} =
+      \begin{bmatrix}
+        0 \\
+        0
+      \end{bmatrix},
+    \\
+    \nabla_{\theta_{0}} J &=
+      \begin{bmatrix}
+        -2 \\
+        5
+      \end{bmatrix},
+      \quad
+      \nabla_{\theta_{1}} J =
+      \begin{bmatrix}
+        -1 \\
+        8
+      \end{bmatrix},
+      \quad
+      \nabla_{\theta_{2}} J =
+      \begin{bmatrix}
+        1 \\
+        -1
+      \end{bmatrix}
+    \end{align*}
+    \begin{enumerate}
+        \item
+        \begin{align*}
+            \theta_{1} =
+      \begin{bmatrix}
+        5 \\
+        10
+      \end{bmatrix} -0.1\begin{bmatrix}
+        -2 \\
+        5
+      \end{bmatrix} = \begin{bmatrix}
+        5.2 \\
+        9.5
+      \end{bmatrix}
+        \end{align*}
+
+        \item
+                \begin{align*}
+            \theta_{1} =
+      \begin{bmatrix}
+        5 \\
+        10
+      \end{bmatrix} -0.1\left (\begin{bmatrix}
+        -2 \\
+        5
+      \end{bmatrix}\div\begin{bmatrix}
+        2 \\
+        5
+      \end{bmatrix}\right) = \begin{bmatrix}
+        5.1 \\
+        9.9
+      \end{bmatrix}
+        \end{align*}
+        \item
+
+\begin{align*}
+            v_1=0.8\begin{bmatrix}
+        0 \\
+        0
+      \end{bmatrix} + (1-0.8)\begin{bmatrix}
+        -2 \\
+        5
+      \end{bmatrix}=\begin{bmatrix}
+        -0.4 \\
+        1
+      \end{bmatrix}\\
+      \theta_{1} =
+      \begin{bmatrix}
+        5 \\
+        10
+      \end{bmatrix} -0.1\begin{bmatrix}
+        -0.4 \\
+        1
+      \end{bmatrix} = \begin{bmatrix}
+        5.04 \\
+        9.9
+      \end{bmatrix}\\
+      v_2=0.8\begin{bmatrix}
+        -0.4 \\
+        1
+      \end{bmatrix} + (1-0.8)\begin{bmatrix}
+        -1 \\
+        8
+      \end{bmatrix}=\begin{bmatrix}
+        -0.52 \\
+        2.40
+      \end{bmatrix}\\
+      \theta_{2} =
+      \begin{bmatrix}
+        5.04 \\
+        9.9
+      \end{bmatrix} -0.1\begin{bmatrix}
+        -0.52 \\
+        2.40
+      \end{bmatrix} = \begin{bmatrix}
+        5.092 \\
+        9.660
+      \end{bmatrix}
+        \end{align*}
+
+        \item \emoji{skull-and-crossbones}
+        Considerando as regras de atualização do \textsc{Adam} com $\eta = 0.1$, $\beta = 0.9$ e $\gamma = 0.999$, podemos calcular o valor de $\theta_{2}$.
+
+Primeiro, calculamos $\theta_{1}$ para a iteração $t=1$:
+
+  Momento ($m_1$):
+    $$m_{1} = \beta m_{0} + (1-\beta )\nabla_{\theta_{0}}J = 0.9\begin{bmatrix} 0\\ 0 \end{bmatrix} + (1-0.9)\begin{bmatrix} -2\\ 5 \end{bmatrix} = \begin{bmatrix} 0\\ 0 \end{bmatrix} + 0.1\begin{bmatrix} -2\\ 5 \end{bmatrix} = \begin{bmatrix} -0.2\\ 0.5 \end{bmatrix}$$
+
+  Termo normalizador ($v_1$):
+    $$v_{1} = \gamma v_{0} + (1-\gamma )(\nabla_{\theta_{0}}J)^2 = 0.999\begin{bmatrix} 0\\ 0 \end{bmatrix} + (1-0.999)\begin{bmatrix} (-2)^2\\ 5^2 \end{bmatrix} = \begin{bmatrix} 0\\ 0 \end{bmatrix} + 0.001\begin{bmatrix} 4\\ 25 \end{bmatrix} = \begin{bmatrix} 0.004\\ 0.025 \end{bmatrix}$$
+
+  Correção de viés (\textit{bias correction}):
+    $$\hat{m}_{1} = \frac{m_{1}}{1 - \beta ^{1}} = \frac{\begin{bmatrix} -0.2\\ 0.5 \end{bmatrix}}{1 - 0.9} = \begin{bmatrix} -2\\ 5 \end{bmatrix}$$   $$\hat{v}_{1} = \frac{v_{1}}{1 - \gamma ^{1}} = \frac{\begin{bmatrix} 0.004\\ 0.025 \end{bmatrix}}{1 - 0.999} = \begin{bmatrix} 4\\ 25 \end{bmatrix}$$
+
+  Atualização de $\theta_1$:
+    $$\theta_{1} = \theta_{0} - \eta \frac{\hat{m}_{1}}{\sqrt{\hat{v}_{1}} + \epsilon} = \begin{bmatrix} 5\\ 10 \end{bmatrix} - 0.1\begin{bmatrix} \frac{-2}{\sqrt{4}}\\ \frac{5}{\sqrt{25}} \end{bmatrix} = \begin{bmatrix} 5\\ 10 \end{bmatrix} - 0.1\begin{bmatrix} -1\\ 1 \end{bmatrix} = \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix}$$
+
+Agora, calculamos $\theta_{2}$ para a iteração $t=2$:
+
+  Momento ($m_2$):
+    $$m_{2} = \beta m_{1} + (1-\beta )\nabla_{\theta_{1}}J = 0.9\begin{bmatrix} -0.2\\ 0.5 \end{bmatrix} + (1-0.9)\begin{bmatrix} -1\\ 8 \end{bmatrix} = \begin{bmatrix} -0.18\\ 0.45 \end{bmatrix} + 0.1\begin{bmatrix} -1\\ 8 \end{bmatrix} = \begin{bmatrix} -0.28\\ 1.25 \end{bmatrix}$$
+
+  Termo normalizador ($v_2$):
+    $$v_{2} = \gamma v_{1} + (1-\gamma )(\nabla_{\theta_{1}}J)^2 = 0.999\begin{bmatrix} 0.004\\ 0.025 \end{bmatrix} + (1-0.999)\begin{bmatrix} (-1)^2\\ 8^2 \end{bmatrix} = \begin{bmatrix} 0.003996\\ 0.024975 \end{bmatrix} + 0.001\begin{bmatrix} 1\\ 64 \end{bmatrix} = \begin{bmatrix} 0.004996\\ 0.088975 \end{bmatrix}$$
+
+  Correção de viés (\textit{bias correction}):
+    $$\hat{m}_{2} = \frac{m_{2}}{1 - \beta ^{2}} = \frac{\begin{bmatrix} -0.28\\ 1.25 \end{bmatrix}}{1 - 0.9^2} = \frac{\begin{bmatrix} -0.28\\ 1.25 \end{bmatrix}}{0.19} \approx \begin{bmatrix} -1.47368\\ 6.57895 \end{bmatrix}$$   $$\hat{v}_{2} = \frac{v_{2}}{1 - \gamma ^{2}} = \frac{\begin{bmatrix} 0.004996\\ 0.088975 \end{bmatrix}}{1 - 0.999^2} = \frac{\begin{bmatrix} 0.004996\\ 0.088975 \end{bmatrix}}{0.001999} \approx \begin{bmatrix} 2.49925\\ 44.50975 \end{bmatrix}$$
+
+  Atualização de $\theta_2$:
+    $$\theta_{2} = \theta_{1} - \eta \frac{\hat{m}_{2}}{\sqrt{\hat{v}_{2}} + \epsilon} = \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} \frac{-1.47368}{\sqrt{2.49925}}\\ \frac{6.57895}{\sqrt{44.50975}} \end{bmatrix} \approx \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} -0.9322\\ 0.9869 \end{bmatrix} = \begin{bmatrix} 5.1932\\ 9.8013 \end{bmatrix}$$
+
+Portanto, o valor de $\theta_{2}$ ao seguir a regra de atualização do \textsc{Adam} é:
+$$\theta_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
+    \end{enumerate}
+
+    \item e. A softmax normaliza os \textit{logits} para que as saídas sejam positivas e somem 1, produzindo uma distribuição de probabilidade sobre classes mutuamente exclusivas, que é o que o problema multiclasse exige. As demais ativações produzem valores por unidade sem a restrição de somarem 1, então não formam uma distribuição sobre as classes.
+
+    \item b. No problema \textit{multilabel} cada classe é uma decisão binária independente, então cada saída precisa de uma probabilidade própria em $[0,1]$, o que a sigmoid fornece. A softmax (e) forçaria as classes a competir entre si, pois as probabilidades somariam 1, o que impede múltiplas classes simultâneas.
+
+    \item b, g. Sigmoid em cada unidade de saída fornece probabilidades independentes por classe, e a \textit{Binary Cross Entropy} avalia cada uma dessas decisões binárias separadamente. A combinação softmax + \textit{Categorical Cross Entropy} seria a escolha para o caso multiclasse com classes mutuamente exclusivas, que não é o cenário do enunciado.
+
+    \item a, c. Tanh e sigmoid saturam para entradas de magnitude grande e têm derivadas menores que 1 (a da sigmoid vale no máximo $0.25$); no \textit{backpropagation} essas derivadas se multiplicam camada após camada e o gradiente encolhe exponencialmente. A ReLU (b) tem derivada 1 na região ativa, e o \textit{batch normalization} (d) é uma técnica que combate o problema em vez de causá-lo.
+
+    \item a, d. Na região ativa ($x>0$) a derivada da ReLU é constante igual a 1, então ela não satura como a sigmoid e minimiza o \textit{vanishing gradient} (a). Ela é contínua em todo o domínio, mas não é diferenciável em $x=0$, onde as derivadas laterais diferem (d), o que exclui (b) e (c).
+
+    \item d. A ReLU é uma função não linear aplicada às pré-ativações, e é isso que impede a rede de colapsar em um modelo linear. Convoluções (a) são operações lineares, e taxa de aprendizado (b), embaralhamento dos dados (c) e regularização (e) afetam o treinamento, não a classe de funções que a rede consegue representar.
+
+    \item
+    \begin{enumerate}[(a)]
+        \item Uma única unidade é suficiente. A função alvo é linear nos atributos, e um neurônio computa exatamente uma combinação linear das entradas mais um viés: basta fazer $\theta_1 = 10000$, $\theta_2 = 50000$ e $\theta_0 = 3500$.
+        \item A ativação linear (identidade). O problema é de regressão e a saída deve poder assumir qualquer valor real; uma ativação não linear na saída restringiria ou distorceria a imagem da função modelada.
+    \end{enumerate}
+
+    \item Exemplos de características desejáveis (citar e explicar duas): ser não linear, pois é o que permite que a composição de camadas represente funções que um modelo linear não representa; ser diferenciável (ou quase em todo ponto), pois o treinamento depende da propagação de gradientes; não saturar em grande parte do domínio, pois derivadas próximas de zero causam \textit{vanishing gradient}; ter baixo custo computacional, pois a ativação é avaliada em todas as unidades a cada \textit{forward} e \textit{backward}.
+
+    \item Porque sem não linearidade entre as camadas a composição de transformações lineares colapsa em uma única transformação linear ($\theta^{(2)}(\theta^{(1)} X) = (\theta^{(2)}\theta^{(1)})X$). Nesse caso a rede, por mais profunda que seja, teria o mesmo poder de representação de um modelo linear. As ativações não lineares quebram essa equivalência e permitem aproximar funções complexas.
+
+    \item
+    \begin{enumerate}[a)]
+        \item \[
+\varphi'(x) =
+     \begin{cases}
+       \text{0,} &\quad x \le0,\\
+       \text{1,} &\quad x > 0\\
+     \end{cases}
+\]
+        \item $\varphi'(x)=\varphi(x)(1-\varphi(x))$
+        \item \emoji{skull-and-crossbones} \[
+        \frac{\partial S_i}{\partial x_j} =
+     \begin{cases}
+       S_i(1-S_i), &\quad i=j,\\
+       -S_i S_j,   &\quad i\neq j.
+     \end{cases}
+\]
+        Forma compacta: $\dfrac{\partial S_i}{\partial x_j} = S_i\,(\delta_{ij} - S_j)$, onde $\delta_{ij}$ é o delta de Kronecker.
+    \end{enumerate}
+
+    \item Adicionar não linearidades. Sem elas, a composição das camadas colapsaria em uma única transformação linear e a profundidade não acrescentaria poder de representação; com ativações não lineares nas camadas ocultas, cada camada pode compor funções progressivamente mais complexas.
+
+    \item Ajustar a saída da rede neural à imagem da função modelada: a ativação da última camada mapeia as pré-ativações para o domínio que a tarefa exige, como $[0,1]$ com a sigmoid para probabilidade binária, uma distribuição que soma 1 com a softmax no caso multiclasse, ou os reais com a ativação linear em regressão. Essa escolha também casa a saída com a função de custo correspondente.
+
+    \item
+    \begin{enumerate}[a)]
+    \item $2(\hat{y}-y)$
+    \item $\frac{\hat{y}-y}{\hat{y}(1-\hat{y})}$ \quad ({\footnotesize esta é $\partial L_{BCE} / \partial \hat y$, não $\partial L_{BCE} / \partial \theta$; ao multiplicar pela derivada da sigmoid $\hat y(1-\hat y)$ e por $X^\top$, simplifica para $X^\top(\hat y - y)$})
+    \end{enumerate}
+
+    \item Aplicando o logaritmo negativo à verossimilhança da Gaussiana com $\mu = \hat{y}^{(i)}$: $-\ln Pr(y^{(i)}|\hat{y}^{(i)},\sigma^2) = \frac{1}{2}\ln(2\pi\sigma^2) + \frac{(y^{(i)}-\hat{y}^{(i)})^2}{2\sigma^2}$. O primeiro termo e o fator $\frac{1}{2\sigma^2}$ não dependem de $\hat{y}$, então maximizar a verossimilhança equivale a minimizar $L_{l2}=\sum\left(y^{(i)}-\hat{y}^{(i)}\right)^2$.
+    \item Aplicando o logaritmo negativo à verossimilhança da Bernoulli com $\lambda = \hat{y}$: $-\ln\left[(1-\hat{y})^{(1-y)}\,\hat{y}^{\,y}\right] = -y\,ln(\hat{y})-(1-y)\,ln(1-\hat{y}) = L_{BCE}$.
+
+    \item \emoji{skull-and-crossbones} $-\sum_{i} cos(y^{(i)}-f(x^{(i)},\theta))$ \quad ({\footnotesize a NLL é $-\sum_i \ln \Pr(y^{(i)}\mid \mu, k)$. O denominador $2\pi \cdot \mathrm{Bessel}_0[k]$ e o $k$ não dependem de $\mu = f(x^{(i)},\theta)$, então caem como constantes; sobra apenas o termo $-k\sum_i \cos(y^{(i)} - f(x^{(i)},\theta))$, que com $k$ fixo é proporcional ao apresentado})
+
+    \item \emoji{skull-and-crossbones} $\sum _{i=1}^{I}(f[x^{(i)},\theta] - y^{(i)}ln(f[x^{(i)},\theta]))$ \quad ({\footnotesize a NLL de cada observação é $-\ln Pr(y^{(i)}) = -y^{(i)}\ln\lambda + \lambda + \ln(y^{(i)}!)$; com $\lambda = f[x^{(i)},\theta]$, o termo $\ln(y^{(i)}!)$ não depende de $\theta$ e cai como constante, restando a soma apresentada})
+
+    \item c. Com todos os pesos iguais, todas as unidades de uma mesma camada computam a mesma pré-ativação e a mesma saída; no \textit{backward}, recebem gradientes idênticos e são atualizadas de forma idêntica. A simetria nunca é quebrada e a camada se comporta como se tivesse uma única unidade. Note que os gradientes não são nulos (a): o problema não é ausência de atualização, e sim atualização idêntica em todas as unidades.
+
+    \item b. Pesos com variância grande produzem pré-ativações de magnitude grande, que colocam a sigmoid nas regiões saturadas onde a derivada é praticamente zero; no \textit{backpropagation} isso dissipa o gradiente antes de chegar às camadas iniciais. Unidades mortas (a) são um fenômeno da ReLU, não da sigmoid, e (c) descreve o cenário oposto, de $\sigma$ pequeno demais.
+
+    \item \textit{Vanishing Gradient}: a sigmoid satura para entradas de magnitude grande e sua derivada vale no máximo $0.25$; ao multiplicar essas derivadas através das camadas no \textit{backpropagation}, o gradiente encolhe exponencialmente e as primeiras camadas praticamente param de aprender.
+
+    \item Unidades mortas (\textit{dead units}): se os pesos e o bias de uma unidade a levam a produzir pré-ativação negativa para todas as entradas do conjunto, a saída da ReLU é sempre zero e sua derivada também; o gradiente que passa pela unidade é nulo e ela nunca mais é atualizada.
+
+    \item Inicializar os pesos da rede neural de modo que não ocorra explosão nem dissipação de gradiente. A ideia central é escolher a variância dos pesos de forma que a variância das pré-ativações (e, por consequência, dos gradientes) se preserve de camada para camada: a He usa $\sigma_\theta^2 = 2/n^{(l-1)}$ para compensar o fator $\frac{1}{2}$ que a ReLU introduz no segundo momento, e a Xavier usa $\sigma_\theta^2 = 1/n^{(l-1)}$ para ativações aproximadamente lineares perto da origem, como a tanh.
+
+    \item Pela definição da ReLU,
+    \begin{equation*}
+        E[\mathrm{ReLU}(a)^2]=\int_{-\infty}^{\infty}\max(0,a)^2\,p(a)\,da=\int_{0}^{\infty}a^2\,p(a)\,da.
+    \end{equation*}
+    Pela simetria de $p$ em torno de zero, $\int_{-\infty}^{0}a^2\,p(a)\,da=\int_{0}^{\infty}a^2\,p(a)\,da$, então $E[a^2]=2\int_{0}^{\infty}a^2\,p(a)\,da$. Como $E[a]=0$, temos $E[a^2]=\mathrm{Var}[a]=\sigma^2$, e portanto $E[\mathrm{ReLU}(a)^2]=\frac{E[a^2]}{2}=\frac{\sigma^2}{2}$.
+
+    \item
+    \begin{enumerate}[a)]
+        \item Pela linearidade da esperança, $E[z^{(l)}_i]=E[b^{(l)}_i]+\sum_j E[\theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)]$. O bias é inicializado em zero e, pela independência entre pesos e ativações, cada termo do somatório fatora em $E[\theta^{(l)}_{ij}]\,E[\varphi(z^{(l-1)}_j)]=0\cdot E[\varphi(z^{(l-1)}_j)]=0$. Logo $E[z^{(l)}_i]=0$.
+        \item Como $E[z^{(l)}_i]=0$, vale $\sigma^2_{z^{(l)}}=E[(z^{(l)}_i)^2]$. Ao expandir o quadrado do somatório, os termos cruzados desaparecem pela independência dos pesos e por $E[\theta]=0$, restando $\sigma^2_{z^{(l)}}=\sum_j E[(\theta^{(l)}_{ij})^2]\,E[\varphi(z^{(l-1)}_j)^2]=\sigma_\theta^2\sum_j E[\varphi(z^{(l-1)}_j)^2]$. Pelo exercício anterior, $E[\mathrm{ReLU}(z^{(l-1)}_j)^2]=\sigma^2_{z^{(l-1)}}/2$ para cada uma das $n^{(l-1)}$ unidades, o que dá $\sigma^2_{z^{(l)}} = \frac{n^{(l-1)}}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$.
+        \item Impondo $\sigma^2_{z^{(l)}}=\sigma^2_{z^{(l-1)}}$ na recorrência, a constante multiplicativa deve valer 1: $\frac{n^{(l-1)}}{2}\,\sigma_\theta^2=1$, ou seja, $\sigma_\theta^2=\frac{2}{n^{(l-1)}}$, que é a inicialização \textit{He}.
+        \item Com $\varphi(z)\approx z$, o segundo momento da ativação passa a ser $E[\varphi(z)^2]\approx\sigma^2_{z^{(l-1)}}$, sem o fator $\frac{1}{2}$ da ReLU. A recorrência vira $\sigma^2_{z^{(l)}}=n^{(l-1)}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$ e a condição de preservação dá $\sigma_\theta^2=\frac{1}{n^{(l-1)}}$, que é a inicialização \textit{Xavier}.
+    \end{enumerate}
+
+    \item a, b. Basta substituir na fórmula: com $\alpha=1$ o termo \textit{one-hot} é anulado e sobra $\frac{1}{C}$ em todas as classes, o alvo uniforme (a); com $\alpha=0$ a fórmula devolve o alvo \textit{one-hot} original, sem nenhuma suavização (b), o que também mostra que (d) está invertida. O valor de $\alpha$ (c) é um hiperparâmetro de intensidade da suavização, não uma função da quantidade de observações do conjunto.
+
+    \item b. A penalidade L1 empurra componentes pequenos até exatamente zero (os vértices do losango da bola L1 ficam sobre os eixos), induzindo esparsidade; a L2 encolhe as magnitudes sem zerá-las, o que exclui (a). Na visão probabilística, L1 corresponde a um \textit{prior} laplaciano e L2 ao gaussiano, o que exclui (c); e ambas diminuem a magnitude dos pesos, o contrário de (d).
+
+    \item c. Durante o treino cada unidade fica ativa com probabilidade $1-p$, então a magnitude esperada das ativações que as camadas seguintes aprenderam a receber é $(1-p)$ vezes a magnitude sem \textit{dropout}. Com todas as unidades ativas na inferência, multiplicar as ativações por $(1-p)$ restaura essa escala. Multiplicar por $p$ (a) corrige na direção errada, e (b) ignora que o \textit{dropout} altera a escala do próprio \textit{forward}.
+
+    \item $\theta_{(t+1)}=(1 - 2\eta \lambda)\theta_t - \eta\nabla_\theta J$, onde $\lambda$ é a constante de regularização L2.
+
+    \item
+    \begin{enumerate}[a)]
+        \item Como a máscara é independente do valor da ativação e $E[m] = 1-p$, temos $E[m \cdot a] = E[m]\,a = (1-p)\,a$. Em inferência a unidade está sempre ativa e produz $a$, ou seja, uma magnitude $\frac{1}{1-p}$ vezes maior do que a magnitude esperada que as camadas seguintes viram durante o treino.
+        \item \textit{Rescaling} determinístico: multiplicar as ativações por $(1-p)$ na inferência, trazendo a escala de teste para a escala esperada do treino. \textit{Inverted dropout}: dividir as ativações por $(1-p)$ já durante o treino, de modo que a magnitude esperada fique igual à de inferência e nenhum ajuste seja necessário ao testar; é o padrão em PyTorch e Keras.
+    \end{enumerate}
+
+    \item O \textit{early stopping} monitora o desempenho da rede em um conjunto de validação ao longo do treinamento e interrompe o processo antes que a \textit{loss} de validação volte a subir, ainda que a \textit{loss} de treino continue caindo. O hiperparâmetro \textit{patience} define quantas iterações sem melhoria na validação são toleradas antes de parar, evitando interromper o treino por flutuações passageiras. O efeito é análogo ao da regularização L2 porque, ao limitar o número de atualizações, os pesos não têm tempo de crescer indiscriminadamente e permanecem com magnitude contida, assim como o \textit{weight decay} os mantém próximos da origem. O benefício adicional é a economia de tempo de computação, já que o treinamento termina mais cedo.
+
+\end{enumerate}
+
+\end{document}

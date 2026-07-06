@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação, crescimento do campo receptivo e convolução em imagens reais com Sobel, DoG e blur gaussiano." />
+  <title>Redes Convolucionais — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <style>
+    #s1-kernel-grid input {
+      background: var(--card);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: .25rem .3rem;
+      font-size: .85rem;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Convolução</a></li>
+      <li><a href="#s2">Saída</a></li>
+      <li><a href="#s3">Pooling</a></li>
+      <li><a href="#s4">Campo receptivo</a></li>
+      <li><a href="#s5">Imagem real</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Redes <span>Convolucionais</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de introdução a redes convolucionais</p>
+      <p class="course-desc">
+        Cinco visualizações que acompanham os slides: a convolução 2D
+        <span class="formula">z<sub>i,j</sub> = Σ<sub>m,n</sub> w<sub>m,n</sub>·x<sub>i+m−2, j+n−2</sub></span>
+        com kernels clássicos e pesos compartilhados, o efeito de <em>padding</em>,
+        <em>stride</em> e <em>dilation</em> no tamanho da saída, o pooling
+        (max e average) e sua relação com invariância a translação, o crescimento
+        do campo receptivo camada a camada pela recursão
+        <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>,
+        e a convolução aplicada a uma imagem real (a sua, se quiser) com
+        kernels clássicos como Sobel, DoG e blur gaussiano.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Convolução 2D interativa ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · Convolução 2D interativa</h2>
+      <p class="demo-text">
+        A convolução transforma a entrada <span class="formula">x</span> em uma saída
+        <span class="formula">z</span>: cada posição é uma combinação linear de uma janela
+        <span class="formula">3×3</span> ao redor,
+        <span class="formula">z<sub>i,j</sub> = Σ<sub>m=1</sub><sup>3</sup> Σ<sub>n=1</sub><sup>3</sup> w<sub>m,n</sub>·x<sub>i+m−2, j+n−2</sub></span>,
+        com os mesmos nove pesos <span class="formula">w<sub>m,n</sub></span> (o <em>kernel</em>)
+        reaparecendo em toda janela. Desenhe na entrada <span class="formula">8×8</span>
+        (clique e arraste), escolha um kernel e veja o mapa de características recalculado
+        ao vivo. Passe o mouse sobre qualquer célula para destacar a janela deslizante e o
+        valor <span class="formula">z<sub>i,j</sub></span> correspondente. Usamos
+        <em>zero padding</em> para a saída manter o tamanho <span class="formula">8×8</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s1-tab-sobelv" type="button">Sobel vertical</button>
+            <button class="tab" id="s1-tab-sobelh" type="button">Sobel horizontal</button>
+            <button class="tab" id="s1-tab-blur" type="button">Blur</button>
+            <button class="tab" id="s1-tab-sharpen" type="button">Sharpen</button>
+            <button class="tab" id="s1-tab-custom" type="button">Custom</button>
+          </div>
+          <span class="slider-label">kernel w<sub>m,n</sub> (editável):</span>
+          <div id="s1-kernel-grid" style="display:grid;grid-template-columns:repeat(3,4.2em);gap:4px;">
+            <input type="number" id="s1-k0" step="0.01" value="-1" />
+            <input type="number" id="s1-k1" step="0.01" value="0" />
+            <input type="number" id="s1-k2" step="0.01" value="1" />
+            <input type="number" id="s1-k3" step="0.01" value="-2" />
+            <input type="number" id="s1-k4" step="0.01" value="0" />
+            <input type="number" id="s1-k5" step="0.01" value="2" />
+            <input type="number" id="s1-k6" step="0.01" value="-1" />
+            <input type="number" id="s1-k7" step="0.01" value="0" />
+            <input type="number" id="s1-k8" step="0.01" value="1" />
+          </div>
+        </div>
+        <div class="controls">
+          <label class="slider-label">padrão da entrada:
+            <select id="s1-pattern">
+              <option value="borda-v" selected>borda vertical</option>
+              <option value="quadrado">quadrado</option>
+              <option value="diagonal">diagonal</option>
+              <option value="xis">xis</option>
+              <option value="gradiente">gradiente</option>
+            </select>
+          </label>
+          <button class="btn-ctl" id="s1-noise" type="button">🎲 Ruído</button>
+          <button class="btn-ctl" id="s1-clear" type="button">↺ Limpar</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Entrada x (8×8): clique e arraste para desenhar; o mouse destaca a janela 3×3</p>
+            <canvas id="s1-input"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Mapa de características z = w ∗ x (verde positivo, rosa negativo)</p>
+            <canvas id="s1-output"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com o padrão borda vertical, o Sobel vertical responde forte na transição e zero
+          nas regiões constantes; troque para o Sobel horizontal e a resposta some, cada kernel
+          detecta uma orientação. No padrão xis, compare blur (suaviza) com sharpen (realça).
+          Edite um peso do kernel (por exemplo, zere o <span class="formula">w<sub>2,1</sub> = −2</span>
+          do Sobel) e observe o mapa inteiro mudar: são os mesmos nove pesos em todas as janelas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Padding, stride, dilation e tamanho da saída ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Padding, stride, dilation e o tamanho da saída</h2>
+      <p class="demo-text">
+        Três hiperparâmetros vistos em aula controlam a geometria da convolução:
+        o <em>zero padding</em> <span class="formula">P</span> completa a borda com zeros
+        (com <span class="formula">P = 0</span> temos o <em>valid padding</em>),
+        o <em>stride</em> <span class="formula">S</span> é o deslocamento do kernel a cada passo
+        (maior que 1 age como <em>downsampling</em>) e a <em>dilation</em>
+        <span class="formula">D</span> insere <span class="formula">D − 1</span> zeros entre os
+        pesos, alcançando posições <span class="formula">(i ± D, j ± D)</span> sem aumentar o
+        número de parâmetros (convenção do PyTorch: <span class="formula">D = 1</span> é o kernel
+        denso). Para entrada <span class="formula">N×N</span> e kernel
+        <span class="formula">K×K</span>, o tamanho da saída é
+        <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span>.
+        Use ⏭ ou ▶ para percorrer as posições do kernel.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">N = <span id="s2-n-val">8</span>
+            <input type="range" id="s2-n" min="4" max="10" value="8" step="1" />
+          </label>
+          <label class="slider-label">K = <span id="s2-k-val">3</span>
+            <input type="range" id="s2-k" min="1" max="5" value="3" step="1" />
+          </label>
+          <label class="slider-label">P = <span id="s2-p-val">0</span>
+            <input type="range" id="s2-p" min="0" max="3" value="0" step="1" />
+          </label>
+          <label class="slider-label">S = <span id="s2-s-val">1</span>
+            <input type="range" id="s2-s" min="1" max="3" value="1" step="1" />
+          </label>
+          <label class="slider-label">D = <span id="s2-d-val">1</span>
+            <input type="range" id="s2-d" min="1" max="3" value="1" step="1" />
+          </label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s2-step" type="button">⏭ Posição</button>
+          <button class="btn-ctl primary" id="s2-run" type="button">▶ Animar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Entrada N×N com anel de padding (tracejado); laranja: posições lidas pelo kernel</p>
+            <canvas id="s2-input"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Saída O×O: células já computadas pela varredura</p>
+            <canvas id="s2-output"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">N = 8, K = 3, P = 0, S = 1</span> a saída é
+          <span class="formula">6×6</span> (valid); suba para <span class="formula">P = 1</span>
+          e ela volta a <span class="formula">8×8</span> (same). Com
+          <span class="formula">S = 2</span> a resolução cai para cerca da metade, como no slide
+          de stride. Teste <span class="formula">K = 3, D = 2</span>: o kernel efetivo passa a
+          cobrir <span class="formula">5×5</span> com apenas 9 pesos. E com
+          <span class="formula">K = 5, P = 0</span> em uma entrada <span class="formula">4×4</span>
+          o kernel não cabe: a fórmula dá <span class="formula">O ≤ 0</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Pooling e invariância a translação ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Pooling e invariância a translação</h2>
+      <p class="demo-text">
+        O <em>downsampling</em> por pooling agrega cada janela <span class="formula">2×2</span>
+        (stride 2) em um único valor: o <em>max pooling</em> mantém o maior valor da janela e o
+        <em>average pooling</em> usa a média. Como visto em aula, queremos que a semântica seja
+        estável frente a translações: <span class="formula">f[t[x]] = f[x]</span> define
+        invariância e <span class="formula">f[t[x]] = t[f[x]]</span> define equivariância.
+        Arraste o padrão na entrada (ou use os sliders de
+        <span class="formula">Δx, Δy</span>) e compare a saída do pooling com a saída original
+        deslocada: deslocamentos múltiplos do stride deslocam a saída inteira (equivariância),
+        e deslocamentos de 1 pixel mudam pouca coisa no max pooling (invariância local).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s3-tab-max" type="button">Max pooling</button>
+            <button class="tab" id="s3-tab-avg" type="button">Average pooling</button>
+          </div>
+          <label class="slider-label">Δx = <span id="s3-dx-val">0</span>
+            <input type="range" id="s3-dx" min="0" max="5" value="0" step="1" />
+          </label>
+          <label class="slider-label">Δy = <span id="s3-dy-val">0</span>
+            <input type="range" id="s3-dy" min="0" max="5" value="0" step="1" />
+          </label>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Δ = 0</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Entrada 8×8: arraste o padrão; as janelas 2×2 do pooling estão demarcadas</p>
+            <canvas id="s3-input"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Saída 4×4 do pooling; contorno rosa: células que diferem da saída original deslocada</p>
+            <canvas id="s3-output"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 No max pooling, vá de <span class="formula">Δ = (0, 0)</span> para
+          <span class="formula">(1, 0)</span>: a entrada mudou em todas as células do padrão,
+          mas pouquíssimas células da saída diferem. Agora teste
+          <span class="formula">Δ = (2, 0)</span>: nenhuma célula difere, a saída é exatamente a
+          original deslocada uma posição (equivariância ao stride). Troque para average pooling
+          e repita <span class="formula">Δ = (1, 0)</span>: a média muda em quase todas as janelas
+          tocadas, o max é mais robusto a translações pequenas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Campo receptivo ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Crescimento do campo receptivo</h2>
+      <p class="demo-text">
+        O campo receptivo de uma unidade oculta é a região da entrada que ela enxerga.
+        Empilhando convoluções (sem padding, visão 1D de um corte da imagem), ele cresce pela
+        recursão vista em aula:
+        <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>,
+        com <span class="formula">RF<sub>0</sub> = 1</span>. Cada camada acrescenta
+        <span class="formula">K<sub>l</sub> − 1</span> posições do espaço original, multiplicadas
+        pelo produto acumulado dos strides anteriores. Ajuste
+        <span class="formula">K<sub>l</sub></span> e <span class="formula">S<sub>l</sub></span>
+        de cada camada e clique em qualquer unidade de
+        <span class="formula">H<sub>1</sub>, H<sub>2</sub>, H<sub>3</sub></span>
+        para ver o cone do seu campo receptivo até a entrada <span class="formula">x</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">K₁ = <span id="s4-k1-val">3</span>
+            <input type="range" id="s4-k1" min="1" max="5" value="3" step="2" />
+          </label>
+          <label class="slider-label">S₁ = <span id="s4-s1-val">1</span>
+            <input type="range" id="s4-s1" min="1" max="2" value="1" step="1" />
+          </label>
+          <label class="slider-label">K₂ = <span id="s4-k2-val">3</span>
+            <input type="range" id="s4-k2" min="1" max="5" value="3" step="2" />
+          </label>
+          <label class="slider-label">S₂ = <span id="s4-s2-val">1</span>
+            <input type="range" id="s4-s2" min="1" max="2" value="1" step="1" />
+          </label>
+          <label class="slider-label">K₃ = <span id="s4-k3-val">3</span>
+            <input type="range" id="s4-k3" min="1" max="5" value="3" step="2" />
+          </label>
+          <label class="slider-label">S₃ = <span id="s4-s3-val">1</span>
+            <input type="range" id="s4-s3" min="1" max="2" value="1" step="1" />
+          </label>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Pilha de camadas (corte 1D): clique em uma unidade para ver seu campo receptivo na entrada</p>
+            <canvas id="s4-net"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">RF<sub>l</sub> por camada l, pela recursão dos slides</p>
+            <canvas id="s4-chart"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com três convoluções <span class="formula">3×3</span> e
+          <span class="formula">S = 1</span>, o RF cresce 3, 5, 7, como no exemplo dos slides.
+          Mude <span class="formula">S₂ = 2</span> e veja
+          <span class="formula">RF₃ = 9</span>: o stride acelera o crescimento, ao custo de
+          reduzir a resolução (note quantas unidades sobram em
+          <span class="formula">H₃</span>). Compare também
+          <span class="formula">K = 5</span> em uma camada com duas camadas de
+          <span class="formula">K = 3</span>: mesmo campo receptivo com 25 contra 18 pesos,
+          a justificativa da VGG para empilhar kernels pequenos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 5: Convolução em imagens reais ════════ -->
+  <section id="s5" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">5 · Convolução em imagens reais</h2>
+      <p class="demo-text">
+        A mesma operação da seção 1, agora em uma imagem de verdade convertida para tons de
+        cinza: cada pixel da saída é a soma da janela da entrada ponderada pelos pesos do
+        kernel. Escolha um kernel clássico no menu (cada um foi desenhado à mão para extrair
+        uma característica específica, exatamente o que uma CNN aprende sozinha durante o
+        treino) e ajuste <em>stride</em> <span class="formula">S</span>,
+        <em>padding</em> <span class="formula">P</span> e <em>dilation</em>
+        <span class="formula">D</span> para ver o efeito na geometria:
+        <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span> em cada eixo.
+        Passe o mouse sobre o mapa de características para destacar a janela que o kernel
+        leu na entrada, e envie uma foto sua para testar os filtros nela.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">kernel:
+            <select id="s5-kernel-select">
+              <option value="sobelx" selected>Sobel x (bordas verticais)</option>
+              <option value="sobely">Sobel y (bordas horizontais)</option>
+              <option value="laplaciano">Laplaciano (bordas em todas as direções)</option>
+              <option value="dog">DoG 5×5 (diferença de gaussianas)</option>
+              <option value="gauss">Blur gaussiano 5×5</option>
+              <option value="box">Blur de média 3×3</option>
+              <option value="sharpen">Sharpen (realce)</option>
+              <option value="emboss">Emboss (relevo)</option>
+              <option value="identidade">Identidade</option>
+            </select>
+          </label>
+          <canvas id="s5-kernel" style="width:120px;height:120px;flex:0 0 auto;"></canvas>
+          <button class="btn-ctl" id="s5-upload" type="button">📷 Enviar imagem</button>
+          <input type="file" id="s5-file" accept="image/*" style="display:none;" />
+          <button class="btn-ctl" id="s5-default" type="button">↺ Imagem padrão</button>
+        </div>
+        <div class="controls">
+          <label class="slider-label">S = <span id="s5-s-val">1</span>
+            <input type="range" id="s5-s" min="1" max="4" value="1" step="1" />
+          </label>
+          <label class="slider-label">P = <span id="s5-p-val">0</span>
+            <input type="range" id="s5-p" min="0" max="4" value="0" step="1" />
+          </label>
+          <label class="slider-label">D = <span id="s5-d-val">1</span>
+            <input type="range" id="s5-d" min="1" max="3" value="1" step="1" />
+          </label>
+          <label class="slider-label">
+            <input type="checkbox" id="s5-relu" style="accent-color: var(--purple);" /> ReLU
+          </label>
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s5-tab-cinza" type="button">|z| em cinza</button>
+            <button class="tab" id="s5-tab-sinal" type="button">sinal (verde/rosa)</button>
+          </div>
+          <span class="readout" id="s5-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Entrada x em tons de cinza; laranja: janela lida pelo kernel na posição sob o mouse</p>
+            <canvas id="s5-input"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Mapa de características z = w ∗ x; passe o mouse para inspecionar cada pixel</p>
+            <canvas id="s5-output"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Compare Sobel x e Sobel y na imagem padrão: cada um acende um conjunto diferente
+          de bordas (verticais ou horizontais), por isso uma camada convolucional tem vários
+          kernels em paralelo, um mapa de características por filtro. O DoG responde a
+          manchas claras cercadas de escuro (centro e periferia, como células da retina) e o
+          blur gaussiano é um passa-baixas que apaga os detalhes finos. Suba o stride para
+          <span class="formula">S = 4</span> e veja a saída encolher pela fórmula; aumente a
+          dilation com o Sobel e o detector passa a reagir a transições mais largas sem
+          ganhar nenhum peso novo. Ligue a ReLU no modo verde/rosa: tudo que era negativo
+          (rosa) vira zero, é o mapa de ativações que segue para a próxima camada.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Introdução a Redes Convolucionais</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/grid.js"></script>
+  <script defer src="js/section1-convolucao.js"></script>
+  <script defer src="js/section2-saida.js"></script>
+  <script defer src="js/section3-pooling.js"></script>
+  <script defer src="js/section4-campo-receptivo.js"></script>
+  <script defer src="js/section5-imagem.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

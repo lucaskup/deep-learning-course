@@ -1,0 +1,170 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 5}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 \\\hline
+c & e & a & f & b \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (c)}
+$\alpha_2 = (1 - 0.2)(1 - 0.2) = 0.8 \cdot 0.8 = 0.64$. Pelo kernel,
+\[
+  z_2 = \sqrt{0.64}\cdot 3 + \sqrt{0.36}\cdot(-1) = 0.8 \cdot 3 - 0.6 = 2.4 - 0.6 = 1.80.
+\]
+\textbf{(a)} aplica $\alpha_2$ e $1-\alpha_2$ sem as raízes quadradas ($0.64\cdot 3 + 0.36\cdot(-1) = 1.56$).
+\textbf{(b)} computa $\alpha_2$ como $1 - \sum\beta_s = 0.6$ em vez do produto $\prod(1-\beta_s)$.
+\textbf{(d)} erra o sinal do ruído ($2.4 + 0.6 = 3.0$).
+\textbf{(e)} computa $\alpha_2$ como $\prod \beta_s = 0.04$.
+\textbf{(f)} troca os papéis dos coeficientes de sinal e ruído ($0.6\cdot 3 - 0.8 = 1.0$).
+\textbf{(g)} usa apenas um passo do \textit{schedule} ($\alpha = 1 - \beta_1 = 0.8$), ignorando o acúmulo.
+\textbf{(h)} esquece de escalar o ruído por $\sqrt{1-\alpha_2}$ ($2.4 - 1 = 1.4$).
+
+\subsection*{Questão 2 \textemdash{} Resposta: (e)}
+\textbf{I é correta:} a Jacobiana da camada \textit{affine coupling} é triangular por blocos com bloco inferior-direito diagonal $\mathrm{diag}(e^{s_i})$, logo $\log|\det J| = \sum_i s_i$; a \textit{coupling network} nunca é invertida, apenas reavaliada em $\mathbf{x}^{A}$ (que é copiado para a saída), então pode ser qualquer rede neural.
+
+\textbf{II é incorreta:} a composição de transformações afins é afim: $\boldsymbol{\theta}_2(\boldsymbol{\theta}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\boldsymbol{\theta}_2\boldsymbol{\theta}_1)\mathbf{x} + (\boldsymbol{\theta}_2\mathbf{b}_1 + \mathbf{b}_2)$. Empilhar \textit{linear flows} não ganha expressividade alguma; a expressividade dos \textit{flows} vem das camadas não lineares (como as \textit{coupling layers}).
+
+\textbf{III é correta:} a bijeção exige $\dim\mathbf{z} = \dim\mathbf{x}$; não existe gargalo dimensional, o que gera custo alto em imagens e motiva arquiteturas \textit{multi-scale}.
+
+Logo, apenas I e III estão corretas.\\
+\textbf{(a)/(b)/(c)} excluem afirmações corretas ou aceitam a II.
+\textbf{(d)/(f)/(g)} incluem a afirmação II, que é falsa.
+\textbf{(h)} contradiz I e III.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (a)}
+Os sintomas (discriminador quase perfeito, $\sigma \approx 0$ nas geradas, \emph{loss} do gerador constante, gradiente nulo) são sinais do \textit{vanishing gradient} da \emph{loss} original: $|\partial L/\partial d| = \sigma(d) \approx 0$ quando o discriminador vence. A \textit{non-saturating loss} $-\ln\sigma(\cdot)$ tem $|\partial L/\partial d| = 1 - \sigma(d) \approx 1$ nessa mesma região, devolvendo gradiente útil (um crítico Wasserstein também resolveria, por produzir gradientes lineares).\\
+\textbf{(b)} \textit{mode collapse} é perda de diversidade entre amostras; o sintoma descrito é gradiente nulo com discriminador vencendo, outra patologia.
+\textbf{(c)} taxa de aprendizado alta produz oscilação ou divergência da \emph{loss}, não uma \emph{loss} constante com gradiente nulo.
+\textbf{(d)} não há evidência de \textit{overfitting} do discriminador, e \textit{Dropout} no gerador não ataca a saturação de $\ln[1-\sigma]$.
+\textbf{(e)} no equilíbrio de Nash $\sigma \approx \tfrac{1}{2}$ em todo ponto; aqui $\sigma \approx 0$, o oposto de equilíbrio.
+\textbf{(f)} inverte o diagnóstico: a acurácia de $100\%$ indica que as distribuições estão (quase) disjuntas, não sobrepostas demais.
+\textbf{(g)} a recomendação DCGAN é exatamente \emph{Tanh} na saída do gerador; a troca proposta criaria um problema, não resolveria.
+\textbf{(h)} variância da estimativa não explica gradiente sistematicamente nulo; o problema é a saturação da \emph{loss}, não o ruído da esperança.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (f)}
+O mesmo estimador de ruído atende a todos os passos da cadeia, mas a proporção sinal/ruído de $z_t$ muda drasticamente com $t$ (controlada por $\alpha_t$ via \textit{schedule}): em $t$ pequeno há quase só sinal, em $t \approx T$ há quase só ruído. O \textit{time embedding} informa o nível de ruído para que a rede calibre quanta remoção aplicar em cada passo.\\
+\textbf{(a)} confunde o \textit{time embedding} (passo da difusão) com \textit{positional encoding} espacial de \textit{pixels}.
+\textbf{(b)} o \textit{schedule} $\beta_t$ continua sendo definido como hiperparâmetro; o \textit{embedding} não o substitui.
+\textbf{(c)} o \textit{embedding} de $t$ é determinístico; a estocasticidade da amostragem vem do termo $\sigma_t\,\epsilon$, somado fora da rede.
+\textbf{(d)} na prática os pesos são compartilhados entre os passos; o \textit{embedding} modula as ativações, não seleciona sub-redes.
+\textbf{(e)} o \textit{embedding} não tem papel de regularização.
+\textbf{(g)} a propriedade markoviana é do processo \textit{forward} e independe do que o \textit{decoder} recebe como entrada.
+\textbf{(h)} a diferenciabilidade da \emph{loss} MSE não depende do \textit{embedding} de $t$.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (b)}
+A figura ilustra \textit{mode collapse}: $P^{*}$ cobre apenas a moda $A$. Na moda $B$, $P^{*}(x) \ll P(x)$ implica $M \approx P/2$, então o integrando da cobertura satura em $\tfrac{1}{2}P(x)\ln\!\tfrac{P}{P/2} = \tfrac{1}{2}P(x)\ln 2$, valor \emph{limitado} e quase insensível a pequenos aumentos de $P^{*}$. O gradiente que empurraria o gerador a cobrir $B$ é fraco, enquanto o termo de qualidade pune fortemente amostras implausíveis, então o gerador prefere refinar a moda $A$.\\
+\textbf{(a)} os suportes não são disjuntos (há sobreposição na moda $A$), então $D_{JS} < \ln 2$ e o termo de qualidade ainda fornece gradiente.
+\textbf{(c)} inverte os papéis: quem satura na moda $B$ é a cobertura; a qualidade é o termo que o gerador controla bem.
+\textbf{(d)} \textit{posterior collapse} é patologia de VAE (KL do posterior contra o \textit{prior}), não de GAN.
+\textbf{(e)} a forma de $P^{*}$ é propriedade do gerador; reiniciar o discriminador não altera o que o gerador produz.
+\textbf{(f)} a cobertura é uma KL contra a mistura $M$, que contém $P$; o integrando fica limitado por $\tfrac{1}{2}P\ln 2$, não diverge (quem divergiria é $D_{KL}[P\|P^{*}]$).
+\textbf{(g)} a sigmóide do discriminador fica perto de $\tfrac{1}{2}$ onde as densidades se igualam; $D_{JS} = 0$ exigiria $P^{*} = P$ em todo ponto, o que a figura nega.
+\textbf{(h)} a simetria global da $D_{JS}$ não implica simetria de incentivos: a decomposição mostra exatamente a assimetria qualidade vs.\ cobertura que causa o colapso.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 6 \textemdash{} Verdadeiro/Falso com modificação}
+
+\begin{enumerate}[a)]
+    \item \textbf{F.} O \textit{WGAN} original impõe a restrição de Lipschitz por \textit{weight clipping}: são os \textbf{pesos} do crítico que são truncados, $w \leftarrow \mathrm{clip}(w, -c, c)$, após cada atualização (não confundir com \textit{gradient clipping}, que trunca gradientes). \textit{Modificação:} substituir ``\textit{gradient clipping}: os gradientes do crítico são truncados'' por ``\textit{weight clipping}: os pesos do crítico são truncados para $[-c, c]$''. (Também aceito: descrever a alternativa \textit{gradient penalty} do WGAN-GP, que adiciona à \emph{loss} o termo $\lambda(\|\nabla_{\hat{x}} f[\hat{x},\phi]\|_2 - 1)^2$ em pontos interpolados.)
+
+    \item \textbf{F.} A \textit{coupling network} nunca é invertida: como $\mathbf{x}^{A}$ é copiado para a saída ($\mathbf{y}^{A} = \mathbf{x}^{A}$), na inversa a mesma rede é apenas \emph{reavaliada} em $\mathbf{y}^{A}$ para recuperar $(\mathbf{s}, \mathbf{t})$, e a transformação afim elemento a elemento é desfeita em forma fechada ($\mathbf{x}^{B} = (\mathbf{y}^{B} - \mathbf{t})\odot\exp(-\mathbf{s})$). \textit{Modificação:} substituir ``precisa ser inversível'' por ``pode ser qualquer rede neural (não inversível), pois a inversibilidade da camada vem da cópia de $\mathbf{x}^{A}$ e da forma fechada da transformação afim''.
+
+    \item \textbf{V.} Descrição correta do \textit{reparametrization trick}: $\epsilon^{*}$ é amostrado de uma distribuição fixa, fora do caminho do gradiente; $\mu(\phi)$ e $\Sigma^{1/2}(\phi)$ permanecem diferenciáveis, permitindo o \textit{backpropagation} até o \textit{encoder}.
+
+    \item \textbf{F.} O \textit{encoder} do modelo difusor é \textbf{fixo e sem parâmetros treináveis}: é uma cadeia de Markov gaussiana totalmente determinada pelo \textit{noise schedule} $\beta_t$ (hiperparâmetros). Todo o aprendizado está no \textit{decoder}. \textit{Modificação:} substituir ``possui parâmetros treináveis ajustados em conjunto com o \textit{decoder}'' por ``é fixo, definido pelo \textit{noise schedule} $\beta_t$, e apenas o \textit{decoder} possui parâmetros treináveis''.
+
+    \item \textbf{V.} Posicionamento correto no trilema: difusores entregam qualidade e cobertura altas, com amostragem lenta ($T$ passagens pela U-Net); técnicas como DDIM, \textit{latent diffusion} e \textit{consistency models} atacam exatamente esse custo.
+\end{enumerate}
+
+\subsection*{Questão 7 \textemdash{} VAE: KL, reparametrização e reconstrução}
+
+Dados: $x = (2.4,\, -1.0)$, $\mu = (2,\, -1)$, $\Sigma = \mathrm{diag}(0.25,\, 4)$, $\sigma = (0.5,\, 2)$, $D_z = 2$.
+
+\textbf{(a)} \textit{Termo KL:}
+\begin{align*}
+    \mathrm{Tr}[\Sigma] &= 0.25 + 4 = 4.25 \\
+    \mu^{\top}\mu &= 2^{2} + (-1)^{2} = 5 \\
+    \log\det\Sigma &= \log(0.25 \cdot 4) = \log 1 = 0 \\
+    D_z &= 2 \\
+    D_{KL} &= \tfrac{1}{2}\left(4.25 + 5 - 2 - 0\right) = \tfrac{1}{2}\,(7.25) = 3.625.
+\end{align*}
+(Observação: as variâncias $0.25$ e $4$ se compensam no determinante, zerando o termo de volume.)
+
+\textbf{(b)} \textit{Reparametrização} com $\epsilon^{*} = (0.2,\, -0.3)$:
+\[
+    z^{*} = \mu + \sigma \odot \epsilon^{*}
+    = \left(2 + 0.5 \cdot 0.2,\;\; -1 + 2 \cdot (-0.3)\right)
+    = (2.1,\; -1.6).
+\]
+
+\textbf{(c)} \textit{Termo de reconstrução:} com $f[z^{*},\thetav] = (2.0,\, -1.3)$,
+\[
+    x - f[z^{*},\thetav] = (0.4,\; 0.3), \qquad
+    \tfrac{1}{2}\lVert x - f \rVert^{2} = \tfrac{1}{2}\left(0.4^{2} + 0.3^{2}\right) = \tfrac{1}{2}\,(0.25) = 0.125.
+\]
+Montando o objetivo:
+\[
+    -\mathrm{ELBO} \approx 0.125 + 3.625 = 3.75.
+\]
+
+\textbf{(d)} Com $\Sigma = \mathrm{diag}(10^{-6}, 10^{-6})$, o termo
+\[
+    -\log\det\Sigma = -\log\!\left(10^{-12}\right) = 12\ln 10 \approx 27.6
+\]
+\textbf{explode}, dominando a KL. Essa penalização evita que o \textit{encoder} colapse $q(z \mid x, \phi)$ para (quase) uma massa pontual, isto é, que ele se torne determinístico. Sem ela, o VAE degeneraria em um \textit{autoencoder} clássico: o espaço latente perderia a suavidade garantida pela sobreposição das distribuições $q$, e a amostragem ancestral a partir de $p(z)$ deixaria de produzir reconstruções plausíveis entre os pontos de treino.
+
+\color{black}
+
+\end{document}

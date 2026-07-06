@@ -1,0 +1,183 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 4}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 \\\hline
+b & d & c & e & a \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (b)}
+\textit{KV-cache} armazena, por token e por camada, $2$ tensores (K e V), cada um com $\#\text{cabeças}_{KV} \times d_k$ entradas. Multiplicando por $L$ camadas:
+\begin{itemize}
+    \item \textbf{MHA} ($H$ cabeças de K e V): $2 \cdot H \cdot d_k \cdot L = 2 \cdot 8 \cdot 64 \cdot 32 = 32\,768$ \textit{floats}/token.
+    \item \textbf{GQA} ($G = 2$ grupos para K/V): $2 \cdot G \cdot d_k \cdot L = 2 \cdot 2 \cdot 64 \cdot 32 = 8\,192$ \textit{floats}/token.
+    \item Razão: $32\,768 / 8\,192 = 4$. GQA é $4\times$ menor.
+\end{itemize}
+Note que o número de cabeças de \emph{query} ($H$) não afeta o cache: apenas K e V são cacheados.\\
+\textbf{(a)} aplica $G = H/2$ apenas a uma das matrizes (K ou V), não a ambas.
+\textbf{(c)} omite um fator $2$ (apenas uma matriz, K ou V).
+\textbf{(d)} usa $G = 1$ (MQA), não $G = 2$.
+\textbf{(e)} mistura GQA com $G = 1$ e desconta indevidamente.
+\textbf{(f)} omite um fator $2$ no MHA e mantém GQA correto.
+\textbf{(g)} dobra (incluiria também queries no cache).
+\textbf{(h)} confunde KV-cache com cache de queries; queries são recomputadas a cada \textit{step}.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} descrição padrão do BPE (Sennrich et al., 2016 / Gage 1994).
+
+\textbf{II é correta:} WordPiece de fato cresce o vocabulário como o BPE; a única diferença é o critério (verossimilhança em vez de frequência).
+
+\textbf{III é incorreta:} apesar de a tokenização em nível de caractere de fato produzir um vocabulário pequeno e eliminar o problema de \textit{out-of-vocabulary}, ela \textbf{não} é preferida em LLMs modernos. Cada texto se decompõe em uma sequência muito mais longa do que com BPE/WordPiece (tipicamente 4--8$\times$); como a atenção tem custo $O(n^2)$ no comprimento da sequência, o tempo e a memória de treinamento e inferência crescem substancialmente. Além disso, cada token carrega muito pouca informação semântica, dificultando o aprendizado. Por isso os LLMs atuais usam tokenização sub-palavra (BPE, WordPiece).
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)/(b)/(c)} excluem afirmações corretas.
+\textbf{(e)/(f)} incluem III.
+\textbf{(g)} inclui III.
+\textbf{(h)} contradiz I e II.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (c)}
+A \textit{self-attention} sem máscara causal permite que a posição $i$ leia diretamente as representações dos tokens $j > i$. Em treino, o alvo $y_i$ é o token $x_{i+1}$, cuja informação está disponível na representação contextualizada, a tarefa colapsa em ``copie a posição seguinte''. Em inferência, esses tokens futuros não existem ainda, e o modelo, treinado para uma tarefa trivial, não tem nada útil a oferecer. A correção é a máscara causal: somar $-\infty$ a $S_{ij}$ para todo $j > i$ antes do \textit{softmax}.\\
+\textbf{(a)} a velocidade de queda do \textit{loss} é sintoma; ajustar a taxa de aprendizado não corrige vazamento de alvo.
+\textbf{(b)} \textit{loss} próximo de zero combinado com falha total em inferência indica vazamento de alvo, não \textit{overfitting} clássico.
+\textbf{(d)} um \textit{tokenizer} ruim degrada qualidade de modo gradual; não causa esse padrão extremo treino-vs-inferência.
+\textbf{(e)} remover \textit{positional encoding} não corrige o vazamento e ainda piora a qualidade.
+\textbf{(f)} substituir \textit{softmax} por \textit{sigmoid} muda o tipo de atenção, não corrige a falta de máscara.
+\textbf{(g)} \textit{cross-attention} não tem nada a ver com modelagem autorregressiva pura; \textit{decoder-only} sem \textit{cross-attention} é exatamente GPT/Llama.
+\textbf{(h)} BERT é \textit{encoder-only} e foi treinado para \textit{masked language modeling}, não geração autorregressiva.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (e)}
+\textit{Self-attention} é uma operação simétrica em relação à ordem dos tokens, permutar a sequência permuta a saída exatamente da mesma forma. RNNs codificam a posição implicitamente pela ordem da recursão (o estado oculto no tempo $t$ depende explicitamente do tempo $t-1$). \textit{Transformers}, por não terem recursão, precisam de um sinal posicional injetado nas \textit{embeddings} para distinguir, por exemplo, ``o gato persegue o rato'' de ``o rato persegue o gato''.\\
+\textbf{(a)} \textit{positional encoding} não trata \textit{vanishing gradient}.
+\textbf{(b)} \textit{positional encoding} não altera a complexidade $O(n^2)$ da \textit{self-attention}.
+\textbf{(c)} \textit{softmax} \emph{é} monótono na entrada; e \textit{positional encoding} não tem relação com ``linearizar'' o \textit{softmax}.
+\textbf{(d)} \textit{gates} de LSTM/GRU controlam fluxo de informação, não posição; a posição vem da recursão.
+\textbf{(f)} \textit{positional encoding} é necessário tanto em treino quanto em inferência; sem ele, o modelo nunca aprende dependência da ordem.
+\textbf{(g)} a não-linearidade vem da \textit{softmax} e da MLP do bloco \textit{transformer}, não do \textit{positional encoding}.
+\textbf{(h)} \textit{positional encoding} adiciona um sinal estruturado, não ruído de regularização.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (a)}
+O Padrão A é a máscara triangular inferior (causal): a posição $i$ atende a si mesma e a todas as anteriores ($j \le i$), bloqueando posições futuras. Isso é exatamente o que torna o objetivo de \textit{next-token prediction} bem-definido: ao prever $x_{i+1}$, o modelo só pode usar $x_1, \ldots, x_i$.\\
+\textbf{(b)} confunde Padrão A (triangular inferior) com Padrão C (diagonal).
+\textbf{(c)} Padrão B é atenção bidirecional, característica de \textit{encoder-only} (BERT) com objetivo de \textit{masked language modeling}, não \textit{decoder-only} autorregressivo.
+\textbf{(d)} sem máscara o modelo enxerga o alvo no treino (vazamento), e a propriedade não pode ser ``imposta apenas em inferência'' sem destruir a coerência aprendida.
+\textbf{(e)} Padrão C torna a atenção inútil (cada token só vê a si mesmo); o modelo ficaria sem capacidade de mistura entre posições.
+\textbf{(f)} A e B \emph{não} são equivalentes: B vaza o alvo.
+\textbf{(g)} Padrão C bloqueia também o passado, eliminando a capacidade de o modelo usar contexto.
+\textbf{(h)} \textit{decoder-only} \emph{usa} atenção mascarada na sua \textit{self-attention}; \textit{cross-attention} aparece em \textit{encoder-decoder}, não em \textit{decoder-only}.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 6 \textemdash{} Verdadeiro/Falso com modificação}
+
+\begin{enumerate}[a)]
+    \item \textbf{V.} Descrição padrão de \textit{Multi-Head Attention}.
+
+    \item \textbf{F.} O \textit{positional encoding} sinusoidal de Vaswani et al.\ (2017) é \emph{determinístico} (uma função fixa em $\sin$ e $\cos$ aplicada a cada posição) e \emph{não} introduz nenhum parâmetro treinável adicional na rede. A confusão é com o esquema \emph{alternativo} de \textit{positional encoding} \emph{aprendido} (utilizado, por exemplo, no BERT), em que cada posição corresponde a um vetor treinável da tabela de \textit{embeddings} posicionais. \textit{Modificação:} substituir ``introduz \ldots\ um vetor de parâmetros treináveis aprendidos por descida de gradiente'' por ``é determinístico e não introduz parâmetros treináveis adicionais à rede''.
+
+    \item \textbf{V.} Pareamento clássico \{encoder-only, MLM\} vs \{decoder-only, NTP\}.
+
+    \item \textbf{F.} O critério de seleção do BPE é o oposto: ele funde o par \emph{mais} frequente, não o menos frequente. \textit{Modificação:} substituir ``menos frequente'' por ``mais frequente''; o BPE é guiado pela frequência das adjacências no corpus, e fundir pares raros não traria nenhum ganho de cobertura.
+
+    \item \textbf{F.} A descrição da MQA está invertida. \textit{Modificação:} ``\textit{Multi-Query Attention} (MQA) mantém $H$ cabeças \emph{apenas em Q}, mas usa \emph{uma única cabeça compartilhada} para K e V. É justamente essa \emph{redução das cabeças de K e V} (não de Q) que diminui o \textit{KV-cache} durante a inferência. \textit{Grouped-Query Attention} (GQA) generaliza isso: $G$ grupos para K/V com $1 < G < H$.''
+\end{enumerate}
+
+\subsection*{Questão 7 \textemdash{} \textit{Self-attention} causal numérica}
+
+Dados: $Q = K = [1, 1, 1]^\top$, $V = [2, 4, 6]^\top$, $d_k = 1$.
+
+\textbf{(a)} \textit{Matriz de pontuações.} Cada entrada é $S_{ij} = Q_i \cdot K_j = 1 \cdot 1 = 1$:
+\[
+S = QK^\top = \begin{bmatrix}
+1 & 1 & 1 \\
+1 & 1 & 1 \\
+1 & 1 & 1
+\end{bmatrix}
+\]
+
+\textbf{(b)} \textit{Máscara causal.} Substituir entradas com $j > i$ por $-\infty$:
+\[
+S_\text{mask} = \begin{bmatrix}
+1      & -\infty & -\infty \\
+1      & 1       & -\infty \\
+1      & 1       & 1
+\end{bmatrix}
+\]
+
+\textbf{(c)} \textit{Softmax linha a linha.} Como $d_k = 1$, não há escalonamento. Para $-\infty$ a contribuição é $e^{-\infty} = 0$:
+\begin{itemize}
+    \item Linha 1: $\mathrm{softmax}(1, -\infty, -\infty) = \left(\tfrac{e^1}{e^1}, 0, 0\right) = (1, 0, 0)$.
+    \item Linha 2: $\mathrm{softmax}(1, 1, -\infty) = \left(\tfrac{e}{2e}, \tfrac{e}{2e}, 0\right) = (\tfrac{1}{2}, \tfrac{1}{2}, 0)$.
+    \item Linha 3: $\mathrm{softmax}(1, 1, 1) = (\tfrac{1}{3}, \tfrac{1}{3}, \tfrac{1}{3})$.
+\end{itemize}
+\[
+A = \begin{bmatrix}
+1            & 0            & 0            \\
+\tfrac{1}{2} & \tfrac{1}{2} & 0            \\
+\tfrac{1}{3} & \tfrac{1}{3} & \tfrac{1}{3}
+\end{bmatrix}
+\]
+
+\textbf{(d)} \textit{Saída.} $O = A \cdot V$:
+\begin{align*}
+O_1 &= 1 \cdot 2 + 0 \cdot 4 + 0 \cdot 6 = 2 \\
+O_2 &= \tfrac{1}{2} \cdot 2 + \tfrac{1}{2} \cdot 4 + 0 \cdot 6 = 1 + 2 = 3 \\
+O_3 &= \tfrac{1}{3} \cdot 2 + \tfrac{1}{3} \cdot 4 + \tfrac{1}{3} \cdot 6 = \tfrac{12}{3} = 4
+\end{align*}
+\[
+O = \begin{bmatrix} 2 \\ 3 \\ 4 \end{bmatrix}
+\]
+Cada $O_i$ é a média (com pesos uniformes pela máscara causal e $Q = K = $ constantes) dos valores $V_j$ até a posição $i$, capturando a interpretação intuitiva da \textit{self-attention} como uma soma ponderada do passado.
+
+\color{black}
+
+\end{document}

@@ -1,0 +1,834 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Descida de Gradiente}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  \section{Por que não força bruta}
+  %======================================================================
+
+  %--- Slide: setup do exemplo (com link da apresentação original) ---
+  \begin{frame}{Um exemplo concreto: regressão logística com 1 peso e 1 bias}
+    \begin{columns}
+      \begin{column}{.6\linewidth}
+        \begin{itemize}
+          \item Uma única unidade sigmoide com 2 parâmetros (peso $w$ e bias $b$).
+          \item Função de custo: erro quadrático médio.
+          \[
+            \mathcal{L}(w,b)=\frac{1}{N}\sum_{i=1}^{N}\left(y^{(i)}-f(x^{(i)})\right)^{2}
+          \]
+          \item Pergunta natural: por que não simplesmente
+            \[
+              \argmin_{w,b}\,\mathcal{L}(w,b)
+            \]
+            via varredura por força bruta?
+          \item \href{https://iitm-pod.slides.com/arunprakash_ai/cs6910-lecture-5/fullscreen\#/0/7}{%
+              \textit{\color{blue}\underline{Vamos tentar}} (visualização interativa, IITM CS6910)}
+        \end{itemize}
+      \end{column}
+      \begin{column}{.4\linewidth}
+        \centering
+        \resizebox{.9\linewidth}{!}{
+          \begin{tikzpicture}[>=Latex]
+            \node[font=\small] at (1.5,3.6) {$\hat{y}=f(x)$};
+            \draw[->,thick] (1.5,2.6) -- (1.5,3.4);
+            \node[circle,draw,fill=red!70,minimum size=1cm,text=white] (s) at (1.5,2) {$\sigma$};
+            \draw[->,thick] (0,0.2) -- (s.south west);
+            \draw[->,thick] (1.5,0.2) -- (s.south);
+            \node[font=\small] at (0.6,1.0) {$b$};
+            \node[font=\small] at (1.85,1.0) {$w$};
+            \node[font=\small] at (-0.05,-0.05) {$1$};
+            \node[font=\small] at (1.55,-0.05) {$x$};
+            \node[font=\small,anchor=west] at (2.4,1.6) {$f(x)=\dfrac{1}{1+e^{-(wx+b)}}$};
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: por que força bruta não escala ---
+  \begin{frame}{E se tentássemos varrer todos os $(w,b)$?}
+    \begin{itemize}
+      \item Com 2 parâmetros conseguimos visualizar a paisagem da loss em uma grade.
+      \item Para 2 parâmetros, com $k$ valores em cada eixo, avaliamos $k^2$ pontos.
+      \item Para uma rede com $P$ parâmetros, avaliamos $k^P$ pontos.
+    \end{itemize}
+    \vfill
+    \begin{exampleblock}{Para fixar a ideia}
+      Mesmo um MLP modesto com $P{=}1\,000$ parâmetros e apenas $k{=}10$ valores por eixo
+      exigiria $10^{1000}$ avaliações. Inviável.
+    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: conclusão da seção ---
+  \begin{frame}{Precisamos de um método guiado}
+    \begin{itemize}
+      \item Força bruta ignora qualquer estrutura da função.
+      \item Em problemas suaves (diferenciáveis), a própria função carrega informação
+        local sobre como reduzir a loss.
+      \item A descida de gradiente é justamente um método que usa essa informação
+        local para escolher a direção e o tamanho do próximo passo.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Derivando a Descida de Gradiente}
+  %======================================================================
+
+  %--- Slide: estratégia geral (vetores sem sobreposição) ---
+  \begin{frame}{Estratégia: aplicar uma atualização que reduza a loss}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Queremos achar uma atualização $\Delta\thetav$ tal que
+            $\mathcal{L}(\thetav+\eta\Delta\thetav) < \mathcal{L}(\thetav)$.
+          \item $\eta>0$ é a \textit{taxa de aprendizado} (\textit{learning rate}).
+          \item A pergunta é: \alert{qual direção $\Delta\thetav$ escolher?}
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}[>=Latex]
+            % theta
+            \draw[->,thick] (0,0) -- (0.9,2.4) node[midway,above left] {$\thetav$};
+            % full Δθ from origin
+            \draw[->,thick,red!50!black] (0,0) -- (3.2,0);
+            \node[red!50!black,anchor=north] at (3.2,-0.05) {$\Delta\thetav$};
+            % η Δθ from same origin, shorter, drawn over part of Δθ with a thicker stroke
+            \draw[->,very thick,red] (0,0) -- (1.4,0);
+            \node[red,anchor=south] at (0.7,0.05) {$\eta\,\Delta\thetav$};
+            % new theta = theta + η Δθ
+            \draw[->,thick] (0,0) -- (2.3,2.4) node[midway,below right=-1pt] {$\thetav_{\text{new}}$};
+            % dashed copy of η Δθ translated to tip of theta, completing the parallelogram
+            \draw[dashed,thick,red] (0.9,2.4) -- (2.3,2.4);
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: refresher Taylor (com aproximações que de fato funcionam) ---
+  \begin{frame}{Refresher: Série de Taylor\footnotemark}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Aproxima localmente uma função suave $\mathcal{L}(\thetav)$ por um polinômio em torno de $\thetav_0$.
+          \item Quanto mais termos, melhor a aproximação.
+          \item Para $\eta$ pequeno, a primeira ordem domina.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{.95\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=7cm, height=5cm,
+              xlabel={$\thetav$}, ylabel={$\mathcal{L}(\thetav)$},
+              axis lines=middle, xtick=\empty, ytick=\empty,
+              ymin=0, ymax=2.6,
+              domain=-1.5:1.5, samples=120,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              % function: e^{0.6 x} -- has nonzero second derivative at 0
+              \addplot[thick,red] {exp(0.6*x)};
+              \addlegendentry{função}
+              % Taylor degree 1 at x_0=0:  1 + 0.6 x
+              \addplot[thick,blue] {1 + 0.6*x};
+              \addlegendentry{grau 1}
+              % Taylor degree 2 at x_0=0:  1 + 0.6 x + 0.18 x^2
+              \addplot[thick,Green] {1 + 0.6*x + 0.18*x*x};
+              \addlegendentry{grau 2}
+              \node[fill=blue,circle,inner sep=1.5pt] at (axis cs:0,1) {};
+              \node[anchor=north,font=\tiny] at (axis cs:0,0.95) {$\thetav_0$};
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+    \[
+      \mathcal{L}(\thetav)=\mathcal{L}(\thetav_{0})+\nabla\mathcal{L}(\thetav_0)^\top(\thetav-\thetav_0)
+        +\frac{1}{2}(\thetav-\thetav_0)^\top\nabla^{2}\mathcal{L}(\thetav_0)(\thetav-\thetav_0)+\cdots
+    \]
+    \footnotetext[1]{Visualização interativa:
+      \href{https://iitm-pod.slides.com/arunprakash_ai/cs6910-lecture-5/fullscreen\#/0/18}{IITM CS6910 (Taylor)}.}
+  \end{frame}
+
+  %--- Slide: Taylor aplicado à loss ---
+  \begin{frame}{Aplicando Taylor à Loss}
+    Considere $\Delta\thetav=u$ para simplificar a notação. Em torno de $\thetav$:
+    \[
+      \mathcal{L}(\thetav+\eta u) =
+        \mathcal{L}(\thetav)
+        + \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+        + \frac{\eta^{2}}{2!}u^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,u
+        + \cdots
+    \]
+    \vfill
+    \begin{itemize}
+      \item Para $\eta$ suficientemente pequeno, $\eta^{2},\eta^{3},\ldots$ são desprezíveis.
+      \item Ficamos com a aproximação de primeira ordem:
+        \[
+          \mathcal{L}(\thetav+\eta u)\approx \mathcal{L}(\thetav) + \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav).
+        \]
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: critério de melhoria ---
+  \begin{frame}{Critério de melhoria}
+    Queremos que a atualização reduza a loss, ou seja
+    \[
+      \mathcal{L}(\thetav+\eta u) - \mathcal{L}(\thetav) < 0.
+    \]
+    Substituindo a aproximação de primeira ordem:
+    \[
+      \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0.
+    \]
+    \vfill
+    \begin{itemize}
+      \item Como $\eta>0$, basta exigir $u^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0$.
+      \item Isto é, o produto escalar entre a direção de atualização e o gradiente
+        deve ser \alert{negativo}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: produto escalar e cosseno (vetores corretos) ---
+  \begin{frame}{Quando o produto escalar é negativo?}
+    Seja $\beta$ o ângulo entre $u$ e $\nabla_{\thetav}\mathcal{L}(\thetav)$.
+    \[
+      u^\top\nabla_{\thetav}\mathcal{L}(\thetav) =
+        \|u\|\,\|\nabla_{\thetav}\mathcal{L}(\thetav)\|\,\cos(\beta).
+    \]
+    \vfill
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item $\|u\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
+          \item Logo, o sinal vem inteiramente de $\cos(\beta)$.
+          \item Negativo para $\beta\in(90^{\circ},180^{\circ})$.
+          \item \alert{Mais negativo} para $\beta=180^{\circ}$, ou seja
+            $u=-\nabla_{\thetav}\mathcal{L}$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{.95\linewidth}{!}{
+          \begin{tikzpicture}[>=Latex]
+            % Gradient pointing right
+            \draw[->,thick,blue] (0,0) -- (3,0) node[right] {$\nabla\mathcal{L}$};
+            % -gradient pointing exactly opposite (180 degrees)
+            \draw[->,thick,red] (0,0) -- (-3,0) node[left] {$u^{*}=-\nabla\mathcal{L}$};
+            % a generic u making angle beta with gradient
+            \draw[->,thick,Green!70!black] (0,0) -- ({3*cos(135)},{3*sin(135)}) node[above left] {$u$};
+            % arc for beta
+            \draw[thick] (0.9,0) arc (0:135:0.9);
+            \node[font=\small] at (0.6,0.6) {$\beta$};
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: regra final ---
+  \begin{frame}{Regra de atualização da Descida de Gradiente}
+    \begin{block}{Direção ótima}
+      A escolha que minimiza o produto escalar é
+      \(
+        u = -\nabla_{\thetav}\mathcal{L}(\thetav).
+      \)
+    \end{block}
+    \vfill
+    Substituindo na atualização:
+    \[
+      \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})}
+    \]
+    \vfill
+    \begin{itemize}
+      \item Cada passo move os parâmetros na direção oposta ao gradiente.
+      \item $\eta$ controla o tamanho do passo.
+      \item Esta é a \textbf{descida de gradiente}\footfullcite{goodfellow2016deep}.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Convexidade e Paisagem da Loss}
+  %======================================================================
+
+  %--- Slide: Caso convexo (texto + figura limpa) ---
+  \begin{frame}{Caso 1: função convexa}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Modelo linear: $\hat{y}=\theta_0+\theta_1 x$.
+          \item Loss MSE: $\mathcal{L}(\thetav)=(\y-\yhat)^\top(\y-\yhat)$.
+          \item A superfície tem um único mínimo.
+          \item Qualquer inicialização converge ao mínimo \textbf{global},
+            desde que $\eta$ seja suficientemente pequeno.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-convex-4panel.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Gabor (descrição + plot da função em pgfplots) ---
+  \begin{frame}{Caso 2: função não convexa, modelo de Gabor}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        Modelo com apenas 2 parâmetros:
+        \[
+          \hat{y}=\sin(\theta_0+0.06\,\theta_1 x)\,\exp\!\left(-\frac{(\theta_0+0.06\,\theta_1 x)^{2}}{32}\right)
+        \]
+        \begin{itemize}
+          \item $\theta_0$ controla o deslocamento.
+          \item $\theta_1$ controla a frequência.
+          \item Apesar de ter só 2 parâmetros, ajustar a curva aos dados já é não trivial.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{.95\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm, height=5cm,
+              xlabel={$x$}, ylabel={$\hat{y}$},
+              xmin=-15, xmax=15, ymin=-1.1, ymax=1.1,
+              axis lines=middle,
+              samples=200,
+              legend style={font=\tiny,at={(0.5,1.0)},anchor=south,legend columns=2}
+            ]
+              % theta0=0, theta1=25 -> arg = 1.5 x
+              \addplot[thick,blue,domain=-15:15] {sin(deg(1.5*x)) * exp(-((1.5*x)^2)/32)};
+              \addlegendentry{$\theta_0{=}0,\;\theta_1{=}25$}
+              % theta0=0, theta1=15 -> arg = 0.9 x
+              \addplot[thick,red,domain=-15:15] {sin(deg(0.9*x)) * exp(-((0.9*x)^2)/32)};
+              \addlegendentry{$\theta_0{=}0,\;\theta_1{=}15$}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Loss landscape do Gabor (figura solo) ---
+  \begin{frame}{Paisagem da loss do modelo de Gabor}
+    \centering
+    \includegraphics[height=0.78\textheight]{slides/img/01-mlp/gd-gabor-loss.png}
+  \end{frame}
+
+  %--- Slide: trajetória em loss não convexa (figura limpa) ---
+  \begin{frame}{Descida em uma loss não convexa}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-batch-vs-sgd.png}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Para inicializações em ``bons vales'', a descida converge a um mínimo
+            \textbf{local} próximo ao global.
+          \item Para inicializações em vales rasos, a descida fica presa.
+          \item \textit{Spoiler}: em redes neurais profundas, a paisagem
+            \alert{nunca} é convexa.
+          \item Precisamos de variações que ajudem a sair de pontos ruins.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Tamanho do Mini-batch}
+  %======================================================================
+
+  %--- Slide: três tamanhos canônicos ---
+  \begin{frame}{Variar quantas instâncias entram no gradiente}
+    \begin{itemize}
+      \item Podemos estimar o gradiente com diferentes tamanhos de \textit{batch}:
+    \end{itemize}
+    \vfill
+    \begin{center}
+      \begin{tabular}{@{}lll@{}}
+        \toprule
+        Tamanho do batch & Nome usual & Atualização \\
+        \midrule
+        $N$ (todo o dataset) & \textit{Batch Gradient Descent} & determinística \\
+        $1<m<N$ & \textit{Mini-batch Gradient Descent} & estocástica \\
+        $1$ & \textit{Stochastic Gradient Descent} (SGD) & altamente estocástica \\
+        \bottomrule
+      \end{tabular}
+    \end{center}
+    \vfill
+    \begin{itemize}
+      \item Em deep learning, ``SGD'' costuma ser usado como sinônimo de mini-batch
+        com $m\ll N$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: por que não usar sempre o batch completo ---
+  \begin{frame}{Por que não usar sempre o batch completo?}
+    \begin{itemize}
+      \item Limitações de \textit{hardware}: o batch precisa caber na memória da GPU.
+      \item Custo por passo: cada atualização vê $N$ exemplos, mesmo quando uma fração já
+        seria suficiente para uma boa estimativa do gradiente.
+      \item Falta de ruído: a trajetória é determinística e não consegue escapar de mínimos
+        locais ou pontos de sela.
+    \end{itemize}
+    \vfill
+    \begin{block}{Trade-off}
+      Mini-batches pequenos introduzem ruído (bom para escapar) e cabem em memória,
+      mas a estimativa do gradiente é mais barulhenta (passos mais erráticos).
+    \end{block}
+  \end{frame}
+
+  %--- Slide: SGD vs Batch (figura limpa) ---
+  \begin{frame}{Trajetória: \textit{Batch} vs \textit{Stochastic}}
+    \centering
+    \includegraphics[height=0.66\textheight]{slides/img/01-mlp/gd-batch-vs-sgd.png}
+    \begin{itemize}
+      \item Esquerda: \textit{batch gradient descent} usa o gradiente exato em cada passo.
+      \item Direita: \textit{stochastic gradient descent} oscila, mas explora vales que o batch ignora.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: amostragem de mini-batches (figura limpa) ---
+  \begin{frame}{Mini-batches em uma paisagem real}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=0.78\textheight,keepaspectratio]{slides/img/01-mlp/gd-minibatch-4panel.png}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Em a) está a loss completa.
+          \item Em b), c), d) vemos diferentes mini-batches com $m{=}3$.
+          \item Cada mini-batch aproxima o gradiente verdadeiro com erro,
+            o que se traduz em ruído na trajetória.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: propriedades do SGD ---
+  \begin{frame}{Propriedades do SGD}
+    \begin{itemize}
+      \item Instâncias amostradas \alert{sem reposição}; uma \textbf{época} é
+        completada quando todas as instâncias foram vistas.
+      \item Adiciona ruído ao treinamento, ajudando a escapar de mínimos locais e
+        pontos de sela.
+      \item É computacionalmente leve (uma instância por passo).
+      \item Empiricamente, soluções obtidas com SGD generalizam melhor.
+      \item Não converge a um ponto fixo (passos sempre flutuam ao redor do mínimo).
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Momentum e Nesterov}
+  %======================================================================
+
+  %--- Slide: motivação ---
+  \begin{frame}{Motivação: usar a memória dos gradientes}
+    \begin{itemize}
+      \item Gradientes consecutivos podem oscilar fortemente (mini-batch ruidoso ou vales estreitos).
+      \item Ideia: somar uma fração da atualização anterior à nova, suavizando a trajetória.
+      \item Se os gradientes recentes apontam na mesma direção, aceleramos.
+      \item Se mudam de direção, o efeito tende a se cancelar e o passo é amortecido.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Momentum formalização ---
+  \begin{frame}{\textit{Momentum}\footfullcite{polyak1964momentum}}
+    \begin{block}{Atualização com momentum}
+      \[
+        v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
+      \]
+      \[
+        \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item $\beta\in[0,1)$ controla quanto da memória é considerado.
+      \item $v_t$ é uma \textbf{média móvel exponencial} dos gradientes anteriores.
+      \item Para $\beta=0$, recuperamos a descida de gradiente padrão.
+      \item Valores típicos: $\beta\in[0.9\,;\,0.99]$.
+    \end{itemize}
+    \vspace{0.4em}
+    {\footnotesize\color{gray!50!black}Convenção sem $(1-\beta)$: PyTorch e o paper original de Polyak escrevem $v_{t+1} = \beta\,v_t + \nabla_{\thetav}\mathcal{L}$. A diferença é absorvível em $\eta$.}
+  \end{frame}
+
+  %--- Slide: comparação visual momentum (figura limpa) ---
+  \begin{frame}{Efeito visual do \textit{Momentum}}
+    \centering
+    \includegraphics[width=.7\linewidth]{slides/img/01-mlp/gd-momentum-vs-no.png}
+    \begin{itemize}
+      \item Esquerda: SGD puro oscila fortemente em vales estreitos.
+      \item Direita: com momentum, oscilações verticais se cancelam e a trajetória
+        avança mais rápido na direção principal.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Nesterov ---
+  \begin{frame}{\textit{Nesterov Accelerated Momentum}\footfullcite{nesterov1983method}}
+    \begin{itemize}
+      \item Momentum é, na prática, um \textit{preditor} do próximo passo.
+      \item Nesterov sugere avaliar o gradiente \alert{já no ponto deslocado pelo momentum},
+        e não no ponto atual.
+    \end{itemize}
+    \vfill
+    \begin{block}{Regra de Nesterov}
+      \[
+        v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t} - \eta\,\beta\,v_{t})
+      \]
+      \[
+        \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item Pequena correção, ganho prático em problemas com vales alongados.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: visual Nesterov (figura limpa) ---
+  \begin{frame}{Nesterov: olhar à frente antes de calcular o gradiente}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-nesterov.png}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item O ponto branco é onde o momentum levaria, e é nesse ponto que o gradiente é avaliado.
+          \item Resultado: a trajetória do Nesterov ``corrige'' a do momentum quando há curvatura.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Métodos com Taxa Adaptativa}
+  %======================================================================
+
+  %--- Slide: motivação normalização ---
+  \begin{frame}{Problema do passo fixo em paisagens anisotrópicas}
+    \begin{itemize}
+      \item Em uma direção a loss pode ser muito íngreme; em outra, quase plana.
+      \item Com $\eta$ fixo, ou damos passos exagerados na direção íngreme, ou ficamos
+        lentos na direção rasa.
+      \item Solução: usar uma taxa de aprendizado \textbf{efetiva} diferente para cada
+        parâmetro, baseada na magnitude histórica de seus gradientes.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ideia da normalização ---
+  \begin{frame}{Normalização do gradiente}
+    Para tornar o passo independente da magnitude do gradiente, podemos definir
+    \[
+      m_{t+1}=\nabla_{\thetav}\mathcal{L}(\thetav_t),\qquad
+      v_{t+1}=\big(\nabla_{\thetav}\mathcal{L}(\thetav_t)\big)^{2}
+    \]
+    e atualizar com
+    \[
+      \thetav_{t+1}=\thetav_{t}-\eta\,\frac{m_{t+1}}{\sqrt{v_{t+1}}+\epsilon}.
+    \]
+    \begin{itemize}
+      \item Com a normalização, o termo que multiplica $\eta$ tem magnitude próxima de 1.
+      \item O tamanho do passo passa a ser controlado essencialmente por $\eta$.
+      \item $\epsilon$ é um pequeno valor positivo para estabilidade numérica.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: AdaGrad ---
+  \begin{frame}{AdaGrad\footfullcite{duchi2011adagrad}}
+    \begin{block}{Atualização}
+      \[
+        G_{t+1} = G_{t} + \big(\nabla_{\thetav}\mathcal{L}\big)^{2}
+      \]
+      \[
+        \thetav_{t+1} = \thetav_{t} - \frac{\eta}{\sqrt{G_{t+1}}+\epsilon}\,\nabla_{\thetav}\mathcal{L}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item \textit{Adaptive (per-parameter) Gradient}.
+      \item Cada parâmetro tem sua própria taxa de aprendizado efetiva, baseada em
+        $G_{t}$, a soma acumulada dos gradientes ao quadrado.
+      \item Parâmetros com gradientes consistentemente grandes recebem passos menores;
+        parâmetros raros recebem passos maiores.
+    \end{itemize}
+    \begin{alertblock}{Limitação}
+      $G_{t}$ é monotonamente crescente, logo $\dfrac{\eta}{\sqrt{G_{t}}+\epsilon}$ decai sempre. Após muitas iterações, a taxa efetiva tende a zero e o aprendizado para, mesmo se ainda houver progresso a fazer. Como evitar a decadência sem perder a normalização por parâmetro?
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: RMSProp ---
+  \begin{frame}{RMSProp\footfullcite{tieleman2012rmsprop}}
+    \begin{itemize}
+      \item \textit{Root Mean Square Propagation}.
+      \item Apresentado por Hinton em um \textit{slide} de aula; nunca foi formalmente publicado.
+      \item Disponível em praticamente todos os \textit{frameworks}.
+      \item Ideia: substituir a soma do AdaGrad por uma \textbf{média móvel exponencial}.
+    \end{itemize}
+    \vfill
+    \begin{block}{Atualização}
+      \[
+        \mathbb{E}[g^{2}]_{t+1} = \rho\,\mathbb{E}[g^{2}]_{t} + (1-\rho)\,(\nabla_{\thetav}\mathcal{L})^{2}
+      \]
+      \[
+        \thetav_{t+1}=\thetav_{t} - \frac{\eta}{\sqrt{\mathbb{E}[g^{2}]_{t+1}}+\epsilon}\,\nabla_{\thetav}\mathcal{L}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item $\rho$ controla a janela efetiva de memória; o termo deixa de crescer indefinidamente.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam motivação ---
+  \begin{frame}{Adam\footfullcite{kingma2015adam}: combinando momentum e normalização}
+    \begin{itemize}
+      \item \textit{Adaptive Moment Estimation}.
+      \item Junta as duas ideias vistas: \textbf{momentum} (sobre o gradiente) e
+        \textbf{normalização} (pela raiz da média móvel do gradiente ao quadrado).
+      \item Considerado, por muitos anos, o otimizador padrão para deep learning.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam fórmulas ---
+  \begin{frame}{Adam: as duas médias móveis}
+    \begin{block}{Estimativas dos momentos}
+      \[
+        m_{t+1} = \beta_1\,m_{t} + (1-\beta_1)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
+      \]
+      \[
+        v_{t+1} = \beta_2\,v_{t} + (1-\beta_2)\,\big(\nabla_{\thetav}\mathcal{L}(\thetav_{t})\big)^{2}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item $\beta_1\in[0,1)$, $\beta_2\in[0,1)$, com $m_0=0$ e $v_0=0$.
+      \item $m$ acompanha o primeiro momento (média) do gradiente, $v$ acompanha o segundo
+        momento (média do gradiente ao quadrado).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam correção de viés ---
+  \begin{frame}{Adam: correção de viés inicial}
+    \begin{itemize}
+      \item Com $m_0=v_0=0$, as primeiras iterações subestimam fortemente $m$ e $v$.
+      \item Correção de viés (\textit{bias correction}):
+        \[
+          \widetilde{m}_{t+1}=\frac{m_{t+1}}{1-\beta_1^{t+1}},\qquad
+          \widetilde{v}_{t+1}=\frac{v_{t+1}}{1-\beta_2^{t+1}}.
+        \]
+      \item A regra final é
+        \[
+          \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}+\epsilon}}
+        \]
+      \item Hiperparâmetros padrão: $\beta_1{=}0.9$, $\beta_2{=}0.999$, $\epsilon{=}10^{-8}$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam visual em loss anisotrópica (figura limpa) ---
+  \begin{frame}{Por que o Adam ajuda em loss anisotrópica}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-adam-ab.png}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item Esquerda: $\eta$ pequeno avança bem na vertical, mas é lento na horizontal.
+          \item Direita: $\eta$ grande progride na horizontal, mas oscila descontroladamente
+            na vertical.
+          \item Adam normaliza por direção, evitando ambos os extremos.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Adam comparação completa (figura limpa) ---
+  \begin{frame}{Adam comparado com outros otimizadores}
+    \centering
+    \includegraphics[height=0.78\textheight]{slides/img/01-mlp/gd-adam-4panel.png}
+  \end{frame}
+
+  %--- Slide: Adam recap ---
+  \begin{frame}{Por que Adam virou o padrão}
+    \begin{itemize}
+      \item As magnitudes dos gradientes variam fortemente conforme a função de ativação,
+        a camada da rede e a inicialização.
+      \item Adam é mais imune a essas diferenças e menos sensível à escolha da taxa de
+        aprendizado inicial.
+      \item Na prática, costuma funcionar razoavelmente bem com os hiperparâmetros padrão.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{MUON: a próxima geração}
+  %======================================================================
+
+  %--- Slide: motivação MUON ---
+  \begin{frame}{O que mudou desde Adam (2015)?}
+    \begin{itemize}
+      \item Por quase uma década, Adam (e variantes como AdamW) foi o padrão de fato em
+        deep learning.
+      \item Em 2024, o otimizador \textbf{MUON}\footfullcite{jordan2024muon} foi proposto
+        como o primeiro avanço fundamental significativo desde Adam.
+      \item Foco do MUON: as \alert{matrizes de pesos} das camadas ocultas (parâmetros 2D).
+        Bias e \textit{embeddings} continuam usando Adam ou SGD.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ideia central MUON ---
+  \begin{frame}{Ideia central: ortogonalizar a atualização}
+    \begin{itemize}
+      \item As matrizes de gradientes em redes neurais costumam ter \textit{rank efetivo}
+        baixo, ou seja, são dominadas por poucas direções singulares.
+      \item Isso desperdiça capacidade do passo: direções pequenas mas úteis recebem
+        magnitude desprezível.
+      \item MUON substitui a matriz de atualização pela \alert{matriz ortogonal mais próxima},
+        redistribuindo a magnitude entre todas as direções singulares.
+      \item Geometricamente, o passo do MUON é a \textit{steepest descent} sob a norma
+        espectral, não sob a norma de Frobenius.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: pseudocódigo MUON ---
+  \begin{frame}{Pseudocódigo do MUON}
+    \begin{block}{Atualização (matriz $G$ do gradiente)}
+      \begin{algorithmic}[1]
+        \State $M_{t+1} \gets \beta M_{t} + (1-\beta)\,G_{t}$ \Comment{momentum (média móvel dos gradientes)}
+        \State $\widehat{M}_{t+1} \gets M_{t+1}/\|M_{t+1}\|_{F}$ \Comment{normaliza pela norma de Frobenius}
+        \State $O_{t+1} \gets \mathrm{NewtonSchulz5}(\widehat{M}_{t+1})$ \Comment{aproxima a matriz ortogonal mais próxima}
+        \State $W_{t+1} \gets W_{t} - \eta\,O_{t+1}$
+      \end{algorithmic}
+    \end{block}
+    \begin{itemize}
+      \item Newton-Schulz é uma iteração de polinômios matriciais que aproxima a parte
+        ortogonal de $\widehat{M}$ sem calcular SVD.
+      \item Com 5 passos, roda eficientemente em \textit{tensor cores} de GPU.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: intuição MUON ---
+  \begin{frame}{Intuição: por que ortogonalizar ajuda?}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item Gradiente típico: poucas direções com magnitude muito alta, muitas direções
+            com magnitude pequena.
+          \item Adam normaliza \textit{por parâmetro} (entrada da matriz), mas não trata o
+            problema de \textit{rank} efetivo.
+          \item MUON normaliza \textit{por direção singular}: todas as direções recebem
+            magnitude semelhante.
+          \item Resultado: melhor uso da capacidade de cada passo, especialmente em redes
+            largas.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=7cm,height=4.5cm,
+              ybar, bar width=8pt,
+              ymin=0, ymax=1.05,
+              xlabel={direção singular $i$},
+              ylabel={$\sigma_{i}$},
+              xtick=\empty,
+              ytick=\empty,
+              legend style={font=\tiny,at={(0.5,-0.25)},anchor=north,legend columns=2}
+            ]
+              \addplot+[fill=red!60,draw=red!60!black] coordinates {
+                (1,1.0)(2,0.55)(3,0.30)(4,0.18)(5,0.10)(6,0.06)(7,0.04)(8,0.03)
+              };
+              \addlegendentry{gradiente bruto}
+              \addplot+[fill=Green!60,draw=Green!60!black] coordinates {
+                (1,0.62)(2,0.62)(3,0.62)(4,0.62)(5,0.62)(6,0.62)(7,0.62)(8,0.62)
+              };
+              \addlegendentry{após ortogonalização}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: resultados MUON ---
+  \begin{frame}{Resultados empíricos}
+    \begin{itemize}
+      \item Recordes de velocidade em \textit{NanoGPT speedrun} ($\sim$1.35$\times$ speedup
+        para atingir loss de validação 3.28).
+      \item Recordes em CIFAR-10 \textit{speedrun} (de 3.3 para 2.6 segundos-A100 para
+        atingir 94\% de acurácia).
+      \item Escalabilidade demonstrada até 1.5B de parâmetros (Liu et al., 2025).
+    \end{itemize}
+    \vfill
+    \begin{alertblock}{Limitações práticas}
+      Aplica-se apenas a parâmetros 2D (matrizes). Vetores (\textit{biases}, \textit{layer norm})
+      e \textit{embeddings} continuam sendo otimizados com AdamW.
+    \end{alertblock}
+  \end{frame}
+
+  %======================================================================
+  \section{Encerramento}
+  %======================================================================
+
+  %--- Slide: diretrizes práticas ---
+  \begin{frame}{Qual otimizador usar na prática?}
+    \begin{itemize}
+      \item \textbf{Padrão hoje}: AdamW (Adam com \textit{weight decay} desacoplado) na maioria
+        dos modelos.
+      \item \textbf{Visão computacional clássica}: SGD com momentum costuma generalizar tão
+        bem ou melhor, especialmente com \textit{learning rate schedules} bem ajustados.
+      \item \textbf{Modelos grandes (LLMs)}: Adam/AdamW continuam sendo o padrão; MUON é
+        emergente e relevante para parâmetros 2D em camadas ocultas.
+      \item \textbf{Importante}: a taxa de aprendizado $\eta$ é o hiperparâmetro de maior
+        impacto em qualquer um deles.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: leituras ---
+  \section*{Referências e Leituras}
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Capítulos 4 e 8 de \fullcite{goodfellow2016deep}
+      \item Capítulo 6 de \fullcite{prince2023understanding}
+      \item Adam original: \fullcite{kingma2015adam}
+      \item MUON: \fullcite{jordan2024muon}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

@@ -1,0 +1,1535 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+\usetikzlibrary{decorations.pathreplacing}
+
+%------------------------------------------------------------------------
+%   EXTRA LECTURE-LOCAL COLORS
+%------------------------------------------------------------------------
+\definecolor{FairBlue}{HTML}{3182BD}
+\definecolor{FairRed}{HTML}{C0392B}
+\definecolor{FairGreen}{HTML}{2E8B57}
+\definecolor{FairPurple}{HTML}{6A1B9A}
+\definecolor{LightBlue}{HTML}{DBEAFE}
+\definecolor{LightRed}{HTML}{FCE4E4}
+\definecolor{LightGreen}{HTML}{D6F0DC}
+\definecolor{LightGray}{HTML}{F3F4F6}
+\definecolor{HighlightYellow}{HTML}{FEF3C7}
+
+\title{Deep Learning}
+\subtitle{\textit{Fairness} em Deep Learning}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: MOTIVAÇÃO
+  %======================================================================
+  \section{Motivação}
+
+  %--- Slide: decisões automatizadas em escala ---
+  \begin{frame}{Decisões Automatizadas em Escala}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        Construímos sistemas de ML para tomar decisões de forma mais rápida, barata e, em tese, mais imparcial do que pessoas:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Concessão de crédito e limites de cartão
+          \item Triagem de currículos
+          \item Diagnóstico auxiliado por imagem
+          \item Avaliação de risco no sistema judicial
+        \end{itemize}
+
+        \vspace{0.4em}
+        Sem cuidado, essas decisões \textbf{propagam vieses} em uma escala sem precedentes: um analista enviesado afeta dezenas de casos por dia, um modelo enviesado afeta milhões.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          box/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt,
+                      font=\small, inner sep=5pt, text width=2.9cm, align=center},
+          arr/.style={->, thick, color=FairBlue}
+        ]
+          \node[box] (h) {Decisão humana \\ \footnotesize dezenas de casos/dia};
+          \node[box, fill=LightRed, draw=FairRed, below=0.8cm of h] (m) {Decisão automatizada \\ \footnotesize milhões de casos/dia};
+          \draw[arr] (h) -- node[right, font=\scriptsize, text width=2.2cm] {mesmo viés, outra escala} (m);
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+    \note{
+      Abrir perguntando onde a turma já foi avaliada por um algoritmo hoje: feed, spam, score de crédito, radar de velocidade média. A tese da aula: o problema não é o modelo ser malicioso, é ele aprender regularidades históricas que não queremos perpetuar.
+    }
+  \end{frame}
+
+  %--- Slide: exemplo passaporte ---
+  \begin{frame}{Quando a Visão Computacional Erra}
+    \begin{columns}[T]
+      \begin{column}{0.42\textwidth}
+        \begin{block}{Caso real: renovação de passaporte}
+          O sistema neozelandês de passaportes rejeita a foto de um cidadão de ascendência asiática: \enquote{\textit{subject eyes are closed}}. Os olhos estavam abertos.
+        \end{block}
+
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item O modelo de verificação facial erra mais em rostos pouco representados no treino
+          \item Para o cidadão, o erro \enquote{estatístico} vira uma barreira concreta de acesso a um serviço público
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.54\textwidth}
+        \centering
+        \includegraphics[width=0.95\linewidth,height=0.68\textheight,keepaspectratio]{slides/img/06-topicos/passport_rejection.jpg}
+      \end{column}
+    \end{columns}
+    \note{
+      Caso de Richard Lee, 2016, amplamente noticiado. Perguntar à turma: que tipo de dado de treino produz esse erro? A resposta (sub-representação) volta no Gender Shades e na seção de métodos distribucionais.
+    }
+  \end{frame}
+
+  %--- Slide: Gender Shades ---
+  \begin{frame}{\textit{Gender Shades}\footfullcite{buolamwini2018gender}}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        Auditoria de três sistemas \textbf{comerciais} de classificação de gênero em faces (Microsoft, IBM, Face++):
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Avaliação \textbf{desagregada} por tom de pele e gênero
+          \item O erro agregado parecia baixo; desagregado, a disparidade é enorme
+          \item Causa dominante: sub-representação nos conjuntos de treino e de avaliação
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+            ybar,
+            width=8.5cm, height=5.2cm,
+            ymin=0, ymax=40,
+            ylabel={Taxa de erro (\%)},
+            symbolic x coords={H. clara, M. clara, H. escura, M. escura},
+            xtick=data,
+            x tick label style={font=\scriptsize},
+            nodes near coords,
+            nodes near coords style={font=\scriptsize},
+            ymajorgrids=true, grid style=dashed,
+            bar width=16pt,
+          ]
+            \addplot[fill=FairBlue!60, draw=FairBlue] coordinates
+              {(H. clara, 0.3) (M. clara, 7.1) (H. escura, 12.0) (M. escura, 34.7)};
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.2em}
+        \footnotesize Erro do pior sistema comercial avaliado, por tom de pele e gênero.
+      \end{column}
+    \end{columns}
+    \note{
+      Os números são do estudo de Buolamwini e Gebru (2018): homens de pele clara 0,3\% de erro, mulheres de pele escura 34,7\%. Destacar a interseccionalidade: o pior grupo é a interseção (mulheres \textbf{e} pele escura), pior que cada eixo isolado.
+    }
+  \end{frame}
+
+  %--- Slide: Google Maps blur ---
+  \begin{frame}{Quem o Detector de Faces Enxerga?}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        O Google Maps detecta e borra faces automaticamente, por privacidade.
+
+        \vspace{0.4em}
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Neste mural, o sistema aplicou \textit{blur} em apenas \textbf{duas das quatro} faces
+          \item Alguma ideia do motivo?
+        \end{itemize}
+
+        \vspace{0.4em}
+        \visible<2->{%
+        \begin{alertblock}{O padrão}
+          O detector não encontrou as faces de pele escura. Até a \textbf{proteção de privacidade} é distribuída de forma desigual quando o modelo enxerga melhor um grupo.
+        \end{alertblock}}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{slides/img/06-topicos/gmaps_blur_mural.jpg}
+      \end{column}
+    \end{columns}
+    \note{
+      Deixar a turma responder antes de revelar o alertblock (overlay). As duas faces à direita, de pele clara, foram borradas; as duas à esquerda, de pele escura, nem foram detectadas. Mesmo mecanismo do Gender Shades, agora com consequência de privacidade em vez de classificação.
+    }
+  \end{frame}
+
+  %--- Slide: word embeddings ---
+  \begin{frame}{Viés em \textit{Word Embeddings}\footfullcite{bolukbasi2016man}}
+    Aritmética de vetores em \textit{embeddings} treinados em notícias (word2vec):
+    \begin{block}{Analogia esperada}
+      \[
+        \overrightarrow{\text{man}} - \overrightarrow{\text{woman}} \approx \overrightarrow{\text{king}} - \overrightarrow{\text{queen}}
+      \]
+    \end{block}
+
+    \begin{alertblock}{Analogia aprendida junto}
+      \[
+        \overrightarrow{\text{man}} - \overrightarrow{\text{woman}} \approx \overrightarrow{\text{computer programmer}} - \overrightarrow{\text{homemaker}}
+      \]
+    \end{alertblock}
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0.2em}
+      \item O espaço vetorial captura coocorrências do corpus, inclusive estereótipos de gênero, raça e ocupação
+      \item \textit{Embeddings} enviesados contaminam toda tarefa construída sobre eles (busca, ranqueamento de currículos, tradução)
+    \end{itemize}
+    \note{
+      Reforçar que a mesma propriedade que torna embeddings úteis (capturar regularidades distribucionais) é a que importa o estereótipo. Não há bug: o modelo fez exatamente o que foi pedido. Voltaremos a este exemplo na seção de debiasing.
+    }
+  \end{frame}
+
+  %--- Slide: tradução automática ---
+  \begin{frame}{Viés em Tradução Automática\footfullcite{prates2020assessing}}
+    O húngaro não tem pronomes de gênero: \enquote{ő} vale para ele e ela. Ao traduzir para o inglês, o modelo precisa \textbf{escolher} um gênero:
+
+    \vspace{0.4em}
+    \centering
+    \begin{tikzpicture}[
+      hu/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt, font=\small\ttfamily, inner sep=5pt, text width=3.6cm, align=left},
+      en/.style={draw=FairRed, fill=LightRed, rounded corners=3pt, font=\small\ttfamily, inner sep=5pt, text width=4.4cm, align=left},
+      arr/.style={->, thick, color=gray}
+    ]
+      \node[hu] (h1) {Ő egy mérnök. \\ Ő egy nővér. \\ Ő szép. \\ Ő okos.};
+      \node[en, right=2.2cm of h1] (e1) {\textcolor{FairBlue}{He} is an engineer. \\ \textcolor{FairRed}{She} is a nurse. \\ \textcolor{FairRed}{She} is beautiful. \\ \textcolor{FairBlue}{He} is clever.};
+      \draw[arr] (h1) -- node[above, font=\scriptsize, text width=2.0cm, align=center] {tradução automática} (e1);
+    \end{tikzpicture}
+
+    \vspace{0.5em}
+    \raggedright
+    A escolha segue o estereótipo ocupacional do corpus de treino: engenharia vira \enquote{he}, enfermagem vira \enquote{she}. O estudo quantificou o efeito em 12 línguas neutras em gênero.
+    \note{
+      Estudo brasileiro (Prates, Avelar e Lamb, UFRGS). A distribuição de pronomes escolhidos não segue nem a distribuição real da força de trabalho: o modelo amplifica o estereótipo além da estatística ocupacional verdadeira. Após a repercussão, o Google passou a mostrar as duas traduções.
+    }
+  \end{frame}
+
+  %--- Slide: LLMs ---
+  \begin{frame}{Viés em Modelos de Linguagem\footfullcite{abid2021persistent}}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Prompt} ao GPT-3:\\[0.2em]
+        \texttt{\small Two Muslims walked into a...}
+
+        \vspace{0.5em}
+        \textbf{Completions típicas:}\\[0.2em]
+        \texttt{\small ...synagogue with axes and a bomb.}\\
+        \texttt{\small ...gay bar and began throwing chairs at patrons.}\\
+        \texttt{\small ...Texas cartoon contest and opened fire.}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{alertblock}{Resultado quantitativo}
+          \textbf{66\%} das completions para o grupo \enquote{Muslims} contêm violência. Para os demais grupos religiosos testados, a taxa fica abaixo de 20\%.
+        \end{alertblock}
+
+        \vspace{0.3em}
+        \begin{block}{Por que importa}
+          LLMs são usados como base de chatbots, busca e geração de conteúdo: associações tóxicas do pré-treino reaparecem em todas as aplicações derivadas.
+        \end{block}
+      \end{column}
+    \end{columns}
+    \note{
+      O experimento de Abid et al.\ (2021) substituía o grupo religioso no mesmo template e media a fração de completions violentas. A disparidade é persistente: reformular o prompt reduz, mas não elimina. Conectar com a aula de LLM training: RLHF e filtros de dados atacam exatamente isso.
+    }
+  \end{frame}
+
+  %--- Slide: ciclo de retroalimentação ---
+  \begin{frame}{Ciclos de Retroalimentação}
+    \centering
+    \begin{tikzpicture}[
+      box/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt,
+                  font=\small, inner sep=6pt, text width=3.2cm, align=center, minimum height=1.1cm},
+      arr/.style={->, very thick, color=FairBlue}
+    ]
+      \node[box] (data) {Dados históricos \\ \footnotesize (refletem desigualdades)};
+      \node[box, right=1.6cm of data] (model) {Modelo \\ \footnotesize (aprende o padrão)};
+      \node[box, below=1.0cm of model] (dec) {Decisões \\ \footnotesize (negam crédito, policiam mais)};
+      \node[box, below=1.0cm of data] (world) {Mundo \\ \footnotesize (desigualdade reforçada)};
+
+      \draw[arr] (data) -- (model);
+      \draw[arr] (model) -- (dec);
+      \draw[arr] (dec) -- (world);
+      \draw[arr, color=FairRed] (world) -- node[left, font=\scriptsize, text width=2.7cm, align=right, color=FairRed] {novos dados confirmam o viés} (data);
+    \end{tikzpicture}
+
+    \vspace{0.5em}
+    Exemplo: policiamento preditivo envia mais patrulhas a um bairro, mais patrulhas geram mais registros, mais registros confirmam que o bairro é \enquote{de risco}.
+    \note{
+      Este é o argumento de que viés em ML não é só um espelho do passado: decisões automatizadas geram os dados do próximo treino, fechando o ciclo. Sem intervenção, o sistema converge para um equilíbrio pior do que o ponto de partida.
+    }
+  \end{frame}
+
+  %--- Slide: o que estuda a área ---
+  \begin{frame}{O Que Estuda a Pesquisa em \textit{Fairness}}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item \textbf{Identificar}: detectar quando um modelo trata grupos ou indivíduos de forma sistematicamente desigual
+      \item \textbf{Medir}: definir métricas formais que capturem noções de justiça (Seções 4 e 5)
+      \item \textbf{Mitigar}: desenvolver procedimentos de \textit{debiasing} ao longo de todo o ciclo de vida do modelo (Seção 6)
+      \item \textbf{Documentar}: comunicar limitações e usos pretendidos de dados e modelos (Seção 7)
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Roteiro da aula}
+      Começamos com um caso concreto e controverso, o COMPAS, e dele extraímos as definições e métricas formais. Depois vemos como mitigar e documentar.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 2: ESTUDO DE CASO COMPAS
+  %======================================================================
+  \section{Estudo de Caso: COMPAS}
+
+  %--- Slide: contexto COMPAS ---
+  \begin{frame}{COMPAS: Risco de Reincidência\footfullcite{angwin2016machine}}
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item Uma pessoa é presa; o sistema COMPAS estima a probabilidade de ela cometer novo crime (\textit{reincidência}) em até 2 anos
+      \item O escore (1 a 10) é usado por juízes em decisões de fiança, pena e liberdade condicional
+      \item Utilizado em New York, Wisconsin, California e Florida
+      \item Em 2016, a ProPublica analisou $\sim$7000 casos do condado de Broward (Florida) e acusou o sistema de viés racial
+    \end{itemize}
+
+    \vspace{0.3em}
+    \begin{alertblock}{Pergunta da seção}
+      O COMPAS é injusto? Como decidir isso \textbf{quantitativamente}?
+    \end{alertblock}
+    \note{
+      Enfatizar a gravidade do contexto: o escore influencia liberdade de pessoas. A análise da ProPublica é pública, com dados e código. A Northpointe (hoje Equivant) respondeu com uma análise técnica defendendo o sistema; essa disputa estrutura a seção inteira.
+    }
+  \end{frame}
+
+  %--- Slide: recap matriz de confusão ---
+  \begin{frame}{Recapitulando: Matriz de Confusão}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \centering
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabular}{lcc}
+          \toprule
+           & \textbf{Est.: baixo} & \textbf{Est.: alto} \\
+          \midrule
+          Sem reincid. & TN & FP \\
+          Com reincid. & FN & TP \\
+          \bottomrule
+        \end{tabular}
+
+        \vspace{0.5em}
+        \footnotesize Positivo = \enquote{alto risco}. Linha: o que de fato aconteceu em 2 anos. Coluna: o que o COMPAS previu.
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \footnotesize
+        \begin{block}{\small Taxa de erro}
+          \[ \frac{FP + FN}{TP+TN+FP+FN} \]
+          Com que frequência a estimativa está errada?
+        \end{block}
+        \begin{block}{\small Taxa de falsos positivos (FPR)}
+          \[ \frac{FP}{FP + TN} \]
+          Quantos \textbf{não reincidentes} foram marcados como alto risco?
+        \end{block}
+        \begin{block}{\small Taxa de falsos negativos (FNR)}
+          \[ \frac{FN}{FN + TP} \]
+          Quantos \textbf{reincidentes} foram marcados como baixo risco?
+        \end{block}
+      \end{column}
+    \end{columns}
+    \note{
+      Recap rápido, a turma já viu isso na Unidade 1. O ponto novo é a leitura social: FP aqui significa manter alguém preso sem necessidade, FN significa soltar alguém que reincide. Os dois erros têm custos muito diferentes e recaem sobre pessoas diferentes.
+    }
+  \end{frame}
+
+  %--- Slide: números agregados ---
+  \begin{frame}{COMPAS no Agregado}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Todos} ($n = 7214$) & \textbf{Est.: baixo risco} & \textbf{Est.: alto risco} \\
+      \midrule
+      Sem reincidência & 2681 (TN) & 1282 (FP) \\
+      Com reincidência & 1216 (FN) & 2035 (TP) \\
+      \bottomrule
+    \end{tabular}
+
+    \vspace{0.8em}
+    \begin{columns}
+      \begin{column}{0.32\textwidth}
+        \centering
+        Taxa de erro \[ \approx 34.6\% \]
+      \end{column}
+      \begin{column}{0.32\textwidth}
+        \centering
+        FPR \[ \approx 32.4\% \]
+      \end{column}
+      \begin{column}{0.32\textwidth}
+        \centering
+        FNR \[ \approx 37.4\% \]
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    No agregado, o sistema erra bastante (1 em cada 3 casos), mas erra de forma \enquote{equilibrada} entre FP e FN. Parece tudo bem?
+    \note{
+      Deixar a pergunta no ar e avançar. A graça didática do COMPAS é que o agregado esconde a disparidade: só desagregando por grupo o problema aparece.
+    }
+  \end{frame}
+
+  %--- Slide: desagregando por grupo ---
+  \begin{frame}{Desagregando por Grupo: Taxa de Erro}
+    \centering
+    \renewcommand{\arraystretch}{1.25}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \centering
+        \small
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{Pessoas negras} & \textbf{baixo} & \textbf{alto} \\
+          \midrule
+          Sem reincid. & 990 & 805 \\
+          Com reincid. & 532 & 1369 \\
+          \bottomrule
+        \end{tabular}
+
+        \vspace{0.5em}
+        Taxa de erro $\approx 36.2\%$
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \small
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{Pessoas brancas} & \textbf{baixo} & \textbf{alto} \\
+          \midrule
+          Sem reincid. & 1139 & 349 \\
+          Com reincid. & 461 & 505 \\
+          \bottomrule
+        \end{tabular}
+
+        \vspace{0.5em}
+        Taxa de erro $\approx 33.0\%$
+      \end{column}
+    \end{columns}
+
+    \vspace{0.8em}
+    \begin{block}{Primeira leitura}
+      As taxas de erro são parecidas (36\% vs 33\%). Pela taxa de erro, o sistema trata os dois grupos de forma semelhante.
+    \end{block}
+    \note{
+      Pedir para a turma guardar essas duas tabelas: todos os números das próximas lâminas saem delas. A taxa de erro similar foi um dos argumentos de defesa da Northpointe.
+    }
+  \end{frame}
+
+  %--- Slide: falsos positivos ---
+  \begin{frame}{O Tipo de Erro Importa: Falsos Positivos}
+    \centering
+    Entre quem \textbf{não} reincidiu, qual fração foi classificada como alto risco?
+
+    \vspace{0.6em}
+    \begin{columns}
+      \begin{column}{0.48\textwidth}
+        \centering
+        Pessoas negras
+        \[
+          FPR = \frac{805}{805 + 990} \approx 44.9\%
+        \]
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        Pessoas brancas
+        \[
+          FPR = \frac{349}{349 + 1139} \approx 23.5\%
+        \]
+      \end{column}
+    \end{columns}
+
+    \vspace{0.8em}
+    \begin{alertblock}{Disparidade}
+      O falso positivo é \textbf{1.9$\times$ mais frequente} para pessoas negras: quase metade das pessoas negras que não reincidiram foi rotulada como alto risco.
+    \end{alertblock}
+    \note{
+      Este é o número central da reportagem da ProPublica. Tradução prática: penas mais duras e fianças mais altas para pessoas que não voltariam a cometer crime, com forte assimetria racial.
+    }
+  \end{frame}
+
+  %--- Slide: falsos negativos ---
+  \begin{frame}{O Tipo de Erro Importa: Falsos Negativos}
+    \centering
+    Entre quem reincidiu, qual fração havia sido classificada como baixo risco?
+
+    \vspace{0.6em}
+    \begin{columns}
+      \begin{column}{0.48\textwidth}
+        \centering
+        Pessoas negras
+        \[
+          FNR = \frac{532}{532 + 1369} \approx 28.0\%
+        \]
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        Pessoas brancas
+        \[
+          FNR = \frac{461}{461 + 505} \approx 47.7\%
+        \]
+      \end{column}
+    \end{columns}
+
+    \vspace{0.8em}
+    \begin{alertblock}{Disparidade espelhada}
+      O falso negativo é \textbf{1.7$\times$ mais frequente} para pessoas brancas: o benefício da dúvida vai majoritariamente para um grupo.
+    \end{alertblock}
+    \note{
+      As duas disparidades são faces da mesma moeda: o escore superestima o risco de um grupo e subestima o do outro. Perguntar: alguém acha que isso aconteceu porque o algoritmo recebe a raça como entrada? Gancho para a próxima lâmina.
+    }
+  \end{frame}
+
+  %--- Slide: proxies ---
+  \begin{frame}{E o Algoritmo Nem Usa Raça como Atributo}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        O COMPAS \textbf{não recebe} raça como entrada. A disparidade surge mesmo assim, via \textit{proxies}:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item CEP e bairro de residência
+          \item Histórico de prisões (afetado por policiamento desigual)
+          \item Emprego, escolaridade, renda
+          \item Prisões na família e no círculo social
+        \end{itemize}
+
+        \vspace{0.3em}
+        Atributos correlacionados com raça carregam a informação para dentro do modelo.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Lição central}
+          Remover o atributo sensível do vetor de entrada (\textit{fairness through unawareness}) \textbf{não garante} um modelo justo.
+        \end{block}
+        \begin{alertblock}{Consequência}
+          Pior: sem o atributo, fica mais difícil \textbf{auditar} a disparidade, pois ela precisa ser reconstruída por fora.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Este é um dos resultados mais contraintuitivos para a turma: a primeira ideia de todo mundo (apagar a coluna) não funciona e ainda atrapalha a auditoria. Em dados reais de alta dimensão, quase sempre existe um conjunto de proxies que reconstrói o atributo protegido.
+    }
+  \end{frame}
+
+  %--- Slide: controvérsia ---
+  \begin{frame}{A Controvérsia: ProPublica vs Northpointe}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{ProPublica: \enquote{é injusto}}
+          As \textbf{taxas de erro} são desbalanceadas:
+          \begin{itemize}\setlength{\itemsep}{0pt}
+            \item FPR: 44.9\% vs 23.5\%
+            \item FNR: 28.0\% vs 47.7\%
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Northpointe: \enquote{é justo}}
+          O escore é \textbf{calibrado} por grupo: entre os marcados como alto risco (o \textbf{PPV} $=\frac{TP}{TP+FP}$, a \textit{precisão}), a fração que de fato reincide é similar
+          \begin{itemize}\setlength{\itemsep}{0pt}
+            \item PPV negras: $\frac{1369}{2174} \approx 63.0\%$
+            \item PPV brancas: $\frac{505}{854} \approx 59.1\%$
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    \begin{block}{Quem está certo?}
+      Os dois lados usam métricas legítimas de justiça e chegam a conclusões opostas \textbf{sobre os mesmos dados}. Para resolver isso precisamos de definições formais (e de um teorema).
+    \end{block}
+    \note{
+      Não revelar ainda a resposta (teorema da impossibilidade, Seção 4). Deixar a tensão aberta: \enquote{alto risco significa a mesma coisa para os dois grupos} e \enquote{inocentes dos dois grupos correm o mesmo risco de rótulo errado} parecem ambas exigências razoáveis.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: DEFINIÇÕES
+  %======================================================================
+  \section{Viés, \textit{Fairness} e Atributos Protegidos}
+
+  %--- Slide: o que é viés ---
+  \begin{frame}{O Que É Viés?\footfullcite{mitchell1980need}}
+    \begin{block}{Definição (Mitchell, 1980)}
+      \enquote{Qualquer base para escolher uma generalização em detrimento de outra, além da estrita consistência com as instâncias observadas.}
+    \end{block}
+
+    \vspace{0.4em}
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item Alguns vieses são \textbf{necessários}: o viés indutivo é o que permite generalizar (aulas de MLP e CNN)
+      \item Outros são \textbf{evitáveis e potencialmente danosos}: associações espúrias com gênero, raça, idade, religião
+      \item A palavra \enquote{viés} é sobrecarregada: viés estatístico, viés indutivo e viés social são coisas diferentes
+    \end{itemize}
+
+    \vspace{0.3em}
+    Nesta aula, \enquote{viés} significa: comportamento sistematicamente desigual em relação a grupos ou indivíduos, sem justificativa legítima.
+    \note{
+      Conectar com o início do curso: sem viés indutivo não há aprendizado (no free lunch). O objetivo nunca é \enquote{remover todo viés}, é remover os indesejados. Esta distinção evita muita confusão em discussões públicas sobre IA.
+    }
+  \end{frame}
+
+  %--- Slide: vieses no ciclo de vida ---
+  \begin{frame}{Vieses ao Longo do Ciclo de Vida\footfullcite{mehrabi2021survey}}
+    \centering
+    \begin{tikzpicture}[
+      stage/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt,
+                    font=\small\bfseries, inner sep=6pt, text width=2.6cm, align=center, minimum height=0.9cm},
+      ex/.style={draw=gray!50, fill=LightGray, rounded corners=2pt,
+                 font=\scriptsize, inner sep=4pt, text width=2.6cm, align=center},
+      arr/.style={->, very thick, color=FairBlue}
+    ]
+      \node[stage] (d) {Dados};
+      \node[stage, right=1.5cm of d] (a) {Algoritmo};
+      \node[stage, right=1.5cm of a] (u) {Interação};
+
+      \node[ex, below=0.4cm of d] (de) {amostragem desigual, rótulos históricos enviesados, proxies};
+      \node[ex, below=0.4cm of a] (ae) {objetivo otimiza a maioria, agregação esconde minorias};
+      \node[ex, below=0.4cm of u] (ue) {feedback do usuário, ciclos de retroalimentação};
+
+      \draw[arr] (d) -- (a);
+      \draw[arr] (a) -- (u);
+      \draw[arr, color=FairRed] (u.north) to[bend right=25] node[above, font=\scriptsize, color=FairRed] {novos dados} (d.north);
+    \end{tikzpicture}
+
+    \vspace{0.6em}
+    \raggedright
+    O viés pode entrar em \textbf{qualquer etapa}: nos dados (mais comum), no procedimento de treino e na interação com usuários. As técnicas de mitigação da Seção 6 atacam etapas diferentes.
+    \note{
+      Mehrabi et al.\ (2021) catalogam mais de 20 tipos nomeados de viés nesses três eixos. Não vale a pena decorar a taxonomia completa; o que importa é saber em qual etapa procurar quando uma disparidade aparece.
+    }
+  \end{frame}
+
+  %--- Slide: o que é fairness ---
+  \begin{frame}{O Que É \textit{Fairness}?}
+    \begin{block}{Definição de trabalho (Mehrabi et al., 2021)}
+      Ausência de qualquer prejuízo ou favoritismo em relação a um indivíduo ou grupo com base em suas características inerentes ou adquiridas.
+    \end{block}
+
+    \vspace{0.4em}
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item É um conceito \textbf{normativo}: depende de valores, contexto e legislação, não só de estatística
+      \item A formalização exige escolhas: justiça para grupos ou para indivíduos? Igualdade de quê (acesso, erro, resultado)?
+      \item Diferentes formalizações são \textbf{mutuamente incompatíveis} em geral, como veremos
+    \end{itemize}
+
+    \vspace{0.3em}
+    A área de \textit{fairness} em ML traduz noções normativas em \textbf{restrições e métricas mensuráveis} sobre modelos.
+    \note{
+      Importante calibrar expectativas: a matemática não decide o que é justo, ela só torna as escolhas explícitas e auditáveis. A decisão sobre qual noção usar é da sociedade, do regulador e do domínio de aplicação.
+    }
+  \end{frame}
+
+  %--- Slide: atributos protegidos ---
+  \begin{frame}{Atributos Protegidos vs Legítimos}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Atributos protegidos}
+          Características que \textbf{não devem} influenciar a decisão: raça, gênero, religião, orientação sexual, nacionalidade, idade (conforme contexto e lei).
+        \end{block}
+        \begin{block}{Atributos legítimos}
+          Características aceitas como base da decisão: renda e histórico de pagamento para crédito, experiência para contratação.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{A fronteira é normativa e porosa}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item O que é protegido varia por país, época e domínio
+            \item Atributos legítimos podem ser \textit{proxies} de protegidos (CEP $\leftrightarrow$ raça)
+            \item A escolha de quais atributos proteger é uma decisão de projeto que deve ser \textbf{explícita e documentada}
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Exemplo de porosidade: idade é protegida em contratação, mas legítima em seguro de vida. No Brasil, a LGPD define \enquote{dados sensíveis} (art.\ 5º, II) que se sobrepõem bastante a esta lista.
+    }
+  \end{frame}
+
+  %--- Slide: grupo vs individual ---
+  \begin{frame}{Duas Famílias de Critérios}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[font=\small]
+          \foreach \i in {0,1,2} \fill[FairBlue]  (0.45*\i, 0) circle [radius=0.14];
+          \foreach \i in {0,1,2} \fill[FairRed] (2.6+0.45*\i, 0) circle [radius=0.14];
+          \node[font=\footnotesize] at (0.45, -0.5) {grupo $a{=}0$};
+          \node[font=\footnotesize] at (3.05, -0.5) {grupo $a{=}1$};
+          \node[font=\normalsize] at (1.75, 0) {$\overset{?}{=}$};
+        \end{tikzpicture}
+
+        \vspace{0.3em}
+        \begin{block}{\textit{Group fairness}}
+          Particiona a população pelo atributo protegido e compara \textbf{estatísticas agregadas} das predições entre os grupos.
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[font=\small]
+          \fill[FairBlue] (0.7, 0) circle [radius=0.14];
+          \fill[FairRed] (2.4, 0) circle [radius=0.14];
+          \node[font=\footnotesize] at (0.7, -0.5) {indivíduo $i$};
+          \node[font=\footnotesize] at (2.4, -0.5) {indivíduo $j$};
+          \node[font=\normalsize] at (1.55, 0) {$\approx$};
+        \end{tikzpicture}
+
+        \vspace{0.3em}
+        \begin{block}{\textit{Individual fairness}}
+          Ignora grupos: exige que \textbf{indivíduos similares} (na tarefa) recebam \textbf{resultados similares}.
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.4em}
+    As duas famílias capturam intuições diferentes e podem entrar em conflito: satisfazer uma não implica satisfazer a outra.
+    \note{
+      Group fairness é o que se consegue medir com facilidade (basta desagregar métricas); individual fairness é mais próxima da intuição jurídica de isonomia, mas exige definir similaridade, que é o problema difícil.
+    }
+  \end{frame}
+
+  %--- Slide: notação ---
+  \begin{frame}{Notação para as Próximas Seções}
+    \centering
+    \renewcommand{\arraystretch}{1.4}
+    \begin{tabular}{cl}
+      \toprule
+      \textbf{Símbolo} & \textbf{Significado} \\
+      \midrule
+      $y \in \{0, 1\}$ & resultado real (1 = resultado positivo, ex.: pagou o empréstimo) \\
+      $\hat{y} \in \{0, 1\}$ & predição do modelo (1 = decisão favorável) \\
+      $s \in [0, 1]$ & escore contínuo do modelo; $\hat{y} = 1$ se $s \geq \tau$ \\
+      $a \in \{0, 1\}$ & atributo protegido (dois grupos, por simplicidade) \\
+      $p_a = P(y{=}1 \mid a)$ & taxa-base (prevalência) do grupo $a$ \\
+      \bottomrule
+    \end{tabular}
+
+    \vspace{0.7em}
+    \raggedright
+    Critérios de \textit{group fairness} serão \textbf{igualdades de probabilidades condicionais} entre grupos. No COMPAS: $y$ = reincidiu, $\hat{y}$ = alto risco, $a$ = raça.
+    \note{
+      Atenção ao limiar $\tau$: o COMPAS produz escore de 1 a 10 e a análise binariza em alto/baixo risco. Muitos métodos de pós-processamento mexem exatamente no limiar por grupo. A demo interativa da aula usa esta notação.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: FAIRNESS DE GRUPO
+  %======================================================================
+  \section{\textit{Fairness} de Grupo}
+
+  %--- Slide: paridade demográfica ---
+  \begin{frame}{Paridade Demográfica}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Definição}
+          \[
+            P(\hat{y}{=}1 \mid a{=}0) = P(\hat{y}{=}1 \mid a{=}1)
+          \]
+          A taxa de decisões favoráveis é igual entre os grupos.
+        \end{block}
+
+        \vspace{0.3em}
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Não usa $y$: só olha a \textbf{distribuição das decisões}
+          \item Intuição: o benefício é distribuído na mesma proporção
+          \item Versão relaxada (regra dos 80\%): a razão entre as taxas deve ser $\geq 0.8$
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+            ybar,
+            width=6.5cm, height=4.8cm,
+            ymin=0, ymax=1,
+            ylabel={$P(\hat{y}{=}1 \mid a)$},
+            symbolic x coords={grupo $a{=}0$, grupo $a{=}1$},
+            xtick=data,
+            ytick={0, 0.5, 1},
+            nodes near coords={\pgfmathprintnumber[fixed,precision=1]{\pgfplotspointmeta}},
+            nodes near coords style={font=\scriptsize},
+            ymajorgrids=true, grid style=dashed,
+            bar width=24pt,
+          ]
+            \addplot[fill=FairBlue!60, draw=FairBlue] coordinates
+              {(grupo $a{=}0$, 0.4) (grupo $a{=}1$, 0.4)};
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.2em}
+        \footnotesize Barras iguais: mesma fração aprovada em cada grupo.
+      \end{column}
+    \end{columns}
+    \note{
+      É a noção mais antiga e mais simples, ligada ao conceito jurídico de disparate impact nos EUA (regra dos 80\% da EEOC). Não exige rótulo verdadeiro, o que é uma vantagem prática enorme: dá para auditar sem esperar 2 anos para saber quem reincidiu.
+    }
+  \end{frame}
+
+  %--- Slide: limitações da paridade ---
+  \begin{frame}{Paridade Demográfica: Limitações}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item Se as taxas-base diferem ($p_0 \neq p_1$), a paridade \textbf{força erros}: para igualar as proporções, o modelo precisa negar a candidatos qualificados de um grupo ou aprovar não qualificados do outro
+      \item Pode ser satisfeita por um modelo \textbf{inútil ou malicioso}: aprovar aleatoriamente 40\% de cada grupo satisfaz a paridade com utilidade zero
+      \item Ignora completamente $y$: não distingue acertos de erros
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{alertblock}{Quando faz sentido}
+      Quando a taxa-base observada é ela própria suspeita (fruto de discriminação histórica) ou quando o objetivo é redistribuir acesso: vagas, anúncios de emprego, admissões.
+    \end{alertblock}
+    \note{
+      O exemplo da aprovação aleatória é o argumento clássico de Hardt et al.\ contra usar paridade como critério único. A resposta da seção seguinte (igualdade de oportunidade) nasce exatamente dessa crítica.
+    }
+  \end{frame}
+
+  %--- Slide: igualdade de oportunidade ---
+  \begin{frame}{Igualdade de Oportunidade\footfullcite{hardt2016equality}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Definição}
+          \[
+            P(\hat{y}{=}1 \mid y{=}1, a{=}0) = P(\hat{y}{=}1 \mid y{=}1, a{=}1)
+          \]
+          Mesma taxa de verdadeiros positivos (TPR $=\frac{TP}{TP+FN}$, o \textit{recall}) nos dois grupos.
+        \end{block}
+
+        \vspace{0.3em}
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Condiciona em $y{=}1$: olha só quem \textbf{merece} o resultado positivo
+          \item Qualificados têm a mesma chance de reconhecimento em qualquer grupo
+          \item Equivale a igualar FNR ($FNR = 1 - TPR$)
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+            ybar,
+            width=6.5cm, height=4.8cm,
+            ymin=0, ymax=1,
+            ylabel={$TPR$ por grupo},
+            symbolic x coords={grupo $a{=}0$, grupo $a{=}1$},
+            xtick=data,
+            ytick={0, 0.5, 1},
+            nodes near coords={\pgfmathprintnumber[fixed,precision=1]{\pgfplotspointmeta}},
+            nodes near coords style={font=\scriptsize},
+            ymajorgrids=true, grid style=dashed,
+            bar width=24pt,
+          ]
+            \addplot[fill=FairGreen!60, draw=FairGreen] coordinates
+              {(grupo $a{=}0$, 0.7) (grupo $a{=}1$, 0.7)};
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.2em}
+        \footnotesize Entre os qualificados ($y{=}1$), a mesma fração é aprovada.
+      \end{column}
+    \end{columns}
+    \note{
+      Frase para fixar: \enquote{talento igual, chance igual}. Diferente da paridade, é compatível com taxas-base diferentes e com o classificador perfeito. O custo: precisa do rótulo verdadeiro, que pode demorar ou ser ele próprio enviesado.
+    }
+  \end{frame}
+
+  %--- Slide: igualdade de chances ---
+  \begin{frame}{Igualdade de Chances (\textit{Equalized Odds})}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Definição}
+          \[
+            P(\hat{y}{=}1 \mid y, a{=}0) = P(\hat{y}{=}1 \mid y, a{=}1)
+          \]
+          para $y \in \{0, 1\}$: TPR \textbf{e} FPR iguais entre grupos.
+        \end{block}
+
+        \vspace{0.3em}
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Fortalece a igualdade de oportunidade: também os \textbf{não qualificados} ($y{=}0$) têm o mesmo risco de aprovação indevida
+          \item Era exatamente o que o COMPAS violava: FPR de 44.9\% vs 23.5\%
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+            ybar,
+            width=6.5cm, height=4.8cm,
+            ymin=0, ymax=1,
+            ylabel={taxa},
+            symbolic x coords={TPR, FPR},
+            xtick=data,
+            ytick={0, 0.5, 1},
+            ymajorgrids=true, grid style=dashed,
+            bar width=14pt,
+            legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south, legend columns=2},
+          ]
+            \addplot[fill=FairBlue!60, draw=FairBlue] coordinates {(TPR, 0.7) (FPR, 0.2)};
+            \addplot[fill=FairRed!60, draw=FairRed] coordinates {(TPR, 0.7) (FPR, 0.2)};
+            \legend{grupo $a{=}0$, grupo $a{=}1$}
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.2em}
+        \footnotesize As duas taxas coincidem entre grupos (pares de barras iguais).
+      \end{column}
+    \end{columns}
+    \note{
+      Hierarquia: equalized odds implica igualdade de oportunidade, que não implica paridade demográfica. Hardt et al.\ mostram como atingir equalized odds por pós-processamento, ajustando limiares por grupo, possivelmente com aleatorização.
+    }
+  \end{frame}
+
+  %--- Slide: calibração ---
+  \begin{frame}{Calibração por Grupo}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Definição}
+          \[
+            P(y{=}1 \mid s, a{=}0) = P(y{=}1 \mid s, a{=}1)
+          \]
+          O escore significa a mesma coisa nos dois grupos.
+        \end{block}
+
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Entre todos que recebem escore $s = 0.7$, cerca de 70\% têm $y{=}1$, em \textbf{qualquer grupo}
+          \item Versão binarizada: PPV igual entre grupos
+          \item Foi a defesa da Northpointe: o COMPAS \textbf{é} aproximadamente calibrado por raça (63\% vs 59\%)
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+            width=6.5cm, height=4.6cm,
+            xmin=0, xmax=1, ymin=0, ymax=1,
+            xlabel={escore $s$},
+            ylabel={$P(y{=}1 \mid s)$},
+            xtick={0,0.5,1}, ytick={0,0.5,1},
+            ymajorgrids=true, xmajorgrids=true, grid style=dashed,
+            legend style={font=\scriptsize, at={(0.97,0.03)}, anchor=south east},
+          ]
+            \addplot[domain=0:1, samples=40, ultra thick, FairBlue] {x};
+            \addplot[domain=0:1, samples=40, thick, dashed, FairRed] {x^1.15};
+            \legend{grupo $a{=}0$, grupo $a{=}1$}
+          \end{axis}
+        \end{tikzpicture}}
+
+        \vspace{0.2em}
+        \footnotesize Curvas de calibração quase coincidentes: o escore é \enquote{honesto} para ambos os grupos.
+      \end{column}
+    \end{columns}
+    \note{
+      Calibração é a métrica natural de quem usa o escore para decidir (o juiz): ela garante que interpretar o escore não exige saber o grupo. A tensão com as taxas de erro vem a seguir.
+    }
+  \end{frame}
+
+  %--- Slide: COMPAS sob cada métrica ---
+  \begin{frame}{O COMPAS sob Cada Métrica}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Critério} & \textbf{Negras} & \textbf{Brancas} & \textbf{Satisfeito?} \\
+      \midrule
+      Calibração (PPV) & 63.0\% & 59.1\% & \textcolor{FairGreen}{$\approx$ sim} \\
+      Taxa de erro & 36.2\% & 33.0\% & \textcolor{FairGreen}{$\approx$ sim} \\
+      Igualdade de FPR & 44.9\% & 23.5\% & \textcolor{FairRed}{não} \\
+      Igualdade de FNR & 28.0\% & 47.7\% & \textcolor{FairRed}{não} \\
+      Paridade demográfica & 58.8\% & 34.8\% & \textcolor{FairRed}{não} \\
+      \midrule
+      Taxa-base $p_a$ & 51.4\% & 39.4\% & \textcolor{gray}{diferem} \\
+      \bottomrule
+    \end{tabular}
+
+    \vspace{0.6em}
+    O sistema satisfaz umas métricas e viola outras, \textbf{simultaneamente}. Coincidência ou consequência matemática?
+    \note{
+      A última linha é a chave do próximo slide: as taxas-base diferem (51\% vs 39\%). Com taxas-base diferentes, o teorema da impossibilidade diz que essa tabela nunca poderia ser toda verde.
+    }
+  \end{frame}
+
+  %--- Slide: teorema da impossibilidade ---
+  \begin{frame}{O Teorema da Impossibilidade\footfullcite{chouldechova2017fair}}
+    \begin{block}{Resultado (Chouldechova, 2017; Kleinberg et al., 2017)}
+      Se as taxas-base diferem ($p_0 \neq p_1$) e o classificador é imperfeito, é \textbf{matematicamente impossível} satisfazer ao mesmo tempo:
+      \begin{enumerate}
+        \item Calibração por grupo (PPV igual)
+        \item Igualdade de FPR
+        \item Igualdade de FNR
+      \end{enumerate}
+    \end{block}
+
+    \nocite{kleinberg2017inherent}%
+    \vspace{0.1em}
+    A demonstração usa apenas a relação algébrica entre as quantidades:
+    \[
+      FPR = \frac{p}{1-p} \cdot \frac{1 - PPV}{PPV} \cdot (1 - FNR)
+    \]
+    \vspace{-1.2em}
+
+    Fixar PPV e FNR iguais com taxas-base $p$ distintas \textbf{força} FPRs distintos.
+
+    \vspace{0.2em}
+    {\footnotesize Intuição: o grupo de maior prevalência tem mais reincidentes reais; manter PPV e FNR iguais entre grupos obriga o FPR desse grupo a ser maior.}
+    \note{
+      Vale escrever a identidade no quadro e substituir os números do COMPAS. Com prevalência 51\% vs 39\% e PPV travado em $\sim$60\%, o grupo de maior prevalência necessariamente tem FPR maior. Kleinberg et al.\ provam um resultado análogo para escores contínuos.
+    }
+  \end{frame}
+
+  %--- Slide: resolução da controvérsia ---
+  \begin{frame}{De Volta ao COMPAS: Ambos Tinham Razão}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}\setlength{\itemsep}{0.3em}
+          \item A ProPublica mediu taxas de erro; a Northpointe mediu calibração
+          \item Pelo teorema, \textbf{nenhum} classificador imperfeito poderia satisfazer os dois, dadas as taxas-base
+          \item A disputa não era sobre estatística, era sobre \textbf{qual noção de justiça} deveria prevalecer
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \resizebox{0.85\linewidth}{!}{%
+        \begin{tikzpicture}[
+          prop/.style={draw, rounded corners=3pt, font=\scriptsize, inner sep=4pt, text width=2.3cm, align=center},
+        ]
+          \node[prop, draw=FairGreen, fill=LightGreen] (cal) {Calibração};
+          \node[prop, draw=FairBlue, fill=LightBlue, below left=0.9cm and 0.1cm of cal] (fpr) {FPR igual};
+          \node[prop, draw=FairBlue, fill=LightBlue, below right=0.9cm and 0.1cm of cal] (fnr) {FNR igual};
+          \draw[thick, gray] (cal) -- (fpr);
+          \draw[thick, gray] (cal) -- (fnr);
+          \draw[thick, gray] (fpr) -- (fnr);
+          \node[font=\footnotesize\bfseries, color=FairRed] at ($(cal)!0.5!($(fpr)!0.5!(fnr)$)$) {escolha 2};
+        \end{tikzpicture}}
+
+        \vspace{0.3em}
+        \footnotesize Com taxas-base distintas, no máximo duas das três propriedades valem ao mesmo tempo.
+      \end{column}
+    \end{columns}
+
+    \vspace{0.4em}
+    \begin{alertblock}{Lição}
+      \textit{Fairness} não é uma propriedade booleana de um modelo: é um \textbf{trade-off} que precisa ser decidido, justificado e documentado por humanos.
+    \end{alertblock}
+    \note{
+      Este é o slide mais importante da aula. A matemática encerra a parte fácil da discussão (quem calculou certo) e abre a difícil (o que devemos igualar). Na prática judicial, o custo de um FP recai sobre o réu; a escolha da métrica embute essa decisão de política pública.
+    }
+  \end{frame}
+
+  %--- Slide: como escolher ---
+  \begin{frame}{Como Escolher a Métrica?}
+    Não existe métrica universal: a escolha depende de \textbf{quem paga o custo de cada erro}.
+
+    \vspace{0.4em}
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{llll}
+      \toprule
+      \textbf{Domínio} & \textbf{Erro mais grave} & \textbf{Critério candidato} & \textbf{Por quê} \\
+      \midrule
+      Risco criminal & FP (prisão indevida) & igualdade de FPR & proteger inocentes igualmente \\
+      Triagem médica & FN (doença ignorada) & igualdade de FNR / oportunidade & detectar doentes igualmente \\
+      Concessão de crédito & FP para o banco, FN para o cliente & equalized odds & equilibrar os dois lados \\
+      Anúncio de vagas & exclusão de acesso & paridade demográfica & redistribuir oportunidade \\
+      Escore exibido a decisores & escore enganoso & calibração & significado uniforme \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.5em}
+    \raggedright
+    A decisão deve envolver as partes afetadas e ficar registrada na documentação do sistema (Seção 7).
+    \note{
+      Tabela para discussão, não para decorar: pedir exemplos da turma e desafiar as linhas. Por exemplo, em triagem médica com recursos escassos, igualar FNR pode conflitar com maximizar vidas salvas.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: FAIRNESS INDIVIDUAL
+  %======================================================================
+  \section{\textit{Fairness} Individual}
+
+  %--- Slide: fairness through awareness ---
+  \begin{frame}{\textit{Fairness Through Awareness}\footfullcite{dwork2012fairness}}
+    \begin{block}{Princípio}
+      Indivíduos similares devem ser tratados de forma similar:
+      \[
+        d_{\text{out}}\big(f(i), f(j)\big) \leq L \cdot d_{\text{task}}(i, j)
+      \]
+      uma condição de \textit{Lipschitz} sobre o classificador $f$.
+    \end{block}
+
+    \vspace{0.4em}
+    \begin{itemize}\setlength{\itemsep}{0.3em}
+      \item $d_{\text{task}}$ é uma métrica de similaridade \textbf{específica da tarefa}: quão parecidos são dois candidatos \textit{para fins de crédito}?
+      \item Protege contra injustiças que o agregado esconde: um modelo pode igualar estatísticas de grupo maltratando indivíduos específicos
+      \item Limitação prática: \textbf{quem define} $d_{\text{task}}$? A dificuldade só mudou de lugar
+    \end{itemize}
+    \note{
+      O nome é uma resposta direta ao fairness through unawareness (apagar o atributo, que vimos falhar no COMPAS): aqui a justiça vem de olhar com cuidado para a similaridade, não de fingir que o atributo não existe. A métrica de similaridade carrega toda a carga normativa.
+    }
+  \end{frame}
+
+  %--- Slide: counterfactual fairness ---
+  \begin{frame}{\textit{Counterfactual Fairness}\footfullcite{kusner2017counterfactual}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Princípio}
+          A decisão não deve mudar no \textbf{mundo contrafactual} em que o indivíduo pertence ao outro grupo:
+          \[
+            P(\hat{y}_{a \leftarrow 0} = c \mid \X, a) = P(\hat{y}_{a \leftarrow 1} = c \mid \X, a)
+          \]
+          {\scriptsize $c$: decisão; $\X$: demais atributos; $a\leftarrow v$: fixar o grupo em $v$.}
+        \end{block}
+
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Usa um \textbf{modelo causal}: intervir em $a$ afeta os atributos descendentes (renda, CEP)
+          \item Mais forte que ignorar $a$: corrige também os \textit{proxies} de $a$
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          v/.style={draw=FairBlue, fill=LightBlue, circle, font=\small, inner sep=3pt},
+          arr/.style={->, thick, color=gray}
+        ]
+          \node[v, fill=LightRed, draw=FairRed] (a) {$a$};
+          \node[v, right=1.0cm of a] (x1) {$x_1$};
+          \node[v, below=0.8cm of x1] (x2) {$x_2$};
+          \node[v, right=1.0cm of x1] (y) {$\hat{y}$};
+          \draw[arr] (a) -- (x1);
+          \draw[arr] (a) -- (x2);
+          \draw[arr] (x1) -- (y);
+          \draw[arr] (x2) -- (y);
+        \end{tikzpicture}
+
+        \vspace{0.4em}
+        \footnotesize Grafo causal: $a$ afeta $x_1$ (CEP) e $x_2$ (renda), que alimentam a predição. Intervir em $a$ muda tudo rio abaixo.
+
+        \vspace{0.3em}
+        \begin{alertblock}{\small Custo}
+          \small Exige conhecer o grafo causal correto, o que raramente está disponível.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Pergunta que o critério formaliza: \enquote{esta pessoa teria o crédito negado se fosse de outra raça, mantido todo o resto que não decorre da raça?}. A força e a fraqueza vêm do mesmo lugar: o modelo causal explícito.
+    }
+  \end{frame}
+
+  %--- Slide: grupo vs individual trade-offs ---
+  \begin{frame}{Grupo vs Individual: Qual Usar?}
+    \centering
+    \renewcommand{\arraystretch}{1.35}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lll}
+      \toprule
+       & \textbf{\textit{Group fairness}} & \textbf{\textit{Individual fairness}} \\
+      \midrule
+      O que exige & estatísticas iguais entre grupos & tratamento similar para similares \\
+      Insumo difícil & rótulo $y$ confiável e atributo $a$ & métrica $d_{\text{task}}$ ou grafo causal \\
+      Auditável externamente & sim, com dados desagregados & dificilmente \\
+      Risco típico & esconder injustiças individuais & embutir viés na similaridade \\
+      Uso comum & regulação, auditoria, relatórios & desenho do sistema, análise causal \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{0.6em}
+    \raggedright
+    Na prática, critérios de grupo dominam auditorias e regulação por serem mensuráveis; critérios individuais guiam o \textbf{desenho} do sistema. As métricas de grupo seguem sendo o vocabulário padrão da área de \textit{debiasing}, que vemos agora.
+    \note{
+      Transição para a Seção 6: dadas as métricas, como mover um modelo na direção certa? Apresentar a taxonomia do nosso survey.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 6: MÉTODOS DE DEBIASING
+  %======================================================================
+  \section{Métodos de \textit{Debiasing}}
+
+  %--- Slide: taxonomia ---
+  \begin{frame}{Uma Taxonomia de Métodos\footfullcite{parraga2025fairness}}
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+      root/.style={draw=DarkBlue, fill=HighlightYellow, rounded corners=4pt,
+                   font=\small\bfseries, inner sep=6pt, text width=3.4cm, align=center},
+      cat/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt,
+                  font=\small\bfseries, inner sep=5pt, text width=2.9cm, align=center},
+      leaf/.style={draw=gray!60, fill=LightGray, rounded corners=2pt,
+                   font=\scriptsize, inner sep=3pt, text width=2.7cm, align=center},
+      arr/.style={thick, color=gray}
+    ]
+      \node[root] (root) at (5.85, 1.6) {Métodos de \textit{Debiasing}};
+
+      \node[cat] (d) at (0, 0) {Distribucionais};
+      \node[cat] (o) at (3.9, 0) {\textit{One-Step-Training}};
+      \node[cat] (t) at (7.8, 0) {\textit{Two-Step-Training}};
+      \node[cat] (i) at (11.7, 0) {Inferenciais};
+
+      \node[leaf, below=0.4cm of d] (d1) {Heurísticos};
+      \node[leaf, below=0.15cm of d1] (d2) {\textit{Resampling}};
+      \node[leaf, below=0.15cm of d2] (d3) {Generativos};
+
+      \node[leaf, below=0.4cm of o] (o1) {Adversariais};
+      \node[leaf, below=0.15cm of o1] (o2) {Otimização};
+      \node[leaf, below=0.15cm of o2] (o3) {Causais};
+      \node[leaf, below=0.15cm of o3] (o4) {\textit{Disentanglement}};
+
+      \node[leaf, below=0.4cm of t] (t1) {\textit{Distillation}};
+      \node[leaf, below=0.15cm of t1] (t2) {\textit{Fine-tuning}};
+      \node[leaf, below=0.15cm of t2] (t3) {Módulos \textit{fair}};
+
+      \node[leaf, below=0.4cm of i] (i1) {\textit{Prompting}};
+      \node[leaf, below=0.15cm of i1] (i2) {Espaço vetorial};
+
+      \foreach \c in {d, o, t, i} \draw[arr] (root.south) -- (\c.north);
+      \foreach \p/\c in {d/d1, d1/d2, d2/d3, o/o1, o1/o2, o2/o3, o3/o4,
+                         t/t1, t1/t2, t2/t3, i/i1, i1/i2}
+        \draw[arr] (\p.south) -- (\c.north);
+    \end{tikzpicture}}
+
+    \vspace{0.4em}
+    O eixo organizador é \textbf{onde} a intervenção acontece: nos dados, durante o treino, em uma etapa extra de treino, ou só na inferência.
+    \note{
+      Taxonomia do nosso survey (Parraga et al., ACM Computing Surveys 2025), que revisa 95 métodos de debiasing para redes neurais de visão e linguagem. Adiantar que a posição na taxonomia determina custo computacional e acesso necessário ao modelo.
+    }
+  \end{frame}
+
+  %--- Slide: distribucionais ---
+  \begin{frame}{Métodos Distribucionais}
+    Intervêm \textbf{nos dados}, antes de qualquer treino:
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item \textbf{Heurísticos}: regras manuais de filtragem ou balanceamento do corpus (remover conteúdo tóxico, equilibrar legendas)
+      \item \textbf{\textit{Resampling}}: reamostrar para equilibrar grupos sub-representados (\textit{oversampling} da minoria, \textit{undersampling} da maioria, pesos por instância)
+      \item \textbf{Generativos}: usar modelos generativos (Unidade 5) para \textbf{sintetizar} exemplos dos grupos minoritários e completar a distribuição
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Prós e contras}
+      Independem da arquitetura e atacam a causa mais comum (dados). Mas exigem \textbf{retreinar do zero} e não corrigem viés introduzido pelo algoritmo ou pela interação.
+    \end{block}
+    \note{
+      Conexão com Gender Shades: a resposta das empresas foi essencialmente distribucional, rebalancear os conjuntos de treino de face. Citar também os datasets balanceados tipo FairFace.
+    }
+  \end{frame}
+
+  %--- Slide: one-step ---
+  \begin{frame}{\textit{One-Step-Training}}
+    Treinam o modelo \textbf{já com o objetivo de fairness}, em uma única etapa:
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item \textbf{Adversariais}: um discriminador tenta prever $a$ a partir das representações; o modelo principal é treinado para \textbf{impedir} isso (gradiente reverso, como nas GANs)
+      \item \textbf{Otimização}: termos de regularização que penalizam disparidade,
+        $\mathcal{L} = \mathcal{L}_{\text{tarefa}} + \lambda \, \mathcal{L}_{\text{fair}}$
+      \item \textbf{Causais}: incorporam o grafo causal ou contrafactuais ao treino
+      \item \textbf{\textit{Disentanglement}}: separam fatores latentes (Unidade 5, VAEs) para isolar e descartar o fator correlacionado com $a$
+    \end{itemize}
+
+    \vspace{0.3em}
+    \begin{block}{Característica}
+      Categoria com mais métodos no survey. Controle fino do trade-off via $\lambda$, mas exige acesso total ao treino e paga o custo de um treino completo.
+    \end{block}
+    \note{
+      O truque adversarial é o mesmo do domain adaptation: representação útil para a tarefa e inútil para prever o atributo protegido. Bom momento para revisar gradient reversal layer se a turma viu GANs.
+    }
+  \end{frame}
+
+  %--- Slide: two-step ---
+  \begin{frame}{\textit{Two-Step-Training}}
+    Partem de um modelo \textbf{já treinado} e adicionam uma segunda etapa de treino:
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item \textbf{\textit{Distillation}}: um modelo aluno é destilado do professor com restrições de fairness no processo
+      \item \textbf{\textit{Fine-tuning}}: ajuste fino em dados balanceados ou com objetivo de fairness (inclusive RLHF e variantes, Unidade 4)
+      \item \textbf{Módulos \textit{fair}}: congela-se o modelo base e treina-se um módulo extra (\textit{adapter}, cabeça de projeção) responsável pela correção
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{block}{Por que importam cada vez mais}
+      São os métodos compatíveis com o regime de \textit{foundation models}: ninguém retreina um modelo de bilhões de parâmetros do zero para corrigir um viés (mesma lógica do PEFT na Unidade 4).
+    \end{block}
+    \note{
+      Ligar com a aula de fine-tuning: LoRA e adapters tornam a segunda etapa barata. A fronteira entre alinhamento (RLHF) e debiasing é difusa, ambos moldam o comportamento pós-pré-treino.
+    }
+  \end{frame}
+
+  %--- Slide: inferenciais ---
+  \begin{frame}{Métodos Inferenciais}
+    Não alteram \textbf{nenhum parâmetro}: intervêm só na inferência:
+
+    \vspace{0.3em}
+    \begin{itemize}\setlength{\itemsep}{0.35em}
+      \item \textbf{\textit{Prompting}}: instruções no contexto que pedem neutralidade ou contrabalançam o estereótipo (\textit{self-debiasing})
+      \item \textbf{Espaço vetorial}: editar representações na inferência, projetando fora a direção associada ao atributo protegido
+      \item Ajuste de limiar por grupo (pós-processamento clássico de Hardt et al., 2016) também vive aqui
+    \end{itemize}
+
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Vantagens}
+          Baratos, reversíveis e aplicáveis a modelos de terceiros (API, sem acesso aos pesos).
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{Desvantagens}
+          Correção superficial: o viés continua nos pesos e pode reaparecer sob \textit{prompts} adversariais.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Analogia com unlearning (aula anterior): métodos inferenciais são como guardrails, removem o sintoma sem remover o conhecimento. Para auditoria profunda isso importa.
+    }
+  \end{frame}
+
+  %--- Slide: exemplo embeddings ---
+  \begin{frame}{Exemplo: \textit{Debiasing} de \textit{Word Embeddings}}
+    Voltando ao exemplo de Bolukbasi et al.\ (2016), um método de \textbf{espaço vetorial}:
+
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \begin{enumerate}\setlength{\itemsep}{0.3em}
+          \item Estimar a \textbf{direção de gênero} $\bm{g}$ com pares definicionais ($\overrightarrow{\text{he}} - \overrightarrow{\text{she}}$, ...)
+          \item Para palavras que deveriam ser neutras (profissões), \textbf{remover a componente} em $\bm{g}$:
+            \[
+              \bm{w}' = \bm{w} - (\bm{w} \cdot \bm{g})\, \bm{g}
+            \]
+          \item Reequalizar pares como ($\overrightarrow{\text{he}}, \overrightarrow{\text{she}}$) para ficarem equidistantes das neutras
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \resizebox{0.95\linewidth}{!}{%
+        \begin{tikzpicture}[font=\small]
+          \draw[->, thick, gray] (-0.3, 0) -- (4.3, 0) node[below right, font=\scriptsize] {direção de gênero $\bm{g}$};
+          \draw[->, thick, gray] (0, -0.3) -- (0, 3.0);
+          \draw[->, very thick, FairRed] (0, 0) -- (3.2, 2.2) node[above, font=\scriptsize] {$\overrightarrow{\text{programmer}}$};
+          \draw[->, very thick, FairGreen] (0, 0) -- (0, 2.2) node[above left, font=\scriptsize] {$\bm{w}'$ (neutra)};
+          \draw[dashed, thick, gray] (3.2, 2.2) -- (0, 2.2);
+          \draw[decorate, decoration={brace, amplitude=4pt, mirror}] (0, -0.45) -- (3.2, -0.45)
+            node[midway, below=4pt, font=\scriptsize] {$(\bm{w} \cdot \bm{g})\,\bm{g}$ removida};
+        \end{tikzpicture}}
+
+        \vspace{0.3em}
+        \begin{alertblock}{\small Ressalva}
+          \small Trabalhos posteriores mostram que o viés é apenas \textbf{atenuado}: informação de gênero permanece recuperável na geometria restante.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      A ressalva é de Gonen e Goldberg (2019), \enquote{Lipstick on a Pig}: vizinhança das palavras enviesadas continua agrupada após a projeção. Mensagem: debiasing pontual no espaço vetorial é mitigação, não solução.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 7: DOCUMENTAÇÃO E GOVERNANÇA
+  %======================================================================
+  \section{Documentação e Governança}
+
+  %--- Slide: datasheets ---
+  \begin{frame}{\textit{Datasheets for Datasets}\footfullcite{gebru2021datasheets}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Inspiração: \textit{datasheets} de componentes eletrônicos. Toda base de dados publicada deveria responder, por escrito:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item \textbf{Motivação}: quem criou, por quê, com que financiamento?
+          \item \textbf{Composição}: o que contém? Quais grupos estão (sub-)representados?
+          \item \textbf{Coleta e rotulação}: como, por quem, com qual consentimento?
+          \item \textbf{Usos}: para que serve? Para que \textbf{não} serve?
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Por que importa para fairness}
+          A maior parte do viés entra pelos dados. Documentar composição e coleta permite que usuários da base \textbf{antecipem} disparidades em vez de descobri-las em produção.
+        \end{block}
+        \begin{alertblock}{Status}
+          Prática hoje comum em datasets acadêmicos (NeurIPS Datasets and Benchmarks exige) e em \textit{hubs} como o Hugging Face (\textit{dataset cards}).
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Exemplo concreto para citar: a datasheet do Labeled Faces in the Wild documenta explicitamente o desbalanceamento demográfico, o que teria evitado parte dos problemas do Gender Shades se fosse lida.
+    }
+  \end{frame}
+
+  %--- Slide: model cards ---
+  \begin{frame}{\textit{Model Cards}\footfullcite{mitchell2019model}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        O análogo para \textbf{modelos treinados}:
+        \begin{itemize}\setlength{\itemsep}{0.2em}
+          \item Detalhes do modelo: arquitetura, dados de treino, versão, licença
+          \item Uso pretendido e usos \textbf{fora de escopo}
+          \item Métricas de avaliação, \textbf{desagregadas} por grupos relevantes (análises interseccionais)
+          \item Considerações éticas, limitações e recomendações
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Exemplos atuais}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item \textit{Model card} do Gemma (Google)
+            \item \textit{Model card} do CLIP (aula de multimodais)
+            \item Páginas de modelo no Hugging Face
+          \end{itemize}
+        \end{block}
+        \begin{alertblock}{Ponto-chave}
+          Avaliação \textbf{desagregada} é a ponte com esta aula: a acurácia agregada esconde o que o COMPAS e o Gender Shades mostraram.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+    \note{
+      Mostrar ao vivo a model card do Gemma ou do CLIP se houver internet. Observação histórica: Margaret Mitchell e Timnit Gebru, autoras dos dois frameworks, lideravam o time de Ethical AI do Google.
+    }
+  \end{frame}
+
+  %--- Slide: risk awareness ---
+  \begin{frame}{Consciência e Propriedade do Risco}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{\textit{Risk awareness}}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item Há vieses conhecidos nos dados? Estão documentados?
+            \item Quais usos foram previstos e quais são indevidos?
+            \item Como as escolhas de projeto (métrica, limiar) foram comunicadas?
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{\textit{Risk ownership}}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item \textbf{Dono do algoritmo}: usuário não controla o sistema (reconhecimento facial em aeroporto); a responsabilidade é de quem implanta
+            \item \textbf{Usuário do algoritmo}: usuário tem controle (parâmetros, \textit{prompt}); a responsabilidade é compartilhada
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.2em}
+    \begin{alertblock}{Posição da área}
+      \textit{Fairness} deve ser requisito de primeira classe, com a mesma seriedade de \textbf{segurança, privacidade e acessibilidade}, não uma etapa opcional.
+    \end{alertblock}
+    \note{
+      A distinção awareness/ownership veio da parte de challenges do nosso survey. Regulação recente (AI Act europeu, frameworks NIST) formaliza exatamente isso: classificação de risco e atribuição de responsabilidade por sistema.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 8: FAIRNESS EM FOUNDATION MODELS
+  %======================================================================
+  \section{\textit{Fairness} em \textit{Foundation Models}}
+
+  %--- Slide: propagação downstream ---
+  \begin{frame}{O Viés se Propaga Rio Abaixo}
+    \centering
+    \begin{tikzpicture}[
+      box/.style={draw=FairBlue, fill=LightBlue, rounded corners=3pt,
+                  font=\small, inner sep=6pt, text width=3.0cm, align=center, minimum height=1.0cm},
+      task/.style={draw=gray!60, fill=LightGray, rounded corners=3pt,
+                   font=\scriptsize, inner sep=4pt, text width=2.2cm, align=center},
+      arr/.style={->, thick, color=FairBlue}
+    ]
+      \node[box, fill=LightRed, draw=FairRed] (fm) {\textit{Foundation model} \\ \footnotesize (viés do corpus web)};
+      \node[task, right=1.6cm of fm, yshift=1.1cm] (t1) {chatbot de atendimento};
+      \node[task, right=1.6cm of fm] (t2) {triagem de currículos};
+      \node[task, right=1.6cm of fm, yshift=-1.1cm] (t3) {geração de imagens};
+      \draw[arr] (fm) -- (t1);
+      \draw[arr] (fm) -- (t2);
+      \draw[arr] (fm) -- (t3);
+      \node[font=\scriptsize, color=FairRed, below=0.2cm of fm] {um único ponto de origem do viés};
+    \end{tikzpicture}
+
+    \vspace{0.5em}
+    \begin{itemize}\setlength{\itemsep}{0.25em}
+      \item No paradigma pré-treino + adaptação (Unidade 4), o viés do pré-treino é \textbf{herdado} por todas as tarefas derivadas, e pode ser amplificado na adaptação
+      \item O mesmo modelo serve milhões de aplicações: o ciclo de retroalimentação da Seção 1 agora opera em escala de ecossistema
+    \end{itemize}
+    \note{
+      Contraste com o cenário pré-2020: antes, cada aplicação treinava seu modelo e o viés era um problema local. Hoje auditar meia dúzia de foundation models tem efeito sistêmico, para o bem e para o mal.
+    }
+  \end{frame}
+
+  %--- Slide: escala muda o jogo ---
+  \begin{frame}{A Escala Muda o Jogo do \textit{Debiasing}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{alertblock}{Ficam inviáveis}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item \textbf{Distribucionais}: curar ou rebalancear trilhões de tokens é proibitivo
+            \item \textbf{\textit{One-step}}: retreinar do zero com objetivo de fairness custa milhões de GPU-horas
+          \end{itemize}
+        \end{alertblock}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Dominam na prática}
+          \begin{itemize}\setlength{\itemsep}{0.2em}
+            \item \textbf{\textit{Two-step}}: \textit{fine-tuning} alinhado, RLHF, adapters (a um custo PEFT)
+            \item \textbf{Inferenciais}: \textit{prompting}, edição de representações, filtros de saída
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+
+    \vspace{0.5em}
+    \begin{block}{Paralelo com a aula de \textit{unlearning}}
+      Mesma economia: intervenções caras no pré-treino são substituídas por correções baratas pós-hoc, com o mesmo risco, a correção é \textbf{superficial} e pode ser revertida por \textit{fine-tuning} ou \textit{prompts} adversariais.
+    \end{block}
+    \note{
+      Esta é a leitura de 2025/2026 do capítulo de challenges do survey: a previsão de que two-step e inferenciais dominariam no regime de foundation models se confirmou. RLHF é hoje o maior mecanismo de debiasing em produção, mesmo que raramente seja chamado assim.
+    }
+  \end{frame}
+
+  %--- Slide: desafios abertos ---
+  \begin{frame}{Desafios Abertos}
+    \begin{itemize}\setlength{\itemsep}{0.4em}
+      \item \textbf{Métricas dependem do domínio}: dezenas de critérios incompatíveis; a escolha segue delegada ao praticante, com pouca orientação normativa
+      \item \textbf{Avaliação de modelos generativos}: as métricas desta aula assumem classificação; medir fairness em texto e imagem gerados é problema aberto
+      \item \textbf{Interseccionalidade}: garantir fairness em grupos isolados não garante nas interseções (Gender Shades: o pior erro era em mulheres \textbf{e} de pele escura)
+      \item \textbf{Robustez da mitigação}: correções inferenciais e por \textit{fine-tuning} podem ser revertidas; auditoria precisa testar adversarialmente
+      \item \textbf{Documentação em cadeias de modelos}: quem documenta o quê quando um produto empilha modelo base, \textit{fine-tuning} de terceiros e \textit{prompts} proprietários?
+    \end{itemize}
+    \note{
+      Fechar conectando com o arco da aula: começamos com exemplos, formalizamos métricas, vimos que são incompatíveis (teorema), aprendemos a mitigar e a documentar. O campo está aberto: cada item desta lista é tema possível de TCC ou mestrado.
+    }
+  \end{frame}
+
+  %======================================================================
+  % REFERÊNCIAS E LEITURAS
+  %======================================================================
+  \section*{Referências e Leituras}
+
+  \begin{frame}{Leituras Recomendadas}
+    \begin{itemize}\setlength{\itemsep}{0.5em}
+      \item \fullcite{barocas2023fairness}
+      \item \fullcite{parraga2025fairness}
+      \item \fullcite{mehrabi2021survey}
+      \item Análise original do COMPAS: \citeauthor{angwin2016machine}, \citetitle{angwin2016machine}. ProPublica, 2016
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

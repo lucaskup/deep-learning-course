@@ -1,0 +1,176 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidades 2 e 3}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 \\\hline
+d & c & f & e & g \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (d)}
+Aplicando a recursão $RF_l = RF_{l-1} + (K_l - 1)\prod_{i<l} S_i$ com $RF_0 = 1$ e todos os \textit{kernels} $3\times 3$:
+\begin{align*}
+    RF_1 &= 1 + (3-1)\cdot 1 = 3 \\
+    RF_2 &= 3 + (3-1)\cdot S_1 = 3 + 2\cdot 1 = 5 \\
+    RF_3 &= 5 + (3-1)\cdot (S_1 S_2) = 5 + 2\cdot(1\cdot 2) = 5 + 4 = 9
+\end{align*}
+O campo receptivo é $9 \times 9$, logo o lado é $9$.\\
+\textbf{(c)} $7$: trata todos os \textit{strides} como $1$ ($1 + 2 + 2 + 2 = 7$), ignorando o produto acumulado.
+\textbf{(a)} $5$: para no $RF_2$, esquecendo a terceira camada.
+\textbf{(e)} $11$/\textbf{(f)} $13$/\textbf{(g)} $15$/\textbf{(h)} $17$: usam o \textit{stride} da própria camada no produto (incluindo $i = l$) ou acumulam o \textit{stride} $2$ em camadas erradas.
+\textbf{(b)} $6$: número sem correspondência com a recursão.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (c)}
+A soma $h = x + f(x)$ faz a variância crescer ao longo da profundidade (no caso descorrelacionado, $\sigma_{\text{out}}^2 = 2\,\sigma_{\text{in}}^2$). A \textit{batch normalization} reescala as ativações para média/variância controladas (e depois aplica o reajuste afim $\gamma, \beta$), estabilizando a distribuição internamente ao bloco e permitindo treinar redes muito profundas.\\
+\textbf{(a)} $\gamma$ e $\beta$ são $2$ parâmetros por canal/unidade; não substituem os pesos das convoluções nem reduzem o total de parâmetros de forma relevante.
+\textbf{(b)} a \textit{skip connection} é justamente o que resolve a degradação/desaparecimento; a \textit{batch norm} não a substitui.
+\textbf{(d)} a não-linearidade continua sendo a função de ativação (ReLU); a \textit{batch norm} é uma transformação afim por canal.
+\textbf{(e)} \textit{batch norm} não altera o campo receptivo (não envolve vizinhança espacial).
+\textbf{(f)} ela não garante mapeamento identidade; isso depende dos pesos aprendidos de $f$.
+\textbf{(g)} \textit{batch norm} normaliza ativações, não fixa a variância dos pesos; inicialização (He) é um mecanismo distinto.
+\textbf{(h)} na inferência usam-se as estatísticas móveis acumuladas no \emph{treino} ($\mu_{\text{mov}}, \sigma_{\text{mov}}$), não estatísticas do conjunto de teste.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (f)}
+Os sintomas (gradiente normal nos passos finais, praticamente nulo nos iniciais) são sinais do \textbf{desaparecimento do gradiente}. Na BPTT, o gradiente que volta até um passo distante carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2| \le 1$, o produto de muitos fatores $\le 1$ decai para zero nos passos iniciais. A mitigação estrutural é trocar a célula recorrente por uma com portões (LSTM/GRU), cujo caminho aditivo da memória ($c_t = f_t\odot c_{t-1} + \dots$) preserva o gradiente ao longo do tempo.\\
+\textbf{(b)} \textit{clipping} trata \emph{explosão} (gradientes grandes), não o desaparecimento.
+\textbf{(c)} ajustar a taxa por passo não recupera um sinal que já chega praticamente nulo.
+\textbf{(d)} encurtar a sequência mascara o sintoma e remove a dependência de longo prazo; não é a melhor solução.
+\textbf{(e)} a sigmoide tem derivada máxima $0.25 < 1$; troca por sigmoide \emph{piora} o decaimento.
+\textbf{(a)} Adam ajuda, mas sozinho não cura o problema estrutural do produto de Jacobianos.
+\textbf{(g)} a escolha da saída não redistribui o gradiente uniformemente pelos passos.
+\textbf{(h)} \textit{dropout} desliga unidades; não aumenta a magnitude do gradiente propagado.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (e)}
+\textbf{I é correta:} $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ combina memória anterior (via \textit{forget gate}) e candidato (via \textit{input gate}); o caminho de $c_{t-1}$ a $c_t$ é aditivo, o que sustenta o gradiente ao longo do tempo (\textit{constant error carousel}).
+
+\textbf{II é incorreta:} na LSTM padrão, \textit{forget gate} e \textit{input gate} são independentes (cada um com seus próprios pesos e ativação sigmoide), não há restrição $i_t = 1 - f_t$. Esse acoplamento existe apenas em uma variante específica (CIFG, \textit{coupled input-forget gate}), e não na LSTM clássica; na LSTM padrão a célula pode, por exemplo, esquecer e escrever simultaneamente.
+
+\textbf{III é correta:} $h_t = o_t \odot \tanh(c_t)$; o \textit{output gate} controla qual parte da memória $c_t$ é exposta como estado oculto no passo $t$.
+
+Logo, apenas I e III estão corretas.\\
+\textbf{(a)/(b)/(c)} excluem uma afirmação correta.
+\textbf{(d)/(f)/(g)} incluem a afirmação II, que é falsa.
+\textbf{(h)} contradiz I e III.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (g)}
+As probabilidades conjuntas das duas hipóteses mantidas pelo \textit{beam} ($b=2$) são:
+\[
+\text{(via ``céu''): } 0.50 \times 0.40 = 0.20, \qquad
+\text{(via ``sol''): } 0.45 \times 0.90 = 0.405.
+\]
+O \textit{beam search} compara as sequências completas e escolhe ``O sol brilha'' ($0.405 > 0.20$). O \textit{greedy} escolhe o \textit{token} localmente mais provável no primeiro passo (``céu'', com $0.50$) e, no segundo passo, a continuação mais provável de ``céu'' (``azul'', com $0.40 > 0.35$ de ``limpo''), ficando preso à sequência ``O céu azul'' e perdendo a melhor global. É exatamente o caso em que \textit{greedy} e \textit{beam} divergem.\\
+\textbf{(b)/(d)} afirmam que ambos escolhem ``céu'', ignorando que o \textit{beam} avalia a sequência inteira.
+\textbf{(c)} afirma coincidência; aqui há divergência.
+\textbf{(a)} inverte os papéis (quem maximiza a conjunta é o \textit{beam}, não o \textit{greedy}).
+\textbf{(e)} o \textit{score} do \textit{beam} usa a soma dos \emph{log} das probabilidades (equivalente ao produto), não a soma das probabilidades.
+\textbf{(f)} \textit{beam} não prioriza \textit{tokens} de baixa probabilidade.
+\textbf{(h)} a penalidade de comprimento só importa ao comparar sequências de \emph{tamanhos diferentes}; aqui ambas têm $2$ \textit{tokens}.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 6 \textemdash{} Verdadeiro/Falso com modificação}
+
+\begin{enumerate}[a)]
+    \item \textbf{F.} Um \textit{kernel} $5\times 5$ com \textit{stride} $1$ encolhe cada dimensão em $K - 1 = 4$ a menos do que o \textit{padding} compensa: com \textit{padding} $1$ a saída fica $(H - 5 + 2\cdot 1 + 1) = (H - 2)$ por lado. Para preservar $H\times W$ é preciso \textit{padding} $p = (K-1)/2 = 2$. \textit{Modificação:} usar \textit{padding} $2$ (em geral $p = (K-1)/2$ para \textit{kernel} ímpar e \textit{stride} $1$).
+
+    \item \textbf{V.} A derivada da saída do bloco em relação à entrada contém o termo identidade $I$ (mais os termos das funções $f$); esse $I$ garante um caminho de gradiente que não é atenuado pelos pesos das camadas internas, mitigando o desaparecimento do gradiente em grande profundidade.
+
+    \item \textbf{F.} Na inferência a \textit{batch norm} \emph{não} usa as estatísticas do \textit{mini-batch} de teste (a saída de uma amostra dependeria das outras do \textit{batch}, e o resultado deixaria de ser determinístico). \textit{Modificação:} usar as médias móveis $\mu_{\text{mov}}, \sigma_{\text{mov}}$ acumuladas durante o \emph{treino}.
+
+    \item \textbf{F.} Com distribuição uniforme sobre $|V|$ \textit{tokens}, $p(y_t \mid y_{<t}) = 1/|V|$ a cada passo, e a perplexidade resulta em $|V|$ (o pior caso: o modelo está em dúvida entre todos os \textit{tokens}). De fato $\text{Perplexidade} \in [1, |V|]$, e $1$ corresponde ao modelo determinístico e sempre certo. \textit{Modificação:} a perplexidade é igual a $|V|$ (não a $1$).
+
+    \item \textbf{V.} Com $f_t \to 1$ e $i_t \to 0$, $c_t = f_t\odot c_{t-1} + i_t \odot \tilde{c}_t \to c_{t-1}$: o \textit{forget gate} aberto e o \textit{input gate} fechado fazem a LSTM copiar a memória anterior (\textit{constant error carousel}), preservando dependências de longo prazo.
+\end{enumerate}
+
+\textit{(Três asserções falsas: a, c, d. Duas verdadeiras: b, e.)}
+
+\subsection*{Questão 7 \textemdash{} \textit{Forward pass}, BPTT e atualização SGD}
+
+Dados: $x_1 = 1$, $x_2 = 1$, $h_0 = 0$, $y = 1$, $\theta_{ih} = 0.5$, $\theta_{hh} = 0.2$, $\theta_{ho} = 1.0$, $\eta = 0.1$.
+
+\textbf{(a)} \textit{Forward pass:}
+\begin{align*}
+    z_1 &= x_1\,\theta_{ih} + h_0\,\theta_{hh} = 1\cdot 0.5 + 0 = 0.5 \\
+    h_1 &= \tanh(0.5) \approx 0.4621 \\
+    z_2 &= x_2\,\theta_{ih} + h_1\,\theta_{hh} = 1\cdot 0.5 + 0.4621\cdot 0.2 \approx 0.5924 \\
+    h_2 &= \tanh(0.5924) \approx 0.5316 \\
+    \hat{y}_2 &= h_2\,\theta_{ho} = 0.5316\cdot 1.0 = 0.5316
+\end{align*}
+
+\textbf{(b)} \textit{Função de custo:}
+\[
+J = \tfrac{1}{2}(y - \hat{y}_2)^2 = \tfrac{1}{2}(1 - 0.5316)^2 = \tfrac{1}{2}(0.4684)^2 \approx 0.1097
+\]
+
+\textbf{(c)} \textit{Backward pass} (BPTT, com $\tanh'(z) = 1 - \tanh^2(z)$):
+\begin{align*}
+    \frac{\partial J}{\partial \hat{y}_2} &= -(y - \hat{y}_2) = -0.4684 \\
+    \frac{\partial J}{\partial \theta_{ho}} &= \frac{\partial J}{\partial \hat{y}_2}\cdot h_2 = -0.4684\cdot 0.5316 \approx -0.2490 \\
+    \frac{\partial J}{\partial h_2} &= \frac{\partial J}{\partial \hat{y}_2}\cdot \theta_{ho} = -0.4684 \\
+    \frac{\partial J}{\partial z_2} &= \frac{\partial J}{\partial h_2}\,(1 - h_2^2) = -0.4684\,(1 - 0.5316^2) \approx -0.3360 \\
+    \frac{\partial J}{\partial h_1} &= \frac{\partial J}{\partial z_2}\cdot \theta_{hh} = -0.3360\cdot 0.2 \approx -0.0672 \\
+    \frac{\partial J}{\partial z_1} &= \frac{\partial J}{\partial h_1}\,(1 - h_1^2) = -0.0672\,(1 - 0.4621^2) \approx -0.0529 \\[0.3em]
+    \frac{\partial J}{\partial \theta_{ih}} &= \frac{\partial J}{\partial z_2}\,x_2 + \frac{\partial J}{\partial z_1}\,x_1 = -0.3360 + (-0.0529) \approx -0.3889 \\
+    \frac{\partial J}{\partial \theta_{hh}} &= \frac{\partial J}{\partial z_2}\,h_1 + \frac{\partial J}{\partial z_1}\,h_0 = -0.3360\cdot 0.4621 + 0 \approx -0.1553
+\end{align*}
+(Os pesos $\theta_{ih}$ e $\theta_{hh}$ são compartilhados, por isso somamos as contribuições de $t = 2$ e $t = 1$; como $h_0 = 0$, a contribuição de $z_1$ para $\theta_{hh}$ é nula.)
+
+\textbf{(d)} \textit{Atualização SGD} com $\eta = 0.1$:
+\begin{align*}
+    \theta_{ho} &\leftarrow 1.0 - 0.1\cdot(-0.2490) \approx 1.0249 \\
+    \theta_{ih} &\leftarrow 0.5 - 0.1\cdot(-0.3889) \approx 0.5389 \\
+    \theta_{hh} &\leftarrow 0.2 - 0.1\cdot(-0.1553) \approx 0.2155
+\end{align*}
+
+\color{black}
+
+\end{document}

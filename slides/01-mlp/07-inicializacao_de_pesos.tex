@@ -1,0 +1,596 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Inicialização de Pesos: Explosão e Dissipação de Gradientes}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  \section{Por que inicialização importa}
+  %======================================================================
+
+  %--- Slide: recap das ativações ---
+  \begin{frame}{Recap: nem toda ativação preserva o gradiente}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \begin{itemize}
+          \item Sigmoid e tanh \alert{saturam} para $|z|$ grande, com derivada
+            tendendo a zero.
+          \item ReLU e variantes preservam gradiente no lado positivo.
+          \item A combinação \textbf{inicialização $\times$ ativação} controla a
+            magnitude do sinal que se propaga em forward e em backward.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=4.5cm,
+              xlabel={$z$}, axis lines=middle,
+              domain=-4:4, samples=120,
+              ymin=-1.1, ymax=3.1,
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+            ]
+              \addplot[thick,blue] {tanh(x)};
+              \addlegendentry{tanh}
+              \addplot[thick,red] {max(0,x)};
+              \addlegendentry{ReLU}
+            \end{axis}
+          \end{tikzpicture}
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: papel da inicialização ---
+  \begin{frame}{No início do treino, só os pesos definem o sinal}
+    \begin{itemize}
+      \item Antes da primeira atualização, a rede não foi ajustada aos dados.
+      \item A magnitude das ativações em cada camada é determinada inteiramente pelos
+        pesos iniciais e pelas funções de ativação.
+      \item Se a magnitude crescer ou encolher exponencialmente camada após camada,
+        o gradiente faz o mesmo.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: vanishing/exploding ---
+  \begin{frame}{Vanishing e exploding gradients}
+    \begin{itemize}
+      \item \textbf{Vanishing gradient}: gradientes encolhem a cada camada, camadas
+        iniciais não recebem sinal de aprendizagem.
+      \item \textbf{Exploding gradient}: gradientes crescem a cada camada, atualizações
+        ficam instáveis numericamente.
+      \item Ambos os casos quebram a descida de gradiente.
+      \item A inicialização \alert{certa} mantém a variância das pré-ativações
+        aproximadamente constante ao longo das camadas.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Estudo de caso: MNIST com tanh}
+  %======================================================================
+
+  %--- Slide: setup ---
+  \begin{frame}{Setup do estudo de caso}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=.55\textheight,keepaspectratio]{slides/img/01-mlp/init-mnist.png}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \begin{itemize}
+          \item Dataset: MNIST, dígitos manuscritos.
+          \item Arquitetura: MLP com 5 camadas, todas com 300 unidades tanh,
+            saída softmax com 10 classes.
+          \item Tamanho do \textit{batch}: 100 imagens.
+          \item Vamos olhar o histograma das ativações $A^{[1]},\ldots,A^{[4]}$
+            em cada camada oculta.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \vfill
+    \centering
+    \resizebox{.95\linewidth}{!}{%
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+      \node (x) at (0, 0) {$X = A^{[0]}$};
+      \node[below=0.15cm of x, font=\scriptsize, align=center]
+        {batch de 100 imagens $28\times28$\\shape $(784, 100)$};
+      \node[circle, draw, minimum size=1.1cm] (h1) at (2.6, 0) {tanh};
+      \node[circle, draw, minimum size=1.1cm] (h2) at (5.2, 0) {tanh};
+      \node[circle, draw, minimum size=1.1cm] (h3) at (7.8, 0) {tanh};
+      \node[circle, draw, minimum size=1.1cm] (h4) at (10.4, 0) {tanh};
+      \node[circle, draw, minimum size=1.1cm, font=\scriptsize] (out) at (13.2, 0) {softmax};
+      \node (y) at (15.8, 0) {$\hat{y} = A^{[5]}$};
+      \node[below=0.15cm of y, font=\scriptsize, align=center]
+        {probabilidades das 10 classes\\shape $(10, 100)$};
+      \draw[->] (x)  -- (h1);
+      \draw[->] (h1) -- node[above]{$A^{[1]}$} node[below, font=\scriptsize]{$(300, 100)$} (h2);
+      \draw[->] (h2) -- node[above]{$A^{[2]}$} node[below, font=\scriptsize]{$(300, 100)$} (h3);
+      \draw[->] (h3) -- node[above]{$A^{[3]}$} node[below, font=\scriptsize]{$(300, 100)$} (h4);
+      \draw[->] (h4) -- node[above]{$A^{[4]}$} node[below, font=\scriptsize]{$(300, 100)$} (out);
+      \draw[->] (out) -- (y);
+      \node[below=0.15cm of h1, font=\scriptsize, align=center]
+        {300 unidades\\$\theta^{[1]}\!: (300, 784)$};
+      \node[below=0.15cm of h2, font=\scriptsize, align=center]
+        {300 unidades\\$\theta^{[2]}\!: (300, 300)$};
+      \node[below=0.15cm of h3, font=\scriptsize, align=center]
+        {300 unidades\\$\theta^{[3]}\!: (300, 300)$};
+      \node[below=0.15cm of h4, font=\scriptsize, align=center]
+        {300 unidades\\$\theta^{[4]}\!: (300, 300)$};
+      \node[below=0.15cm of out, font=\scriptsize, align=center]
+        {10 unidades\\$\theta^{[5]}\!: (10, 300)$};
+    \end{tikzpicture}%
+    }
+  \end{frame}
+
+  %--- Slide: theta = 0 ---
+  \begin{frame}{Tentativa 1: $\theta = 0$}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Pesos iniciais zerados.
+          \item Toda unidade computa a mesma pré-ativação.
+          \item Todas as ativações colapsam em 0.
+          \item Por simetria, qualquer atualização afeta todas as unidades igualmente:
+            a rede nunca quebra a simetria.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-zero.png}
+        \footnotesize Histogramas de $A^{[1]},\ldots,A^{[4]}$ com $\theta=0$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: theta ~ N(0,1) ---
+  \begin{frame}{Tentativa 2: $\theta \sim \mathcal{N}(0,1)$}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Pesos com variância 1.
+          \item As pré-ativações de cada camada explodem em magnitude.
+          \item A tanh \alert{satura} em $\pm 1$.
+          \item Em camadas internas, quase todas as unidades estão na região
+            de derivada nula.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-normal.png}
+        \footnotesize Massa concentrada em $\pm 1$: zona morta da tanh.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: theta ~ U(-1, 1) ---
+  \begin{frame}{Tentativa 3: $\theta \sim \mathcal{U}(-1,1)$}
+    \begin{columns}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Variância $\sigma_\theta^2 = 1/3$, menor que o caso anterior.
+          \item Mesmo assim, as ativações \alert{encolhem} a cada camada.
+          \item Em $A^{[4]}$ a distribuição é uma agulha em zero.
+          \item Sintoma de \textit{vanishing} em forward.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-uniform.png}
+        \footnotesize Distribuição encolhe a cada camada.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: conclusão da seção ---
+  \begin{frame}{Precisamos calibrar $\sigma_\theta^2$ por camada}
+    \begin{itemize}
+      \item Inicializações ad-hoc falham de formas opostas dependendo da escala.
+      \item A escala certa depende do número de unidades de entrada de cada camada
+        e da função de ativação utilizada.
+      \item Visualização interativa que motiva a derivação:
+        \begin{center}
+          \href{https://www.deeplearning.ai/ai-notes/initialization/index.html}{%
+            \textit{\color{blue}\underline{deeplearning.ai: Initialization notes}}
+          }
+        \end{center}
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Forward pass: média da pré-ativação}
+  %======================================================================
+
+  %--- Slide: definição ---
+  \begin{frame}{Definição da pré-ativação por camada}
+    \[
+      z^{(l)}_i = b^{(l)}_i + \sum_{j=1}^{n^{(l-1)}} \theta^{(l)}_{ij}\,\varphi\!\left(z^{(l-1)}_j\right)
+    \]
+    \begin{itemize}
+      \item $z^{(l)}$: pré-ativação da camada $l$.
+      \item $b^{(l)}$: bias, \alert{inicializado em 0}.
+      \item $\theta^{(l)}$: pesos, $\theta^{(l)}_{ij} \sim \mathcal{N}(0,\sigma_\theta^2)$.
+      \item $\varphi$: ativação (tomamos ReLU como referência).
+    \end{itemize}
+    \vfill
+    \begin{block}{Hipóteses}
+      $\theta^{(l)}_{ij}$ independentes entre si e independentes de
+      $\varphi(z^{(l-1)}_j)$. A distribuição de $z^{(l-1)}_j$ é simétrica em zero.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: linearidade da esperança ---
+  \begin{frame}{Esperança: separar bias do somatório}
+    Aplicando a linearidade da esperança:
+    \[
+      E[z^{(l)}_i]
+        = E[b^{(l)}_i] + E\!\left[\sum_{j=1}^{n^{(l-1)}} \theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right].
+    \]
+    \begin{itemize}
+      \item Como inicializamos $b^{(l)}_i = 0$, $E[b^{(l)}_i] = 0$.
+      \item Sobra a esperança do somatório, que reescrevemos como soma das esperanças.
+    \end{itemize}
+    \[
+      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E\!\left[\theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right].
+    \]
+  \end{frame}
+
+  %--- Slide: independência ---
+  \begin{frame}{Esperança: independência $\theta\perp\varphi$}
+    Como $\theta^{(l)}_{ij}$ é independente de $\varphi(z^{(l-1)}_j)$,
+    \[
+      E\!\left[\theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right]
+        = E[\theta^{(l)}_{ij}]\,E[\varphi(z^{(l-1)}_j)].
+    \]
+    \begin{itemize}
+      \item Por construção, $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$, logo
+        $E[\theta^{(l)}_{ij}] = 0$.
+      \item O produto inteiro é zero, independentemente de $\varphi$.
+    \end{itemize}
+    \[
+      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} 0 \cdot E[\varphi(z^{(l-1)}_j)] = 0.
+    \]
+  \end{frame}
+
+  %--- Slide: resultado parcial ---
+  \begin{frame}{Resultado intermediário}
+    \begin{block}{Média das pré-ativações é zero}
+      \[
+        E[z^{(l)}_i] = 0 \quad\text{para toda camada } l.
+      \]
+    \end{block}
+    \vfill
+    \begin{itemize}
+      \item Vamos usar este resultado para calcular a variância em seguida.
+      \item Como $E[z^{(l)}_i]=0$, temos $\mathrm{Var}[z^{(l)}_i] = E[(z^{(l)}_i)^2]$.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Forward pass: variância da pré-ativação}
+  %======================================================================
+
+  %--- Slide: definição da variância ---
+  \begin{frame}{Variância: ponto de partida}
+    \[
+      \sigma^2_{z^{(l)}}
+        = E\!\left[(z^{(l)}_i)^2\right] - \cancelto{0}{\big(E[z^{(l)}_i]\big)^2}
+        = E\!\left[\Big(b^{(l)}_i + \sum_{j} \theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\Big)^2\right].
+    \]
+    \begin{itemize}
+      \item Como $b^{(l)}_i = 0$, expandimos sem o termo do bias.
+      \item Cross-terms entre pesos diferentes desaparecem por independência
+        e $E[\theta]=0$.
+    \end{itemize}
+    \[
+      \sigma^2_{z^{(l)}}
+        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right]\,
+                                 E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
+    \]
+  \end{frame}
+
+  %--- Slide: identifica sigma_theta^2 ---
+  \begin{frame}{Identificando $\sigma_\theta^2$}
+    Como $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$ e $E[\theta]=0$:
+    \[
+      E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right]
+        = \mathrm{Var}[\theta^{(l)}_{ij}] = \sigma_\theta^2.
+    \]
+    Substituindo:
+    \[
+      \sigma^2_{z^{(l)}}
+        = \sigma_\theta^2 \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
+    \]
+    \begin{itemize}
+      \item Falta calcular $E[\varphi(z)^2]$ para $\varphi$ = ReLU.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ReLU sobre simétrica ---
+  \begin{frame}{Para ReLU sobre $z$ simétrica em zero}
+    Vamos provar (próximo slide) que, se $z$ é simétrica em zero com variância $\sigma_z^2$,
+    \[
+      E[\mathrm{ReLU}(z)^2] = \frac{\sigma_z^2}{2}.
+    \]
+    \begin{itemize}
+      \item ReLU corta os valores negativos, mantendo metade da massa.
+      \item A simetria garante que a metade positiva tem o mesmo segundo momento da
+        distribuição inteira, dividido por 2.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Junta tudo ---
+  \begin{frame}{Variância da pré-ativação em função de $\sigma_\theta^2$ e $\sigma^2_{z^{(l-1)}}$}
+    Aplicando o resultado anterior, $E[\varphi(z^{(l-1)}_j)^2] = \sigma^2_{z^{(l-1)}}/2$
+    para toda unidade $j$:
+    \[
+      \sigma^2_{z^{(l)}}
+        = \sigma_\theta^2 \sum_{j=1}^{n^{(l-1)}} \frac{\sigma^2_{z^{(l-1)}}}{2}
+        = \frac{n^{(l-1)}}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}.
+    \]
+    \vfill
+    \begin{block}{Recorrência para a variância}
+      \[
+        \boxed{\;\sigma^2_{z^{(l)}} = \tfrac{n^{(l-1)}}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}\;}
+      \]
+    \end{block}
+    \begin{itemize}
+      \item Se a constante $\tfrac{n^{(l-1)}}{2}\,\sigma_\theta^2$ for maior que 1, exploding.
+      \item Se for menor que 1, vanishing. Queremos exatamente 1.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Exercício teórico}
+  %======================================================================
+
+  %--- Slide: enunciado ---
+  \begin{frame}{Exercício: segundo momento de ReLU}
+    \begin{exampleblock}{Enunciado}
+      Seja $a$ uma variável aleatória contínua, simétrica em torno de $E[a]=0$, com
+      variância $\mathrm{Var}[a] = \sigma^2$. Mostre que
+      \[
+        E\!\left[\mathrm{ReLU}(a)^2\right] = \frac{\sigma^2}{2}.
+      \]
+    \end{exampleblock}
+    \vfill
+    \begin{itemize}
+      \item Lembre que $\mathrm{ReLU}(a) = \max(0,a)$.
+      \item Use $E[a^2] = \mathrm{Var}[a] + (E[a])^2 = \sigma^2$.
+      \item Use a simetria de $a$ em torno de zero.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: solução ---
+  \begin{frame}{Solução}
+    Pela definição de $\mathrm{ReLU}$:
+    \[
+      E[\mathrm{ReLU}(a)^2] = \int_{-\infty}^{\infty} \max(0,a)^2 p(a)\,da
+        = \int_{0}^{\infty} a^2 p(a)\,da.
+    \]
+    Pela simetria de $p$ em torno de zero, $\int_{-\infty}^{0} a^2 p(a)\,da = \int_{0}^{\infty} a^2 p(a)\,da$.
+    Logo,
+    \[
+      E[a^2] = 2 \int_{0}^{\infty} a^2 p(a)\,da
+        \quad\Longrightarrow\quad
+      \int_{0}^{\infty} a^2 p(a)\,da = \frac{E[a^2]}{2} = \frac{\sigma^2}{2}.
+    \]
+    \[
+      \boxed{E[\mathrm{ReLU}(a)^2] = \frac{\sigma^2}{2}.}
+    \]
+  \end{frame}
+
+  %======================================================================
+  \section{Inicialização He / Kaiming}
+  %======================================================================
+
+  %--- Slide: condição de invariância ---
+  \begin{frame}{Condição: variância igual a cada camada}
+    Queremos $\sigma^2_{z^{(l)}} = \sigma^2_{z^{(l-1)}}$ para todo $l$. Da recorrência,
+    \[
+      \sigma^2_{z^{(l-1)}} = \tfrac{n^{(l-1)}}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}
+      \;\Longrightarrow\;
+      \tfrac{n^{(l-1)}}{2}\,\sigma_\theta^2 = 1.
+    \]
+    \vfill
+    \begin{block}{He / Kaiming}
+      \[
+        \boxed{\;\sigma_\theta^2 = \dfrac{2}{n^{(l-1)}}\;}
+        \qquad
+        \theta^{(l)}_{ij} \sim \mathcal{N}\!\left(0,\;\tfrac{2}{n^{(l-1)}}\right).
+      \]
+    \end{block}
+    \begin{itemize}
+      \item $n^{(l-1)}$ é o número de \textit{fan-in} da camada (entradas).
+      \item Padrão de fato para ReLU e GELU.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: He paper ---
+  \begin{frame}{Origem da inicialização He\footfullcite{he2015delving}}
+    \begin{itemize}
+      \item Apresentada em 2015 por Kaiming He et al. para redes muito profundas com ReLU.
+      \item Permitiu treinar redes com mais de 30 camadas convolucionais sem
+        \textit{batch norm}.
+      \item Variante uniforme: $\theta\sim\mathcal{U}\!\left(-\sqrt{6/n},\;\sqrt{6/n}\right)$,
+        que tem a mesma variância $2/n$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Xavier / Glorot ---
+  \begin{frame}{Inicialização Xavier (Glorot)\footfullcite{glorot2010xavier}}
+    \begin{itemize}
+      \item Antes de He, Glorot e Bengio (2010) fizeram o mesmo argumento para
+        \textbf{tanh} ao redor de zero.
+      \item Para tanh, $\varphi(z)\approx z$ perto da origem, então $E[\varphi(z)^2]\approx \sigma_z^2$
+        sem o fator $1/2$.
+      \item Isso leva a $\sigma_\theta^2 = 1/n^{(l-1)}$.
+      \[
+        \boxed{\;\sigma_\theta^2 = \dfrac{1}{n^{(l-1)}}\;}
+        \qquad
+        \theta^{(l)}_{ij} \sim \mathcal{N}\!\left(0,\;\tfrac{1}{n^{(l-1)}}\right).
+      \]
+      \item Padrão para sigmoid, tanh e softmax.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  \section{Voltando ao MNIST}
+  %======================================================================
+
+  %--- Slide: He resolve o problema ---
+  \begin{frame}{Mesmo MLP, agora com inicialização He}
+    \begin{columns}
+      \begin{column}{.6\linewidth}
+        \centering
+        \includegraphics[width=\linewidth,height=0.7\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-he.png}
+      \end{column}
+      \begin{column}{.4\linewidth}
+        \begin{itemize}
+          \item Histogramas das ativações $A^{[1]},\ldots,A^{[4]}$ ficam estáveis
+            ao longo das camadas.
+          \item A magnitude não cresce nem encolhe, e a tanh não satura.
+          \item A rede consegue treinar.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: comparação visual ---
+  \begin{frame}{Comparação visual das quatro inicializações}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-zero.png}\\
+        \footnotesize $\theta = 0$\\[0.3em]
+        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-uniform.png}\\
+        \footnotesize $\theta\sim\mathcal{U}(-1,1)$
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-normal.png}\\
+        \footnotesize $\theta\sim\mathcal{N}(0,1)$\\[0.3em]
+        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-he.png}\\
+        \footnotesize He: $\theta\sim\mathcal{N}(0,2/n)$
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Forward + Backward}
+  %======================================================================
+
+  %--- Slide: backward simétrico ---
+  \begin{frame}{O argumento simétrico para o gradiente}
+    \begin{itemize}
+      \item O mesmo raciocínio aplicado à variância dos gradientes em \textit{backward}
+        leva a uma condição análoga.
+      \item Em vez de $n^{(l-1)}$ (\textit{fan-in}), aparece $n^{(l)}$ (\textit{fan-out}):
+        $\sigma_\theta^2 = 2/n^{(l)}$.
+      \item Os dois lados nem sempre são compatíveis (camadas com formas diferentes).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: fan_avg ---
+  \begin{frame}{Compromisso fan\_avg}
+    Glorot propôs balancear forward e backward usando a média de
+    $n^{(l-1)}$ e $n^{(l)}$:
+    \[
+      \boxed{\;\sigma_\theta^2 = \dfrac{2}{n^{(l-1)} + n^{(l)}}\;\text{ (Xavier)}\;}
+      \qquad
+      \boxed{\;\sigma_\theta^2 = \dfrac{4}{n^{(l-1)} + n^{(l)}}\;\text{ (He, fan\_avg)}\;}
+    \]
+    \begin{itemize}
+      \item Conhecido como \textit{fan\_avg} em frameworks.
+      \item Em camadas onde $n^{(l-1)} = n^{(l)}$, recupera as fórmulas originais.
+    \end{itemize}
+    \vspace{0.3em}
+    {\footnotesize\color{gray!50!black}A versão He original (He et al.\ 2015) usa apenas \textit{fan\_in} ($2/n^{(l-1)}$). A média \textit{fan\_avg} vem de Glorot/Xavier e é o default do \texttt{Dense} no Keras (\texttt{glorot\_uniform}); o PyTorch usa \textit{fan\_in} por padrão (ver próximo slide).}
+  \end{frame}
+
+  %======================================================================
+  \section{Diretrizes práticas}
+  %======================================================================
+
+  %--- Slide: mapa ativação -> init ---
+  \begin{frame}{Qual inicialização usar?}
+    \centering
+    \begin{tabular}{@{}lll@{}}
+      \toprule
+      Ativação principal & Inicialização recomendada & Variância $\sigma_\theta^2$ \\
+      \midrule
+      ReLU, Leaky ReLU, ELU & He / Kaiming           & $2/n^{(l-1)}$            \\
+      GELU                 & He / Kaiming           & $2/n^{(l-1)}$            \\
+      Sigmoid, tanh        & Xavier / Glorot        & $1/n^{(l-1)}$            \\
+      Softmax (saída)      & Xavier / Glorot        & $1/n^{(l-1)}$            \\
+      \bottomrule
+    \end{tabular}
+    \vfill
+    \begin{itemize}
+      \item Bias sempre inicializado em 0 (ou em valor pequeno positivo para ReLU,
+        evita unidades mortas no início).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: PyTorch ---
+  \begin{frame}{Em PyTorch}
+    \begin{itemize}
+      \item He (Kaiming): \texttt{torch.nn.init.kaiming\_normal\_(tensor, mode='fan\_in')}
+      \item Xavier (Glorot): \texttt{torch.nn.init.xavier\_normal\_(tensor)}
+      \item Padrão dos módulos \texttt{nn.Linear} e \texttt{nn.Conv2d}: \alert{Kaiming uniform}
+        com \texttt{fan\_in}, $a=\sqrt{5}$. Bom o suficiente na maioria dos casos.
+      \item Para arquiteturas grandes (transformers, ResNet), inicializações específicas
+        por bloco (DeepNorm, MUP) podem dar resultados ainda melhores.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: leituras ---
+  \section*{Referências e Leituras}
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \sloppy
+    \begin{itemize}
+      \item Capítulo 7 de \fullcite{prince2023understanding}
+      \item Xavier (Glorot e Bengio, 2010): \citeauthoryear{glorot2010xavier}
+      \item Kaiming (He et al., 2015): \citeauthoryear{he2015delving}
+      \item Visualização interativa:
+        \href{https://www.deeplearning.ai/ai-notes/initialization/index.html}{%
+          \textit{deeplearning.ai/ai-notes/initialization}}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

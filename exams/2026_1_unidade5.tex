@@ -1,0 +1,220 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 5}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (5 x 1.2 = 6.0 pts)
+%% =============================================================
+\section*{Questões Objetivas (6.0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-A numerical (diffusion kernel + schedule) ----------
+\item (1.2) Considere um processo de difusão com $T = 2$ e \textit{noise schedule} $\boldsymbol{\beta} = (0.2,\; 0.2)$. Para a instância unidimensional $x = 3$ e ruído $\epsilon = -1$, calcule o produto acumulado $\alpha_2$ e o valor $z_2$ obtido ao aplicar o kernel de difusão que amostra diretamente o passo $t = 2$ a partir de $x$ e $\epsilon$. Quais são, respectivamente, os valores de $\alpha_2$ e $z_2$?
+\begin{enumerate}[a)]
+    \item $\alpha_2 = 0.64$ e $z_2 = 1.56$.
+    \item $\alpha_2 = 0.60$ e $z_2 \approx 1.69$.
+    \item $\alpha_2 = 0.64$ e $z_2 = 1.80$.
+    \item $\alpha_2 = 0.64$ e $z_2 = 3.00$.
+    \item $\alpha_2 = 0.04$ e $z_2 \approx -0.38$.
+    \item $\alpha_2 = 0.64$ e $z_2 = 1.00$.
+    \item $\alpha_2 = 0.80$ e $z_2 \approx 2.24$.
+    \item $\alpha_2 = 0.64$ e $z_2 = 1.40$.
+\end{enumerate}
+
+%% ---------- Q2: OBJ-B I/II/III analysis (normalizing flows) ----------
+\item (1.2) Sobre as asserções abaixo a respeito de \textit{normalizing flows}:
+
+\textbf{I.} Em uma camada \textit{affine coupling}, o log-determinante da Jacobiana vale $\sum_i s_i$, e a \textit{coupling network} que produz $(\mathbf{s}, \mathbf{t})$ não precisa ser inversível, pois nunca é invertida, apenas reavaliada a partir de $\mathbf{x}^{A}$.
+
+\textbf{II.} Empilhar várias camadas de \textit{linear flow} $f(\mathbf{x}) = \boldsymbol{\theta}\mathbf{x} + \mathbf{b}$ com matrizes $\boldsymbol{\theta}$ distintas aumenta progressivamente a expressividade do modelo, permitindo representar densidades que uma única camada linear não consegue representar.
+
+\textbf{III.} Por exigirem uma bijeção, \textit{normalizing flows} preservam a dimensão ($\dim \mathbf{z} = \dim \mathbf{x}$), de modo que não há gargalo de compressão como no latente de um VAE.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-C scenario diagnostic (GAN vanishing gradient) ----------
+\item (1.2) Você treina uma GAN com a \emph{loss} original do gerador, $L[\thetav] = \sum_{j} \ln\!\left[1 - \sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]$. Nas primeiras épocas, a acurácia do discriminador sobe para perto de $100\%$ e $\sigma(f[x^{*},\phi]) \approx 0$ em todas as amostras geradas; a \emph{loss} do gerador fica praticamente constante e $\|\nabla_{\thetav} L\| \approx 0$. Qual é o diagnóstico mais consistente com esses sintomas e a mitigação mais direta?
+\begin{enumerate}[a)]
+    \item O discriminador venceu o jogo cedo demais; com $\sigma \approx 0$ a \emph{loss} original satura e o gradiente do gerador some; trocar para a \textit{non-saturating loss} $-\ln \sigma(\cdot)$ recupera o sinal.
+    \item O gerador entrou em \textit{mode collapse} e produz amostras idênticas entre si; adicionar \textit{minibatch discrimination} restaura a diversidade das amostras e o gradiente.
+    \item A taxa de aprendizado do gerador está alta demais e ele saltou por cima do mínimo; reduzi-la em uma ordem de grandeza devolve o progresso normal do treinamento.
+    \item O discriminador sofre de \textit{overfitting} sobre as imagens reais do conjunto de treino; aplicar \textit{Dropout} nas camadas do gerador equilibra o jogo adversarial.
+    \item O treinamento atingiu o equilíbrio de Nash ($P^{*} = P$), no qual o gradiente nulo é o comportamento esperado; basta interromper o treino e amostrar do gerador.
+    \item Os \textit{manifolds} de $P$ e $P^{*}$ estão sobrepostos demais desde o início; reduzir a dimensão do latente $z$ separa as distribuições e recria o sinal de gradiente.
+    \item A última camada do gerador deveria usar ReLU em vez de \emph{Tanh}; o intervalo de saída incorreto impede o discriminador de aprender qualquer fronteira útil.
+    \item O \textit{batch size} está pequeno demais para estimar a esperança da \emph{loss}; aumentá-lo reduz a variância do gradiente e elimina a saturação observada.
+\end{enumerate}
+
+%% ---------- Q4: OBJ-D architectural-purpose recall (time embedding na U-Net) ----------
+\item (1.2) Em um modelo difusor, a U-Net que estima o ruído recebe como entrada não apenas o latente $z_t$, mas também um \textit{time embedding} construído a partir do passo $t$. Por que essa informação de $t$ é necessária?
+\begin{enumerate}[a)]
+    \item Porque o \textit{embedding} de $t$ funciona como \textit{positional encoding} espacial, informando à U-Net a posição de cada \textit{pixel} dentro da imagem ruidosa.
+    \item Porque o \textit{embedding} de $t$ substitui o \textit{noise schedule} $\beta_t$, dispensando a escolha de hiperparâmetros do processo de difusão durante o treinamento.
+    \item Porque o \textit{embedding} de $t$ injeta a estocasticidade necessária na rede, fazendo o papel do termo de ruído $\sigma_t\,\epsilon$ usado na amostragem reversa.
+    \item Porque $t$ indexa qual das $T$ redes completamente independentes deve ser ativada, e o \textit{embedding} seleciona o subconjunto de pesos correspondente ao passo.
+    \item Porque o \textit{embedding} de $t$ atua como um regularizador da U-Net, prevenindo que ela memorize o conjunto de treinamento ao longo dos $T$ passos.
+    \item Porque a magnitude do ruído em $z_t$ varia com $t$ conforme o \textit{schedule}; a rede precisa saber o nível de ruído para calibrar a remoção em cada passo.
+    \item Porque a propriedade markoviana do processo de difusão só se mantém se o \textit{decoder} conhecer $t$; sem o \textit{embedding} a cadeia deixa de ser Markov.
+    \item Porque sem o \textit{embedding} de $t$ a \emph{loss} MSE $|g_t[z_t,\thetav_t] - \epsilon|^{2}$ deixa de ser diferenciável em relação aos parâmetros da U-Net.
+\end{enumerate}
+
+%% ---------- Q5: OBJ visual (mode collapse + qualidade vs cobertura, TikZ) ----------
+\item (1.2) A figura abaixo mostra a densidade dos dados reais $P(x)$ (linha cheia, com duas modas $A$ e $B$) e a densidade gerada $P^{*}(x)$ (linha tracejada) de uma GAN durante o treinamento.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, scale=1.15]
+    % eixos
+    \draw[->, thick] (-3.4,0) -- (3.8,0) node[right] {$x$};
+    \draw[->, thick] (-3.4,0) -- (-3.4,1.9) node[above] {densidade};
+    % P(x) real: bimodal (linha cheia)
+    \draw[domain=-3.2:3.5, samples=180, thick]
+      plot (\x, {1.1*exp(-(\x+1.5)^2/0.35) + 1.1*exp(-(\x-1.8)^2/0.35)});
+    % P*(x) gerada: unimodal tracejada na moda A
+    \draw[domain=-3.2:3.5, samples=180, thick, dashed]
+      plot (\x, {1.55*exp(-(\x+1.35)^2/0.28)});
+    \node[below] at (-1.5,-0.05) {moda $A$};
+    \node[below] at (1.8,-0.05) {moda $B$};
+    \node[anchor=west] at (-1.05,1.65) {$P^{*}(x)$ gerada (tracejada)};
+    \node[anchor=west] at (2.25,1.05) {$P(x)$ real};
+\end{tikzpicture}
+\end{center}
+
+Considerando a decomposição $D_{JS}[P^{*}\|P] = \underbrace{\tfrac{1}{2}D_{KL}[P^{*}\|M]}_{\text{qualidade}} + \underbrace{\tfrac{1}{2}D_{KL}[P\|M]}_{\text{cobertura}}$, com $M = \tfrac{1}{2}(P + P^{*})$, qual afirmação descreve corretamente o fenômeno ilustrado e o comportamento do gradiente do gerador?
+\begin{enumerate}[a)]
+    \item Trata-se de \textit{vanishing gradient} por suportes disjuntos: como $P^{*}$ não toca a moda $B$, $D_{JS}$ já atingiu o teto $\ln 2$ e nenhum dos dois termos produz gradiente para o gerador.
+    \item Trata-se de \textit{mode collapse}: na moda $B$, onde $P^{*} \approx 0$, o integrando da cobertura satura em $\tfrac{1}{2}P\ln 2$, quase insensível a $P^{*}$, então o incentivo para cobrir $B$ é fraco.
+    \item Trata-se de \textit{mode collapse}: o termo de qualidade é o que satura na moda $B$, e o gerador recebe incentivo forte para cobrir $B$, mas o discriminador ótimo bloqueia esse movimento.
+    \item Trata-se de \textit{posterior collapse}: a KL entre o posterior aproximado e o \textit{prior} foi a zero, então o latente deixou de carregar informação sobre qual das duas modas gerar.
+    \item Trata-se de \textit{overfitting} do discriminador: $P^{*}$ concentrada na moda $A$ indica que o discriminador memorizou essa moda; reiniciar os pesos $\phi$ recupera a moda $B$.
+    \item Trata-se de \textit{mode collapse}: a KL da cobertura diverge para infinito na moda $B$, o gradiente correspondente domina o treino e força o gerador a cobrir $B$ nas iterações seguintes.
+    \item Trata-se de \textit{vanishing gradient}: a sigmóide do discriminador satura na moda $A$, onde $P$ e $P^{*}$ se sobrepõem, e o treinamento congela com $D_{JS} = 0$.
+    \item Trata-se de \textit{mode collapse}: como $D_{JS}$ é simétrica, qualidade e cobertura geram gradientes de mesma magnitude, e o colapso resulta apenas da inicialização infeliz do gerador.
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions  (4.0 pts)
+%% =============================================================
+\section*{Questões Dissertativas (4.0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{5}
+
+%% ---------- Q6: DISS-A T/F with non-trivial modification ----------
+\item (2.0) Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida). Cada item vale 0.4 pts.
+
+\begin{enumerate}[a)]
+    \item ( )\,V \quad ( )\,F \quad No \textit{WGAN}, a restrição de 1-Lipschitz do crítico é imposta na prática por \textit{gradient clipping}: após cada atualização, os gradientes do crítico são truncados para o intervalo $[-c,\,c]$.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad Em uma camada \textit{affine coupling}, a \textit{coupling network} que produz os vetores $\mathbf{s}$ e $\mathbf{t}$ precisa ser inversível, caso contrário a camada como um todo deixa de ser inversível e o \textit{flow} não pode ser avaliado.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad O \textit{reparametrization trick} reescreve a amostragem do latente como $z^{*} = \mu + \Sigma^{1/2}\epsilon^{*}$, com $\epsilon^{*} \sim \mathcal{N}(\mathbf{0},\mathbf{I})$, de modo que a estocasticidade fica concentrada em $\epsilon^{*}$ e o caminho por $\mu$ e $\Sigma^{1/2}$ permanece diferenciável em relação a $\phi$.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad No modelo difusor, o \textit{encoder} que adiciona ruído possui parâmetros treináveis ajustados em conjunto com o \textit{decoder}, de forma análoga ao \textit{encoder} de um VAE.\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+
+    \item ( )\,V \quad ( )\,F \quad No trilema dos modelos geradores, os modelos difusores ocupam o canto \emph{qualidade $+$ cobertura}, pagando com amostragem lenta (tipicamente $T \approx 1000$ passos pela U-Net).\\[0.2em]
+    \rule{\linewidth}{0.4pt}\\[0.2em]
+    \rule{\linewidth}{0.4pt}
+\end{enumerate}
+
+%% ---------- Q7: DISS-B numerical (VAE: KL + reparametrização + reconstrução) ----------
+\item (2.0) Considere um VAE com latente bidimensional ($D_z = 2$) e \textit{decoder} $p(x \mid z, \thetav) = \mathcal{N}_{x}\!\left(f[z,\thetav],\, \mathbf{I}\right)$. Para a entrada $x = (2.4,\; -1.0)$, o \textit{encoder} $g[x,\phi]$ produz
+\[
+  \mu = (2,\; -1), \qquad \Sigma = \mathrm{diag}(0.25,\; 4) \quad (\text{logo } \sigma = (0.5,\; 2)).
+\]
+Use a forma fechada $D_{KL}\!\left[\mathcal{N}(\mu,\Sigma)\,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\right)$.
+
+\begin{enumerate}[a)]
+    \item (0.5) Calcule $D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]$, mostrando o valor de cada um dos quatro termos.
+    \vspace{2.5cm}
+
+    \item (0.5) Foi amostrado $\epsilon^{*} = (0.2,\; -0.3)$. Calcule $z^{*}$ pelo \textit{reparametrization trick}.
+    \vspace{2cm}
+
+    \item (0.5) O \textit{decoder} devolve $f[z^{*},\thetav] = (2.0,\; -1.3)$. Calcule o termo de reconstrução $\tfrac{1}{2}\lVert x - f[z^{*},\thetav]\rVert^{2}$ e monte o valor aproximado de $-\mathrm{ELBO} \approx \text{reconstrução} + D_{KL}$.
+    \vspace{2.5cm}
+
+    \item (0.5) Suponha que, para todas as entradas, o \textit{encoder} passasse a produzir $\Sigma = \mathrm{diag}(10^{-6},\, 10^{-6})$. O que acontece com o termo $-\log\det\Sigma$ da KL e qual comportamento indesejado do \textit{encoder} essa penalização evita?
+    \vspace{2.5cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

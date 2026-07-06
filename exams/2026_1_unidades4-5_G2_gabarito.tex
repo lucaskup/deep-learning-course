@@ -1,0 +1,195 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova G2, Unidades 4 e 5}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 \\\hline
+e & d & c & g & d & a & h & f \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+Cada matriz adaptada recebe $B \in \mathbb{R}^{1024 \times 8}$ e $A \in \mathbb{R}^{8 \times 1024}$:
+\[
+r(d + k) = 8 \times (1024 + 1024) = 16\,384 \text{ parâmetros por matriz adaptada}.
+\]
+São $2$ projeções ($W_Q$ e $W_V$) em cada uma das $12$ camadas:
+\[
+16\,384 \times 2 \times 12 = 393\,216.
+\]
+\textbf{(a)} $16\,384$ conta uma única projeção de uma única camada.
+\textbf{(b)} $32\,768$ conta as duas projeções de uma única camada.
+\textbf{(c)} $98\,304$ conta apenas $B$ (ou apenas $A$) de uma projeção nas $12$ camadas.
+\textbf{(d)} $196\,608$ esquece uma das duas projeções ($16\,384 \times 12$).
+\textbf{(f)} $589\,824$ aplica a três projeções ($Q$, $K$ e $V$), não às duas do enunciado.
+\textbf{(g)} $786\,432$ aplica às quatro projeções ($Q$, $K$, $V$ e $O$).
+\textbf{(h)} $25\,165\,824$ treina o $\Delta W$ denso $1024 \times 1024$ em vez dos fatores \textit{low rank}, exatamente o que o LoRA evita.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} no SFT a perda $\mathcal{L}_{SFT} = -\sum_{t \in R} \log P_\theta(x_t \mid x_{<t})$ soma apenas sobre os \textit{tokens} da resposta $R$; o \textit{prompt} entra como contexto, mas não gera gradiente.
+
+\textbf{II é correta:} o DPO deriva a recompensa implícita da própria política e otimiza uma perda de classificação sobre pares $(y_w, y_l)$, eliminando o \textit{reward model} explícito e a amostragem \textit{online} do loop de PPO.
+
+\textbf{III é incorreta:} o termo $\mathrm{KL}(\pi_\theta \| \pi_{\text{ref}})$ não acelera a convergência; ele \emph{restringe} a política a permanecer próxima da referência, evitando que o modelo degenere ou explore falhas do \textit{reward model} (\textit{reward hacking}).
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)/(b)} excluem uma asserção correta.
+\textbf{(c)/(e)/(f)/(g)} incluem a asserção III, que inverte a função do termo de KL.
+\textbf{(h)} contradiz I e II.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (c)}
+O quadro mostrado é sintoma do \textbf{esquecimento catastrófico}: a acurácia na tarefa alvo sobe enquanto capacidades adquiridas no pré-treino se degradam, porque o \textit{fine-tuning} completo com taxa alta e muitas épocas sobrescreve os pesos que codificavam o conhecimento geral. Mitigações padrão: reduzir taxa/épocas, misturar dados gerais ao corpus de ajuste (\textit{replay}) ou usar PEFT (LoRA), que congela $W_0$ e limita a atualização a poucos parâmetros.\\
+\textbf{(a)} a curva jurídica é medida em dados de teste não vistos no treino e sobe de forma consistente, ou seja, o modelo \emph{generaliza} no domínio alvo; \textit{overfitting} não explica esse padrão nem a queda no \textit{benchmark} geral, e mais épocas agravariam o quadro.
+\textbf{(b)} vazamento de dados inflaria a curva jurídica, mas não derrubaria o \textit{benchmark} geral.
+\textbf{(d)} \textit{reward hacking} pertence ao contexto de RLHF com \textit{reward model}, ausente aqui.
+\textbf{(e)} um \textit{tokenizer} ruim para o domínio prejudicaria a curva jurídica, não a geral; retreinar o \textit{tokenizer} invalidaria os \textit{embeddings} do pré-treino.
+\textbf{(f)} janela de contexto excedida causa truncamento nas entradas jurídicas, sem efeito sobre o \textit{benchmark} geral.
+\textbf{(g)} explosão de gradiente com \texttt{NaN} destruiria as duas curvas; o gráfico mostra melhora consistente na tarefa alvo.
+\textbf{(h)} leis de escala tratam do pré-treino; adicionar dados jurídicos não recupera o conhecimento geral perdido.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (g)}
+Associação correta: \textbf{1-(ii)} o \textit{PE} sinusoidal é uma função fixa da posição (senos e cossenos em frequências $10000^{-2k/d}$), somada à entrada, sem parâmetros; \textbf{2-(i)} o \textit{PE} absoluto aprendido é uma tabela $E \in \mathbb{R}^{L_{\text{max}} \times d}$ treinável, que não extrapola além de $L_{\text{max}}$; \textbf{3-(iv)} o RoPE aplica rotações $R_\theta(i)$ a $q$ e $k$ dentro da atenção, e o \textit{score} resultante depende só de $j - i$; \textbf{4-(iii)} o ALiBi subtrai $m_h\,|i - j|$ do \textit{score}, com inclinação $m_h$ própria por cabeça.
+
+Erros agrupados por troca: \textbf{(a)} e \textbf{(d)} trocam RoPE com ALiBi, confundindo rotação interna com penalidade linear; \textbf{(b)} e \textbf{(d)} trocam sinusoidal com aprendido, ignorando que só o segundo tem parâmetros e limite $L_{\text{max}}$; \textbf{(c)} atribui a tabela treinável ao RoPE e a rotação ao \textit{PE} aprendido; \textbf{(e)} troca sinusoidal com RoPE; \textbf{(f)} atribui a penalidade por distância ao \textit{PE} aprendido; \textbf{(h)} troca sinusoidal com ALiBi, atribuindo ao primeiro um mecanismo interno à atenção.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (d)}
+Pela regra da cadeia, com $\sigma'(d) = \sigma(d)(1 - \sigma(d))$:
+\[
+\frac{\partial L}{\partial d} = \frac{-\sigma'(d)}{1 - \sigma(d)} = -\sigma(d) = -0{,}05, \qquad
+\frac{\partial L_{\text{ns}}}{\partial d} = \frac{-\sigma'(d)}{\sigma(d)} = -(1 - \sigma(d)) = -0{,}95.
+\]
+Logo $\left|\partial L / \partial d\right| = 0{,}05$ e $\left|\partial L_{\text{ns}} / \partial d\right| = 0{,}95$: quando o discriminador vence ($\sigma \to 0$), a \textit{loss} original satura (gradiente $\propto \sigma$) e o gerador para de aprender, enquanto a \textit{non-saturating} mantém gradiente $\propto 1 - \sigma$, próximo de $1$. É exatamente a motivação da troca de \textit{loss}.\\
+\textbf{(a)} acerta os valores mas inverte a leitura: sinal maior vem do gradiente de maior módulo, o da \textit{non-saturating}.
+\textbf{(b)/(e)} trocam as derivadas entre as duas \textit{losses}.
+\textbf{(c)} aplica a derivada da \textit{loss} original às duas.
+\textbf{(f)} esquece o denominador da regra da cadeia e fica com $\sigma'(d) = 0{,}0475$ para ambas.
+\textbf{(g)} aplica a derivada da \textit{non-saturating} às duas.
+\textbf{(h)} trata $\sigma(d) = 0{,}05$ como exatamente zero; ambos os gradientes são finitos e bem definidos nesse ponto.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (a)}
+\textbf{I é verdadeira:} no treinamento com \textit{classifier-free guidance}, descarta-se a condição $c$ (substituída por $\varnothing$) em uma fração pequena dos exemplos, tipicamente $p \approx 0{,}1$.
+
+\textbf{II é verdadeira e justifica I:} o descondicionamento esporádico existe exatamente para que a \emph{mesma} rede aprenda as duas predições, condicional e incondicional, sem custo de um segundo modelo; na amostragem elas são combinadas por $\tilde{g}_t = (1+w)\,g_t[z_t, c] - w\,g_t[z_t, \varnothing]$ com $w \geq 0$, extrapolando na direção da condição.\\
+\textbf{(b)} a relação causal existe: II descreve a finalidade do procedimento descrito em I.
+\textbf{(c)} inverte a direção: o descondicionamento no treino (I) é o meio; a combinação na amostragem (II) é o fim.
+\textbf{(d)/(f)/(h)} negam a asserção II, que reproduz a formulação vista em aula.
+\textbf{(e)} nega a asserção I, que descreve o protocolo de treinamento padrão do \textit{classifier-free guidance}.
+\textbf{(g)} com $w = 0$ a amostragem usa só a predição condicional, mas o treino descondicionado independe do $w$ escolhido depois; a condição inventada não existe.
+\textbf{(h)} difusão latente muda o espaço em que a difusão ocorre, não o protocolo de guiamento.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (h)}
+Ordem válida: \textbf{I, II, III, IV, V}. As dependências: o kernel (III) precisa de $x$ (I) e de $t, \epsilon$ (II); a perda (IV) precisa de $z_t$ (III) e de $\epsilon$ para comparar; a atualização (V) precisa do gradiente da perda (IV).\\
+\textbf{(a)} computa o kernel antes de amostrar $t$ e $\epsilon$, dos quais ele depende.
+\textbf{(b)} computa o kernel antes de amostrar a instância $x$.
+\textbf{(c)} computa a perda antes de construir $z_t$.
+\textbf{(d)} inicia pelo kernel, sem $x$, $t$ ou $\epsilon$ amostrados.
+\textbf{(e)} atualiza os parâmetros antes de computar a perda.
+\textbf{(f)} atualiza os parâmetros antes de qualquer perda; não há gradiente acumulado de iterações anteriores no algoritmo do DDPM.
+\textbf{(g)} computa a perda antes do kernel, com $z_t$ ainda inexistente.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (f)}
+Pela mudança de variável, $p_Y(y) = p_X\!\left(\tfrac{y - 1}{3}\right) \cdot \left|\tfrac{dX}{dY}\right| = p_X\!\left(\tfrac{y - 1}{3}\right) \cdot \tfrac{1}{3}$. Em $y = 1$:
+\[
+p_Y(1) = p_X(0) \cdot \tfrac{1}{3} \approx \frac{0{,}399}{3} \approx 0{,}133.
+\]
+\textbf{(a)} $1{,}197$ multiplica por $3$ em vez de dividir; a transformação \emph{estica} o espaço, logo a densidade deve \emph{diminuir}.
+\textbf{(b)} $0{,}798$ multiplica por $2$: coeficiente errado e direção errada da correção de volume.
+\textbf{(c)} $0{,}399$ ignora o Jacobiano por completo.
+\textbf{(d)} $0{,}242$ é $p_X(1)$: avalia no ponto errado e ignora o Jacobiano.
+\textbf{(e)} $0{,}199$ divide por $2$, reproduzindo o coeficiente do exemplo visto em aula em vez do da questão.
+\textbf{(g)} $0{,}081$ avalia a densidade base em $y = 1$ em vez de em $x = (y-1)/3 = 0$ ($p_X(1)/3$).
+\textbf{(h)} $0{,}044$ divide por $9$, elevando o Jacobiano ao quadrado.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative questions
+%% =============================================================
+\section*{Questões Dissertativas}
+
+\color{blue}
+
+\subsection*{Questão 9 \textemdash{} \textit{Reward model} e DPO}
+
+\textbf{(a)} Modelo de Bradley--Terry:
+\[
+P(y_w \succ y_l) = \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) = \sigma(2{,}2 - 0{,}7) = \sigma(1{,}5) = \frac{1}{1 + e^{-1{,}5}} \approx 0{,}8176.
+\]
+\[
+\mathcal{L}_{RM} = -\log \sigma(1{,}5) \approx -\ln(0{,}8176) \approx 0{,}2014.
+\]
+
+\textbf{(b)} DPO:
+\[
+\beta\left[1{,}5 - (-1{,}0)\right] = 0{,}2 \cdot 2{,}5 = 0{,}5, \qquad
+\mathcal{L}_{DPO} = -\log \sigma(0{,}5) = -\ln(0{,}6225) \approx 0{,}4741.
+\]
+\textit{Explicação esperada:} o DPO dispensa o treinamento de um \textit{reward model} explícito e o loop de \textit{reinforcement learning} (PPO) com amostragem \textit{online}; a recompensa fica implícita nos log-\textit{ratios} entre a política e a referência, e o alinhamento vira uma perda supervisionada de classificação sobre os pares de preferência.
+
+\subsection*{Questão 10 \textemdash{} Difusão: kernel e passo reverso}
+
+\textbf{(a)} \textit{Schedule} acumulado:
+\[
+\alpha_1 = 1 - \beta_1 = 0{,}6, \qquad \alpha_2 = (1 - \beta_1)(1 - \beta_2) = 0{,}6 \cdot 0{,}75 = 0{,}45.
+\]
+Kernel de difusão:
+\[
+z_2 = \sqrt{\alpha_2}\,x + \sqrt{1 - \alpha_2}\,\epsilon = \sqrt{0{,}45} \cdot 2 + \sqrt{0{,}55} \cdot 0{,}5 \approx 1{,}3416 + 0{,}3708 = 1{,}7125.
+\]
+
+\textbf{(b)} Amostragem reversa com $\sigma_2 = 0$:
+\[
+\hat{z}_1 = \frac{1}{\sqrt{1 - \beta_2}}\left(z_2 - \frac{\beta_2}{\sqrt{1 - \alpha_2}}\,g_2[z_2, \thetav_2]\right)
+= \frac{1}{\sqrt{0{,}75}}\left(1{,}7125 - \frac{0{,}25}{0{,}7416} \cdot 0{,}6\right)
+\]
+\[
+= 1{,}1547 \cdot (1{,}7125 - 0{,}2023) = 1{,}1547 \cdot 1{,}5102 \approx 1{,}7438.
+\]
+\textit{Explicação esperada:} o termo $\sigma_t\,\epsilon$ injeta estocasticidade no processo reverso: cada $z_{t-1}$ é \emph{amostrado} de uma gaussiana centrada na predição da rede, o que permite gerar amostras diversas a partir do mesmo $z_T$. Com $\sigma_t = 0$ a trajetória reversa torna-se determinística.
+
+\color{black}
+
+\end{document}

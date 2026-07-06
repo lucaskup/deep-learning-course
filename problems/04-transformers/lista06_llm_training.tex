@@ -1,0 +1,500 @@
+\documentclass{dlproblemset}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing,positioning}
+\usepackage{emoji}
+\tikzset{every picture/.style={line width=0.75pt}}
+
+\definecolor{CellBlue}{HTML}{BBDEFB}
+\definecolor{CellGreen}{HTML}{C8E6C9}
+\definecolor{CellYellow}{HTML}{FFF9C4}
+\definecolor{CellRed}{HTML}{FFCDD2}
+\definecolor{LightGray}{HTML}{F5F5F5}
+\definecolor{DarkBlue}{HTML}{1565C0}
+\definecolor{DarkGreen}{HTML}{1B5E20}
+\definecolor{DarkRed}{HTML}{C62828}
+
+\title{Treinamento de LLMs}
+\subtitle{Pré-treinamento, Alinhamento, Otimizações e PEFT}
+
+\begin{document}
+
+\paragraph{Instruções:} Cada questão possui exatamente uma alternativa correta.
+
+% ============================================================
+\section*{Questões}
+% ============================================================
+
+\begin{enumerate}[I)]
+
+% ------------------------------------------------------------------
+% Q1 — Fácil (Cosine Decay: cálculo numérico do LR)
+% ------------------------------------------------------------------
+\item Um escalonador \textit{cosine decay} sem \textit{warm-up} é configurado com
+      $\eta_{\max} = 10^{-3}$, $\eta_{\min} = 10^{-4}$ e duração total
+      $T = 10\,000$ passos, seguindo a fórmula vista em aula:
+      \[
+        \eta_t = \eta_{\min} + \frac{\eta_{\max}-\eta_{\min}}{2}\!\left(1+\cos\frac{\pi t}{T}\right).
+      \]
+      Qual o valor de $\eta_t$ na metade do treinamento ($t = 5\,000$)?
+
+\begin{enumerate}[a)]
+    \item $5.5 \times 10^{-4}$.
+    \item $1.0 \times 10^{-3}$.
+    \item $4.5 \times 10^{-4}$.
+    \item $1.0 \times 10^{-4}$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q2 — Fácil (memória de fine-tuning completo em mixed precision)
+% ------------------------------------------------------------------
+\item Um modelo possui $N = 2 \times 10^9$ parâmetros (2B). Um
+      \textit{fine-tuning} completo com AdamW em \textit{mixed precision}
+      mantém simultaneamente em VRAM:
+      \begin{itemize}
+        \item pesos em \texttt{fp16} ($2$ \texttt{B}/par)
+        \item gradientes em \texttt{fp16} ($2$ \texttt{B}/par)
+        \item cópia mestre dos pesos em \texttt{fp32} ($4$ \texttt{B}/par)
+        \item primeiro momento Adam $m$ em \texttt{fp32} ($4$ \texttt{B}/par)
+        \item segundo momento Adam $v$ em \texttt{fp32} ($4$ \texttt{B}/par)
+      \end{itemize}
+      Qual o total de VRAM requerido por esses componentes (sem contar ativações)?
+
+\begin{enumerate}[a)]
+    \item $32$ \texttt{GB}.
+    \item $4$ \texttt{GB}.
+    \item $8$ \texttt{GB}.
+    \item $24$ \texttt{GB}.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q3 — Médio (SFT: papel da máscara do prompt)
+% ------------------------------------------------------------------
+\item A perda do SFT é
+      \[
+        \mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t \in \mathcal{R}}
+        \log P_\theta(x_t \mid x_{<t}),
+      \]
+      ou seja, somente os tokens da resposta ($\mathcal{R}$) contribuem. Um estudante
+      sugere calcular a perda em \emph{todos} os tokens (prompt $+$ resposta),
+      argumentando que ``mais supervisão $=$ melhor aprendizado''. Qual a
+      principal falha desse raciocínio?
+
+\begin{enumerate}[a)]
+    \item O gradiente passa a incluir contribuições dos tokens de
+          instrução, que seguem formatos repetitivos em todos os exemplos;
+          o modelo gastaria capacidade aprendendo a \emph{gerar
+          instruções} em vez de aprender a \emph{responder} a elas.
+    \item A perda ficaria numericamente indefinida porque os tokens do prompt
+          não pertencem ao vocabulário do modelo.
+    \item O \textit{teacher forcing} falharia, pois tokens especiais como
+          \texttt{<|im\_start|>} não podem ser previstos.
+    \item A normalização por $|\mathcal{R}|$ resultaria em divisão por zero,
+          já que todos os tokens passariam a contar.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q4 — Médio (BF16 vs. FP16: faixa dinâmica)
+% ------------------------------------------------------------------
+\item Uma equipe treina um modelo de 7B em \texttt{fp16} \textit{mixed precision}
+      e observa \texttt{NaN} frequentes nos gradientes. Ao trocar para
+      \texttt{bf16}, o problema desaparece sem precisar de \textit{loss scaling}.
+      Qual a explicação correta para esse comportamento?
+
+\begin{enumerate}[a)]
+    \item \texttt{BF16} tem $8$ bits de expoente (mesma faixa dinâmica do
+          \texttt{fp32}: $\sim\!10^{-38}$ a $\sim\!10^{38}$), enquanto
+          \texttt{fp16} tem $5$ bits de expoente e satura próximo de
+          $65\,504$. Gradientes de redes profundas extrapolam esse limite,
+          causando \texttt{Inf}/\texttt{NaN}; a faixa larga do \texttt{bf16}
+          elimina o \textit{overflow} sem necessidade de escalonamento.
+    \item \texttt{BF16} tem $16$ bits de mantissa, oferecendo mais precisão
+          que os $10$ bits do \texttt{fp16}, eliminando os erros de
+          arredondamento que causavam os \texttt{NaN}.
+    \item \texttt{BF16} é \textit{lossless} para pesos de redes neurais, ao
+          contrário do \texttt{fp16}, que sempre introduz erros de
+          quantização.
+    \item \texttt{BF16} usa o dobro de bits do \texttt{fp16} ($32$ vs.\ $16$),
+          o que explica o ganho de estabilidade numérica.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q5 — Médio (Reward Model: perda Bradley-Terry numérica)
+% ------------------------------------------------------------------
+\item O \textit{Reward Model} (RM) é treinado com a perda de Bradley-Terry:
+      \[
+        \mathcal{L}_{\text{RM}} = -\log\sigma\!\big(r_\phi(x,y_w) - r_\phi(x,y_l)\big).
+      \]
+      Para um par de treino, o RM atribui $r_\phi(x,y_w) = 1.8$ e
+      $r_\phi(x,y_l) = 0.3$. Usando $\sigma(1.5) \approx 0.818$,
+      qual o valor de $\mathcal{L}_{\text{RM}}$?
+
+\begin{enumerate}[a)]
+    \item $\approx 0.201$.
+    \item $\approx 1.702$.
+    \item $\approx 0.693$.
+    \item $\approx 1.5$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q6 — Médio (DPO vs. PPO: contabilidade de memória)
+% ------------------------------------------------------------------
+\item Durante o alinhamento de um modelo de 7B, o RLHF-PPO mantém
+      \textbf{4 modelos} simultâneos em VRAM (política, referência SFT,
+      \textit{reward model}, \textit{value function}); o DPO mantém apenas
+      \textbf{2} (política $+$ referência congelada). Suponha cada cópia
+      \texttt{bf16} $\approx 14$ \texttt{GB} e que o estado do otimizador
+      AdamW apenas da \emph{política} ocupa $\approx 100$ \texttt{GB}
+      (ignorando ativações). Quanto cada método consome e qual a economia
+      do DPO?
+
+\begin{enumerate}[a)]
+    \item PPO $\approx 156$ \texttt{GB}, DPO $\approx 128$ \texttt{GB} (economia $\approx 28$ \texttt{GB}).
+    \item PPO $\approx 114$ \texttt{GB}, DPO $\approx 114$ \texttt{GB} (economia $\approx 0$).
+    \item PPO $\approx 56$ \texttt{GB}, DPO $\approx 28$ \texttt{GB} (economia $\approx 28$ \texttt{GB}).
+    \item PPO $\approx 28$ \texttt{GB}, DPO $\approx 14$ \texttt{GB} (economia $\approx 14$ \texttt{GB}).
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q7 — Médio (LoRA: contagem de parâmetros)
+% ------------------------------------------------------------------
+\item Um \textit{transformer} com $d_{\text{model}} = 2\,048$ possui quatro
+      projeções de atenção por camada ($Q, K, V, O$), cada uma de formato
+      $2\,048 \times 2\,048$. Aplicando LoRA com \textit{rank} $r = 16$ nas
+      quatro projeções ($h = W_0 x + \tfrac{\alpha}{r}\,B A x$, com
+      $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$),
+      quantos parâmetros treináveis são adicionados por camada e que
+      fração representam dos pesos originais de atenção?
+
+\begin{enumerate}[a)]
+    \item $262\,144$ params ($\approx 1.56\%$ dos $16.78\,$M originais).
+    \item $131\,072$ params ($\approx 0.78\%$).
+    \item $524\,288$ params ($\approx 3.12\%$).
+    \item $65\,536$ params ($\approx 0.39\%$).
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q8 — Médio (LoRA: por que $B = 0$ na inicialização?)
+% ------------------------------------------------------------------
+\item No LoRA, $A$ é inicializado com distribuição normal gaussiana e
+      $B$ com \textbf{zeros}. Um estudante pergunta: ``por que não
+      inicializar \emph{ambos} aleatoriamente?''. Qual a justificativa
+      correta para a escolha $B = 0$?
+
+\begin{enumerate}[a)]
+    \item Com $B = 0$, temos $\Delta W = \tfrac{\alpha}{r}BA = 0$ no passo
+          inicial, logo o modelo adaptado começa \emph{exatamente} do
+          pré-treinamento. Se $B$ fosse aleatório, $\Delta W \neq 0$
+          adicionaria ruído às projeções pré-treinadas, degradando o ponto
+          de partida.
+    \item Inicializar $B$ aleatoriamente faria com que o adaptador LoRA
+          competisse com os pesos originais, reduzindo o número de
+          parâmetros treináveis efetivos.
+    \item $B = 0$ é matematicamente necessário para que a decomposição
+          $\Delta W = BA$ tenha \textit{rank} exatamente $r$: inicialização
+          aleatória quebraria a restrição de baixo \textit{rank}.
+    \item Com $B$ aleatório, o fator $\alpha/r$ causaria explosão de
+          gradiente nas primeiras iterações.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q9 — Médio (Flash Attention: online softmax numérico)
+% ------------------------------------------------------------------
+\item Um bloco do Flash Attention processa os escores $s = [1,\,2,\,0,\,3]$
+      em dois tiles: $B_1 = [1,\,2]$ e $B_2 = [0,\,3]$. A recursão do
+      \textit{online softmax} é
+      \[
+        m^{\text{new}} = \max(m^{\text{old}},\,\max_j s_j),
+        \qquad
+        \ell^{\text{new}} = e^{m^{\text{old}}-m^{\text{new}}}\,\ell^{\text{old}}
+          + \textstyle\sum_j e^{s_j - m^{\text{new}}}.
+      \]
+      Qual o valor de $\ell$ após processar os dois tiles?
+      (Use $e^{-1} \approx 0.368$, $e^{-2} \approx 0.135$,
+      $e^{-3} \approx 0.050$.)
+
+\begin{enumerate}[a)]
+    \item $\approx 1.553$.
+    \item $\approx 2.418$.
+    \item $\approx 1.368$.
+    \item $\approx 1.050$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q10 — Médio (SFT com LR de pré-treinamento: forgetting)
+% ------------------------------------------------------------------
+\item Uma equipe faz SFT de um modelo usando $\eta = 3 \times 10^{-4}$
+      (mesma LR usada no pré-treino) por 10 épocas. A perda SFT no conjunto
+      de treino cai normalmente, mas \textit{benchmarks} gerais (MMLU,
+      HellaSwag) \textbf{degradam visivelmente} ao longo das épocas.
+      Qual diagnóstico e correção são adequados?
+
+\begin{enumerate}[a)]
+    \item \textit{Catastrophic forgetting}: LR alto por muitas épocas
+          sobrescreve representações adquiridas no pré-treinamento, mesmo
+          com a perda SFT em queda. Correção: reduzir LR para
+          $10^{-6}$--$2\times 10^{-5}$ e limitar a $1$--$3$ épocas.
+    \item Comportamento esperado: SFT sempre descarta conhecimento do
+          pré-treinamento; a correção é treinar do zero com os dados SFT.
+    \item \textit{Overfitting} nos próprios \textit{benchmarks}; a correção
+          é adicionar mais \textit{benchmarks} ao conjunto de avaliação.
+    \item Explosão de gradiente causada pelo LR alto; a correção é
+          aumentar o \textit{weight decay} para $1.0$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q11 — Difícil (GRPO: vantagem normalizada por grupo)
+% ------------------------------------------------------------------
+\item \emoji{skull-and-crossbones} Em uma iteração de GRPO para um problema
+      com \textit{reward} binário ($1 = $ correto, $0 = $ errado),
+      um prompt produz um grupo de $G = 6$ respostas com recompensas
+      $r = [1,\,1,\,0,\,1,\,0,\,1]$. A vantagem é
+      \[
+        \hat{A}_i = \frac{r_i - \overline{r}}{\sigma_r},
+      \]
+      onde $\overline{r}$ e $\sigma_r$ são a média e o desvio-padrão do
+      grupo. Quais os valores de $\hat{A}$ para as respostas corretas e
+      incorretas?
+
+\begin{enumerate}[a)]
+    \item $\hat{A}_{\text{correto}} \approx +0.707$;
+          $\hat{A}_{\text{errado}} \approx -1.414$.
+    \item $\hat{A}_{\text{correto}} = +1.000$;
+          $\hat{A}_{\text{errado}} = -1.000$.
+    \item $\hat{A}_{\text{correto}} = +1/3$;
+          $\hat{A}_{\text{errado}} = -2/3$.
+    \item $\hat{A}_{\text{correto}} = +0.500$;
+          $\hat{A}_{\text{errado}} = 0$.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q12 — Difícil (DPO: cálculo numérico da perda)
+% ------------------------------------------------------------------
+\item \emoji{skull-and-crossbones} A perda do DPO é
+      \[
+        \mathcal{L}_{\text{DPO}} = -\log\sigma\!\left(
+          \beta\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)}
+          - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}
+        \right).
+      \]
+      Em um exemplo com $\beta = 0.1$,
+      $\log\tfrac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} = 2$ e
+      $\log\tfrac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} = -1$, qual o
+      valor de $\mathcal{L}_{\text{DPO}}$?
+      (Use $\sigma(0.3) \approx 0.574$, $\sigma(3) \approx 0.953$,
+      $\sigma(-0.3) \approx 0.426$.)
+
+\begin{enumerate}[a)]
+    \item $\approx 0.555$.
+    \item $\approx 0.048$.
+    \item $\approx 0.853$.
+    \item $\approx 0.300$.
+\end{enumerate}
+% R: a
+
+\end{enumerate}
+
+
+% ============================================================
+\section*{Soluções}
+% ============================================================
+
+% --- Solução Q1 ---
+\subsection*{I — Resposta: (a)}
+Em $t = T/2$: $\cos(\pi \cdot 0.5) = \cos(\pi/2) = 0$, logo
+$1 + \cos(\pi/2) = 1$. Portanto,
+\[
+  \eta_{T/2} = 10^{-4} + \tfrac{10^{-3} - 10^{-4}}{2}\cdot 1
+             = 10^{-4} + 4.5\times 10^{-4}
+             = 5.5\times 10^{-4}.
+\]
+A opção~(b) ignora totalmente o termo com cosseno.
+A opção~(c) omite a parcela $\eta_{\min}$ da fórmula.
+A opção~(d) confunde $\cos(\pi/2) = 0$ com $\cos(\pi) = -1$, obtendo
+$\eta_{\min}$, valor correto apenas no fim do treino ($t = T$).
+
+% --- Solução Q2 ---
+\subsection*{II — Resposta: (a)}
+Somando os componentes em bytes por parâmetro:
+$2 + 2 + 4 + 4 + 4 = 16$ \texttt{B}/par.
+Aplicando a $N = 2\times 10^9$:
+$2\times 10^9 \times 16 = 3.2\times 10^{10}$ bytes $= 32$ \texttt{GB}.
+As opções~(b), (c) e (d) ignoram subconjuntos dos componentes: somente pesos,
+pesos+gradientes e um dos momentos do Adam, respectivamente.
+
+% --- Solução Q3 ---
+\subsection*{III — Resposta: (a)}
+Os tokens de instrução seguem padrões repetitivos (\texttt{<|im\_start|>user},
+``Explique...'', etc.). Se forem incluídos na perda, o gradiente é dominado
+por eles e o modelo gasta capacidade modelando a \emph{distribuição das
+instruções} em vez de aprender a gerar boas respostas. Mascarar o prompt
+garante que o aprendizado se concentre em $P(\text{resposta} \mid \text{instrução})$,
+não em $P(\text{instrução})$.
+A opção~(b) é falsa: tokens de prompt estão no vocabulário (caso contrário,
+não poderiam sequer ser alimentados como entrada).
+A opção~(c) confunde mascaramento de \emph{loss} com ausência do token no
+vocabulário.
+A opção~(d) é falsa: a normalização é por $|\mathcal{R}|$ (tokens da resposta),
+e incluir os tokens do prompt apenas aumentaria $|\mathcal{R}|$, não o zeraria.
+
+% --- Solução Q4 ---
+\subsection*{IV — Resposta: (a)}
+A diferença essencial entre \texttt{fp16} e \texttt{bf16} é o número de bits
+de expoente: \texttt{fp16} usa $5$ (limite $\approx 65\,504$) e \texttt{bf16}
+usa $8$ (mesmo limite do \texttt{fp32}, $\approx 3.4\times 10^{38}$).
+Gradientes grandes provocam \textit{overflow} em \texttt{fp16}, gerando
+\texttt{Inf}/\texttt{NaN}; a faixa larga do \texttt{bf16} elimina esse
+problema sem exigir \textit{loss scaling}.
+A opção~(b) inverte o trade-off: \texttt{bf16} tem \emph{menos} mantissa
+($7$ bits) que o \texttt{fp16} ($10$). O ganho não é precisão, é faixa.
+A opção~(c) é falsa: ambos são lossy.
+A opção~(d) é falsa: ambos ocupam $16$ bits.
+
+% --- Solução Q5 ---
+\subsection*{V — Resposta: (a)}
+$\Delta r = r_\phi(x,y_w) - r_\phi(x,y_l) = 1.8 - 0.3 = 1.5$.
+$\sigma(1.5) \approx 0.818$, portanto
+$\mathcal{L}_{\text{RM}} = -\ln(0.818) \approx 0.201$.
+A opção~(b) inverte o sinal da diferença, aplicando $\sigma(-1.5) \approx 0.182$
+($-\ln(0.182) \approx 1.702$): seria a perda se o RM ordenasse
+\emph{incorretamente}.
+A opção~(c) usa $\sigma(0) = 0.5$, equivalente a ignorar totalmente
+$\Delta r$.
+A opção~(d) retorna o \textit{logit} sem passá-lo pelo $\sigma$ nem aplicar
+$-\ln$.
+
+% --- Solução Q6 ---
+\subsection*{VI — Resposta: (a)}
+\textbf{PPO:} 4 cópias em \texttt{bf16} $+$ estado do otimizador da política
+$= 4\cdot 14 + 100 = 56 + 100 = 156$ \texttt{GB}.\\
+\textbf{DPO:} 2 cópias em \texttt{bf16} $+$ estado do otimizador da política
+$= 2\cdot 14 + 100 = 28 + 100 = 128$ \texttt{GB}.\\
+\textbf{Economia:} $156 - 128 = 28$ \texttt{GB}, exatamente o custo das duas
+cópias que o DPO dispensa (\textit{reward model} e \textit{value function}).
+A opção~(b) é falsa: o PPO \emph{inclui} duas cópias adicionais frozen,
+portanto sua memória é maior.
+A opção~(c) ignora o estado do otimizador da política ($100$ \texttt{GB}).
+A opção~(d) reduz incorretamente cada método a uma única cópia.
+
+% --- Solução Q7 ---
+\subsection*{VII — Resposta: (a)}
+Cada projeção LoRA adiciona $|B| + |A| = d\cdot r + r\cdot k = 2\cdot d\cdot r$
+parâmetros (como $d = k = 2\,048$). Para quatro projeções:
+\[
+  4 \times 2 \cdot 2\,048 \cdot 16 = 4 \times 65\,536 = 262\,144 \;\text{params}.
+\]
+Pesos originais: $4 \times 2\,048^2 = 16\,777\,216 \approx 16.78\,$M.
+Fração: $262\,144 / 16\,777\,216 \approx 1.56\%$.
+A opção~(b) conta apenas $d \cdot r$ por projeção, esquecendo a segunda matriz.
+A opção~(c) duplica erroneamente o resultado.
+A opção~(d) considera apenas uma das quatro projeções.
+
+% --- Solução Q8 ---
+\subsection*{VIII — Resposta: (a)}
+O ponto de partida do LoRA é o modelo pré-treinado intacto: exige-se
+$\Delta W = \tfrac{\alpha}{r}BA = 0$ na inicialização. Zerar $B$ (com $A$
+aleatório) satisfaz essa condição. Se \emph{ambos} fossem aleatórios,
+$\Delta W \neq 0$ adicionaria ruído aos pesos congelados, destruindo o
+ponto de partida calibrado do pré-treinamento. O modelo teria de
+``reaprender'' antes mesmo de começar a se adaptar aos dados de ajuste.
+A opção~(b) não faz sentido dimensional: inicialização não altera contagem
+de parâmetros treináveis.
+A opção~(c) é falsa: o \textit{rank} de $BA$ é determinado pela forma das
+matrizes, não pelos valores iniciais.
+A opção~(d) confunde o papel de $\alpha/r$ (fator de escala constante, não
+amplificador de gradiente).
+
+% --- Solução Q9 ---
+\subsection*{IX — Resposta: (a)}
+\textbf{Processando $B_1 = [1,\,2]$:}
+\begin{align*}
+  m^{(1)} &= \max(1,\,2) = 2 \\
+  \ell^{(1)} &= e^{1-2} + e^{2-2} = 0.368 + 1 = 1.368.
+\end{align*}
+\textbf{Processando $B_2 = [0,\,3]$:}
+\begin{align*}
+  m^{(2)} &= \max(2,\,3) = 3 \\
+  \ell^{(2)} &= e^{m^{(1)}-m^{(2)}}\cdot \ell^{(1)} + e^{0-3} + e^{3-3} \\
+             &= e^{-1}\cdot 1.368 + e^{-3} + e^{0} \\
+             &\approx 0.368 \cdot 1.368 + 0.050 + 1 \\
+             &\approx 0.503 + 0.050 + 1 = \mathbf{1.553}.
+\end{align*}
+Conferência (softmax global): $e^{1-3}+e^{2-3}+e^{0-3}+e^{3-3}
+= 0.135 + 0.368 + 0.050 + 1 = 1.553$. \checkmark
+A opção~(b) omite o fator de rescala $e^{m^{\text{old}}-m^{\text{new}}}$,
+tratando $\ell^{(1)}$ como se já estivesse normalizado para $m^{(2)}$.
+A opção~(c) ignora $B_2$.
+A opção~(d) ignora o histórico $\ell^{(1)}$.
+
+% --- Solução Q10 ---
+\subsection*{X — Resposta: (a)}
+O padrão é clássico de \textit{catastrophic forgetting}: a perda SFT
+decresce porque o modelo aprende o \emph{formato} dos dados de ajuste,
+mas as muitas atualizações com LR alto modificam significativamente os
+pesos, apagando representações úteis para tarefas gerais. O remédio
+canônico é LR muito menor que no pré-treinamento ($10^{-6}$–$2\times 10^{-5}$)
+e apenas $1$–$3$ épocas.
+A opção~(b) contradiz a hipótese do alinhamento superficial (LIMA):
+o SFT ensina formato e estilo, não substitui o pré-treinamento.
+A opção~(c) é implausível: \textit{benchmarks} não estão no conjunto
+de treino, então \textit{overfitting} neles não faz sentido.
+A opção~(d) descreve um sintoma diferente: explosão de gradiente geraria
+\texttt{NaN} agudos, não degradação gradual. Além disso, aumentar
+\textit{weight decay} não corrige explosões e pioraria o
+\textit{forgetting}.
+
+% --- Solução Q11 ---
+\subsection*{XI — Resposta: (a)}
+Com rewards $[1,1,0,1,0,1]$ e $G = 6$:
+\begin{align*}
+  \overline{r} &= \tfrac{4}{6} = \tfrac{2}{3} \approx 0.667, \\
+  \sigma_r^2 &= \mathbb{E}[r^2] - \overline{r}^{\,2} = \tfrac{4}{6} - \tfrac{4}{9}
+             = \tfrac{6}{9} - \tfrac{4}{9} = \tfrac{2}{9}, \\
+  \sigma_r   &= \tfrac{\sqrt{2}}{3} \approx 0.471.
+\end{align*}
+Portanto,
+\[
+  \hat{A}_{\text{correto}} = \frac{1 - 2/3}{\sqrt{2}/3} = \frac{1/3}{\sqrt{2}/3}
+    = \frac{1}{\sqrt{2}} \approx +0.707,
+\]
+\[
+  \hat{A}_{\text{errado}} = \frac{0 - 2/3}{\sqrt{2}/3}
+    = -\frac{2}{\sqrt{2}} = -\sqrt{2} \approx -1.414.
+\]
+A magnitude maior para as respostas erradas (minoritárias) é esperada: o
+z-score pesa mais a cauda menos populosa.
+A opção~(b) usa os valores do slide, que valem apenas quando \emph{metade}
+do grupo acerta ($G = 4$, 2 corretos, 2 errados), situação em que
+$\sigma_r = 0.5$.
+A opção~(c) esquece a normalização por $\sigma_r$.
+A opção~(d) substitui a \textit{baseline} correta (média) por $\max(r) = 1$.
+
+% --- Solução Q12 ---
+\subsection*{XII — Resposta: (a)}
+Argumento do $\sigma$:
+\[
+  \beta\big(\log\tfrac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)}
+         - \log\tfrac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\big)
+  = 0.1 \cdot (2 - (-1)) = 0.3.
+\]
+$\sigma(0.3) \approx 0.574$, portanto
+$\mathcal{L}_{\text{DPO}} = -\ln(0.574) \approx 0.555$.
+A opção~(b) esquece o $\beta$, aplicando $\sigma(3) \approx 0.953$,
+subestimando dramaticamente a perda.
+A opção~(c) inverte o sinal, usando $\sigma(-0.3)$ (corresponderia a uma
+\emph{preferência errada}: $y_l$ mais provável que $y_w$).
+A opção~(d) retorna o argumento do $\sigma$ sem aplicar $-\log\sigma$.
+
+\end{document}

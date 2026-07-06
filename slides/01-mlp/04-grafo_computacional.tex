@@ -1,0 +1,487 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{Grafo Computacional e Programação Diferenciável}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    LOCAL TIKZ STYLES
+%----------------------------------------------------------------------------------------
+
+\tikzset{
+  cgvar/.style   ={circle, draw=black, fill=PastelBlue, minimum size=0.85cm, inner sep=1pt, font=\small},
+  cgop/.style    ={circle, draw=black, fill=Apricot!50, minimum size=0.85cm, inner sep=1pt, font=\small},
+  cgedge/.style  ={->, >=stealth, thick, gray!80},
+  cgval/.style   ={font=\scriptsize, fill=white, inner sep=1pt},
+  cggrad/.style  ={font=\scriptsize, color=red, fill=white, inner sep=1pt},
+}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  \section{Definição e exemplo simples}
+  %======================================================================
+
+  %--- Slide: motivação ---
+  \begin{frame}{Por que pensar em grafo computacional?}
+    \begin{itemize}
+      \item \textit{Backpropagation} é a aplicação repetida da regra da cadeia
+        em uma função composta.
+      \item Funções complicadas (uma rede profunda inteira) podem ser
+        decompostas em operações elementares.
+      \item Representar essa decomposição como um \alert{grafo} torna
+        explícito o caminho que cada gradiente local precisa percorrer.
+      \item Mesma estrutura permite ao computador fazer a derivada
+        \alert{automaticamente}, ideia central de \textit{frameworks}
+        como PyTorch e JAX.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: definição de grafo computacional ---
+  \begin{frame}{Definição}
+    \begin{itemize}
+      \item Um \alert{grafo computacional} é um DAG (\textit{directed acyclic graph})
+        em que:
+        \begin{itemize}
+          \item nós-folha representam \textbf{variáveis} (entradas, parâmetros);
+          \item nós internos representam \textbf{operações} elementares (soma,
+            produto, $\exp$, ReLU, $\dots$);
+          \item arestas indicam o fluxo de dados, das entradas em direção à
+            saída final.
+        \end{itemize}
+      \item Avaliar a função é fazer um \alert{forward pass}: percorrer o grafo
+        em ordem topológica.
+      \item Calcular gradientes em relação a cada folha é fazer um
+        \alert{backward pass}: percorrer o grafo na ordem inversa, aplicando
+        a regra da cadeia.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: exemplo (a+b)*c forward + backward com overlays ---
+  \begin{frame}{Exemplo simples: $f(a,b,c) = (a+b)\cdot c$\footfullcite{karpathy2016cs231n}}
+    \centering
+    \resizebox{!}{0.62\textheight}{%
+    \begin{tikzpicture}[node distance=1.2cm and 1.8cm]
+      \node[cgvar] (a) {$a$};
+      \node[cgvar, below=of a] (b) {$b$};
+      \node[cgvar, below=of b] (c) {$c$};
+
+      \node[cgop, right=of b, xshift=0.4cm, yshift=0.6cm] (plus) {$+$};
+      \node[cgop, right=of plus, xshift=1.2cm, yshift=-0.6cm] (times) {$\times$};
+
+      \node[right=of times, xshift=0.3cm] (out) {$f$};
+
+      \draw[cgedge] (a) -- (plus);
+      \draw[cgedge] (b) -- (plus);
+      \draw[cgedge] (plus) -- (times);
+      \draw[cgedge] (c) -- (times);
+      \draw[cgedge] (times) -- (out);
+
+      \onslide<2->{
+        \node[cgval, left=0.1cm of a] {$2$};
+        \node[cgval, left=0.1cm of b] {$3$};
+        \node[cgval, left=0.1cm of c] {$4$};
+        \node[cgval, above=0.1cm of plus] {$5$};
+        \node[cgval, above=0.1cm of times] {$20$};
+      }
+
+      \onslide<3->{
+        \node[cggrad, above=0.1cm of out] {$1$};
+      }
+      \onslide<4->{
+        \node[cggrad, below=0.1cm of times] {$4$};
+      }
+      \onslide<5->{
+        \node[cggrad, below=0.1cm of c] {$5$};
+      }
+      \onslide<6->{
+        \node[cggrad, below=0.1cm of plus] {$4$};
+        \node[cggrad, above left=0.1cm and 0.1cm of a] {$4$};
+        \node[cggrad, below left=0.1cm and 0.1cm of b] {$4$};
+      }
+    \end{tikzpicture}
+    }
+
+    \medskip
+    \footnotesize
+    Valores em \textbf{preto} (forward), gradientes em \textbf{vermelho} (backward).\\
+    \onslide<4->{Gate $\times$ comuta valores: gradiente recebe o valor da \textit{outra} entrada. \;}
+    \onslide<6->{Gate $+$ distribui o gradiente igualmente.}
+  \end{frame}
+
+  %======================================================================
+  \section{Forward e backward genéricos}
+  %======================================================================
+
+  %--- Slide: nó genérico forward ---
+  \begin{frame}{Um nó genérico no \textit{forward}}
+    \centering
+    \begin{tikzpicture}[node distance=1.0cm and 1.6cm]
+      \node[cgvar] (x) {$x$};
+      \node[cgvar, below=of x] (y) {$y$};
+      \node[cgop, right=of x, yshift=-0.6cm] (f) {$f$};
+      \node[right=of f, xshift=0.2cm] (z) {$z = f(x,y)$};
+
+      \draw[cgedge] (x) -- (f);
+      \draw[cgedge] (y) -- (f);
+      \draw[cgedge] (f) -- (z);
+    \end{tikzpicture}
+    \begin{itemize}
+      \item No \textit{forward}, cada nó recebe valores de entrada e calcula
+        sua saída local.
+      \item As saídas alimentam os nós seguintes na ordem topológica.
+      \item No final do grafo temos o valor da função, tipicamente uma
+        \textit{loss} escalar $L$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: nó genérico backward ---
+  \begin{frame}{O mesmo nó no \textit{backward}}
+    \centering
+    \begin{tikzpicture}[node distance=1.6cm and 2.6cm]
+      \node[cgvar] (x) {$x$};
+      \node[cgvar, below=of x] (y) {$y$};
+      \node[cgop, right=of x, yshift=-0.8cm] (f) {$f$};
+      \node[right=of f, xshift=0.6cm] (z) {$z$};
+
+      \draw[cgedge] (x) -- (f);
+      \draw[cgedge] (y) -- (f);
+      \draw[cgedge] (f) -- (z);
+
+      \node[cggrad, above=0.1cm of x] {$\dfrac{\partial L}{\partial x} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial x}$};
+      \node[cggrad, below=0.1cm of y] {$\dfrac{\partial L}{\partial y} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial y}$};
+      \node[cggrad, above=0.1cm of z] {$\dfrac{\partial L}{\partial z}$};
+    \end{tikzpicture}
+    \begin{itemize}
+      \item Cada aresta no sentido oposto carrega o \alert{gradiente
+        \textit{upstream}} $\partial L / \partial z$.
+      \item O nó multiplica esse gradiente pela \alert{derivada local}
+        $\partial z / \partial x$ (regra da cadeia) e envia para a aresta de
+        entrada.
+      \item Se uma variável aparece em múltiplos nós, os gradientes que chegam
+        nela são \textbf{somados}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: padrões de gates ---
+  \begin{frame}{Padrões comuns de \textit{gates}}
+    \begin{columns}
+      \begin{column}{.6\linewidth}
+        \begin{itemize}
+          \item \textbf{Soma} ($+$): \textit{distribuidor}, copia o gradiente
+            \textit{upstream} para todas as entradas.
+          \item \textbf{Produto} ($\times$): \textit{comutador}, multiplica o
+            gradiente pelo valor da \textit{outra} entrada.
+          \item \textbf{Máximo} ($\max$): \textit{roteador}, envia o gradiente
+            inteiro para a entrada que venceu, zero para as demais.
+          \item \textbf{Cópia} (uma variável usada duas vezes): \textit{somador}
+            no backward, soma os gradientes que chegam.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.4\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=0.7cm and 1.0cm, font=\scriptsize]
+          \node[cgop] (p) {$+$};
+          \node[left=of p, yshift=0.3cm] (pa) {$a$};
+          \node[left=of p, yshift=-0.3cm] (pb) {$b$};
+          \node[right=of p] (po) {};
+          \draw[cgedge] (pa) -- (p);
+          \draw[cgedge] (pb) -- (p);
+          \draw[cgedge] (p) -- (po);
+          \node[cggrad, above=0.0cm of po,xshift=-0.1cm] {$g$};
+          \node[cggrad, left=0.05cm of pa] {$g$};
+          \node[cggrad, left=0.05cm of pb] {$g$};
+
+          \node[cgop, below=1.6cm of p] (m) {$\times$};
+          \node[left=of m, yshift=0.3cm] (ma) {$a$};
+          \node[left=of m, yshift=-0.3cm] (mb) {$b$};
+          \node[right=of m] (mo) {};
+          \draw[cgedge] (ma) -- (m);
+          \draw[cgedge] (mb) -- (m);
+          \draw[cgedge] (m) -- (mo);
+          \node[cggrad, above=0.0cm of mo,xshift=-0.1cm] {$g$};
+          \node[cggrad, left=0.05cm of ma] {$g\,b$};
+          \node[cggrad, left=0.05cm of mb] {$g\,a$};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Exemplo: regressão logística}
+  %======================================================================
+
+  %--- Slide: motivação ---
+  \begin{frame}{Outro exemplo: regressão logística}
+    \begin{itemize}
+      \item Considere a função
+        $$f(\bm\theta, \bm x) = \frac{1}{1 + \exp\!\bigl(-(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\bigr)}.$$
+      \item Composição de \textit{gates} elementares: combinação afim,
+        $\times(-1)$, $\exp$, $+1$, $1/u$.
+      \item Vamos avaliar para
+        $\theta_0 = -3,\; \theta_1 = -2,\; \theta_2 = 1,\;
+         x_1 = -1,\; x_2 = -2$, depois rodar o backward.
+      \item No fim, observaremos que vários \textit{gates} podem ser agrupados
+        em uma única operação \textit{sigmoide}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: TikZ sigmoid forward + backward ---
+  \begin{frame}{Grafo da regressão logística}
+    \centering
+    \resizebox{!}{0.72\textheight}{%
+    \begin{tikzpicture}[node distance=0.95cm and 1.15cm, font=\small]
+      \node[cgvar] (t0) {$\theta_0$};
+      \node[cgvar, below=of t0] (t1) {$\theta_1$};
+      \node[cgvar, below=of t1] (x1) {$x_1$};
+      \node[cgvar, below=of x1] (t2) {$\theta_2$};
+      \node[cgvar, below=of t2] (x2) {$x_2$};
+
+      \node[cgop, right=of t1, xshift=0.4cm, yshift=-0.4cm] (m1) {$\times$};
+      \node[cgop, right=of x1, xshift=0.4cm, yshift=-0.4cm] (m2) {$\times$};
+
+      \node[cgop, right=of m1, xshift=0.5cm, yshift=-0.4cm] (s1) {$+$};
+      \node[cgop, right=of m2, xshift=0.5cm, yshift=-0.4cm] (s2) {$+$};
+
+      \node[cgop, right=of s2, xshift=0.4cm] (neg) {$\times{-}1$};
+      \node[cgop, right=of neg, xshift=0.4cm] (exp) {$\exp$};
+      \node[cgop, right=of exp, xshift=0.4cm] (add1) {$+1$};
+      \node[cgop, right=of add1, xshift=0.4cm] (inv) {$1/u$};
+
+      \node[right=of inv, xshift=0.05cm] (out) {$f$};
+
+      \draw[cgedge] (t1) -- (m1);
+      \draw[cgedge] (x1) -- (m1);
+      \draw[cgedge] (t2) -- (m2);
+      \draw[cgedge] (x2) -- (m2);
+      \draw[cgedge] (t0) -| (s1);
+      \draw[cgedge] (m1) -- (s1);
+      \draw[cgedge] (s1) -- (s2);
+      \draw[cgedge] (m2) -- (s2);
+      \draw[cgedge] (s2) -- (neg);
+      \draw[cgedge] (neg) -- (exp);
+      \draw[cgedge] (exp) -- (add1);
+      \draw[cgedge] (add1) -- (inv);
+      \draw[cgedge] (inv) -- (out);
+
+      \onslide<2->{
+        \node[cgval, above=0.05cm of t0] {$-3$};
+        \node[cgval, above=0.05cm of t1] {$-2$};
+        \node[cgval, above=0.05cm of x1] {$-1$};
+        \node[cgval, above=0.05cm of t2] {$1$};
+        \node[cgval, above=0.05cm of x2] {$-2$};
+        \node[cgval, above=0.05cm of m1] {$2$};
+        \node[cgval, above=0.05cm of m2] {$-2$};
+        \node[cgval, above=0.05cm of s1] {$-1$};
+        \node[cgval, above=0.05cm of s2] {$-3$};
+        \node[cgval, above=0.05cm of neg] {$3$};
+        \node[cgval, above=0.05cm of exp] {$20.09$};
+        \node[cgval, above=0.05cm of add1] {$21.09$};
+        \node[cgval, above=0.05cm of inv] {$0.047$};
+      }
+
+      \onslide<3->{
+        \node[cggrad, right=0.05cm of out] {$1$};
+        \node[cggrad, below=0.05cm of inv] {$-0.002$};
+        \node[cggrad, below=0.05cm of add1] {$-0.002$};
+        \node[cggrad, below=0.05cm of exp] {$-0.045$};
+        \node[cggrad, below=0.05cm of neg] {$0.045$};
+        \node[cggrad, below=0.05cm of s2] {$-0.045$};
+        \node[cggrad, below=0.05cm of s1] {$-0.045$};
+        \node[cggrad, below=0.05cm of m1] {$-0.045$};
+        \node[cggrad, below=0.05cm of m2] {$-0.045$};
+      }
+      \onslide<4->{
+        \node[cggrad, below=0.05cm of t0] {$-0.045$};
+        \node[cggrad, below=0.05cm of t1] {$0.045$};
+        \node[cggrad, below=0.05cm of x1] {$0.090$};
+        \node[cggrad, below=0.05cm of t2] {$0.090$};
+        \node[cggrad, below=0.05cm of x2] {$-0.045$};
+      }
+    \end{tikzpicture}
+    }
+
+    \medskip
+    \footnotesize
+    Valores em \textbf{preto} (forward), gradientes em \textbf{vermelho} (backward).
+  \end{frame}
+
+  %--- Slide: agrupando em sigmoide ---
+  \begin{frame}{Agrupando \textit{gates}: a sigmoide}
+    \begin{columns}
+      \begin{column}{.55\linewidth}
+        \begin{itemize}
+          \item A sequência $\times{-}1 \to \exp \to +1 \to 1/u$
+            implementa $\sigma(z) = 1/(1+e^{-z})$.
+          \item Sua derivada tem forma fechada:
+            $$\sigma'(z) = \sigma(z)\,(1 - \sigma(z)).$$
+          \item Substituir os 4 \textit{gates} por um único nó \textit{sigmoide}
+            simplifica o grafo, evita instabilidades numéricas e cobra apenas
+            uma multiplicação no \textit{backward}.
+          \item Granularidade fina (flexível) versus grossa (eficiente) é
+            uma decisão recorrente em \textit{frameworks} de \textit{deep learning}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.45\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.0cm and 1.4cm, font=\small]
+          \node[cgvar] (z) {$z$};
+          \node[cgop, right=of z] (sig) {$\sigma$};
+          \node[right=of sig, xshift=0.1cm] (out) {$\sigma(z)$};
+
+          \draw[cgedge] (z) -- (sig);
+          \draw[cgedge] (sig) -- (out);
+
+          \node[cggrad, below=0.1cm of z] {$\sigma(1{-}\sigma)\cdot g$};
+          \node[cggrad, above=0.1cm of out, xshift=-0.1cm] {$g$};
+        \end{tikzpicture}\\
+        \footnotesize \textit{Forward} entrega $\sigma(z)$;
+        \textit{backward} multiplica o gradiente \textit{upstream} por
+        $\sigma(1{-}\sigma)$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section{Programação diferenciável}
+  %======================================================================
+
+  %--- Slide: autodiff ---
+  \begin{frame}{Programação diferenciável}
+    \begin{itemize}
+      \item Se cada operação elementar conhece sua derivada local,
+        o computador pode montar o grafo \textit{automaticamente} ao executar
+        o código \textit{forward}.
+      \item Esse processo é chamado \alert{diferenciação automática}
+        (\textit{autodiff}\footfullcite{baydin2018automatic}), distinto de:
+        \begin{itemize}
+          \item \textit{symbolic} differentiation (manipulação algébrica de fórmulas);
+          \item \textit{numerical} differentiation (diferença finita,
+            $\partial f / \partial x \approx (f(x{+}h) - f(x))/h$).
+        \end{itemize}
+      \item Programação que usa \textit{autodiff} no laço principal recebe o nome
+        de \textit{differentiable programming}: redes neurais são apenas um
+        caso particular.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: forward mode vs reverse mode ---
+  \begin{frame}{\textit{Forward mode} vs. \textit{reverse mode}}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \textbf{Forward mode}
+        \begin{itemize}
+          \item Propaga derivadas \textit{junto} com o forward, da entrada para a saída.
+          \item Custo proporcional ao número de \textbf{entradas}.
+          \item Eficiente quando $|\text{entradas}| \ll |\text{saídas}|$.
+          \item Usado em simulações físicas e análise de sensibilidade.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \textbf{Reverse mode (\textit{backprop})}
+        \begin{itemize}
+          \item Faz o forward, depois propaga gradientes da saída para as entradas.
+          \item Custo proporcional ao número de \textbf{saídas}.
+          \item Eficiente quando $|\text{saídas}| \ll |\text{entradas}|$, caso típico
+            de redes neurais (saída escalar, milhões de parâmetros).
+          \item Padrão em \textit{frameworks} de deep learning.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: autograd na prática ---
+  \begin{frame}{Na prática: \textit{autograd} de PyTorch\footfullcite{paszke2019pytorch}}
+    \begin{itemize}
+      \item Cada \texttt{Tensor} pode ter \texttt{requires\_grad=True}.
+      \item Cada operação registrada constrói nós em um \textbf{grafo dinâmico},
+        reconstruído a cada \textit{forward}.
+      \item \texttt{loss.backward()} faz o reverse mode: percorre o grafo a
+        partir da saída e acumula gradientes em \texttt{parameter.grad}.
+      \item O otimizador (\texttt{SGD}, \texttt{Adam}, $\dots$) lê esses
+        \texttt{.grad} e atualiza os parâmetros.
+      \item JAX, TensorFlow 2 e Flax seguem o mesmo princípio, com variações:
+        grafos estáticos compilados, transformações de funções (\texttt{jax.grad},
+        \texttt{jax.jit}, \texttt{jax.vmap}).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: autograd em ação ---
+  \begin{frame}[fragile]{\textit{autograd} em ação}
+    \begin{columns}[T]
+      \begin{column}{0.55\linewidth}
+        \begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+import torch
+
+a = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(3.0, requires_grad=True)
+c = torch.tensor(4.0, requires_grad=True)
+
+f = (a + b) * c          # forward
+f.backward()             # reverse mode
+
+print(a.grad, b.grad, c.grad)
+# tensor(4.) tensor(4.) tensor(5.)
+        \end{lstlisting}
+      \end{column}
+      \begin{column}{0.42\linewidth}
+        \begin{itemize}
+          \item Mesmo grafo do primeiro exemplo: $f = (a + b)\cdot c$ com $a{=}2, b{=}3, c{=}4$.
+          \item Gradientes coincidem com a derivação manual:
+            $\partial f/\partial a = c = 4$, $\partial f/\partial b = c = 4$, $\partial f/\partial c = a + b = 5$.
+          \item O grafo foi montado \textbf{automaticamente} ao executar a expressão; nenhum código de derivada foi escrito.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  \section*{Referências e Leituras}
+  %======================================================================
+
+  %--- Slide: leituras ---
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \sloppy
+    \begin{itemize}
+      \item Notas de aula CS231n, módulo \textit{Backpropagation, Intuitions}:
+        \citeauthoryear{karpathy2016cs231n},
+        \href{https://cs231n.github.io/optimization-2/}{\textit{cs231n.github.io/optimization-2}}.
+      \item Survey de \textit{automatic differentiation}:
+        \citeauthoryear{baydin2018automatic}.
+      \item Capítulo 7 de \fullcite{prince2023understanding}.
+      \item PyTorch \textit{autograd}: \citeauthoryear{paszke2019pytorch} e
+        documentação oficial em
+        \href{https://pytorch.org/docs/stable/notes/autograd.html}{\textit{pytorch.org/docs/stable/notes/autograd}}.
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

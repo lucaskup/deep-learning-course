@@ -1,0 +1,973 @@
+%----------------------------------------------------------------------------------------
+%    PACKAGES AND THEMES
+%----------------------------------------------------------------------------------------
+
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+
+%----------------------------------------------------------------------------------------
+%    TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\title{Deep Learning}
+\subtitle{LSTMs e GRUs}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+%----------------------------------------------------------------------------------------
+%    TIKZ STYLES
+%----------------------------------------------------------------------------------------
+
+\tikzset{
+    rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
+    inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
+    outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\scriptsize, inner sep=2pt},
+    pw/.style={draw, circle, fill=PastelPink, minimum size=0.5cm, inner sep=1pt, font=\scriptsize},
+    pwt/.style={draw, ellipse, fill=PastelPink, inner sep=1.5pt, font=\scriptsize},
+    addop/.style={draw, circle, fill=white, minimum size=0.5cm, inner sep=1pt, font=\scriptsize},
+    junc/.style={circle, fill=black, inner sep=0pt, minimum size=2.4pt}
+}
+
+% Diagrama (reutilizável) da célula LSTM no estilo Colah. Usar dentro de um
+% tikzpicture; cada slide pode desenhar destaques vermelhos por cima,
+% referenciando os nós criados aqui (f, i, g, o, fmul, add, imul, omul, ctanh,
+% xin, hbubble) e as coordenadas das linhas (cWest, cEast, hWest, hEast).
+\newcommand{\lstmcell}{%
+    % corpo da célula
+    \node[rnncell, fill=PastelGreen, minimum width=8.2cm, minimum height=4.2cm] (body) at (3.4, 0.45) {};
+    % coordenadas das duas linhas horizontais (prolongadas para fora do bloco)
+    \coordinate (cWest) at (-1.6,1.9);
+    \coordinate (cEast) at (8.4,1.9);
+    \coordinate (hWest) at (-1.6,-0.85);
+    \coordinate (hEast) at (8.4,-1.0);
+    % portas (camadas densas)
+    \node[opnode] (f) at (1.0,0.15) {$\sigma$};
+    \node[opnode] (i) at (2.2,0.15) {$\sigma$};
+    \node[opnode] (g) at (3.4,0.15) {$\tanh$};
+    % a porta de saída o fica sobre a linha inferior de h, alinhada com a omul
+    \node[opnode] (o) at (4.8,-1.0) {$\sigma$};
+    % operações ponto a ponto
+    \node[pw]    (fmul)  at (1.0,1.9) {$\times$};
+    \node[addop] (add)   at (2.8,1.9) {$+$};
+    \node[pw]    (imul)  at (2.8,0.95) {$\times$};
+    \node[pwt]   (ctanh) at (6.0,1.15) {$\tanh$};
+    \node[pw]    (omul)  at (6.0,-1.0) {$\times$};
+    % entradas / saídas externas
+    \node[inputnode]  (xin)     at (0.3,-2.5) {$x_t$};
+    \node[outputnode] (hbubble) at (6.6,3.2)  {$h_t$};
+    % ---- linha do estado de célula c (superior) ----
+    \draw[->] (cWest) -- (fmul.west) node[midway, above, font=\tiny] {$c_{t-1}$};
+    \draw[->] (fmul.east) -- (add.west);
+    \draw[->] (add.east) -- (cEast) node[near end, above, font=\tiny] {$c_t$};
+    \node[junc] (ctap) at (6.0,1.9) {};
+    \draw[->] (ctap) -- (ctanh.north);
+    % ---- entrada concatenada [h_{t-1}, x_t] que alimenta apenas as portas ----
+    % h_{t-1} e x_t convergem num símbolo de concatenação. A linha inferior corre
+    % reta da esquerda até a porta de saída; o que sai à direita é h_t (produzido
+    % pela porta de saída), não o h_{t-1} de entrada.
+    \coordinate (catM) at (0.8,-1.0);
+    \draw (hWest) -- (0.5,-0.85) -- (catM);
+    \node[below, font=\tiny] at (-0.85,-0.85) {$h_{t-1}$};
+    \draw (xin.north) -- (0.3,-1.15) -- (0.5,-1.15) -- (catM);
+    % barramento concatenado: sobe para f, i e g e segue reto até a porta o
+    \foreach \n/\x in {f/1.0, i/2.2, g/3.4}{
+        \node[junc] at (\x,-1.0) {};
+        \draw[->] (\x,-1.0) -- (\n.south);
+    }
+    \draw[->] (catM) -- (o.west);
+    % saídas das portas para as operações ponto a ponto
+    \draw[->] (f.north) -- (fmul.south);
+    \draw[->] (i.north) |- (imul.west);
+    \draw[->] (g.north) |- (imul.east);
+    \draw[->] (imul.north) -- (add.south);
+    \draw[->] (o.east) -- (omul.west);
+    \draw[->] (ctanh.south) -- (omul.north);
+    % rótulos das portas
+    \node[font=\tiny] at (1.28,0.66) {$f_t$};
+    \node[font=\tiny] at (2.46,0.62) {$i_t$};
+    \node[font=\tiny] at (3.70,0.62) {$\tilde{c}_t$};
+    \node[font=\tiny] at (5.4,-0.74) {$o_t$};
+    % saída h_t produzida pela porta de saída: a linha sai reta da omul ao longo
+    % da linha inferior e se divide num ponto, subindo para a bolha h_t e
+    % seguindo reto para a saída à direita
+    \node[junc] (hsplit) at (6.6,-1.0) {};
+    \draw[->] (omul.east) -- (hsplit);
+    \draw[->] (hsplit) -- (hbubble.south);
+    \draw[->] (hsplit) -- (hEast) node[near end, below, font=\tiny] {$h_t$};
+}
+
+% destaques vermelhos por porta, desenhados sobre \lstmcell
+\tikzset{hl/.style={red, line width=1pt}}
+
+% destaque vermelho da entrada concatenada [h_{t-1}, x_t]
+\newcommand{\hlcat}{%
+    \draw[hl] (hWest) -- (0.5,-0.85) -- (catM);
+    \draw[hl] (xin.north) -- (0.3,-1.15) -- (0.5,-1.15) -- (catM);
+}
+
+\newcommand{\hlforget}{%
+    \hlcat
+    \draw[hl] (catM) -- (1.0,-1.0);
+    \draw[hl, ->] (1.0,-1.0) -- (f.south);
+    \draw[hl, ->] (cWest) -- (fmul.west);
+    \draw[hl, ->] (f.north) -- (fmul.south);
+    \node[opnode, draw=red, line width=1pt] at (1.0,0.15) {$\sigma$};
+    \node[pw, draw=red, line width=1pt] at (1.0,1.9) {$\times$};
+}
+
+\newcommand{\hlinput}{%
+    \hlcat
+    \draw[hl] (catM) -- (3.4,-1.0);
+    \draw[hl, ->] (2.2,-1.0) -- (i.south);
+    \draw[hl, ->] (3.4,-1.0) -- (g.south);
+    \draw[hl, ->] (i.north) |- (imul.west);
+    \draw[hl, ->] (g.north) |- (imul.east);
+    \draw[hl, ->] (imul.north) -- (add.south);
+    \node[opnode, draw=red, line width=1pt] at (2.2,0.15) {$\sigma$};
+    \node[opnode, draw=red, line width=1pt] at (3.4,0.15) {$\tanh$};
+    \node[pw, draw=red, line width=1pt] at (2.8,0.95) {$\times$};
+}
+
+\newcommand{\hlmemory}{%
+    \draw[hl, ->] (cWest) -- (fmul.west);
+    \draw[hl, ->] (fmul.east) -- (add.west);
+    \draw[hl, ->] (add.east) -- (cEast);
+    \node[pw, draw=red, line width=1pt]    at (1.0,1.9) {$\times$};
+    \node[addop, draw=red, line width=1pt] at (2.8,1.9) {$+$};
+}
+
+\newcommand{\hloutput}{%
+    \hlcat
+    \draw[hl, ->] (catM) -- (o.west);
+    \draw[hl, ->] (o.east) -- (omul.west);
+    \draw[hl, ->] (ctap) -- (ctanh.north);
+    \draw[hl, ->] (ctanh.south) -- (omul.north);
+    \draw[hl, ->] (omul.east) -- (hsplit);
+    \draw[hl, ->] (hsplit) -- (hbubble.south);
+    \draw[hl, ->] (hsplit) -- (hEast);
+    \node[opnode, draw=red, line width=1pt] at (4.8,-1.0) {$\sigma$};
+    \node[pwt, draw=red, line width=1pt] at (6.0,1.15) {$\tanh$};
+    \node[pw, draw=red, line width=1pt] at (6.0,-1.0) {$\times$};
+    \node[outputnode, draw=red, line width=1pt] at (6.6,3.2) {$h_t$};
+}
+
+% Diagrama (reutilizável) da célula GRU no estilo Colah, consistente com \lstmcell:
+% linha superior conduz o estado h, as portas são alimentadas pela entrada
+% concatenada [h_{t-1}, x_t], e a saída h_t sai por uma única linha que se divide.
+\newcommand{\grucell}{%
+    % corpo da célula
+    \node[rnncell, fill=PastelGreen, minimum width=7.7cm, minimum height=4.6cm] (gbody) at (3.35,0.3) {};
+    \coordinate (ghW) at (-1.7,1.9);
+    \coordinate (ghE) at (8.5,1.9);
+    % portas (camadas densas)
+    \node[opnode] (r)  at (1.4,0.0) {$\sigma$};
+    \node[opnode] (z)  at (3.0,0.0) {$\sigma$};
+    \node[opnode] (hc) at (4.4,-0.5) {$\tanh$};
+    % operações ponto a ponto
+    \node[pw]    (rmul)   at (0.5,0.9) {$\times$};
+    \node[draw, circle, fill=white, minimum size=0.6cm, inner sep=0pt, font=\scriptsize] (onemz) at (3.0,1.0) {$1\!-$};
+    \node[pw]    (zmul)   at (5.7,-0.5) {$\times$};
+    \node[pw]    (topmul) at (3.0,1.9) {$\times$};
+    \node[addop] (add)    at (6.2,1.9) {$+$};
+    % entradas / saídas externas
+    \node[inputnode]  (gxin)    at (0.7,-2.6) {$x_t$};
+    \node[outputnode] (hbubble) at (6.8,3.0)  {$h_t$};
+    % ---- linha do estado h (superior) ----
+    \draw[->] (ghW) -- (topmul.west) node[pos=0.3, above, font=\tiny] {$h_{t-1}$};
+    \draw[->] (topmul.east) -- (add.west);
+    % saída h_t: uma única linha sai da soma e se divide (sobe e segue à direita)
+    \node[junc] (hsplit) at (6.8,1.9) {};
+    \draw[->] (add.east) -- (hsplit);
+    \draw[->] (hsplit) -- (hbubble.south);
+    \draw[->] (hsplit) -- (ghE) node[near end, above, font=\tiny] {$h_t$};
+    % ---- distribuição de h_{t-1} ----
+    \node[junc] (hbr) at (0.0,1.9) {};
+    \draw (hbr) -- (0.0,-0.85);
+    \node[junc] at (0.0,0.9) {};
+    \draw[->] (0.0,0.9) -- (rmul.west);
+    % ---- entrada concatenada [h_{t-1}, x_t] que alimenta r e z ----
+    \coordinate (catM) at (0.9,-1.0);
+    \draw (0.0,-0.85) -- (0.6,-0.85) -- (catM);
+    \draw (gxin.north) -- (0.7,-1.15) -- (catM);
+    \draw (catM) -- (3.0,-1.0);
+    \node[junc] at (1.4,-1.0) {}; \draw[->] (1.4,-1.0) -- (r.south);
+    \node[junc] at (3.0,-1.0) {}; \draw[->] (3.0,-1.0) -- (z.south);
+    % ---- x_t também alimenta o candidato ----
+    \node[junc] (gxjh) at (0.7,-1.6) {};
+    \draw (gxjh) -- (4.4,-1.6);
+    \draw[->] (4.4,-1.6) -- (hc.south);
+    % ---- porta de reset multiplica h_{t-1} e entra no candidato ----
+    \draw[->] (r.north) |- (rmul.east);
+    \draw[->] (rmul.south) -- (0.5,-0.5) -- (hc.west);
+    % ---- porta de update: 1-z e os dois multiplicadores ----
+    \node[junc] (gzj) at (3.0,0.4) {};
+    \draw (z.north) -- (gzj);
+    \draw[->] (gzj) -- (onemz.south);
+    \draw[->] (gzj) -| (zmul.north);
+    \draw[->] (hc.east) -- (zmul.west);
+    \draw[->] (onemz.north) -- (topmul.south);
+    \draw[->] (zmul.east) -| (add.south);
+    % rótulos das portas
+    \node[font=\tiny, align=center] at (2.15,0.0) {reset gate\\ $r_t$};
+    \node[font=\tiny, align=center] at (3.85,0.0) {update gate\\ $z_t$};
+    \node[font=\tiny] at (5.05,-0.22) {$\tilde{h}_t$};
+}
+
+%----------------------------------------------------------------------------------------
+%    PRESENTATION SLIDES
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    \tableofcontents
+\end{frame}
+
+%========================================================================
+\section{Problemas em Redes Recorrentes}
+%========================================================================
+
+\begin{frame}{Memória de Curto Prazo}
+\begin{itemize}
+    \item Considere a frase a seguir, em que existe uma quebra de sentimento entre as duas partes:
+    \item \textit{``\textcolor{red}{O filme é péssimo e ninguém deveria perder tempo assistindo.} \textcolor{blue}{Contudo eu admiro a tentativa de Hollywood de aumentar a representatividade em termos de história e atores, certamente será possível colher frutos sobre essa tentativa em outras obras no futuro.}''}
+    \item Para classificar o sentimento global, a rede precisa lembrar do início da frase quando chega ao final.
+    \item Com uma RNN simples, esse tipo de \textbf{dependência de longo alcance} é difícil de manter.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Estado Interno é Sobrescrito a Cada Passo}
+\begin{itemize}
+    \item Em uma RNN \textit{vanilla}, o estado interno $h_t$ é totalmente recalculado a cada passo de tempo.
+\end{itemize}
+\vspace{0.4em}
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.95, transform shape]
+    \foreach \i in {0,1,2,3,4,5}{
+        \node[rnncell, minimum width=1.0cm, minimum height=0.8cm] (c\i) at (1.6*\i, 0) {};
+        \node[inputnode] (x\i) at (1.6*\i, -1.1) {$x_\i$};
+        \draw[->, thick] (x\i) -- (c\i);
+    }
+    \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5}{
+        \draw[->, thick] (c\i) -- node[above, font=\tiny] {$h_\i$} (c\j);
+    }
+    \node at (10.4, 0) {\dots};
+    \node[rnncell, minimum width=1.0cm, minimum height=0.8cm] (cn) at (11.6, 0) {};
+    \node[inputnode] (xn) at (11.6, -1.1) {$x_n$};
+    \node[outputnode] (yn) at (11.6, 1.1) {$\hat{y}_n$};
+    \draw[->, thick] (xn) -- (cn);
+    \draw[->, thick] (cn) -- (yn);
+    \draw[->, thick] (c5) -- node[above, font=\tiny] {$h_5$} (10, 0);
+    \draw[->, thick] (10.8, 0) -- node[above, font=\tiny] {$h_{n-1}$} (cn);
+    \node[font=\scriptsize, text=red] at (0, -1.8) {O};
+    \node[font=\scriptsize, text=red] at (1.6, -1.8) {filme};
+    \node[font=\scriptsize, text=red] at (3.2, -1.8) {é};
+    \node[font=\scriptsize, text=red] at (4.8, -1.8) {péssimo};
+    \node[font=\scriptsize, text=red] at (6.4, -1.8) {e};
+    \node[font=\scriptsize, text=red] at (8.0, -1.8) {ninguém};
+    \node[font=\scriptsize] at (11.6, -1.8) {\textcolor{PastelBlue2}{futuro}};
+\end{tikzpicture}
+\vspace{0.4em}
+\begin{itemize}\footnotesize
+    \item Em cada célula a entrada \textcolor{red}{atualiza completamente} o estado.
+    \item Manter informação por muitos passos de tempo é difícil, esse é o problema da \textbf{memória de curto prazo}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solução: Aprender Quando Atualizar e Quando Esquecer}
+\begin{itemize}
+    \item A ideia é deixar a própria rede aprender, a cada passo, quanta informação anterior deve ser mantida e quanta informação nova deve entrar no estado.
+    \item Essa é a motivação da arquitetura \textit{Long Short-Term Memory}\footfullcite{hochreiter1997lstm} (LSTM).
+    \item É a arquitetura com mais ``partes'' que veremos até agora, mas todas as partes se reduzem a operações já conhecidas:
+    \begin{itemize}
+        \item multiplicação de matrizes,
+        \item funções de ativação (sigmoid, $\tanh$),
+        \item operações ponto a ponto (soma, multiplicação).
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{LSTMs}
+%========================================================================
+
+\begin{frame}{Revisitando RNNs}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Em uma RNN \textit{vanilla} o estado oculto $h_{t-1}$ é combinado com a entrada $x_t$ por uma camada densa com ativação $\tanh$.
+            \item Repare que dentro da célula recorrente existe ``uma rede densa''.
+            \item A LSTM mantém essa ideia, porém com mais camadas internas e um caminho separado para a memória de longo prazo.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{0.8\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
+            \node[opnode] (xh) at (0, -0.5) {$x_t\,\theta_{ih}^{T} + b_h$};
+            \node[opnode] (hh) at (-1.2, 0.4) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
+            \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
+            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$h_t\,\theta_{ho}^{T} + b_o$};
+            \node[inputnode] (xnode) at (0, -2.0) {$x_t$};
+            \node[outputnode] (ynode) at (0, 2.4) {$\hat{y}_t$};
+            \draw[->] (xnode) -- (xh);
+            \draw[->] (xh) -- (plus);
+            \draw[->] (hh) -- (plus);
+            \draw[->] (plus) -- (tanh);
+            \draw[->] (tanh) |- (out);
+            \draw[->] (out) -- (ynode);
+            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$h_t$};
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Visão Geral da Célula LSTM}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \begin{itemize}\small
+            \item A célula carrega \textbf{dois} sinais ao longo do tempo: o estado oculto $h_t$ (\textit{hidden state}) e a memória de longo prazo $c_t$ (\textit{cell state}).
+            \item No diagrama, a linha \textbf{superior} conduz $c_t$ e a \textbf{inferior} conduz $h_t$.
+            \item \textit{Gates} (camadas densas com \textit{sigmoid}, saída em $[0,1]$) controlam o quanto de cada informação é mantido, atualizado ou exposto, multiplicando vetores ponto a ponto.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\vspace{0.2em}
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node[opnode, fill=PastelYellow] (a) at (0,0) {$\sigma$};
+    \node[anchor=west] at (0.45,0) {camada densa};
+    \node[draw, circle, fill=PastelPink, minimum size=0.45cm, inner sep=1pt] (b) at (3.9,0) {$\times$};
+    \node[anchor=west] at (4.3,0) {operação ponto a ponto};
+    \draw[->, thick] (9.2,0) -- (9.9,0);
+    \node[anchor=west] at (9.95,0) {transferência de vetor};
+    \draw[thick] (14.2,0.18) -- (14.55,0.18) -- (14.78,0);
+    \draw[thick] (14.2,-0.18) -- (14.55,-0.18) -- (14.78,0);
+    \draw[->, thick] (14.78,0) -- (15.05,0);
+    \node[anchor=west] at (15.1,0) {concatenação};
+\end{tikzpicture}}
+\end{frame}
+
+\begin{frame}{Quatro Camadas Densas Dentro da Célula}
+\begin{itemize}
+    \item $[h_{t-1}, x_t]$ é a \textbf{concatenação} dos dois vetores num único vetor de dimensão $h_{\text{size}} + x_{\text{size}}$.
+    \item Dentro da célula LSTM existem \textbf{quatro} camadas densas que recebem $[h_{t-1}, x_t]$:
+    \begin{itemize}
+        \item três delas funcionam como \textit{gates}, com ativação \textit{sigmoid}:
+        \begin{itemize}
+            \item \textit{forget gate} ($f_t$): decide o quanto da memória $c_{t-1}$ deve ser \textbf{esquecido}.
+            \item \textit{input gate} ($i_t$): decide quais partes da nova informação devem \textbf{atualizar} a memória.
+            \item \textit{output gate} ($o_t$): decide quais partes da memória devem \textbf{compor} o novo estado oculto.
+        \end{itemize}
+        \item a quarta camada usa $\tanh$ e produz uma proposta de atualização $\tilde{c}_t$ para a memória.
+    \end{itemize}
+    \item As três \textit{gates} aprendem a regular o fluxo de informação ao longo do tempo.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Forget Gate}}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Decide quanto da memória $c_{t-1}$ deve ser \textbf{esquecida}.
+            \item Recebe $[h_{t-1}, x_t]$, passa por uma camada densa e por uma \textit{sigmoid}:
+        \end{itemize}
+        \[
+            f_t = \sigma\bigl(\theta_f\,[h_{t-1}, x_t] + b_f\bigr)
+        \]
+        \begin{itemize}
+            \item $f_t \in [0,1]$, multiplica $c_{t-1}$ ponto a ponto.
+            \begin{itemize}
+                \item $f_t \approx 1$: mantém a memória.
+                \item $f_t \approx 0$: esquece.
+            \end{itemize}
+            \item No exemplo do filme, o \textit{forget gate} pode aprender a \textbf{manter} o sinal de ``péssimo'' enquanto a segunda parte da frase é processada.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlforget
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{\textit{Input Gate} e Candidato $\tilde{c}_t$}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Decide quais partes da nova entrada devem \textbf{atualizar} a memória.
+            \item Duas camadas trabalham juntas:
+        \end{itemize}
+        \[
+            i_t = \sigma\bigl(\theta_i\,[h_{t-1}, x_t] + b_i\bigr)
+        \]
+        \[
+            \tilde{c}_t = \tanh\bigl(\theta_c\,[h_{t-1}, x_t] + b_c\bigr)
+        \]
+        \begin{itemize}
+            \item $i_t \in [0,1]$ filtra a contribuição.
+            \item $\tilde{c}_t \in [-1,1]$ é a proposta de atualização.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlinput
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Atualização da Memória $c_t$}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item A nova memória combina o que foi mantido da anterior com a nova proposta filtrada:
+        \end{itemize}
+        \[
+            c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t
+        \]
+        \begin{itemize}
+            \item O símbolo $\odot$ indica multiplicação ponto a ponto (\textit{Hadamard}).
+            \item Repare que $c_t$ tem uma rota direta no tempo, sem ativação não linear no caminho principal.
+            \begin{itemize}
+                \item Isso ajuda a mitigar o \textit{vanishing gradient}.
+            \end{itemize}
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlmemory
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Por que a LSTM Preserva o Gradiente}
+\begin{itemize}\small
+    \item Na RNN \textit{vanilla}, o gradiente entre passos distantes acumula um \textbf{produto} de fatores que saturam:
+\end{itemize}
+\[
+    \frac{\partial h_t}{\partial h_{t-1}} \propto \theta_{hh}\,\bigl(1 - \tanh^2(z_t)\bigr)
+    \qquad\Rightarrow\qquad
+    \prod_{k} \theta_{hh}\,\bigl(1 - \tanh^2(z_k)\bigr)
+\]
+\begin{itemize}\small
+    \item Como $1 - \tanh^2 \le 1$, esse produto tende a \textbf{desaparecer} em sequências longas.
+    \item Na LSTM, a memória tem uma rota direta no tempo, $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$. Pelo \textbf{caminho direto}:
+\end{itemize}
+\[
+    \frac{\partial c_t}{\partial c_{t-1}} = f_t
+    \qquad\Rightarrow\qquad
+    \prod_{k} f_k
+\]
+\begin{itemize}\footnotesize
+    \item Nesse caminho não há $\tanh'$ repetido nem multiplicação por matrizes, apenas a porta $f_k$ e uma \textbf{soma}.
+    \item Quando o \textit{forget gate} aprende $f_k \approx 1$, o gradiente é preservado por muitos passos (\textit{constant error carousel}). As demais rotas, pelas \textit{gates}, contribuem com termos menores.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textit{Output Gate} e Estado Oculto $h_t$}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Decide quais partes da memória devem ser \textbf{expostas} no estado oculto:
+        \end{itemize}
+        \[
+            o_t = \sigma\bigl(\theta_o\,[h_{t-1}, x_t] + b_o\bigr)
+        \]
+        \[
+            h_t = o_t \odot \tanh(c_t)
+        \]
+        \begin{itemize}
+            \item $h_t$ é o que sai da célula a cada passo, e também alimenta a próxima célula.
+            \item $c_t$ continua circulando como memória de longo prazo, em paralelo a $h_t$.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hloutput
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Resumo das Equações da LSTM}
+\centering
+\begin{tabular}{l l}
+    \toprule
+    \textit{Forget gate}    & $f_t = \sigma(\theta_f\,[h_{t-1}, x_t] + b_f)$ \\
+    \textit{Input gate}     & $i_t = \sigma(\theta_i\,[h_{t-1}, x_t] + b_i)$ \\
+    Candidato $\tilde{c}_t$ & $\tilde{c}_t = \tanh(\theta_c\,[h_{t-1}, x_t] + b_c)$ \\
+    Memória $c_t$           & $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ \\
+    \textit{Output gate}    & $o_t = \sigma(\theta_o\,[h_{t-1}, x_t] + b_o)$ \\
+    Estado oculto $h_t$     & $h_t = o_t \odot \tanh(c_t)$ \\
+    \bottomrule
+\end{tabular}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+    \item Cada peso $\theta_\bullet$ é uma matriz que opera sobre o vetor concatenado $[h_{t-1}, x_t]$.
+    \item Os \textit{bias} $b_\bullet$ são vetores com a mesma dimensão da saída da \textit{gate}.
+    \item Sendo $h_{\text{size}}$ a dimensão do estado oculto e $x_{\text{size}}$ a dimensão da entrada, os \textit{shapes} esperados são:
+    \[
+        \theta_\bullet \in \mathbb{R}^{h_{\text{size}} \times (h_{\text{size}} + x_{\text{size}})}, \qquad b_\bullet \in \mathbb{R}^{h_{\text{size}}}.
+    \]
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Exemplo Numérico: Configuração}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}\small
+            \item Vamos rodar um passo da LSTM com valores concretos.
+            \item Estado inicial e entrada (escalares para simplificar):
+        \end{itemize}
+        \[
+            c_0 = 0.5 \qquad h_0 = -0.6 \qquad x_0 = 0.8
+        \]
+        \begin{itemize}\small
+            \item Pesos das quatro camadas densas, cada $\theta_\bullet = [\theta_h, \theta_x]$ multiplica $[h_{t-1}, x_t]^T$:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            \theta_f &= [0.5,\,-0.5], & b_f &= 0.3 \\
+            \theta_i &= [0.3,\,-0.4], & b_i &= 0.5 \\
+            \theta_c &= [0.1,\,-0.3], & b_c &= 0.7 \\
+            \theta_o &= [-0.5,\,0.4], & b_o &= 0.5
+        \end{align*}
+        }
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo: \textit{Forget Gate}}
+\begin{columns}[T]
+    \begin{column}{.58\linewidth}
+        \begin{itemize}\small
+            \item Usando $[h_0, x_0]^T = [-0.6,\,0.8]^T$:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            f_t &= \sigma\bigl([0.5,\,-0.5]\cdot[-0.6,\,0.8]^T + 0.3\bigr) \\
+                &= \sigma\bigl(0.5\cdot(-0.6) + (-0.5)\cdot 0.8 + 0.3\bigr) \\
+                &= \sigma(-0.4) \approx 0.4013
+        \end{align*}}
+        \begin{itemize}\footnotesize
+            \item Esse valor multiplicará $c_0 = 0.5$, mantendo cerca de $40\%$ da memória anterior.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.40\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlforget
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo: \textit{Input Gate} e Candidato}
+\begin{columns}[T]
+    \begin{column}{.58\linewidth}
+        \begin{itemize}\small
+            \item \textit{Input gate}:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            i_t &= \sigma\bigl([0.3,\,-0.4]\cdot[-0.6,\,0.8]^T + 0.5\bigr) \\
+                &= \sigma(0) \approx 0.5000
+        \end{align*}}
+        \begin{itemize}\small
+            \item Candidato $\tilde{c}_t$:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            \tilde{c}_t &= \tanh\bigl([0.1,\,-0.3]\cdot[-0.6,\,0.8]^T + 0.7\bigr) \\
+                &= \tanh(0.4) \approx 0.3799
+        \end{align*}}
+        \begin{itemize}\footnotesize
+            \item $i_t$ filtra cerca da metade do candidato, e $\tilde{c}_t$ é a contribuição em si.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.40\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlinput
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo: Atualização da Memória}
+\begin{columns}[T]
+    \begin{column}{.58\linewidth}
+        {\footnotesize
+        \begin{align*}
+            c_t &= f_t \cdot c_{t-1} + i_t \cdot \tilde{c}_t \\
+                &= 0.4013 \cdot 0.5 + 0.5000 \cdot 0.3799 \\
+                &\approx 0.2007 + 0.1900 \approx 0.3907
+        \end{align*}}
+        \begin{itemize}\footnotesize
+            \item A nova memória $c_t$ combina parte da memória antiga (filtrada por $f_t$) com parte da nova proposta (filtrada por $i_t$).
+            \item No caminho de $c_t$ não há $\tanh$ nem multiplicação por matrizes, apenas operações ponto a ponto.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.40\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hlmemory
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Exemplo: \textit{Output Gate} e $h_t$}
+\begin{columns}[T]
+    \begin{column}{.58\linewidth}
+        \begin{itemize}\small
+            \item \textit{Output gate}:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            o_t &= \sigma\bigl([-0.5,\,0.4]\cdot[-0.6,\,0.8]^T + 0.5\bigr) \\
+                &= \sigma(1.12) \approx 0.7540
+        \end{align*}}
+        \begin{itemize}\small
+            \item Estado oculto:
+        \end{itemize}
+        {\footnotesize
+        \begin{align*}
+            h_t &= o_t \cdot \tanh(c_t) \\
+                &= 0.7540 \cdot \tanh(0.3907) \\
+                &\approx 0.7540 \cdot 0.3719 \approx 0.2804
+        \end{align*}}
+        \begin{itemize}\footnotesize
+            \item O sinal de $h_t$ inverteu em relação a $h_0 = -0.6$, refletindo a entrada positiva $x_0 = 0.8$ filtrada pelas \textit{gates}.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.40\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \lstmcell
+            \hloutput
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Forward Pass Otimizado}
+\begin{itemize}\small
+    \item As quatro camadas densas internas operam sobre o mesmo vetor $[h_{t-1}, x_t]$.
+    \item Em vez de quatro multiplicações de matrizes, agrupamos os pesos das quatro camadas ($\theta_i, \theta_f, \theta_c, \theta_o$) e separamos o resultado depois:
+    \begin{itemize}
+        \item $is$: dimensão da entrada $x_t$, \quad $hs$: dimensão do estado oculto $h_t$.
+        \item Cada $\theta_\bullet\,[h_{t-1}, x_t]$ se separa em $x_t\,W_\bullet + h_{t-1}\,U_\bullet$: $W$ reúne as colunas que multiplicam $x_t$ e $U$ as que multiplicam $h_{t-1}$.
+    \end{itemize}
+    \[
+        W \in \mathbb{R}^{is \times 4hs}, \quad U \in \mathbb{R}^{hs \times 4hs}, \quad b \in \mathbb{R}^{4hs}
+    \]
+\end{itemize}
+{\footnotesize
+\begin{align*}
+    A_t &= x_t W + h_{t-1} U + b \\
+    i_t &= \sigma(A_t[:,\,0:hs]) \\
+    f_t &= \sigma(A_t[:,\,hs:2hs]) \\
+    \tilde{c}_t &= \tanh(A_t[:,\,2hs:3hs]) \\
+    o_t &= \sigma(A_t[:,\,3hs:4hs])
+\end{align*}
+}
+\begin{itemize}\footnotesize
+    \item Essa é a convenção do PyTorch (\texttt{nn.LSTM}): \texttt{weight\_ih} ($W$) e \texttt{weight\_hh} ($U$) concatenam as \textit{gates} na ordem $i, f, g, o$ (o candidato $\tilde{c}_t$ é o $g_t$), com dois \textit{bias} $b_{ih} + b_{hh}$. \textbf{Atenção}: essa ordem coloca a \textit{input gate} antes da \textit{forget gate}, invertendo a ordem das equações anteriores.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Implementação em PyTorch (1/2)}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+class MyLSTM(nn.Module):
+    def __init__(self, input_sz, hidden_sz):
+        super().__init__()
+        self.input_sz   = input_sz
+        self.hidden_sz  = hidden_sz
+        self.W = nn.Parameter(torch.Tensor(input_sz,  hidden_sz * 4))
+        self.U = nn.Parameter(torch.Tensor(hidden_sz, hidden_sz * 4))
+        self.bias = nn.Parameter(torch.Tensor(hidden_sz * 4))
+        self.init_weights()  # nao mostrado
+\end{lstlisting}
+\begin{itemize}\footnotesize
+    \item As matrizes $W$ e $U$ contêm os pesos das quatro camadas internas concatenadas.
+    \item Uma única chamada matricial substitui as quatro multiplicações originais.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Implementação em PyTorch (2/2)}
+\begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
+def forward(self, x):
+    bs, seq_sz, _ = x.size()
+    HS = self.hidden_sz
+    h_t = torch.zeros(bs, HS, device=x.device)
+    c_t = torch.zeros(bs, HS, device=x.device)
+    hidden_seq = []
+    for t in range(seq_sz):
+        x_t   = x[:, t, :]
+        gates = x_t @ self.W + h_t @ self.U + self.bias
+        i_t = torch.sigmoid(gates[:,    :HS])
+        f_t = torch.sigmoid(gates[:, HS:HS*2])
+        g_t = torch.tanh(   gates[:, HS*2:HS*3])
+        o_t = torch.sigmoid(gates[:, HS*3:    ])
+        c_t = f_t * c_t + i_t * g_t
+        h_t = o_t * torch.tanh(c_t)
+        hidden_seq.append(h_t.unsqueeze(0))
+    hidden_seq = torch.cat(hidden_seq, dim=0).transpose(0, 1).contiguous()
+    return hidden_seq, (h_t, c_t)
+\end{lstlisting}
+\end{frame}
+
+%========================================================================
+\section{GRUs}
+%========================================================================
+
+\begin{frame}{\textit{Gated Recurrent Unit}}
+\begin{columns}
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item Introduzida por Cho et al. em 2014\footfullcite{cho2014gru}.
+            \item É considerada uma versão \textbf{simplificada} da LSTM.
+            \item Não mantém um estado de memória $c_t$ separado do estado oculto $h_t$, ambos viram um único vetor.
+            \item Em vez das três \textit{gates} da LSTM, a GRU tem apenas duas:
+            \begin{itemize}
+                \item \textit{reset gate} $r_t$,
+                \item \textit{update gate} $z_t$.
+            \end{itemize}
+            \item Menos parâmetros, treinamento mais rápido, com desempenho competitivo em muitas tarefas.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \grucell
+        \end{tikzpicture}}
+    \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Equações da GRU}
+\begin{itemize}
+    \item \textit{Reset gate}: decide quanto do estado anterior é usado para computar o candidato.
+\end{itemize}
+\[
+    r_t = \sigma\bigl(\theta_r\,[h_{t-1}, x_t] + b_r\bigr)
+\]
+\begin{itemize}
+    \item \textit{Update gate}: decide a mistura entre o estado anterior e o candidato.
+\end{itemize}
+\[
+    z_t = \sigma\bigl(\theta_z\,[h_{t-1}, x_t] + b_z\bigr)
+\]
+\begin{itemize}
+    \item Candidato a estado oculto:
+\end{itemize}
+\[
+    \tilde{h}_t = \tanh\bigl(\theta_h\,[r_t \odot h_{t-1}, x_t] + b_h\bigr)
+\]
+\begin{itemize}
+    \item Novo estado oculto:
+\end{itemize}
+\[
+    h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t
+\]
+\end{frame}
+
+\begin{frame}{Exemplo de GRU: \textit{Reset} e \textit{Update Gates}}
+\begin{itemize}\small
+    \item Reusando $h_0 = -0.6$ e $x_0 = 0.8$, logo $[h_0, x_0] = [-0.6,\,0.8]$, com pesos:
+\end{itemize}
+\[
+    \theta_r = [0.5,\,-0.4],\ b_r = 0.2 \qquad
+    \theta_z = [-0.3,\,0.6],\ b_z = 0.1 \qquad
+    \theta_h = [0.4,\,0.5],\ b_h = 0
+\]
+\begin{itemize}\small
+    \item \textit{Reset gate}:
+\end{itemize}
+\[
+    r_t = \sigma\bigl(0.5\cdot(-0.6) + (-0.4)\cdot 0.8 + 0.2\bigr) = \sigma(-0.42) \approx 0.3965
+\]
+\begin{itemize}\small
+    \item \textit{Update gate}:
+\end{itemize}
+\[
+    z_t = \sigma\bigl((-0.3)\cdot(-0.6) + 0.6\cdot 0.8 + 0.1\bigr) = \sigma(0.76) \approx 0.6814
+\]
+\end{frame}
+
+\begin{frame}{Exemplo de GRU: Candidato e Novo Estado}
+\begin{itemize}\small
+    \item O \textit{reset gate} filtra o estado anterior \textbf{antes} de entrar no candidato:
+\end{itemize}
+\[
+    r_t \odot h_0 = 0.3965 \cdot (-0.6) \approx -0.2379
+\]
+\begin{itemize}\small
+    \item Candidato a estado oculto, usando $[r_t \odot h_0,\, x_0] = [-0.2379,\,0.8]$:
+\end{itemize}
+\[
+    \tilde{h}_t = \tanh\bigl(0.4\cdot(-0.2379) + 0.5\cdot 0.8 + 0\bigr) = \tanh(0.3048) \approx 0.2957
+\]
+\begin{itemize}\small
+    \item Novo estado oculto, mistura controlada por $z_t$:
+\end{itemize}
+\[
+    h_t = (1 - z_t)\,h_0 + z_t\,\tilde{h}_t = 0.3186\cdot(-0.6) + 0.6814\cdot 0.2957 \approx 0.0103
+\]
+\begin{itemize}\footnotesize
+    \item Diferente da LSTM, não há memória $c_t$ separada: a \textbf{mesma} porta $z_t$ decide quanto manter de $h_0$ e quanto usar do candidato.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{LSTM vs GRU}
+\centering
+\begin{tabular}{l c c}
+    \toprule
+                                    & LSTM            & GRU \\
+    \midrule
+    Estados que circulam            & $h_t$ e $c_t$   & apenas $h_t$ \\
+    Quantidade de \textit{gates}    & 3 \quad ($f, i, o$) & 2 \quad ($r, z$) \\
+    Camadas densas internas         & 4               & 3 \\
+    Parâmetros (relativo)           & $4 \cdot d$     & $3 \cdot d$ \\
+    \bottomrule
+\end{tabular}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+    \item A linha de parâmetros conta apenas as matrizes densas internas (ignora \textit{bias}). Em prática, uma GRU acaba tendo aproximadamente $75\%$ dos parâmetros de uma LSTM com a mesma dimensão oculta.
+    \item Em sequências longas a LSTM costuma se comportar um pouco melhor por ter o caminho dedicado para $c_t$.
+    \item A GRU é mais leve e converge mais rápido, sendo uma boa escolha quando há restrição de memória ou de \textit{compute}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Variantes Comuns: \textit{Bidirectional} e \textit{Stacked}}
+\begin{columns}
+    \begin{column}{.5\linewidth}
+        \centering
+        \textbf{Bidirectional RNN}\\[0.3em]
+        \resizebox{!}{2.9cm}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \foreach \i in {1,2,3}{
+                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelGreen] (f\i) at (1.9*\i, 0) {$\overrightarrow{h}_\i$};
+                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelPink] (b\i) at (1.9*\i, -1.0) {$\overleftarrow{h}_\i$};
+                \node[inputnode] (x\i) at (1.9*\i, -2.0) {$x_\i$};
+                \node[opnode] (y\i) at (1.9*\i, 1.1) {$[\overrightarrow{h}_\i; \overleftarrow{h}_\i]$};
+                \draw[->] (x\i) -- (b\i);
+                \draw[->] (x\i.north) to[bend left=45] (f\i.south);
+                \draw[->] (f\i) -- (y\i);
+                \draw[->] (b\i.north) to[bend left=60] (y\i.south);
+            }
+            \foreach \i/\j in {1/2, 2/3}{
+                \draw[->] (f\i) -- (f\j);
+                \draw[<-] (b\i) -- (b\j);
+            }
+        \end{tikzpicture}}
+        \begin{itemize}\scriptsize
+            \item Combina \textit{forward pass} e \textit{backward pass}. Saída é a concatenação dos dois estados ocultos.
+            \item Útil quando toda a sequência está disponível (e.g., \textit{encoders}). Não se aplica a geração autoregressiva.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.5\linewidth}
+        \centering
+        \textbf{Stacked RNN}\\[0.3em]
+        \resizebox{!}{2.9cm}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+            \foreach \i in {1,2,3}{
+                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelGreen] (l1\i) at (1.3*\i, 0) {$h^{(1)}_\i$};
+                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelYellow] (l2\i) at (1.3*\i, 1.1) {$h^{(2)}_\i$};
+                \node[inputnode] (x\i) at (1.3*\i, -1.1) {$x_\i$};
+                \draw[->] (x\i) -- (l1\i);
+                \draw[->] (l1\i) -- (l2\i);
+            }
+            \foreach \i/\j in {1/2, 2/3}{
+                \draw[->] (l1\i) -- (l1\j);
+                \draw[->] (l2\i) -- (l2\j);
+            }
+        \end{tikzpicture}}
+        \begin{itemize}\scriptsize
+            \item Várias camadas recorrentes empilhadas. A saída da camada $\ell$ vira a entrada da camada $\ell+1$.
+            \item Usado em \textit{encoders} profundos para enriquecer a representação. Cada camada pode ter sua própria LSTM ou GRU.
+        \end{itemize}
+    \end{column}
+\end{columns}
+\vspace{0.4em}
+\begin{itemize}\scriptsize
+    \item Ambas as variantes voltam a aparecer no contexto de \textit{encoder-decoder} no próximo deck.
+\end{itemize}
+\end{frame}
+
+%========================================================================
+\section{Referências}
+%========================================================================
+
+\begin{frame}[allowframebreaks]{Referências}
+\begin{itemize}
+    \item Sugere-se a leitura do Capítulo 10 de \textit{Deep Learning}\footfullcite{goodfellow2016deep}.
+    \begin{itemize}
+        \item Disponível em \url{https://www.deeplearningbook.org/}.
+    \end{itemize}
+    \item Material baseado em:
+    \begin{itemize}
+        \item Capítulo 10 de \textit{Deep Learning}, Ian Goodfellow, Yoshua Bengio e Aaron Courville.
+        \item \textit{Understanding LSTM Networks}, Christopher Olah, 2015.
+        \item \textit{MIT Introduction to Deep Learning}, Ava Amini, 2023.
+    \end{itemize}
+\end{itemize}
+\printbibliography
+\end{frame}
+
+\end{document}

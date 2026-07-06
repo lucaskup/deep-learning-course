@@ -1,0 +1,331 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+% Cabeçalho de bloco temático
+\newcommand{\bloco}[1]{%
+  \par\vspace{0.3em}%
+  {\bfseries\large #1}\par%
+  \vspace{-0.4em}{\color{gray!60}\rule{\linewidth}{0.4pt}}\par%
+}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Formulário, Unidades 1 a 3}\\
+Prof. Lucas S. Kupssinskü \hfill MLPs, CNNs e Redes Recorrentes
+
+\rule{\linewidth}{0.8pt}
+
+\textit{Este formulário reúne as principais expressões das unidades 1 a 3 e resultados matemáticos de apoio. Notação: $\odot$ é o produto elemento a elemento; $\sigma(\cdot)$ é a função sigmoide; $\varphi(\cdot)$ é uma função de ativação genérica; $\eta$ é a taxa de aprendizado; $\nabla_{\thetav}\mathcal{L}$ é o gradiente da função de custo em relação aos parâmetros.}
+
+%% =============================================================
+%%  Matemática básica
+%% =============================================================
+\bloco{Matemática Básica}
+
+\textbf{Logaritmos e exponenciais:}
+\[
+  \ln(ab) = \ln a + \ln b, \qquad
+  \ln\frac{a}{b} = \ln a - \ln b, \qquad
+  \ln a^{b} = b \ln a, \qquad
+  \log_2 x = \frac{\ln x}{\ln 2}, \qquad
+  e^{a+b} = e^{a} e^{b}.
+\]
+
+%% =============================================================
+%%  Ativações
+%% =============================================================
+\bloco{Funções de Ativação e Derivadas}
+
+\[
+  \sigma(a) = \frac{1}{1 + e^{-a}}, \qquad
+  \sigma'(a) = \sigma(a)\bigl(1 - \sigma(a)\bigr), \qquad
+  \sigma'(0) = \tfrac{1}{4}.
+\]
+\[
+  \tanh(a) = \frac{e^{a} - e^{-a}}{e^{a} + e^{-a}}, \qquad
+  \tanh'(a) = 1 - \tanh^{2}(a), \qquad
+  \tanh'(0) = 1.
+\]
+\[
+  \mathrm{ReLU}(a) = \max(0, a), \qquad
+  \mathrm{ReLU}'(a) =
+  \begin{cases}
+    1, & a > 0,\\
+    0, & a < 0.
+  \end{cases}
+\]
+
+\textbf{Softmax} (converte \textit{logits} $\mathbf{z} \in \mathbb{R}^{K}$ em probabilidades; com temperatura $\tau$):
+\[
+  \mathrm{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}},
+  \qquad
+  \mathrm{softmax}(\mathbf{z}/\tau)_i = \frac{e^{z_i/\tau}}{\sum_{j=1}^{K} e^{z_j/\tau}}.
+\]
+
+%% =============================================================
+%%  Perceptron e MLP
+%% =============================================================
+\bloco{Perceptron e MLP}
+
+\textbf{Perceptron de Rosenblatt} (saída binária em $\{-1, +1\}$; primeira componente de $X$ igual a $1$, truque do bias):
+\[
+  \hat{y} = \varphi\bigl(X\,\thetav^{\top}\bigr),
+  \qquad
+  \varphi(z) = \mathrm{sinal}(z) =
+  \begin{cases}
+    +1, & z \geq 0,\\
+    -1, & z < 0.
+  \end{cases}
+\]
+
+\textbf{Algoritmo de aprendizado do Perceptron} (atualização para uma instância mal classificada $X^{(i)}$):
+\[
+  \thetav \leftarrow \thetav + y^{(i)}\,X^{(i)}.
+\]
+
+\textbf{Camada densa} (pré-ativação e ativação, forma vetorizada; $A^{(0)} = X$):
+\[
+  Z^{(l)} = A^{(l-1)}\,{\theta^{(l)}}^{\top} + b^{(l)}, \qquad A^{(l)} = \varphi\bigl(Z^{(l)}\bigr).
+\]
+
+%% =============================================================
+%%  Funções de custo
+%% =============================================================
+\bloco{Funções de Custo}
+
+\textbf{Erro quadrático} ($L_2$ \textit{loss}, MSE quando dividida por $N$; por instância, $J = \tfrac{1}{2}(y - \hat{y})^{2}$):
+\[
+  \mathcal{L}(\thetav) = \sum_{i=1}^{N} \bigl(y^{(i)} - \hat{y}^{(i)}\bigr)^{2}.
+\]
+
+\textbf{Entropia cruzada binária} (classificação binária):
+\[
+  \mathcal{L}_{\text{BCE}}(\thetav) = -\sum_{i=1}^{N} \Bigl[\, y^{(i)} \log \hat{y}^{(i)} + \bigl(1 - y^{(i)}\bigr) \log\bigl(1 - \hat{y}^{(i)}\bigr) \Bigr].
+\]
+
+\textbf{Entropia cruzada categórica} ($K$ classes, saída \textit{softmax}; $y^{(i)}$ é o índice da classe correta):
+\[
+  \mathcal{L}(\thetav) = -\sum_{i=1}^{N} \log\,\mathrm{softmax}\bigl(f(\mathbf{x}^{(i)};\thetav)\bigr)_{y^{(i)}}.
+\]
+
+%% =============================================================
+%%  Otimização
+%% =============================================================
+\bloco{Descida de Gradiente e Otimizadores}
+
+\textbf{Descida de gradiente:}
+\[
+  \thetav_{t+1} = \thetav_{t} - \eta\,\nabla_{\thetav}\mathcal{L}(\thetav_{t}).
+\]
+
+\textbf{Momentum} (média móvel exponencial dos gradientes, $v_0 = 0$):
+\[
+  v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t}),
+  \qquad
+  \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}.
+\]
+
+\textbf{Nesterov} (gradiente avaliado no ponto deslocado pelo momentum):
+\[
+  v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t} - \eta\,\beta\,v_{t}),
+  \qquad
+  \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}.
+\]
+
+\textbf{AdaGrad} (acumulador $G$ cresce monotonicamente; operações elemento a elemento):
+\[
+  G_{t+1} = G_{t} + \bigl(\nabla_{\thetav}\mathcal{L}\bigr)^{2},
+  \qquad
+  \thetav_{t+1} = \thetav_{t} - \frac{\eta}{\sqrt{G_{t+1}} + \epsilon}\,\nabla_{\thetav}\mathcal{L}.
+\]
+
+\textbf{RMSProp} (média móvel exponencial no lugar da soma):
+\[
+  \mathbb{E}[g^{2}]_{t+1} = \rho\,\mathbb{E}[g^{2}]_{t} + (1-\rho)\,\bigl(\nabla_{\thetav}\mathcal{L}\bigr)^{2},
+  \qquad
+  \thetav_{t+1} = \thetav_{t} - \frac{\eta}{\sqrt{\mathbb{E}[g^{2}]_{t+1}} + \epsilon}\,\nabla_{\thetav}\mathcal{L}.
+\]
+
+\textbf{Adam} (momentos $m$ e $v$ com correção de viés; $m_0 = v_0 = 0$):
+\[
+  m_{t+1} = \beta_1\,m_{t} + (1-\beta_1)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t}),
+  \qquad
+  v_{t+1} = \beta_2\,v_{t} + (1-\beta_2)\,\bigl(\nabla_{\thetav}\mathcal{L}(\thetav_{t})\bigr)^{2},
+\]
+\[
+  \widetilde{m}_{t+1} = \frac{m_{t+1}}{1 - \beta_1^{\,t+1}},
+  \qquad
+  \widetilde{v}_{t+1} = \frac{v_{t+1}}{1 - \beta_2^{\,t+1}},
+  \qquad
+  \thetav_{t+1} = \thetav_{t} - \eta\,\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}} + \epsilon}.
+\]
+
+%% =============================================================
+%%  Regularização e inicialização
+%% =============================================================
+\bloco{Regularização, Normalização e Inicialização}
+
+\textbf{Regularização L1 e L2} (penalidade $\Omega$ somada à função de custo; L2 corresponde ao \textit{weight decay}):
+\[
+  \tilde{\mathcal{L}}(\thetav) = \mathcal{L}(\thetav) + \lambda\,\Omega(\thetav),
+  \qquad
+  \Omega_{L2} = \lVert\thetav\rVert_2^{2},
+  \qquad
+  \Omega_{L1} = \lVert\thetav\rVert_1.
+\]
+
+\textbf{Batch normalization} (estatísticas do \textit{mini-batch} $B$; $\gamma$ e $\beta$ treináveis; em inferência usam-se as médias móveis $\mu_{\text{mov}}$ e $\sigma_{\text{mov}}$):
+\[
+  \mu_h = \frac{1}{|B|}\sum_{i \in B} h_i,
+  \qquad
+  \sigma_h = \sqrt{\frac{1}{|B|}\sum_{i \in B} (h_i - \mu_h)^2},
+  \qquad
+  h_i \leftarrow \frac{h_i - \mu_h}{\sigma_h + \epsilon},
+  \qquad
+  h_i \leftarrow \gamma\,h_i + \beta.
+\]
+
+\textbf{Inicialização de pesos} (gaussianas de média zero com variâncias distintas; $n^{(l-1)}$ é o \textit{fan-in} da camada; Xavier para tanh e sigmoide, He para ReLU):
+\[
+  \text{Xavier:}\quad \theta^{(l)}_{ij} \sim \mathcal{N}\!\left(0,\ \frac{1}{n^{(l-1)}}\right),
+  \qquad
+  \text{He:}\quad \theta^{(l)}_{ij} \sim \mathcal{N}\!\left(0,\ \frac{2}{n^{(l-1)}}\right).
+\]
+
+\textbf{Variante fan\_avg} (compromisso entre \textit{forward} e \textit{backward}, com $n^{(l)}$ o \textit{fan-out}):
+\[
+  \text{Xavier:}\quad \sigma_\theta^{2} = \frac{2}{n^{(l-1)} + n^{(l)}},
+  \qquad
+  \text{He:}\quad \sigma_\theta^{2} = \frac{4}{n^{(l-1)} + n^{(l)}}.
+\]
+
+%% =============================================================
+%%  CNNs
+%% =============================================================
+\bloco{Camadas Convolucionais}
+
+\textbf{Dimensão espacial de saída} (entrada $W \times W$, \textit{kernel} $K$, \textit{stride} $S$, \textit{padding} $P$; vale também para \textit{pooling}):
+\[
+  O = \left\lfloor \frac{W - K + 2P}{S} \right\rfloor + 1.
+\]
+
+\textbf{Kernel efetivo com dilatação} $D$ (substitui $K$ na fórmula acima):
+\[
+  K_{\text{ef}} = D\,(K - 1) + 1.
+\]
+
+\textbf{Conexão residual} (bloco com atalho de identidade):
+\[
+  y = F(x) + x.
+\]
+
+\textbf{IoU} (\textit{intersection over union} entre duas \textit{bounding boxes} $A$ e $B$):
+\[
+  \mathrm{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|}.
+\]
+
+%% =============================================================
+%%  RNNs
+%% =============================================================
+\bloco{Redes Recorrentes}
+
+\textbf{RNN \textit{vanilla}} (um passo de tempo):
+\[
+  z_t = x_t\,\theta_{ih}^{T} + h_{t-1}\,\theta_{hh}^{T} + b_h,
+  \qquad
+  h_t = \tanh(z_t).
+\]
+
+\textbf{Gradiente retropropagado no tempo} (fator multiplicado a cada passo; origem do desaparecimento e da explosão do gradiente):
+\[
+  \frac{\partial h_t}{\partial h_{t-1}} \propto \theta_{hh}\,\bigl(1 - \tanh^{2}(z_t)\bigr).
+\]
+
+\textbf{Gradient clipping por norma} (limita o passo preservando a direção):
+\[
+  g \leftarrow c\,\frac{g}{\lVert g \rVert} \quad \text{se } \lVert g \rVert > c.
+\]
+
+\textbf{LSTM} (portões $f_t$, $i_t$, $o_t$ e candidato $\tilde{c}_t$; $[h_{t-1}, x_t]$ é a concatenação):
+\[
+  f_t = \sigma\bigl(\theta_f\,[h_{t-1}, x_t] + b_f\bigr), \qquad
+  i_t = \sigma\bigl(\theta_i\,[h_{t-1}, x_t] + b_i\bigr), \qquad
+  \tilde{c}_t = \tanh\bigl(\theta_c\,[h_{t-1}, x_t] + b_c\bigr),
+\]
+\[
+  c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t, \qquad
+  o_t = \sigma\bigl(\theta_o\,[h_{t-1}, x_t] + b_o\bigr), \qquad
+  h_t = o_t \odot \tanh(c_t).
+\]
+
+\textbf{Caminho da memória} (derivada que mitiga a dissipação do gradiente):
+\[
+  \frac{\partial c_t}{\partial c_{t-1}} = f_t.
+\]
+
+\textbf{GRU} (portões de \textit{reset} $r_t$ e de \textit{update} $z_t$):
+\[
+  r_t = \sigma\bigl(\theta_r\,[h_{t-1}, x_t] + b_r\bigr), \qquad
+  z_t = \sigma\bigl(\theta_z\,[h_{t-1}, x_t] + b_z\bigr),
+\]
+\[
+  \tilde{h}_t = \tanh\bigl(\theta_h\,[r_t \odot h_{t-1},\, x_t] + b_h\bigr), \qquad
+  h_t = (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t.
+\]
+
+%% =============================================================
+%%  Modelagem de linguagem e atenção
+%% =============================================================
+\bloco{Modelagem de Linguagem e Atenção}
+
+\textbf{Probabilidade de uma sequência} (fatoração autorregressiva de $m$ \textit{tokens}):
+\[
+  p(y_1, \dots, y_m) = \prod_{t=1}^{m} p\bigl(y_t \mid y_{<t}\bigr).
+\]
+
+\textbf{Perplexidade} (a partir da \textit{log-likelihood} em bits, com $\log_2$):
+\[
+  L(y_{1:m}) = \sum_{t=1}^{m} \log_2\bigl(p(y_t \mid y_{<t})\bigr),
+  \qquad
+  \text{Perplexidade}(y_{1:m}) = 2^{-\frac{1}{m} L(y_{1:m})},
+  \qquad
+  \text{Perplexidade} \in [1, |V|].
+\]
+
+\textbf{Atenção em \textit{seq2seq}} (estado do decodificador $h_t$, estados do codificador $s_1, \dots, s_m$; \textit{scores} de produto escalar, pesos via \textit{softmax} e vetor de contexto):
+\[
+  \mathrm{score}(h_t, s_k) = h_t^{\top} s_k,
+  \qquad
+  a_k^{(t)} = \frac{\exp\bigl(\mathrm{score}(h_t, s_k)\bigr)}{\sum_{i=1}^{m}\exp\bigl(\mathrm{score}(h_t, s_i)\bigr)},
+  \qquad
+  c^{(t)} = \sum_{k=1}^{m} a_k^{(t)}\, s_k.
+\]
+
+\end{document}

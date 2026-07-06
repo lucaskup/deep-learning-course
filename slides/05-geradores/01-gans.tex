@@ -1,0 +1,1493 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+\input{slides/05-geradores/colors}
+\input{slides/05-geradores/trilemma}
+
+%------------------------------------------------------------------------
+%   LECTURE-LOCAL EXTRAS (only what the shared palette doesn't cover)
+%------------------------------------------------------------------------
+\definecolor{SoftGray}{HTML}{F3F4F6}
+
+%------------------------------------------------------------------------
+%   TITLE PAGE
+%------------------------------------------------------------------------
+
+\title{Aprendizado Profundo}
+\subtitle{\textit{Generative Adversarial Networks}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: O QUE SÃO GANS
+  %======================================================================
+  \section{O que são GANs}
+
+  %--- Slide: Definição ---
+  \begin{frame}{\textit{Generative Adversarial Network}\footfullcite{goodfellow2014generative}}
+    Uma \textbf{GAN} é um modelo não supervisionado cujo objetivo é
+    \textbf{gerar novas instâncias indistinguíveis} do conjunto de dados
+    de treinamento.
+    \vspace{0.5em}
+    \begin{itemize}
+      \item Não constrói explicitamente uma distribuição de
+      probabilidade sobre os dados.
+      \item Em vez disso, aprende a \emph{amostrar} dessa distribuição.
+      \item Usualmente é formada por \textbf{duas redes} treinadas em
+      conjunto:
+      \begin{itemize}
+        \item \textcolor{GenRed}{\textbf{Gerador}}: mapeia uma distribuição
+        aleatória para o espaço dos dados.
+        \item \textcolor{DiscBlue}{\textbf{Discriminador}} (ou crítico):
+        classifica as instâncias como reais ou sintéticas.
+      \end{itemize}
+      \item Desenvolvida originalmente por Ian Goodfellow em 2014.
+    \end{itemize}
+    \note{
+      Pontos importantes para a aula:
+      \begin{itemize}
+        \item GANs são modelos \emph{implícitos} de distribuição: não
+        calculamos $P(x)$, apenas sabemos amostrar dela.
+        \item A ideia central é transformar um problema de modelagem
+        densa em um problema de classificação, algo que redes neurais
+        resolvem bem.
+        \item O termo \emph{adversarial} vem do fato de gerador e
+        discriminador terem objetivos opostos e se treinarem em
+        conjunto.
+      \end{itemize}
+    }
+  \end{frame}
+
+  %--- Slide: GAN pipeline visual (anchor para Gerador + Discriminador) ---
+  \begin{frame}{Gerador e Discriminador em conjunto}
+    \centering
+    \includegraphics[width=0.9\linewidth]{slides/img/05-geradores/gan-pipeline.png}\\
+    \vspace{0.3em}
+    \tiny Adaptado de Prince (2023), \emph{Understanding Deep Learning},
+    cap.~15.
+    \note{
+      Visão geral apresentada cedo para ancorar visualmente as duas
+      redes. As fórmulas de loss aparecem no diagrama como
+      \emph{teaser}, serão desenvolvidas a partir da seção
+      \emph{Loss do Discriminador}.
+    }
+  \end{frame}
+
+  %--- Slide: Aplicações ---
+  \begin{frame}{Aplicações}
+    Onde GANs já mostraram resultados marcantes:
+    \begin{itemize}
+      \item \textbf{Síntese de faces fotorrealistas}: \textit{StyleGAN}
+      \footfullcite{karras2019style} produz retratos indistinguíveis de
+      pessoas reais.
+      \item \textbf{Image-to-image translation}:
+      \textit{pix2pix}\footfullcite{isola2017image} (mapa $\to$ foto,
+      esboço $\to$ foto) e \textit{CycleGAN}\footfullcite{zhu2017unpaired}
+      (cavalo $\leftrightarrow$ zebra) sem pares alinhados.
+      \item \textbf{Super resolução}: ampliar imagens preservando
+      textura plausível.
+      \item \textbf{Aumento de dados}: gerar amostras sintéticas para
+      classes raras em domínios médicos e industriais.
+      \item \textbf{Deepfakes}: vídeo e áudio sintéticos de pessoas
+      reais, com todas as questões éticas que isso traz.
+    \end{itemize}
+    \note{
+      Bom momento para uma rápida discussão sobre uso responsável.
+      Mencionar que muitas dessas aplicações já migraram para modelos
+      difusores nos últimos anos, mas o ferramental conceitual de GAN
+      ainda é central.
+    }
+  \end{frame}
+
+  %--- Slide: Princípios - processo gerativo ---
+  \begin{frame}{\textit{GANs} -- Princípios}
+    \textbf{Objetivo:} gerar novas instâncias
+    $\{x^{(j)*}\}$ que sigam a mesma distribuição dos dados de treino
+    $\{x^{(i)}\}$.
+    \vspace{0.5em}
+    \begin{block}{Processo de geração de uma nova instância}
+      \begin{enumerate}
+        \item Amostrar uma \textbf{variável latente}
+        $z^{(j)}$ de uma distribuição simples (normal, uniforme, \ldots).
+        \item Usar $z^{(j)}$ como entrada para uma rede neural:
+        \[
+          x^{(j)*} = g\!\left[z^{(j)}, \thetav\right]
+        \]
+        onde $\thetav$ são os parâmetros do gerador aprendidos durante o
+        treino.
+      \end{enumerate}
+    \end{block}
+    \note{
+      O latente $z$ é tipicamente de baixa dimensionalidade (p.~ex.\ 100
+      dimensões) enquanto $x$ pode ser uma imagem de milhares de pixels.
+      O gerador realiza um \emph{upsampling} semântico.
+    }
+  \end{frame}
+
+  %--- Slide: Princípios - indistinguibilidade ---
+  \begin{frame}{\textit{GANs} -- Princípios}
+    \begin{itemize}
+      \item Teremos atingido o objetivo quando as instâncias geradas
+      forem \textbf{indistinguíveis} das instâncias do conjunto de
+      dados.
+      \item Introduzimos então uma segunda rede
+      $f\!\left[\cdot,\phi\right]$ que tenta \textbf{classificar} suas
+      entradas como reais ou geradas.
+      \begin{itemize}
+        \item Se o discriminador consegue classificar bem, ele pode
+        gerar um \emph{sinal de gradiente} usado para melhorar o
+        gerador.
+        \item Se o discriminador não consegue distinguir, o gerador
+        atingiu o objetivo.
+      \end{itemize}
+    \end{itemize}
+    \begin{alertblock}{Intuição de jogo}
+      O gerador tenta enganar o discriminador; o discriminador tenta não
+      ser enganado. Um equilíbrio de Nash nesse jogo corresponde a
+      $P_{\text{gerada}} = P_{\text{real}}$.
+    \end{alertblock}
+    \vspace{0.3em}
+    Para enxergar essa dinâmica, vamos olhar um exemplo unidimensional
+    em que o gerador se reduz a um \emph{único parâmetro}.
+  \end{frame}
+
+  %--- Slide: Exemplo toy - parte 1 ---
+  \begin{frame}{\textit{GANs} -- Princípios: um exemplo \textit{toy}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item Os dados reais foram obtidos de uma normal
+          $\mathcal{N}(7,1)$.
+          \item O latente é amostrado de $z^{(j)} \sim \mathcal{N}(0,1)$
+          e o modelo gerador possui \textbf{um único parâmetro} que
+          translada essa distribuição:
+          \[
+            x^{(j)*} = z^{(j)} + \theta.
+          \]
+          \item A sigmóide representa o classificador binário ideal.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/sigmoid-panels.png}\\
+        \tiny Painel (a) com $\theta=3.0$.
+      \end{column}
+    \end{columns}
+    \note{
+      Esse exemplo \emph{toy} tem uma única variável de decisão no
+      gerador: a translação $\theta$. Ele é útil para visualizar por que
+      o discriminador empurra o gerador para a região correta: onde as
+      distribuições se sobrepõem, a sigmóide fica próxima de 0.5, e o
+      sinal para o gerador desaparece.
+    }
+  \end{frame}
+
+  %--- Slide: Exemplo toy - parte 2 ---
+  \begin{frame}{\textit{GANs} -- Princípios: sobreposição de distribuições}
+    \begin{itemize}
+      \item Valores diferentes de $\theta$ fazem com que o classificador
+      tenha maior ou menor dificuldade em separar as distribuições.
+      \item Quando $\theta \approx 7$, as distribuições coincidem e o
+      classificador ideal degenera para chance aleatória (sigmóide
+      quase plana).
+    \end{itemize}
+    \centering
+    \includegraphics[width=0.9\linewidth]{slides/img/05-geradores/sigmoid-panels.png}\\
+    \tiny (a) distribuições separadas; (b) parcialmente sobrepostas;
+    (c) quase coincidentes.
+  \end{frame}
+
+  %======================================================================
+  % SECTION 2: MINMAX LOSS
+  %======================================================================
+  \section{MinMax Loss}
+
+  %--- Slide: Discriminator loss ---
+  \begin{frame}{Loss do Discriminador}
+    Para o discriminador, temos um problema de \textbf{classificação
+    binária}. Rotulamos as instâncias reais com $y=1$ e as geradas com
+    $y=0$, e minimizamos a entropia cruzada:
+    \vspace{0.4em}
+    \[
+      \hat{\phi} = \argmin_{\phi} \Bigg[ \sum_i
+        -\!\left(1 - y^{(i)}\right)\ln\!\left[1 - \sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]
+        - y^{(i)} \ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right] \Bigg]
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item $\sigma(\cdot)$ é a sigmóide que mapeia o logit $f[\cdot,\phi]$
+      para probabilidade de ``real''.
+      \item A primeira parcela penaliza rotular geradas como reais; a
+      segunda penaliza rotular reais como geradas.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Discriminator loss split real vs gen ---
+  \begin{frame}{Loss do Discriminador (separando reais e geradas)}
+    Para tornar mais evidente que algumas instâncias são geradas
+    ($y^{(j)}=0$), reescrevemos a loss em duas somas distintas:
+    \vspace{0.3em}
+    \[
+      \hat{\phi} = \argmin_{\phi} \Bigg[ \sum_{j}
+        \!\!\left(-\ln\!\left[1 - \sigma\!\left(f\!\left[\textcolor{GenRed}{x^{(j)*}},\phi\right]\right)\right]\right)
+        - \sum_{i}
+        \!\!\left(\ln\!\left[\sigma\!\left(f\!\left[\textcolor{DiscBlue}{x^{(i)}},\phi\right]\right)\right]\right) \Bigg]
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item $j$ indexa instâncias \textcolor{GenRed}{geradas}
+      ($x^{(j)*}$), $i$ indexa instâncias
+      \textcolor{DiscBlue}{reais} ($x^{(i)}$).
+      \item O gerador entra apenas no primeiro somatório, por meio das
+      amostras $x^{(j)*} = g[z^{(j)},\thetav]$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: MinMax formulation ---
+  \begin{frame}{\textit{MinMax Loss}}
+    Plugando a definição do gerador e \textbf{invertendo o objetivo do
+    gerador}, obtemos a formulação adversarial conjunta:
+    \vspace{0.3em}
+    \[
+      \hat{\phi},\hat{\thetav} =
+      \argmin_{\phi}\, \argmax_{\thetav}
+      \Bigg[ \sum_{j}\!\!
+        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]\right)
+        - \sum_{i}\!\!
+        \left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]\right) \Bigg]
+    \]
+    \vspace{0.3em}
+    \begin{block}{\textit{MinMax Loss}}
+      O discriminador \textbf{minimiza} a entropia cruzada (classifica
+      bem) enquanto o gerador \textbf{maximiza} o mesmo objetivo
+      (tenta enganar o discriminador).
+    \end{block}
+    \note{
+      Observação prática: ao invés de ``maximizar'' a loss do
+      discriminador, o gerador normalmente minimiza
+      $-\ln \sigma(f[g(z),\phi])$ (\emph{non-saturating loss}),
+      que tem gradiente melhor quando o discriminador está vencendo o
+      jogo.
+    }
+  \end{frame}
+
+  %--- Slide: MinMax with brace annotations ---
+  \begin{frame}{\textit{MinMax Loss} -- Papéis de gerador e discriminador}
+    \vspace{-0.3em}
+    \[
+      \hat{\phi},\hat{\thetav} =
+      \argmin_{\phi}\, \argmax_{\thetav}
+      \Bigg[\underbrace{ \sum_{j}
+        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[\textcolor{GenRed}{g[z^{(j)},\thetav]},\phi\right]\right)\right]\right)}_{\textcolor{GenRed}{\text{Gerador + Discriminador}}}
+        \underbrace{- \sum_{i}
+        \left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]\right)}_{\textcolor{DiscBlue}{\text{Discriminador}}} \Bigg]
+    \]
+    \vspace{0.5em}
+    \begin{itemize}
+      \item O \textcolor{DiscBlue}{discriminador} recebe gradientes
+      dos dois termos: quer classificar bem reais \emph{e} geradas.
+      \item O \textcolor{GenRed}{gerador} só interage com o primeiro
+      termo: só se importa em enganar o discriminador sobre as
+      amostras sintéticas.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Loss por rede ---
+  \begin{frame}{\textit{MinMax Loss} -- Loss por rede}
+    Na prática, treinamos as redes alternadamente, cada uma otimizando
+    sua própria loss:
+    \vspace{0.8em}
+    \begin{block}{Loss do discriminador (minimizar em \textcolor{DiscBlue}{$\phi$})}
+      \[
+        L[\textcolor{DiscBlue}{\phi}] = \sum_{j}
+          \!\left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\textcolor{DiscBlue}{\phi}\right]\right)\right]\right)
+          - \sum_{i}
+          \!\left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\textcolor{DiscBlue}{\phi}\right]\right)\right]\right)
+      \]
+    \end{block}
+    \begin{block}{Loss do gerador (minimizar em \textcolor{GenRed}{$\thetav$})}
+      \[
+        L[\textcolor{GenRed}{\thetav}] = \sum_{j}
+          \!\left(\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\textcolor{GenRed}{\thetav}],\phi\right]\right)\right]\right)
+      \]
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Non-saturating loss ---
+  \begin{frame}{\textit{Non-saturating Loss} -- Truque prático do gerador}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        No início do treino o discriminador vence facilmente:
+        $\sigma(f[g(z),\phi]) \approx 0$. A loss $\ln[1-\sigma(\cdot)]$
+        fica quase plana em $0$, e o gradiente que chega ao gerador é
+        \emph{minúsculo}.
+        \vspace{0.3em}
+        \begin{block}{Substituição usada na prática}
+          \[
+            L_{\text{NS}}[\thetav] = \sum_{j}
+              \!\left(-\ln\!\left[\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]\right)
+          \]
+        \end{block}
+        \footnotesize
+        \begin{itemize}
+          \item Em vez de \emph{minimizar a probabilidade de ser pega}, o
+          gerador \emph{maximiza a probabilidade de parecer real}.
+          \item Mesmo ponto fixo (equilíbrio em $\sigma = \tfrac{1}{2}$),
+          mas gradiente saudável quando o gerador é fraco.
+          \item Já estava na proposta original de
+          \citeauthoryear{goodfellow2014generative} e é o default em
+          praticamente todas as implementações.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+              width=6.2cm, height=5.2cm,
+              axis lines=left,
+              xmin=-6, xmax=6, ymin=0, ymax=1.05,
+              xlabel={$d = f[g(z),\phi]$},
+              ylabel={$|\partial L/\partial d|$},
+              ytick={0,0.5,1},
+              xtick={-6,-3,0,3,6},
+              legend style={
+                at={(0.5,-0.30)}, anchor=north,
+                legend columns=1, font=\tiny,
+                draw=none, fill=white,
+              },
+              clip=false,
+            ]
+            \addplot[GenRed, thick, dashed, samples=200, domain=-6:6]
+              {1/(1+exp(-x))};
+            \addlegendentry{original: $|\partial L/\partial d| = \sigma(d)$}
+            \addplot[DiscBlue, thick, samples=200, domain=-6:6]
+              {1 - 1/(1+exp(-x))};
+            \addlegendentry{NS: $|\partial L/\partial d| = 1-\sigma(d)$}
+            \draw[<-, gray] (axis cs:-5.0,0.03) -- (axis cs:-3.5,0.20)
+              node[right, font=\scriptsize, text=gray] {grad $\approx 0$};
+            \draw[<-, gray] (axis cs:-5.0,0.97) -- (axis cs:-3.5,0.80)
+              node[right, font=\scriptsize, text=gray] {grad forte};
+          \end{axis}
+        \end{tikzpicture}\\
+        \vspace{0.4em}
+        \tiny Quando o discriminador vence ($\sigma \approx 0$,
+        $d \to -\infty$) o gradiente da loss original some, o da NS
+        permanece próximo de 1. O gráfico mostra $|\partial L/\partial d|$,
+        os sinais reais são negativos ($-\sigma(d)$ e $\sigma(d)-1$).
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Algoritmo de treino ---
+  \begin{frame}{\textit{MinMax Loss} -- Algoritmo de treino}
+    Treinamos as redes \textbf{alternadamente}, em passos de gradiente:
+    \vspace{0.3em}
+    \begin{algorithmic}[1]
+      \Require dataset real, número de passos do discriminador $k$,
+               taxas de aprendizado $\eta_\phi$, $\eta_\theta$,
+               tamanho de batch $m$
+      \While{$\thetav$ não convergiu}
+        \For{$t = 1, \ldots, k$}
+          \State Amostre minibatch de reais $\{x^{(i)}\}_{i=1}^{m}$
+          \State Amostre ruído $\{z^{(j)}\}_{j=1}^{m}$
+          \State $\phi \leftarrow \phi - \eta_\phi \nabla_\phi L[\phi]$
+        \EndFor
+        \State Amostre novo ruído $\{z^{(j)}\}_{j=1}^{m}$
+        \State $\thetav \leftarrow \thetav - \eta_\theta \nabla_\theta L[\thetav]$
+      \EndWhile
+    \end{algorithmic}
+    \vspace{0.3em}
+    \begin{itemize}
+      \item No paper original $k=1$. Em \textit{WGAN} veremos $k=5$
+      (queremos crítico próximo do ótimo).
+      \item Otimizador típico: \textsc{Adam} com $\beta_1 = 0.5$
+      ($\beta_1 = 0.9$ desestabiliza GANs).
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: DCGAN
+  %======================================================================
+  \section{DCGAN}
+
+  %--- Slide: DCGAN architecture ---
+  \begin{frame}{\textit{DCGAN}\footfullcite{radford2015dcgan}}
+    A primeira arquitetura a popularizar GANs para imagens naturais:
+    \textbf{Deep Convolutional GAN}.
+    \vspace{0.3em}
+    \centering
+    \includegraphics[width=0.95\linewidth]{slides/img/05-geradores/dcgan-architecture.png}\\
+    \vspace{0.4em}
+    \begin{itemize}
+      \item Gerador usa \textbf{convoluções fracionárias} (upsampling)
+      partindo de um vetor latente $100 \times 1$.
+      \item Discriminador usa \textbf{convoluções com stride} para reduzir
+      a resolução.
+      \item \emph{BatchNorm}, ReLU no gerador, LeakyReLU no discriminador.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: DCGAN guidelines ---
+  \begin{frame}{\textit{DCGAN} -- Receita arquitetural}
+    O paper destila um conjunto de \emph{guidelines} que dominaram os
+    anos seguintes:
+    \begin{itemize}
+      \item \textbf{Sem \textit{pooling}}: troque por convoluções com
+      \textit{stride} (D) e convoluções fracionárias (G).
+      \item \textbf{Sem camadas \textit{fully connected}} ocultas em
+      ambas as redes.
+      \item \textbf{BatchNorm} em D e G, exceto na saída de G e na
+      entrada de D (estabiliza o treino sem distorcer a saída).
+      \item \textbf{Ativações}: ReLU em todas as camadas de G (Tanh na
+      saída); LeakyReLU em todas as camadas de D.
+      \item Vetor latente $z \in \mathbb{R}^{100}$, normal padrão.
+    \end{itemize}
+    \begin{block}{Por que importa}
+      Antes da DCGAN, treinar GAN convolucional era considerado quase
+      impossível. Esses cinco pontos viraram \emph{baseline} para
+      praticamente todas as arquiteturas posteriores.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: DCGAN samples ---
+  \begin{frame}{\textit{DCGAN} -- Amostras geradas}
+    \centering
+    \includegraphics[width=0.75\linewidth]{slides/img/05-geradores/dcgan-samples.png}\\
+    \vspace{0.3em}
+    \tiny Amostras sintéticas geradas por DCGANs treinadas em três
+    \textit{datasets}: (a) faces, (b) ImageNet, (c) LSUN (cenas).
+    Adaptado de \citeauthoryear{radford2015dcgan}.
+    \note{
+      As amostras já eram impressionantes para 2015. Hoje são facilmente
+      superadas por \emph{StyleGAN} e por modelos difusores, mas a DCGAN
+      estabeleceu o padrão arquitetural que dominou os anos seguintes.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: COLAPSO PARA A MODA
+  %======================================================================
+  \section{Colapso para a Moda}
+
+  %--- Slide: Mode collapse - descrição ---
+  \begin{frame}{\textit{Mode Collapse}}
+    É comum que o gerador \textbf{``colapse para a moda''} da
+    distribuição, gerando instâncias sem diversidade.
+    \vspace{0.5em}
+    \begin{columns}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/mode-collapse-lsun.png}\\
+        \tiny GAN em LSUN: cenas muito similares.
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/mode-collapse-mnist.png}\\
+        \tiny MNIST ao longo das iterações: diversidade some.
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    O motivo disso fica aparente ao analisarmos a função de custo.
+    \note{
+      \emph{Mode collapse} é um dos fracassos mais famosos das GANs: o
+      gerador encontra um conjunto pequeno de amostras que enganam bem
+      o discriminador e fica preso ali.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: ANÁLISE DA LOSS
+  %======================================================================
+  \section{Análise da Loss}
+
+  %--- Slide: Divide by number ---
+  \begin{frame}{Análise da Loss -- Normalização}
+    Partimos da loss do discriminador, escrita aqui sem o sinal de menos
+    (a forma que o discriminador \textbf{maximiza}), e \textbf{dividimos
+    cada somatório} pelo número de instâncias (geradas $J$ ou reais $I$):
+    \vspace{0.4em}
+    \[
+      L[\phi] = \sum_{j}
+        \!\!\left(\ln\!\left[1-\sigma\!\left(f[x^{(j)*},\phi]\right)\right]\right)
+        + \sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[x^{(i)},\phi]\right)\right]\right)
+    \]
+    \[
+      L[\phi] \approx \tfrac{1}{J}\sum_{j}
+        \!\!\left(\ln\!\left[1-\sigma\!\left(f[x^{(j)*},\phi]\right)\right]\right)
+        + \tfrac{1}{I}\sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[x^{(i)},\phi]\right)\right]\right)
+    \]
+    \vspace{0.3em}
+    Isso não altera o \emph{mínimo} (multiplicar por constante não
+    muda argmin), mas prepara o próximo passo.
+  \end{frame}
+
+  %--- Slide: Expectation ---
+  \begin{frame}{Análise da Loss -- Esperança/Expectativa}
+    Ao dividir pelo número de instâncias, cada termo vira uma
+    \textbf{esperança} sobre a distribuição correspondente:
+    \vspace{0.4em}
+    \[
+      L[\phi] = \mathbb{E}_{x^{*}}\!\left[\ln\!\left[1-\sigma(f[x^{*},\phi])\right]\right]
+      + \mathbb{E}_{x}\!\left[\ln\!\left[\sigma(f[x,\phi])\right]\right]
+    \]
+    \begin{itemize}
+      \item $\mathbb{E}_{x^*}$: esperança sobre a distribuição gerada
+      $P(x^*)$.
+      \item $\mathbb{E}_{x}$: esperança sobre a distribuição real $P(x)$.
+      \item Essa reescrita muda o ponto de vista: deixamos de falar de
+      amostras e passamos a falar de distribuições.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Integral ---
+  \begin{frame}{Análise da Loss -- Integrais}
+    Aplicando a definição de esperança, ficamos com \textbf{duas
+    integrais}:
+    \vspace{0.4em}
+    \[
+      L[\phi] = \int P(x^*) \ln\!\left[1-\sigma(f[x^{*},\phi])\right] dx^{*}
+      + \int P(x) \ln\!\left[\sigma(f[x,\phi])\right] dx
+    \]
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Os integrandos dependem do discriminador $\sigma(f[\cdot,\phi])$.
+      \item Vamos substituir o discriminador pela expressão \emph{ótima}
+      (que minimiza essa loss).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Optimal discriminator ---
+  \begin{frame}{Análise da Loss -- Discriminador ótimo}
+    A saída $\sigma\!\left[f[\tilde{x},\phi]\right]$ é a probabilidade
+    que o discriminador atribui ao rótulo \emph{real} dada uma amostra
+    $\tilde{x}$. Por \textbf{regra de Bayes}:
+    \[
+      \sigma\!\left[f[\tilde{x},\phi]\right]
+      = P(\text{real}\mid \tilde{x})
+      = \frac{P(\tilde{x}\mid \text{real})\,P(\text{real})}
+             {P(\tilde{x}\mid \text{real})\,P(\text{real})
+              + P(\tilde{x}\mid \text{gen})\,P(\text{gen})}
+    \]
+    Assumindo $I = J$, ou seja $P(\text{real}) = P(\text{gen}) = \tfrac{1}{2}$,
+    os \emph{priors} se cancelam:
+    \[
+      \sigma\!\left[f[\tilde{x},\phi]\right]
+      = \frac{P(\tilde{x}\mid \text{real})}
+             {P(\tilde{x}\mid \text{real}) + P(\tilde{x}\mid \text{gen})}
+      = \frac{P(x)}{P(x)+P(x^{*})}
+    \]
+    \footnotesize
+    \begin{itemize}
+      \item $P(x)$ é a densidade dos dados reais em $\tilde{x}$, $P(x^{*})$
+      é a densidade gerada no mesmo ponto.
+      \item Em palavras: a probabilidade ideal de ser real é a fração da
+      densidade total naquele ponto que vem do conjunto real.
+      \item É o classificador perfeito, depende apenas das densidades, não
+      de uma rede específica.
+    \end{itemize}
+    \note{
+      Para provar: tome o integrando, derive em relação a $\sigma$ e
+      iguale a zero. A solução é essa razão.
+    }
+  \end{frame}
+
+  %--- Slide: Substituting ---
+  \begin{frame}{Análise da Loss -- Substituindo o discriminador ótimo}
+    Substituindo $\sigma(f[x,\phi]) = \frac{P(x)}{P(x)+P(x^*)}$ na loss:
+    \vspace{0.2em}
+    \[
+      L[\phi] = \int P(x^{*}) \ln\!\left[\frac{P(x^{*})}{P(x)+P(x^{*})}\right] dx^{*}
+      + \int P(x)\ln\!\left[\frac{P(x)}{P(x)+P(x^{*})}\right] dx
+    \]
+    \vspace{0.3em}
+    Os dois termos dentro dos logaritmos viraram \textbf{razões de
+    densidades}, que é exatamente a forma de uma divergência KL.
+    \note{
+      Note que o primeiro termo começou como $\ln[1-\sigma]$. Como
+      $1 - \tfrac{P(x)}{P(x)+P(x^*)} = \tfrac{P(x^*)}{P(x)+P(x^*)}$,
+      chegamos à forma acima.
+    }
+  \end{frame}
+
+  %--- Slide: Multiply and divide by 2 ---
+  \begin{frame}{Análise da Loss -- Truque do fator 2}
+    Por conveniência matemática, multiplicamos e dividimos por 2 dentro
+    do logaritmo (não altera o $\argmin$):
+    \vspace{0.2em}
+    \[
+      L[\phi] = \int P(x^{*}) \ln\!\left[\frac{2P(x^{*})}{P(x)+P(x^{*})}\right] dx^{*}
+      + \int P(x)\ln\!\left[\frac{2P(x)}{P(x)+P(x^{*})}\right] dx - 2\ln 2
+    \]
+    \vspace{0.3em}
+    Os dois fatores $\ln 2$ saem das integrais (pois $\int P = \int P^{*} = 1$).
+    Agora cada termo é exatamente uma divergência KL entre uma
+    distribuição e a \emph{mistura} $\frac{P(x^*)+P(x)}{2}$.
+  \end{frame}
+
+  %--- Slide: Recognizing KL ---
+  \begin{frame}{Análise da Loss -- Reconhecendo KL}
+    Cada parcela tem a forma da \textbf{KL Divergence}:
+    \vspace{0.3em}
+    \[
+      D_{KL}\!\left[p(x) \,\|\, q(x)\right] = \int p(x)\ln\!\left[\frac{p(x)}{q(x)}\right] dx
+    \]
+    \vspace{0.3em}
+    Portanto:
+    \[
+      L[\phi] = D_{KL}\!\left[P(x^{*}) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
+             + D_{KL}\!\left[P(x) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right] - 2\ln 2
+    \]
+  \end{frame}
+
+  %--- Slide: Jensen-Shannon ---
+  \begin{frame}{Análise da Loss -- \textit{Jensen--Shannon Divergence}}
+    Reconhecemos a definição da \textbf{Jensen--Shannon Divergence}:
+    \vspace{0.3em}
+    \[
+      D_{JS}\!\left[P(x^{*}) \,\|\, P(x)\right]
+      = \tfrac{1}{2} D_{KL}\!\left[P(x^{*}) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
+      + \tfrac{1}{2} D_{KL}\!\left[P(x) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
+    \]
+    \vspace{0.2em}
+    Logo $L[\phi] = 2\,D_{JS}\!\left[P(x^{*}) \,\|\, P(x)\right] - 2\ln 2$.
+    \begin{alertblock}{Interpretação}
+      Com discriminador ótimo, a loss de uma GAN é, a menos de uma
+      constante e de um fator, a \textbf{divergência de Jensen--Shannon}
+      entre a distribuição real e a gerada.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: qualidade x cobertura ---
+  \begin{frame}{Análise da Loss -- Qualidade vs.\ Cobertura}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \vspace{-0.4em}
+        \[
+          \resizebox{\linewidth}{!}{$
+            D_{JS}[P(x^*)\|P(x)] =
+            \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(x^*)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\textcolor{GenRed}{\text{Qualidade}}}
+            + \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(x)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\textcolor{DiscBlue}{\text{Cobertura}}}
+          $}
+        \]
+        \footnotesize
+        \begin{itemize}
+          \item \textcolor{GenRed}{\textbf{Primeiro termo (qualidade)}},
+          penaliza regiões em que $P(x^*)$ tem probabilidade alta mas
+          a mistura não tem, isto é, amostras geradas implausíveis.
+          \item \textcolor{DiscBlue}{\textbf{Segundo termo (cobertura)}},
+          penaliza regiões em que $P(x)$ tem probabilidade alta mas a
+          mistura não tem, isto é, modas ignoradas pelo gerador.
+        \end{itemize}
+        \begin{block}{Pergunta}
+          Qual dos dois termos o gerador consegue \emph{de fato}
+          controlar?
+        \end{block}
+      \end{column}
+      \begin{column}{0.43\textwidth}
+        \centering
+        % P(x) = 0.5*N(-1.5, 0.2) + 0.5*N(4, 0.2),  P*(x) = N(-1, 0.25).
+        % Coeficientes: 0.5/sqrt(0.4*pi) = 0.4460; 1/sqrt(0.5*pi) = 0.7979.
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+              width=6.2cm, height=3.2cm,
+              axis lines=left,
+              xmin=-4, xmax=7, ymin=0, ymax=0.92,
+              xtick=\empty, ytick=\empty,
+              legend style={
+                at={(0.98,0.98)}, anchor=north east,
+                legend columns=1, row sep=-0.25em,
+                font=\tiny, draw=none,
+                fill=white, fill opacity=0.75, text opacity=1,
+              },
+              clip=false,
+            ]
+            \addplot[DiscBlue, thick, samples=240, domain=-4:7]
+              {0.4460*exp(-(x+1.5)^2/0.4) + 0.4460*exp(-(x-4)^2/0.4)};
+            \addlegendentry{$P(x)$ real}
+            \addplot[GenRed, thick, samples=240, domain=-4:7]
+              {0.7979*exp(-(x+1)^2/0.5)};
+            \addlegendentry{$P^{*}(x)$ gerada}
+            \addplot[gray, thick, dashed, samples=240, domain=-4:7]
+              {0.5*(0.4460*exp(-(x+1.5)^2/0.4) + 0.4460*exp(-(x-4)^2/0.4) + 0.7979*exp(-(x+1)^2/0.5))};
+            \addlegendentry{$M = \tfrac{1}{2}(P{+}P^{*})$}
+          \end{axis}
+        \end{tikzpicture}\\[-0.1em]
+        \begin{tikzpicture}[font=\small]
+          \begin{axis}[
+              width=6.2cm, height=3.4cm,
+              axis x line=middle, axis y line=none,
+              xmin=-4, xmax=7, ymin=-0.12, ymax=0.22,
+              xtick=\empty,
+              clip=false,
+            ]
+            % qualidade: (1/2) p* ln(p*/M), com sinal preservado.
+            \addplot[GenRed, thick, samples=300, domain=-4:7,
+                     fill=GenRed!22, draw=GenRed]
+              {0.5 * (0.7979*exp(-(x+1)^2/0.5))
+                * ln( (0.7979*exp(-(x+1)^2/0.5))
+                     / (0.5*(0.4460*exp(-(x+1.5)^2/0.4)
+                            + 0.4460*exp(-(x-4)^2/0.4)
+                            + 0.7979*exp(-(x+1)^2/0.5))) )} \closedcycle;
+            % cobertura: (1/2) p ln(p/M), com sinal preservado.
+            \addplot[DiscBlue, thick, samples=300, domain=-4:7,
+                     fill=DiscBlue!22, draw=DiscBlue]
+              {0.5 * (0.4460*exp(-(x+1.5)^2/0.4) + 0.4460*exp(-(x-4)^2/0.4))
+                * ln( (0.4460*exp(-(x+1.5)^2/0.4) + 0.4460*exp(-(x-4)^2/0.4))
+                     / (0.5*(0.4460*exp(-(x+1.5)^2/0.4)
+                            + 0.4460*exp(-(x-4)^2/0.4)
+                            + 0.7979*exp(-(x+1)^2/0.5))) )} \closedcycle;
+            \node[GenRed, font=\scriptsize, anchor=south]
+              at (axis cs:-0.7,0.17) {qualidade};
+            \node[DiscBlue, font=\scriptsize, anchor=south]
+              at (axis cs:4,0.16) {cobertura};
+          \end{axis}
+        \end{tikzpicture}\\[0.1em]
+        \tiny Acima: densidades normalizadas. Abaixo: integrando de
+        $\tfrac{1}{2}D_{KL}[P^{*}\|M]$ (vermelho, qualidade) e
+        $\tfrac{1}{2}D_{KL}[P\|M]$ (azul, cobertura). Áreas acima do
+        eixo somam, abaixo subtraem; a integral líquida é o termo
+        correspondente da $D_{JS}$. A moda de $P$ em $x \approx 4$,
+        ignorada por $P^{*}$, domina a cobertura.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: segundo termo não depende de gerador ---
+  \begin{frame}{Análise da Loss -- Por que há colapso de moda}
+    \[
+      D_{JS}[P(x^*)\|P(x)] =
+      \tfrac{1}{2}D_{KL}\!\!\left[P(x^*)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]
+      + \tfrac{1}{2}\underbrace{D_{KL}\!\!\left[P(x)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\text{depende fracamente de } P(x^*)}
+    \]
+    \vspace{0.4em}
+    \begin{alertblock}{Consequência}
+      Quando $P(x^*) \ll P(x)$ em uma região,
+      $(P(x^*){+}P(x))/2 \approx P(x)/2$, então o argumento do log no
+      \textcolor{DiscBlue}{segundo termo} satura em
+      $\tfrac{P(x)}{P(x)/2} = 2$, e o integrando reduz-se a
+      $\tfrac{1}{2}P(x)\log 2$, \emph{independente} de $P(x^*)$.
+      \vspace{0.3em}
+
+      O gerador é \textbf{incentivado muito mais fortemente a
+      qualidade} que a cobertura $\to$ \textbf{colapso para a moda}.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: Recap analítico ---
+  \begin{frame}{Análise da Loss -- Recapitulando}
+    A cadeia de manipulações que aplicamos:
+    \begin{enumerate}
+      \item Loss original = entropia cruzada binária do discriminador.
+      \item Normalizamos cada soma $\to$ esperanças sobre $P(x)$ e $P(x^{*})$.
+      \item Esperanças $\to$ integrais.
+      \item Substituímos $\sigma(f)$ pelo discriminador
+      \emph{ótimo} $\frac{P(x)}{P(x)+P(x^{*})}$.
+      \item Multiplicamos e dividimos por $2$ dentro do logaritmo.
+      \item Cada termo virou uma KL contra a mistura
+      $\frac{P(x)+P(x^{*})}{2}$.
+      \item Somando, obtemos $L[\phi] = 2\,D_{JS}\!\left[P(x^{*})\,\|\,P(x)\right] - 2\ln 2$.
+    \end{enumerate}
+    \begin{alertblock}{Moral}
+      Treinar uma GAN com discriminador ótimo equivale a minimizar
+      Jensen--Shannon. As fragilidades dessa divergência (assimetria
+      qualidade vs cobertura, comportamento em suportes disjuntos)
+      viram fragilidades do treinamento.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: Exemplo numérico - o que cada valor representa ---
+  \begin{frame}{Exemplo Numérico}{O Que Cada Valor Representa}
+    Antes de calcular o $D_{JS}$, vamos ancorar cada símbolo em algo
+    \textbf{concreto}. Imagine que estamos treinando uma GAN para gerar
+    imagens em três categorias: \emph{gato}, \emph{cão} e
+    \emph{pássaro}. Identifique cada uma com $a$, $b$, $c$.
+    \vspace{0.3em}
+    \begin{itemize}
+      \item $P(x)$: fração das imagens \textbf{reais} (no dataset) em cada
+            categoria. É fixo, a verdade.
+      \item $P^{*}(x)$: fração das imagens \textbf{geradas} pelo modelo
+            atual em cada categoria. Muda conforme o gerador treina.
+      \item $D^{*}(x)$: probabilidade que o \textbf{discriminador ótimo}
+            atribui à categoria $x$ de ser real. Onde $P$ domina, $D^{*}$
+            tende a $1$; onde $P^{*}$ domina, $D^{*}$ tende a $0$.
+      \item $M(x) = \tfrac{1}{2}(P + P^{*})$: distribuição de
+            \textbf{mistura}, o referencial neutro contra o qual ambas as
+            divergências KL são medidas.
+      \item $D_{JS}(P^{*}\|P)$: o \textbf{único número} que resume a
+            distância entre o que o gerador faz hoje e o que deveria
+            fazer. Zero $\Rightarrow$ gerador perfeito;
+            $\ln 2 \Rightarrow$ suportes disjuntos.
+    \end{itemize}
+    \note{
+      Vale enfatizar: $P$ vem dos dados, $P^{*}$ vem do modelo. O
+      discriminador é uma \emph{ferramenta} que extrai o sinal dessa
+      diferença e empurra o gerador via gradiente.
+    }
+  \end{frame}
+
+  %--- Slide: Exemplo numérico JS divergence ---
+  \begin{frame}{Exemplo Numérico: $D^{*}$ e $D_{JS}$ em 1D}
+    Suporte $\{a, b, c\}$.
+    Real $P = (0.5,\, 0.3,\, 0.2)$;\quad
+    gerada $P^{*} = (0.2,\, 0.5,\, 0.3)$.
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \textbf{Discriminador ótimo} $D^{*}(x) = \frac{P(x)}{P(x) + P^{*}(x)}$:
+        \[
+          D^{*} \approx (\, 0.71,\; 0.38,\; 0.40 \,)
+        \]
+        \textbf{Mistura} $M = \tfrac{1}{2}(P + P^{*})$:
+        \[
+          M = (\, 0.35,\; 0.40,\; 0.25 \,)
+        \]
+      \end{column}
+      \begin{column}{0.52\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{@{}c|c|c@{}}
+          \toprule
+          $x$      & $P\,\ln(P/M)$  & $P^{*}\,\ln(P^{*}/M)$ \\
+          \midrule
+          $a$      & $+0.178$     & $-0.112$            \\
+          $b$      & $-0.086$     & $+0.112$            \\
+          $c$      & $-0.045$     & $+0.055$            \\
+          \midrule
+          $\Sigma$ & $D_{KL}(P\|M) = 0.047$ & $D_{KL}(P^{*}\|M) = 0.054$ \\
+          \bottomrule
+        \end{tabular}}
+      \end{column}
+    \end{columns}
+    \[
+      D_{JS}(P^{*} \| P) = \tfrac{1}{2}(0.047 + 0.054) \approx \mathbf{0.05}\ \text{nats}
+    \]
+    \note{
+      Em bits (log base 2), o máximo de $D_{JS}$ é $1$; em nats,
+      $\ln 2 \approx 0.693$. Diferente do $D_{KL}$, $D_{JS}$ é sempre
+      limitado, mas ainda satura quando os suportes não se encontram,
+      o que produz gradientes fracos para o gerador.
+    }
+  \end{frame}
+
+  %--- Slide: Exemplo numérico - limite de suporte disjunto ---
+  \begin{frame}{Exemplo Numérico: limite de suporte disjunto}
+    \footnotesize
+    Mesmo suporte $\{a, b, c\}$, mas agora a categoria $c$ \textbf{não
+    aparece} nos dados reais: $P = (0.6,\, 0.4,\, 0.0)$, gerada
+    $P^{*} = (0.2,\, 0.5,\, 0.3)$.
+    Mistura $M = (\, 0.40,\; 0.45,\; 0.15 \,)$.
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        Em $x = c$ temos $P(c) = 0$: o termo $P\ln(P/M)$ se anula
+        (convenção $0\ln 0 = 0$). Já $P^{*}(c) = 0.3$ e
+        $M(c) = P^{*}(c)/2$, então
+        \[
+          P^{*}(c)\,\ln\!\frac{P^{*}(c)}{M(c)} = 0.3 \cdot \ln 2 \approx 0.21.
+        \]
+      \end{column}
+      \begin{column}{0.52\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{@{}c|c|c@{}}
+          \toprule
+          $x$      & $P\,\ln(P/M)$ & $P^{*}\,\ln(P^{*}/M)$ \\
+          \midrule
+          $a$      & $+0.243$    & $-0.139$            \\
+          $b$      & $-0.047$    & $+0.053$            \\
+          $c$      & $\;\;\;0$     & $+0.208$            \\
+          \midrule
+          $\Sigma$ & $D_{KL}(P\|M)\!=\!0.196$ & $D_{KL}(P^{*}\|M)\!=\!0.122$ \\
+          \bottomrule
+        \end{tabular}}
+        \[
+          D_{JS}(P^{*} \| P) \approx \mathbf{0.16}\ \text{nats}
+        \]
+      \end{column}
+    \end{columns}
+    \begin{alertblock}{Limite de suporte totalmente disjunto}
+      Quando $P$ e $P^{*}$ não compartilham nenhum ponto de suporte,
+      $D_{JS}(P^{*} \| P) \to \ln 2 \approx 0.69$ nats (máximo da
+      Jensen--Shannon). $D_{JS}$ trava nesse valor e o gradiente do
+      gerador desaparece, motivando a distância de Wasserstein.
+    \end{alertblock}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 6: VANISHING GRADIENT
+  %======================================================================
+  \section{Vanishing Gradient}
+
+  %--- Slide: Manifold hypothesis ---
+  \begin{frame}{Por que distribuições disjuntas são a regra}
+    \begin{itemize}
+      \item Dados naturais ocupam apenas uma pequena fatia do espaço de
+      pixels: rostos, por exemplo, formam uma superfície curva de
+      dimensão muito menor que a dimensão da imagem. Chamamos essa
+      superfície de \emph{manifold}.
+      \item O gerador, por construção, também produz amostras sobre um
+      manifold: a imagem da função $g[\cdot,\thetav]$ aplicada ao
+      latente $z \in \mathbb{R}^{d}$, com $d \ll D$.
+      \item Dois manifolds de dimensão baixa em $\mathbb{R}^{D}$,
+      escolhidos independentemente, quase nunca se cruzam: a interseção
+      tem \textbf{medida zero}.
+      \item Consequência: no início do treino, $P(x)$ e $P(x^{*})$ vivem
+      em regiões praticamente disjuntas, e o $D_{JS}$ fica preso em
+      $\ln 2$.
+    \end{itemize}
+    \begin{alertblock}{Conclusão}
+      Distribuições disjuntas \textbf{não} são caso patológico raro:
+      são a situação típica para dados de alta dimensão. Por isso o
+      problema a seguir aparece em quase todo treino de GAN.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: Vanishing gradient - teoria ---
+  \begin{frame}{\textit{Vanishing Gradient} -- Motivação}
+    \begin{itemize}
+      \item Vimos que, no caso de discriminador ótimo, a loss minimiza
+      uma \textbf{distância} ($D_{JS}$) entre instâncias reais e
+      geradas.
+      \item Contudo, essa abordagem traz problemas:
+      \begin{itemize}
+        \item Se as distribuições são \textbf{disjuntas}, a $D_{JS}$
+        assume valor constante $\ln 2$ e a $D_{KL}$ diverge.
+        \item Nesse caso, \emph{nenhuma ``pequena'' mudança} no gerador
+        melhora a loss, os gradientes desaparecem.
+      \end{itemize}
+    \end{itemize}
+    \begin{block}{Relembrando KL}
+      \[
+        D_{KL}[p(x)\|q(x)] = \int p(x)\ln\!\left[\frac{p(x)}{q(x)}\right] dx
+      \]
+      Diverge sempre que existe $x$ com $p(x)>0$ e $q(x)=0$.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Vanishing gradient - empírico ---
+  \begin{frame}{\textit{Vanishing Gradient} -- Evidência empírica\footfullcite{arjovsky2017towards}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item O discriminador é congelado após $1$, $10$ e $25$ épocas
+          e o gerador continua treinando.
+          \item Conforme o discriminador fica ``bom demais'', o
+          gradiente que chega ao gerador despenca (escala log).
+          \item Sintoma típico: treinamento \emph{instável}, no qual o
+          discriminador precisa ser \emph{deliberadamente enfraquecido}
+          para que o gerador aprenda.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/vanishing-gradient.png}\\
+        \tiny Adaptado de \citeauthoryear{arjovsky2017towards}.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Pedindo outra distância ---
+  \begin{frame}{Motivação para mudar a distância}
+    \begin{itemize}
+      \item Vimos que a loss original de GANs pode ser interpretada
+      como uma \textbf{distância entre distribuições de probabilidade}.
+      \item Porém, é uma distância com propriedades \textbf{inadequadas
+      para otimização}:
+      \begin{itemize}
+        \item Distribuições disjuntas têm $D_{KL}$ infinita e
+        $D_{JS}$ constante.
+        \item Gradientes somem rapidamente.
+      \end{itemize}
+      \item Vamos escolher uma distância com propriedades mais
+      adequadas para otimização: a distância de \textbf{Wasserstein}.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 7: WASSERSTEIN GAN
+  %======================================================================
+  \section{Wasserstein GAN}
+
+  %--- Slide: Wasserstein Distance definição ---
+  \begin{frame}{\textit{Wasserstein Distance}\footfullcite{arjovsky2017wasserstein}}
+    \begin{itemize}
+      \item Também conhecida como \textit{Earth Mover's Distance} (para
+      distribuições discretas).
+      \item Definida pela \textbf{quantidade de trabalho} necessária
+      para transportar a massa de probabilidade de uma distribuição até
+      transformá-la em outra.
+      \begin{itemize}
+        \item \emph{Trabalho} = massa $\times$ distância movida.
+      \end{itemize}
+      \item Oferece \textbf{gradientes informativos} mesmo quando as
+      distribuições são disjuntas.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Wasserstein discreta ---
+  \begin{frame}{\textit{Wasserstein Distance} -- Caso discreto}
+    \begin{block}{Definição}
+      \[
+        D_{w}\!\left[P(x)\,\|\,Q(x)\right] =
+        \min_{T}\!\left[\sum_{i,j} T_{ij}\,|i-j|\right]
+      \]
+    \end{block}
+    \begin{itemize}
+      \item $T$ é o \textbf{``plano de transporte''}: $T_{ij}$ indica
+      quanta massa vai de $i$ (origem) para $j$ (destino).
+      \item Sujeito às restrições:
+      \begin{itemize}
+        \item $\sum_{j} T_{ij} = P(x=i)$
+        \item $\sum_{i} T_{ij} = Q(x=j)$
+        \item $T_{ij} \geq 0$
+      \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Transporte visual ---
+  \begin{frame}{\textit{Wasserstein Distance} -- Visualização}
+    \centering
+    \begin{tikzpicture}
+      \definecolor{otlow}{RGB}{42,13,10}
+      \definecolor{othigh}{RGB}{255,236,190}
+      \def\s{0.42}
+      % ---------- Distribuição P ----------
+      \begin{scope}[shift={(0,2.7)}]
+        \foreach \i/\v in {0/0.10,1/0.15,2/0.05,3/0.05,4/0.20,5/0.25,6/0.15,7/0.05}
+          \fill[gray!65] ({\i*\s+0.03},0) rectangle ({(\i+1)*\s-0.03},{\v*6.2});
+        \draw[gray!60] (0,0) -- ({8*\s},0);
+        \node[font=\scriptsize, anchor=south] at ({4*\s},1.6) {$P(x{=}i)$};
+        \node[font=\tiny, anchor=north, gray] at ({4*\s},-0.04) {índice $i$};
+      \end{scope}
+      % ---------- Distribuição Q ----------
+      \begin{scope}[shift={(0,-0.4)}]
+        \foreach \j/\v in {0/0.05,1/0.10,2/0.20,3/0.25,4/0.20,5/0.10,6/0.05,7/0.05}
+          \fill[teal!55] ({\j*\s+0.03},0) rectangle ({(\j+1)*\s-0.03},{\v*6.2});
+        \draw[gray!60] (0,0) -- ({8*\s},0);
+        \node[font=\scriptsize, anchor=south] at ({4*\s},1.6) {$Q(x{=}j)$};
+        \node[font=\tiny, anchor=north, gray] at ({4*\s},-0.04) {índice $j$};
+      \end{scope}
+      % ---------- Plano de transporte T (acoplamento monótono ótimo) ----------
+      \begin{scope}[shift={(5.2,0.3)}]
+        \fill[otlow] (0,0) rectangle ({8*\s},{8*\s});
+        \foreach \i/\j/\v in {0/0/0.05,0/1/0.05,1/1/0.05,1/2/0.10,2/2/0.05,
+                              3/2/0.05,4/3/0.20,5/3/0.05,5/4/0.20,6/5/0.10,
+                              6/6/0.05,7/7/0.05}{
+          \pgfmathsetmacro\f{\v/0.20*100}
+          \fill[othigh!\f!otlow] ({\j*\s},{(7-\i)*\s}) rectangle ++(\s,\s);
+        }
+        \draw[gray!60, thin] (0,0) rectangle ({8*\s},{8*\s});
+        \draw[cyan, very thick] ({4*\s},{2*\s}) rectangle ++(\s,\s);
+        % marginais: P à esquerda, Q abaixo
+        \foreach \i/\v in {0/0.10,1/0.15,2/0.05,3/0.05,4/0.20,5/0.25,6/0.15,7/0.05}
+          \fill[gray!65] (-0.08,{(7-\i)*\s+0.03}) rectangle ({-0.08-\v*2.4},{(8-\i)*\s-0.03});
+        \foreach \j/\v in {0/0.05,1/0.10,2/0.20,3/0.25,4/0.20,5/0.10,6/0.05,7/0.05}
+          \fill[teal!55] ({\j*\s+0.03},-0.08) rectangle ({(\j+1)*\s-0.03},{-0.08-\v*2.4});
+        \node[font=\tiny, anchor=east, gray] at ({-0.08-0.25*2.4},{2.5*\s}) {$i{=}5$};
+        \node[font=\tiny, anchor=north, gray] at ({4.5*\s},{-0.08-0.20*2.4}) {$j{=}4$};
+        \node[font=\scriptsize, anchor=south] at ({4*\s},{8*\s+0.08}) {Plano de transporte $T$};
+      \end{scope}
+      % ---------- Matriz de custo |i-j| ----------
+      \begin{scope}[shift={(10.0,0.3)}]
+        \foreach \i in {0,...,7}
+          \foreach \j in {0,...,7}{
+            \pgfmathsetmacro\f{abs(\i-\j)/7*100}
+            \fill[othigh!\f!otlow] ({\j*\s},{(7-\i)*\s}) rectangle ++(\s,\s);
+          }
+        \draw[gray!60, thin] (0,0) rectangle ({8*\s},{8*\s});
+        \node[font=\scriptsize, anchor=south] at ({4*\s},{8*\s+0.08}) {Custo $|i-j|$};
+        \node[font=\scriptsize, anchor=north] at ({4*\s},-0.35) {$D_{w} = \sum_{i,j} T_{ij}\,|i-j|$};
+      \end{scope}
+    \end{tikzpicture}\\
+    \vspace{0.3em}
+    \tiny Exemplo discreto com suporte $\{0,\dots,7\}$: as marginais do
+    plano $T$ (barras à esquerda e abaixo da matriz) reproduzem $P$ e $Q$,
+    e a célula destacada é $T_{54} = 0.2$. Neste exemplo, $D_{w} = 0.8$.
+    \note{
+      A matriz de transporte só concentra massa na diagonal quando as
+      distribuições já são iguais; quanto mais precisa ``empurrar''
+      massa, mais a matriz se afasta da diagonal.
+    }
+  \end{frame}
+
+  %--- Slide: Primal vs Dual ---
+  \begin{frame}{\textit{Wasserstein Distance} -- Formulação dual}
+    \begin{itemize}
+      \item Para obter o valor de $D_{w}$, precisamos resolver um
+      problema de \textbf{programação linear} em $T$.
+      \item Isso não é prático durante o treinamento de GANs.
+      \item Para esse problema específico, a formulação \textbf{dual} é
+      mais útil.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: De onde vem o f (LP duality) ---
+  \begin{frame}{\textit{Wasserstein Distance} -- De onde vem o $f$?}
+    \begin{itemize}
+      \item O primal do slide anterior é um \textbf{LP}: minimizamos
+      $\sum_{i,j} T_{ij}\,|i-j|$ sobre o plano $T$, sujeito às marginais
+      e a $T_{ij}\ge 0$.
+      \item Todo LP tem um \textbf{dual}, com uma variável por restrição.
+      As marginais geram as variáveis $f_i$ (nas origens) e $g_j$ (nos
+      destinos), e o dual \emph{maximiza}:
+      \[
+        \max_{f,g}\;\sum_i P(x{=}i)\,f_i + \sum_j Q(x{=}j)\,g_j
+        \quad\text{s.a.}\quad f_i + g_j \le |i-j|.
+      \]
+      \item \emph{Kantorovich--Rubinstein}: para o custo $|i-j|$, o ótimo
+      ocorre com $g=-f$. A restrição vira $f_i - f_j \le |i-j|$, que é
+      exatamente $f$ ser \textbf{1-Lipschitz}.
+      \item Sobra uma única função $f$ a maximizar (próximo slide). É daí
+      que vem o $f$: a variável dual associada às marginais.
+    \end{itemize}
+    \note{
+      Não precisamos derivar o dual de cor; a mensagem é que $f$ não cai
+      do céu, é a variável dual das restrições de marginal, e a condição
+      $g=-f$ com $f_i-f_j\le|i-j|$ é o que chamamos de 1-Lipschitz.
+    }
+  \end{frame}
+
+  %--- Slide: Dual form ---
+  \begin{frame}{\textit{Wasserstein Distance} -- Forma dual}
+    Reescrevendo em sua forma dual, temos uma nova variável de
+    otimização $f$ que \textbf{maximizamos} sob a restrição de que
+    valores adjacentes não se alterem em mais de uma unidade:
+    \vspace{0.3em}
+    \[
+      D_{w}\!\left[P(x)\,\|\,Q(x)\right] =
+      \max_{f}\!\left[\sum_{i} P(x=i)\,f_{i} - \sum_{j} Q(x=j)\,f_{j}\right]
+    \]
+    \vspace{0.3em}
+    Sob a restrição: $|f_{i+1} - f_{i}| \le 1$
+    (restrição de \textbf{1-Lipschitz} no caso contínuo).
+    \note{
+      O dual aparece por \emph{Kantorovich--Rubinstein duality}. A
+      restrição de Lipschitz 1 torna o problema bem definido.
+    }
+  \end{frame}
+
+  %--- Slide: Wasserstein loss no contínuo ---
+  \begin{frame}{\textit{Wasserstein GAN} -- Loss}
+    Considerando que as distribuições são aproximadas pelas instâncias
+    reais e geradas, obtemos a loss do \textbf{WGAN}:
+    \vspace{0.3em}
+    \[
+      L[\phi,\thetav] = \sum_{j} f\!\left[g[z^{(j)},\thetav],\phi\right]
+      - \sum_{i} f\!\left[x^{(i)},\phi\right]
+    \]
+    \vspace{0.3em}
+    Sujeito à restrição: $\left|\frac{\partial f(x,\phi)}{\partial x}\right| \le 1$
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Não há mais sigmóide: $f$ é um \textbf{crítico}, não um
+      classificador.
+      \item A restrição de Lipschitz é imposta via \emph{weight clipping}
+      (a seguir) ou \emph{gradient penalty}\cite{gulrajani2017improved}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Weight clipping ---
+  \begin{frame}{\textit{Wasserstein GAN} -- Weight clipping}
+    \begin{itemize}
+      \item Como garantir, na prática, que o crítico $f$ seja
+      \textbf{1-Lipschitz} ao longo do treino?
+      \item \emph{Weight clipping}: depois de cada atualização do
+      crítico, fazemos o \emph{clip} de todos os pesos para o intervalo
+      $[-c,\,c]$:
+      \[
+        w \leftarrow \operatorname{clip}(w, -c, c).
+      \]
+      \item Intuição: limitar a magnitude dos pesos limita o quão rápido
+      $f$ pode variar, ou seja, limita a sua constante de Lipschitz. Não
+      garante exatamente $1$, mas prende $f$ numa família de funções com
+      inclinação controlada.
+    \end{itemize}
+    \begin{alertblock}{É um instrumento grosseiro}
+      \begin{itemize}
+        \item $c$ pequeno demais: os gradientes somem; $c$ grande demais:
+        o treino fica instável.
+        \item Os pesos tendem a saturar em $\pm c$, desperdiçando a
+        capacidade do crítico (o que motiva o \emph{gradient penalty},
+        adiante).
+        \item Não confundir com \emph{gradient clipping}, que limita os
+        gradientes, não os pesos.
+      \end{itemize}
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: WGAN gradient comparison ---
+  \begin{frame}{\textit{WGAN} -- Gradientes em distribuições disjuntas}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/wgan-gradients.png}\\
+        \vspace{0.2em}
+        \tiny Adaptado de Jonathan Hui (Medium, 2018).
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        \begin{itemize}
+          \item Discriminador \textcolor{red}{saturado}
+          $\Rightarrow$ gradientes nulos.
+          \item Crítico WGAN produz gradientes \textbf{lineares} mesmo
+          em regiões disjuntas $\Rightarrow$ treinamento muito mais
+          estável.
+          \item A restrição de Lipschitz é a chave: evita que o crítico
+          ``exploda'' para separar as distribuições.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: WGAN algorithm ---
+  \begin{frame}{\textit{WGAN} -- Algoritmo}
+    \begin{algorithmic}[1]
+      \Require taxa $\alpha$, limiar de clipping $c$, batch $m$, passos do crítico $n_{\text{critic}}$
+      \Require parâmetros iniciais $w_0$ (crítico), $\thetav_0$ (gerador)
+      \While{$\thetav$ não convergiu}
+        \For{$t = 1, \ldots, n_{\text{critic}}$}
+          \State Amostre $\{x^{(i)}\}_{i=1}^{m} \sim P$ (reais)
+          \State Amostre $\{z^{(i)}\}_{i=1}^{m} \sim p(z)$ (prior)
+          \State $g_w \leftarrow \nabla_w \left[\tfrac{1}{m}\sum_i f_w(x^{(i)}) - \tfrac{1}{m}\sum_i f_w(g_{\thetav}(z^{(i)}))\right]$
+          \State $w \leftarrow w + \alpha \cdot \mathrm{RMSProp}(w, g_w)$
+          \State $w \leftarrow \mathrm{clip}(w, -c, c)$
+        \EndFor
+        \State Amostre $\{z^{(i)}\}_{i=1}^{m} \sim p(z)$
+        \State $g_{\thetav} \leftarrow -\nabla_{\thetav}\, \tfrac{1}{m}\sum_i f_w(g_{\thetav}(z^{(i)}))$
+        \State $\thetav \leftarrow \thetav - \alpha \cdot \mathrm{RMSProp}(\thetav, g_{\thetav})$
+      \EndWhile
+    \end{algorithmic}
+    \vspace{0.3em}
+    \tiny Defaults do paper: $\alpha = 5 \times 10^{-5}$, $c = 0.01$,
+    $m = 64$, $n_{\text{critic}} = 5$.
+    Adaptado de \citeauthoryear{arjovsky2017wasserstein}.
+    \note{
+      Pontos a destacar:
+      \begin{itemize}
+        \item $n_{\text{critic}} = 5$: atualizamos o crítico mais vezes
+        que o gerador, já que queremos que ele se aproxime do ótimo.
+        \item \emph{Weight clipping}: $w \leftarrow \text{clip}(w,-c,c)$
+        impõe Lipschitz de forma grosseira, por isso WGAN-GP usa
+        penalização de gradiente.
+        \item Usa RMSProp por ser mais estável que Adam nesse cenário
+        (segundo o paper).
+      \end{itemize}
+    }
+  \end{frame}
+
+  %--- Slide: WGAN-GP ---
+  \begin{frame}{\textit{WGAN-GP} -- Gradient Penalty\footfullcite{gulrajani2017improved}}
+    \emph{Weight clipping} impõe Lipschitz, mas reduz a capacidade do
+    crítico (pesos saturam em $\pm c$). \textbf{WGAN-GP} substitui o
+    clipping por um termo de penalidade na loss:
+    \vspace{0.3em}
+    \[
+      L_{\text{GP}} =
+      \underbrace{\sum_{j} f[g(z^{(j)}),\phi] - \sum_{i} f[x^{(i)},\phi]}_{\text{loss WGAN original}}
+      + \lambda\,\mathbb{E}_{\hat{x}}\!\left[\,\left(\|\nabla_{\hat{x}} f[\hat{x},\phi]\|_{2} - 1\right)^{2}\,\right]
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item $\hat{x} = \alpha\,x + (1-\alpha)\,x^{*}$ com
+      $\alpha \sim \mathcal{U}(0,1)$: pontos interpolados entre real e
+      gerada.
+      \item Penaliza norma do gradiente \emph{diferente de 1}, isto é,
+      Lipschitz é atingida na intensidade certa, não no extremo.
+      \item Permite voltar a usar \textsc{Adam} e remover BatchNorm do
+      crítico. $\lambda = 10$ funciona bem na prática.
+      \item Hoje é o default quando se fala em ``WGAN''.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 8: TRICKS DE TREINAMENTO
+  %======================================================================
+  \section{Tricks de Treinamento}
+
+  %--- Slide: Progressive growing ---
+  \begin{frame}{\textit{Trick 1}: \textit{Progressive growing}\footfullcite{karras2018progressive}}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item Começamos treinando GAN em resolução baixa
+          ($4{\times}4$).
+          \item À medida que o treino avança, vamos \textbf{adicionando
+          camadas} para dobrar a resolução até $1024{\times}1024$.
+          \item Transições suaves entre resoluções evitam instabilidade.
+          \item Resultado: imagens de altíssima qualidade (faces
+          CelebA-HQ).
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/progressive-growing.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Minibatch discrimination ---
+  \begin{frame}{\textit{Trick 2}: \textit{Minibatch discrimination}\footfullcite{salimans2016improved}}
+    \begin{itemize}
+      \item Adicione \textbf{estatísticas do \textit{minibatch}} como
+      entrada extra do discriminador.
+      \item Exemplos: variância intra-batch, distâncias par-a-par entre
+      amostras.
+      \item \textbf{Efeito}: força o batch gerado a ter variabilidade
+      semelhante ao batch real.
+      \begin{itemize}
+        \item Ataca diretamente o colapso de moda: amostras muito
+        parecidas passam a ser detectáveis.
+      \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Truncation ---
+  \begin{frame}{\textit{Trick 3}: \textit{Truncation}\footfullcite{brock2019large}}
+    \begin{columns}[T]
+      \begin{column}{0.42\textwidth}
+        \begin{itemize}
+          \item Na hora de \emph{amostrar}, só aceite $z$ cujo módulo
+          seja menor que um limiar $\tau$.
+          \item $\tau$ grande → mais diversidade, menos qualidade.
+          \item $\tau$ pequeno → mais qualidade, menos diversidade.
+          \item Permite controlar o trade-off qualidade/diversidade
+          \emph{sem retreinar} a rede.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.56\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/truncation-trick.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 9: RESUMO E TRILEMA
+  %======================================================================
+  \section{Panorama Geral}
+
+  %--- Slide: Avaliação ---
+  \begin{frame}{Como avaliar uma GAN?}
+    Não há log-verossimilhança para reportar. Métricas usuais:
+    \begin{itemize}
+      \item \textbf{Inception Score}\footfullcite{salimans2016improved}
+      \[
+        \mathrm{IS} = \exp\!\left(\mathbb{E}_{x^{*}}\!\left[\,D_{KL}\!\left(p(y\mid x^{*})\,\|\,p(y)\right)\,\right]\right)
+      \]
+      Recompensa imagens de classe nítida ($p(y\mid x^{*})$ concentrada)
+      \emph{e} diversidade entre amostras ($p(y)$ espalhada).
+      Limitação: depende do classificador (Inception em ImageNet).
+      \item \textbf{Fréchet Inception Distance (FID)}\footfullcite{heusel2017fid}:
+      ajusta gaussianas em \emph{features} do Inception e calcula
+      \[
+        \mathrm{FID} = \|\mu_{r}-\mu_{g}\|_{2}^{2} +
+        \mathrm{tr}\!\left(\Sigma_{r}+\Sigma_{g}-2\sqrt{\Sigma_{r}\Sigma_{g}}\right)
+      \]
+      Mais robusto que IS, é o \emph{padrão atual}; valores menores são
+      melhores.
+    \end{itemize}
+    \begin{block}{Regra de bolso}
+     Ambas as métricas são sensíveis ao tamanho da amostra.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: TLDR ---
+  \begin{frame}{\textit{TL;DR} sobre GANs}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{itemize}
+          \item Existem diversas arquiteturas com algum controle sobre
+          as imagens geradas:
+          \begin{itemize}
+            \item \textit{Conditional GANs}
+            \item \textit{StyleGAN}, \textit{BigGAN}, \ldots
+          \end{itemize}
+          \item \textbf{Pontos fortes}
+          \begin{itemize}
+            \item Resultados bastante realistas.
+            \item Inferência ``rápida'' (1 passagem pelo gerador).
+          \end{itemize}
+          \item \textbf{Pontos fracos}
+          \begin{itemize}
+            \item Difíceis de treinar.
+            \item Baixa cobertura de possibilidades (\emph{mode
+            collapse}).
+          \end{itemize}
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{slides/img/05-geradores/gan-pipeline.png}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: Trilema ---
+  \begin{frame}{O trilema dos modelos geradores}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Todo modelo gerador precisa trocar três objetivos:
+        \begin{itemize}
+          \item \textbf{Qualidade} das amostras.
+          \item \textbf{Cobertura} / diversidade de modos.
+          \item \textbf{Velocidade} de amostragem.
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{block}{Posicionamento}
+          \begin{itemize}
+            \item \textit{GANs}: qualidade + velocidade.
+            \item \textit{Diffusion Models}: qualidade + cobertura.
+            \item \textit{VAEs}/\textit{Normalizing Flows}: velocidade +
+            cobertura.
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{\generativetrilemma[gan]}
+      \end{column}
+    \end{columns}
+    \note{
+      Esse diagrama vai aparecer novamente nas aulas de
+      \emph{Normalizing Flows} e \emph{Diffusion Models}, servindo como
+      mapa geral da unidade.
+    }
+  \end{frame}
+
+  %======================================================================
+  % REFERÊNCIAS E LEITURAS
+  %======================================================================
+  \section*{Referências e Leituras}
+
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Capítulo 15: \fullcite{prince2023understanding}
+      \item \fullcite{goodfellow2014generative}
+      \item \fullcite{radford2015dcgan}
+      \item \fullcite{arjovsky2017wasserstein}
+      \item \url{https://vincentherrmann.github.io/blog/wasserstein/}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

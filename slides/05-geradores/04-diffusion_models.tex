@@ -1,0 +1,1075 @@
+\documentclass[aspectratio=169,xcolor=dvipsnames]{beamer}
+
+\input{slides/utils/preamble}
+\input{slides/utils/custom-commands}
+\input{slides/05-geradores/colors}
+\input{slides/05-geradores/trilemma}
+
+% Comentários dos algoritmos: cinza e alinhados à direita
+\algrenewcommand{\algorithmiccomment}[1]{\hfill{\footnotesize\color{gray}$\triangleright$~#1}}
+
+%------------------------------------------------------------------------
+%   TITLE PAGE
+%------------------------------------------------------------------------
+
+\title{Aprendizado Profundo}
+\subtitle{\textit{Diffusion Models}}
+
+\author{Lucas Silveira Kupssinskü}
+
+\institute
+{
+    Machine Learning Theory and Applications Laboratory \\
+    PUCRS
+}
+\date{\mespor de \the\year}
+
+\begin{document}
+
+  \begin{frame}
+    \titlepage
+  \end{frame}
+
+  \begin{frame}{Visão Geral}
+    \tableofcontents
+  \end{frame}
+
+  %======================================================================
+  % SECTION 1: MODELOS GERADORES (REVISÃO)
+  %======================================================================
+  \section{Modelos Geradores -- Revisão}
+
+  %--- Slide: definição ---
+  \begin{frame}{Modelos Geradores}
+    \begin{itemize}
+      \item O objetivo de um \textbf{modelo gerador} é aprender uma
+      \textcolor{EncRed}{distribuição de probabilidade} sobre uma
+      variável $\mathbf{X}$ usando dados observados
+      $\{x^{(i)}\}_{i=1}^{N}$.
+      \item A densidade $p_{X}(x)$ é parametrizada por $\thetav$.
+      \item Já vimos:
+      \begin{itemize}
+        \item \textbf{GANs} (jogo min-max),
+        \item \textbf{Normalizing Flows} (transformações invertíveis),
+        \item \textbf{VAEs} (encoder/decoder + ELBO).
+      \end{itemize}
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ideia diffusion ---
+  \begin{frame}{A próxima ideia: \textit{Diffusion Models}\footfullcite{ho2020denoising}}
+    \begin{itemize}
+      \item Definir um \textcolor{EncRed}{\textit{encoder}
+      \textbf{sem parâmetros treináveis}} que degrada uma imagem
+      adicionando ruído gaussiano de maneira sequencial.
+      \item Treinar um \textcolor{DecBlue}{\textit{decoder}} para
+      \textbf{retirar o ruído} adicionado.
+    \end{itemize}
+    \vspace{0.5em}
+    \begin{block}{Intuição}
+      Aprender a remover ruído um pequeno passo de cada vez é mais
+      fácil que aprender a gerar uma imagem inteira do zero.
+      Empilhando muitos passos pequenos, conseguimos transformar ruído
+      puro em uma amostra realista.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 2: ENCODER / PROCESSO DE DIFUSÃO
+  %======================================================================
+  \section{Encoder: Processo de Difusão}
+
+  %--- Slide: visão geral ---
+  \begin{frame}{Visão Geral -- Difusão}
+    \begin{itemize}
+      \item No processo de difusão (\textit{forward}) adicionamos ruído
+      a cada passo até a imagem ficar indistinguível do ruído.
+      \item No processo de \textit{denoising} (decoder) treinamos uma
+      rede neural para \textbf{remover um passo} de ruído.
+      \item Após o treinamento podemos gerar novas instâncias partindo
+      de $z_T \sim \mathcal{N}(0,\mathbf{I})$.
+    \end{itemize}
+  \end{frame}
+
+
+  %--------------------------------------------------------------------
+  % Definição da difusão (forward)
+  %--------------------------------------------------------------------
+
+  %--- Slide: Difusão definição ---
+  \begin{frame}{Difusão -- Definição}
+    O processo de difusão (\textit{forward}) mapeia um exemplo $x$ por
+    uma série de etapas intermediárias $z_1, z_2, \ldots, z_T$ via
+    adição de ruído:
+    \vspace{0.3em}
+    \[
+      z_1 = \sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1
+    \]
+    \[
+      z_t = \sqrt{1 - \beta_t}\cdot z_{t-1} + \sqrt{\beta_t}\cdot \epsilon_t
+      \qquad \forall t \in \{2, 3, \ldots, T\}
+    \]
+    \vspace{0.2em}
+    \begin{itemize}
+      \item $\epsilon_t \sim \mathcal{N}(0,\mathbf{I})$: ruído amostrado
+      da normal padrão.
+      \item Hiperparâmetros $\beta_t \in [0,1]$ são o
+      \textbf{\textit{noise schedule}} (controlam a velocidade da
+      difusão).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Forma probabilística ---
+  \begin{frame}{Difusão -- Forma probabilística (Markov)}
+    Equivalentemente, podemos escrever:
+    \vspace{0.3em}
+    \[
+      q(z_1 \mid x) = \mathcal{N}_{z_1}\!\left[\sqrt{1 - \beta_1}\cdot x,\, \beta_1 \cdot \mathbf{I}\right]
+    \]
+    \[
+      q(z_t \mid z_{t-1}) = \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t \cdot \mathbf{I}\right]
+      \qquad \forall t \geq 2
+    \]
+    \vspace{0.3em}
+    \begin{block}{Cadeia de Markov}
+      $z_t$ depende apenas de $z_{t-1}$. Por isso, a distribuição
+      conjunta fatoriza:
+      \[
+        q(z_{1\ldots T} \mid x) = q(z_1 \mid x)\, \prod_{t=2}^{T} q(z_t \mid z_{t-1}).
+      \]
+    \end{block}
+  \end{frame}
+
+  %--- Slide: trajetórias 1D e convergência para ruído ---
+  \begin{frame}{Difusão -- Trajetórias 1D}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \begin{itemize}
+          \item Partimos de \textbf{três instâncias} $x^{(1)}, x^{(2)},
+          x^{(3)}$ (1D).
+          \item Conforme os passos de difusão são aplicados, as
+          instâncias são combinadas com ruído e vão aos poucos perdendo
+          identidade.
+          \item Após muitos passos, a distribuição converge para a
+          distribuição do ruído $\mathcal{N}(0,\mathbf{I})$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.52\textwidth}
+        \centering
+        \begin{tikzpicture}[x=0.78cm, y=-0.040cm]
+          % grade horizontal leve nos instantes marcados
+          \foreach \t in {20,40,60,80,100}{
+            \draw[black!15, very thin] (-3,\t) -- (3,\t);
+          }
+          % eixo vertical (tempo) com rótulos z_t
+          \draw[black!60] (-3,0) -- (-3,112);
+          \node[left, font=\scriptsize] at (-3,0) {$x$};
+          \foreach \t in {20,40,60,80,100}{
+            \draw[black!60] (-3,\t) -- (-3.12,\t);
+            \node[left, font=\scriptsize] at (-3.12,\t) {$z_{\t}$};
+          }
+          % eixo horizontal (valor de z)
+          \draw[black!60] (-3,112) -- (3,112);
+          \foreach \z in {-3,0,3}{
+            \draw[black!60] (\z,112) -- (\z,114);
+            \node[below, font=\scriptsize] at (\z,114) {$\z$};
+          }
+          % seta do tempo
+          \draw[->, black!60] (3.35,8) -- (3.35,95)
+            node[midway, right, font=\scriptsize] {$t$};
+          % trajetórias do forward process:
+          % z_t = sqrt(1-beta) z_{t-1} + sqrt(beta) eps, beta = 0.04
+          % (rand+rand+rand aproxima eps ~ N(0,1))
+          \pgfmathsetseed{20260609}
+          \begin{scope}
+            \clip (-3,0) rectangle (3,112);
+            \foreach \zstart/\cor in {-2.3/MediumBlue, -0.7/MediumGreen,
+                                      2.2/MediumRed}{
+              \xdef\zprev{\zstart}
+              \foreach \t in {1,...,100}{
+                \pgfmathsetmacro{\znew}{sqrt(0.96)*\zprev
+                  + 0.2*(rand+rand+rand)}
+                \draw[\cor, semithick] (\zprev,\t-1) -- (\znew,\t);
+                \xdef\zprev{\znew}
+              }
+            }
+          \end{scope}
+          % rótulos das instâncias no topo
+          \node[above, font=\scriptsize, MediumBlue] at (-2.3,-2) {$x^{(1)}$};
+          \node[above, font=\scriptsize, MediumGreen] at (-0.7,-2) {$x^{(2)}$};
+          \node[above, font=\scriptsize, MediumRed] at (2.2,-2) {$x^{(3)}$};
+          % densidade N(0,1) ao final da cadeia
+          \draw[black!50, dashed, thick]
+            plot[domain=-3:3, samples=80] (\x, {112 - 12*exp(-\x*\x/2)});
+          \node[right, font=\scriptsize, black!60] at (1.8,105.5)
+            {$\mathcal{N}(0,\mathbf{I})$};
+        \end{tikzpicture}\\[0.2em]
+        {\tiny Trajetórias simuladas do \textit{forward process} com
+        $\beta = 0.04$ e $T = 100$.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--------------------------------------------------------------------
+  % Kernel de difusão: forma fechada q(z_t | x)
+  %--------------------------------------------------------------------
+
+  %--- Slide: motivação kernel ---
+  \begin{frame}{Kernel de Difusão -- Motivação}
+    \begin{itemize}
+      \item Como o processo de difusão é probabilístico, para uma mesma
+      instância $x$ obtemos \textbf{várias amostras} $z_t$ em cada
+      instante.
+      \item O processo definido até aqui é \textbf{sequencial}: para
+      chegar em $z_t$ precisamos passar por $z_1, \ldots, z_{t-1}$.
+      \item Para acelerar, vamos derivar uma \textbf{forma fechada}
+      para amostrar diretamente $z_t$ a partir de $x$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: kernel - derivação z2 ---
+  \begin{frame}{Kernel de Difusão -- Substituindo $z_1$ em $z_2$}
+    Partindo das definições:
+    \vspace{0.2em}
+    \[
+      z_1 = \sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1,
+      \qquad
+      z_2 = \sqrt{1 - \beta_2}\cdot z_1 + \sqrt{\beta_2}\cdot \epsilon_2.
+    \]
+    \vspace{0.2em}
+    Substituindo $z_1$:
+    \[
+      z_2 = \sqrt{1 - \beta_2}\!\left(\sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1\right) + \sqrt{\beta_2}\cdot \epsilon_2.
+    \]
+  \end{frame}
+
+  %--- Slide: kernel - manipulação algébrica ---
+  \begin{frame}{Kernel de Difusão -- Manipulação algébrica}
+    Reescrevendo $\sqrt{\beta_1} = \sqrt{1 - (1 - \beta_1)}$:
+    \vspace{0.2em}
+    \[
+      z_2 = \sqrt{1-\beta_2}\!\left(\sqrt{1-\beta_1}\,x + \sqrt{1-(1-\beta_1)}\,\epsilon_1\right) + \sqrt{\beta_2}\,\epsilon_2.
+    \]
+    \vspace{0.2em}
+    Distribuindo:
+    \[
+      z_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\,x
+      + \sqrt{(1-\beta_2) - (1-\beta_2)(1-\beta_1)}\,\epsilon_1
+      + \sqrt{\beta_2}\,\epsilon_2.
+    \]
+  \end{frame}
+
+  %--- Slide: soma de gaussianas ---
+  \begin{frame}{Kernel de Difusão -- Soma de gaussianas}
+    \begin{alertblock}{Lembrete}
+      A soma de duas gaussianas independentes com médias nulas e
+      desvios $\sigma_a, \sigma_b$ é uma gaussiana com média zero e
+      variância $\sigma_a^2 + \sigma_b^2$.
+    \end{alertblock}
+    \vspace{0.3em}
+    Os dois últimos termos viram um único ruído gaussiano:
+    \[
+      z_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\cdot x
+      + \sqrt{1 - (1-\beta_2)(1-\beta_1)}\cdot \epsilon.
+    \]
+    \begin{block}{Observação}
+      Podemos repetir esse processo para todos os $z_t$, sempre
+      acumulando os fatores $(1 - \beta_s)$.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: kernel forma geral ---
+  \begin{frame}{Kernel de Difusão -- Forma geral}
+    Definindo $\alpha_t = \prod_{s=1}^{t}(1 - \beta_s)$, temos:
+    \vspace{0.3em}
+    \[
+      \boxed{z_t = \sqrt{\alpha_t}\cdot x + \sqrt{1 - \alpha_t}\cdot \epsilon}
+      \qquad \epsilon \sim \mathcal{N}(0,\mathbf{I})
+    \]
+    \vspace{0.3em}
+    Em forma probabilística:
+    \[
+      q(z_t \mid x) = \mathcal{N}_{z_t}\!\left[\sqrt{\alpha_t}\cdot x,\; (1 - \alpha_t)\cdot \mathbf{I}\right].
+    \]
+    \begin{block}{Vantagem prática}
+      Podemos amostrar $z_t$ \textbf{diretamente} a partir de $x$ sem
+      simular toda a cadeia. Isso permite treinamento por
+      \textit{minibatch} eficiente.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: Exemplo numérico schedule ---
+  \begin{frame}{Exemplo Numérico: \textit{Schedule} $\beta$ e Sinal vs Ruído}
+    \footnotesize Pense em $x$ como uma \emph{imagem limpa} (e.g., um
+    pixel ou um vetor latente). $\beta_t$ é a \emph{variância de ruído}
+    adicionada no passo $t$ do \textit{forward process}; $\alpha_t$ é o
+    quanto sobrou de $x$ após $t$ passos. Aqui usamos $T = 4$ para
+    visualização, DDPM real tem $T = 1000$ e $\beta$ na faixa
+    $10^{-4}$ a $0.02$, mas a curva é a mesma.
+
+    \normalsize
+    \textit{Schedule} linear com $T = 4$:
+    $\boldsymbol{\beta} = (0.1,\, 0.2,\, 0.3,\, 0.4)$.
+    Acumulamos $\alpha_t = \prod_{s=1}^{t}(1 - \beta_s)$:
+    \vspace{0.2em}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \centering
+        \begin{tabular}{@{}c|c|c|c@{}}
+          \toprule
+          $t$ & $\alpha_t$  & $\sqrt{\alpha_t}$ \,(sinal)& $\sqrt{1-\alpha_t}$ \,(ruído) \\
+          \midrule
+          1 & 0.900 & 0.949 & 0.316 \\
+          2 & 0.720 & 0.849 & 0.529 \\
+          3 & 0.504 & 0.710 & 0.704 \\
+          4 & 0.302 & 0.550 & 0.836 \\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.4em}\\
+        \scriptsize Ex.: $\alpha_3 = 0.9 \cdot 0.8 \cdot 0.7 = 0.504$.
+      \end{column}
+      \begin{column}{0.42\textwidth}
+        Para $x = 1$:
+        \[
+          z_t = \sqrt{\alpha_t}\cdot 1 + \sqrt{1 - \alpha_t}\cdot \epsilon
+        \]
+        \vspace{-0.4em}
+        Em $t = 3$ o sinal e o ruído se cruzam; em $t = T$ grande,
+        $\alpha_T \to 0$ e $z_T \approx \mathcal{N}(0, \mathbf{I})$
+        \textbf{por construção}, é o que permite o \textit{decoder}
+        começar a amostragem de ruído puro.
+      \end{column}
+    \end{columns}
+    \note{
+      Em DDPM real, $T = 1000$ e $\beta$ é uma rampa linear de $10^{-4}$ a
+      $0.02$, o que mantém $\alpha_T$ próximo de zero sem destruir
+      sinal cedo demais. A intuição é a mesma da tabela acima.
+      Schedules de \emph{cosseno} (Nichol \& Dhariwal, 2021) destroem o
+      sinal mais devagar no meio da cadeia e costumam superar o linear em
+      qualidade, sobretudo quando $T$ é grande.
+    }
+  \end{frame}
+
+  %--- Slide: kernel visualização ---
+  \begin{frame}{Kernel de Difusão -- Visualização}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \centering
+        \begin{tikzpicture}[x=0.78cm, y=-0.038cm,
+            declare function={al(\t)=exp(-0.0408*\t);}]
+          % faixa de +-1 desvio padrão em torno da média do kernel
+          \fill[NoiseAmber!30]
+            plot[domain=0:100, samples=60]
+              ({2*sqrt(al(\x)) + sqrt(max(0,1-al(\x)))}, \x)
+            -- plot[domain=100:0, samples=60]
+              ({2*sqrt(al(\x)) - sqrt(max(0,1-al(\x)))}, \x)
+            -- cycle;
+          % grade horizontal leve nos instantes destacados
+          \foreach \t in {15,55,100}{
+            \draw[black!15, very thin] (-3,\t) -- (3,\t);
+          }
+          % eixo vertical (tempo) com rótulos z_t
+          \draw[black!60] (-3,0) -- (-3,106);
+          \node[left, font=\scriptsize] at (-3,0) {$x$};
+          \foreach \t in {15,55,100}{
+            \draw[black!60] (-3,\t) -- (-3.12,\t);
+            \node[left, font=\scriptsize] at (-3.12,\t) {$z_{\t}$};
+          }
+          % eixo horizontal (valor de z)
+          \draw[black!60] (-3,106) -- (3,106);
+          \foreach \z in {-3,0,3}{
+            \draw[black!60] (\z,106) -- (\z,108);
+            \node[below, font=\scriptsize] at (\z,108) {$\z$};
+          }
+          % seta do tempo
+          \draw[->, black!60] (3.35,8) -- (3.35,95)
+            node[midway, right, font=\scriptsize] {$t$};
+          % trajetórias do forward sequencial, todas partindo do MESMO x*
+          \pgfmathsetseed{20260609}
+          \begin{scope}
+            \clip (-3,0) rectangle (3,106);
+            \foreach \i in {1,...,6}{
+              \xdef\zprev{2}
+              \foreach \t in {1,...,100}{
+                \pgfmathsetmacro{\znew}{sqrt(0.96)*\zprev
+                  + 0.2*(rand+rand+rand)}
+                \draw[black!30, thin] (\zprev,\t-1) -- (\znew,\t);
+                \xdef\zprev{\znew}
+              }
+            }
+          \end{scope}
+          % média do kernel: sqrt(alpha_t) * x
+          \draw[EncRed, dashed, thick]
+            plot[domain=0:100, samples=80] ({2*sqrt(al(\x))}, \x);
+          \node[right, font=\tiny, EncRed] at (2.0,30)
+            {$\sqrt{\alpha_t}\,x^{*}$};
+          % desvio padrão do kernel (largura da faixa)
+          \draw[<->, NoiseAmber!60!black, thin]
+            ({2*sqrt(al(78)) - sqrt(1-al(78))},78) --
+            ({2*sqrt(al(78)) + sqrt(1-al(78))},78);
+          \node[right, font=\tiny, NoiseAmber!60!black]
+            at ({2*sqrt(al(78)) + sqrt(1-al(78))},78)
+            {$\pm\sqrt{1-\alpha_t}$};
+          % densidades do kernel nos instantes destacados
+          \foreach \tk in {15,55,100}{
+            \pgfmathsetmacro{\mu}{2*sqrt(al(\tk))}
+            \pgfmathsetmacro{\sd}{sqrt(1-al(\tk))}
+            \draw[EncRed, thick]
+              plot[domain=-3:3, samples=90]
+                (\x, {\tk - (9/\sd)*exp(-(\x-\mu)^2/(2*\sd^2))});
+          }
+          \node[right, font=\tiny, EncRed] at (-2.95,8)
+            {$q(z_{15} \mid x^{*})$};
+          \node[right, font=\tiny, EncRed] at (-2.95,46)
+            {$q(z_{55} \mid x^{*})$};
+          \node[right, font=\tiny, EncRed] at (-2.95,90)
+            {$q(z_{100} \mid x^{*}) \approx \mathcal{N}(0,\mathbf{I})$};
+          % ponto de partida
+          \fill[black] (2,0) circle (1.5pt);
+          \node[above, font=\scriptsize] at (2,-1.5) {$x^{*}$};
+        \end{tikzpicture}\\[0.2em]
+        {\tiny Mesmas condições do slide de trajetórias ($\beta = 0.04$,
+        $T = 100$), agora com todas as trajetórias partindo de
+        $x^{*} = 2$.}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \footnotesize
+        O mesmo $x^{*}$ gera várias trajetórias (em cinza). O kernel
+        resume onde elas podem estar no instante $t$:
+        \[
+          q(z_t \mid x) = \mathcal{N}_{z_t}\!\big[
+            {\color{EncRed}\sqrt{\alpha_t}\cdot x},\;
+            {\color{NoiseAmber!60!black}(1 - \alpha_t)}\cdot\mathbf{I}\big]
+        \]
+        \begin{itemize}
+          \item \textcolor{EncRed}{$\sqrt{\alpha_t}\,x$} (linha
+          tracejada): a \textbf{média}. O sinal original encolhe
+          geometricamente rumo a zero.
+          \item \textcolor{NoiseAmber!60!black}{$1 - \alpha_t$} (faixa):
+          a \textbf{variância}. A incerteza acumulada pelo ruído cresce
+          rumo a 1.
+          \item \textcolor{EncRed}{Curvas sólidas}: o kernel
+          $q(z_t \mid x^{*})$ em $t = 15, 55, 100$. Amostrar dele
+          dispensa simular a cadeia passo a passo.
+          \item Em $t = 100$: $\alpha_t \approx 0$, então o kernel já é
+          aproximadamente $\mathcal{N}(0,\mathbf{I})$.
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \note{
+      A figura substitui a versão do livro do Prince: aqui todas as
+      trajetórias partem do mesmo ponto para evidenciar que o kernel é
+      a distribuição marginal de $z_t$ dado $x$. A média decai como
+      $\sqrt{\alpha_t}$ e a variância satura em 1, por isso a faixa
+      amarela abre em forma de cone e a densidade final coincide com a
+      normal padrão.
+    }
+  \end{frame}
+
+  %======================================================================
+  % SECTION 3: DECODER
+  %======================================================================
+  \section{Decoder}
+
+  %--------------------------------------------------------------------
+  % Distribuição condicional da difusão
+  %--------------------------------------------------------------------
+
+  %--- Slide: motivação ---
+  \begin{frame}{Distribuição condicional $q(z_{t-1} \mid z_t, x)$}
+    Para o decoder vamos precisar de uma expressão para a difusão
+    \textbf{revertida no tempo}, condicionada em $x$:
+    \vspace{0.3em}
+    \[
+      q(z_{t-1} \mid z_t, x) = \frac{q(z_t \mid z_{t-1}, x)\, q(z_{t-1} \mid x)}{q(z_t \mid x)}
+    \]
+    \vspace{0.3em}
+    Por regra de Bayes. Vamos manipular essa expressão.
+  \end{frame}
+
+  %--- Slide: simplificação Markov ---
+  \begin{frame}{Distribuição condicional -- Simplificação Markov}
+    \begin{itemize}
+      \item Como difusão é Markov:
+      $q(z_t \mid z_{t-1}, x) = q(z_t \mid z_{t-1})$.
+      \item Tirando o denominador, a igualdade vira proporcionalidade:
+    \end{itemize}
+    \vspace{0.3em}
+    \[
+      q(z_{t-1} \mid z_t, x) \;\propto\; q(z_t \mid z_{t-1})\, q(z_{t-1} \mid x).
+    \]
+  \end{frame}
+
+  %--- Slide: produto de gaussianas ---
+  \begin{frame}{Distribuição condicional -- Produto de gaussianas}
+    Substituindo cada termo pela sua respectiva normal:
+    \[
+      \propto
+      \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t\,\mathbf{I}\right]
+      \cdot
+      \mathcal{N}_{z_{t-1}}\!\left[\sqrt{\alpha_{t-1}}\cdot x,\, (1 - \alpha_{t-1})\,\mathbf{I}\right].
+    \]
+    \begin{alertblock}{Mudança de variável}
+      O primeiro fator é uma gaussiana em $z_t$, mas pode ser reescrito
+      como uma gaussiana em $z_{t-1}$:
+      \[
+        \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t\,\mathbf{I}\right]
+        \;\propto\;
+        \mathcal{N}_{z_{t-1}}\!\left[\tfrac{1}{\sqrt{1 - \beta_t}}\, z_t,\;
+        \tfrac{\beta_t}{1 - \beta_t}\,\mathbf{I}\right].
+      \]
+    \end{alertblock}
+    O produto de duas gaussianas em $z_{t-1}$ é proporcional a uma
+    gaussiana em $z_{t-1}$; como o lado esquerdo é uma distribuição, a
+    normalização é automática:
+    \[
+      q(z_{t-1} \mid z_t, x) = \mathcal{N}_{z_{t-1}}\!\left[
+        \tfrac{(1 - \alpha_{t-1})}{1 - \alpha_t}\sqrt{1 - \beta_t}\, z_t
+        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1 - \alpha_t}\, x,\;
+        \tfrac{\beta_t (1 - \alpha_{t-1})}{1 - \alpha_t}\,\mathbf{I}
+      \right]
+    \]
+    \note{
+      A identidade segue de completar o quadrado: o expoente
+      $-(z_t - \sqrt{1-\beta_t}\,z_{t-1})^2 / (2\beta_t)$ é o mesmo de
+      uma gaussiana em $z_{t-1}$ com média $z_t/\sqrt{1-\beta_t}$ e
+      variância $\beta_t/(1-\beta_t)$, a menos de fator constante em
+      $z_{t-1}$. No produto final, usar
+      $\alpha_t = \alpha_{t-1}(1-\beta_t)$ faz os denominadores
+      colapsarem em $1 - \alpha_t$.
+    }
+  \end{frame}
+
+  %--------------------------------------------------------------------
+  % Aproximação do reverse process
+  %--------------------------------------------------------------------
+
+  %--- Slide: decoder ---
+  \begin{frame}{Decoder (\textit{Reverse Process})}
+    O aprendizado está \textbf{todo no decoder}:
+    \vspace{0.3em}
+    \[
+      z_T \;\to\; z_{T-1} \;\to\; \cdots \;\to\; z_1 \;\to\; x.
+    \]
+    \vspace{0.3em}
+    \begin{itemize}
+      \item A distribuição reversa real $q(z_{t-1} \mid z_t)$ é
+      complexa e potencialmente multimodal, depende dos dados.
+      \item Na prática, \textbf{aproximamos} essa reversa por uma
+      \emph{normal}:
+    \end{itemize}
+    \[
+      p(z_T) = \mathcal{N}_{z_T}[0,\mathbf{I}],
+      \qquad
+      p(z_{t-1} \mid z_t,\thetav_t) = \mathcal{N}_{z_{t-1}}\!\left[f_t[z_t,\thetav_t],\; \sigma_t^{2}\,\mathbf{I}\right],
+    \]
+    \[
+      p(x \mid z_1,\thetav_1) = \mathcal{N}_{x}\!\left[f_1[z_1,\thetav_1],\; \sigma_1^{2}\,\mathbf{I}\right].
+    \]
+    \begin{block}{Quando essa aproximação é razoável}
+      Se o número de passos $T$ for grande e $\beta_t$ for próximo de
+      0, cada passo da reversa é quase determinístico e a aproximação
+      gaussiana é boa.
+    \end{block}
+  \end{frame}
+
+  %--------------------------------------------------------------------
+  % Treinamento e ELBO
+  %--------------------------------------------------------------------
+
+  %--- Slide: motivação treinamento ---
+  \begin{frame}{Treinamento -- O problema}
+    Maximizar a log-verossimilhança dos dados é o objetivo:
+    \vspace{0.3em}
+    \[
+      \hat{\thetav}_{1\ldots T} = \argmax_{\thetav_{1\ldots T}}
+      \left[\sum_{i=1}^{N} \log p(x^{(i)} \mid \thetav_{1\ldots T})\right]
+    \]
+    \[
+      p(x \mid \thetav_{1\ldots T}) = \int p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})\, dz_{1\ldots T}
+    \]
+    \begin{alertblock}{Inviável}
+      Essa integral é \textbf{intratável}. Vamos usar o
+      \textbf{ELBO} como substituto.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: distribuições conjuntas ---
+  \begin{frame}{Treinamento -- Distribuições conjuntas}
+    \begin{block}{Conjunta do modelo (decoder)}
+      \[
+        p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})
+        = p(x \mid z_1,\thetav_1)\, \prod_{t=2}^{T} p(z_{t-1} \mid z_t,\thetav_t)\cdot p(z_T)
+      \]
+    \end{block}
+    \begin{block}{Conjunta da difusão (encoder)}
+      \[
+        q(z_{1\ldots T} \mid x) = q(z_1 \mid x)\, \prod_{t=2}^{T} q(z_t \mid z_{t-1})
+      \]
+    \end{block}
+    \vspace{0.2em}
+    Tudo gaussiano $\Rightarrow$ tudo tratável passo a passo.
+  \end{frame}
+
+  %--- Slide: derivação ELBO ---
+  \begin{frame}{Evidence Lower Bound (ELBO)}
+    Multiplicamos e dividimos por $q(z_{1\ldots T}\mid x)$, e aplicamos
+    a desigualdade de Jensen:
+    \vspace{0.2em}
+    \begin{align*}
+      \log p(x \mid \thetav_{1\ldots T})
+      &= \log\!\left[\int p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})\, dz\right] \\
+      &= \log\!\left[\int q(z_{1\ldots T} \mid x)\frac{p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})}{q(z_{1\ldots T} \mid x)}\, dz\right] \\
+      &\geq \int q(z_{1\ldots T} \mid x) \log\!\left[\frac{p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})}{q(z_{1\ldots T} \mid x)}\right] dz
+      \quad \text{(Jensen)}
+    \end{align*}
+    \vspace{0.1em}
+    Vamos trabalhar nesse termo (o ELBO).
+  \end{frame}
+
+  %--- Slide: ELBO substituindo ---
+  \begin{frame}{ELBO -- Substituindo as conjuntas}
+    Substituindo as definições do encoder e decoder:
+    \vspace{0.2em}
+    \[
+      \log\!\left[\frac{p(x|z_1,\thetav_1) \prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)\cdot p(z_T)}{q(z_1|x)\prod_{t=2}^{T} q(z_t|z_{t-1})}\right]
+    \]
+    \vspace{0.1em}
+    \[
+      = \log\!\left[\frac{p(x|z_1,\thetav_1)}{q(z_1|x)}\right]
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_t|z_{t-1})}\right]
+      + \log p(z_T).
+    \]
+  \end{frame}
+
+  %--- Slide: ELBO Bayes no q ---
+  \begin{frame}{ELBO -- Aplicando Bayes em $q(z_t|z_{t-1})$}
+    Pela regra de Bayes (e Markov):
+    \[
+      q(z_t \mid z_{t-1}) = \frac{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}{q(z_{t-1} \mid x)}.
+    \]
+    Aplicando isso na razão dentro do produtório, vários termos se
+    cancelam, sobrando apenas $q(z_1 \mid x)$ no numerador e
+    $q(z_T \mid x)$ no denominador:
+    \[
+      \prod_{t=2}^{T}\frac{1}{q(z_t \mid z_{t-1})} = \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}.
+    \]
+  \end{frame}
+
+  %--- Slide: ELBO cancelamento explícito ---
+  \begin{frame}{ELBO -- O cancelamento em detalhe}
+    Separamos o produtório em uma parte que permanece e outra cujos
+    termos se cancelam:
+    \[
+      \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}
+      = \underbrace{\prod_{t=2}^{T}\frac{1}{q(z_{t-1} \mid z_t, x)}}_{\text{permanece}}
+        \cdot \underbrace{\prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_t \mid x)}}_{\text{cancela}}
+    \]
+    \vspace{0.4em}
+    Ao expandir essa segunda parte, cada denominador cancela o
+    numerador seguinte, sobrando apenas os extremos:
+    \[
+      \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_t \mid x)}
+      = \frac{q(z_1 \mid x)}{\cancel{q(z_2 \mid x)}}\cdot
+        \frac{\cancel{q(z_2 \mid x)}}{\cancel{q(z_3 \mid x)}}\cdots
+        \frac{\cancel{q(z_{T-1} \mid x)}}{q(z_T \mid x)}
+      = \frac{q(z_1 \mid x)}{q(z_T \mid x)}.
+    \]
+  \end{frame}
+
+  %--- Slide: ELBO simplificação ---
+  \begin{frame}{ELBO -- Simplificação}
+    Após o cancelamento, a expressão fica:
+    \vspace{0.2em}
+    \[
+      = \log\!\left[\frac{p(x|z_1,\thetav_1)\,q(z_1|x)}{q(z_1|x)}\right]
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_{t-1}|z_t,x)}\right]
+      + \log\!\left[\frac{p(z_T)}{q(z_T|x)}\right]
+    \]
+    \vspace{0.2em}
+    \[
+      = \log p(x|z_1,\thetav_1)
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_{t-1}|z_t,x)}\right]
+      + \cancel{\log\!\left[\tfrac{p(z_T)}{q(z_T|x)}\right]}^{\approx 0}
+    \]
+    \vspace{0.2em}
+    O último termo é desprezível: $q(z_T|x)\approx p(z_T)$ para $T$
+    grande.
+  \end{frame}
+
+  %--- Slide: ELBO formulação final ---
+  \begin{frame}{ELBO -- Formulação final}
+    Tomando esperança em $q(z_{1\ldots T} \mid x)$:
+    \vspace{0.2em}
+    \[
+      \boxed{
+        \mathrm{ELBO}[\thetav_{1\ldots T}]
+        = \mathbb{E}_{q(z_1|x)}\!\big[\log p(x|z_1,\thetav_1)\big]
+        - \sum_{t=2}^{T} \mathbb{E}_{q(z_t|x)}\!\big[D_{KL}\!\big[q(z_{t-1}|z_t,x)\,\|\,p(z_{t-1}|z_t,\thetav_t)\big]\big]
+      }
+    \]
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textcolor{ReconGreen}{\textbf{Termo de reconstrução}}:
+      $\log p(x|z_1,\thetav_1)$ é uma normal $\Rightarrow$ MSE.
+      \item \textcolor{DecBlue}{\textbf{Termos KL}}: ambas
+      distribuições são normais $\Rightarrow$ \textbf{forma fechada}!
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: KL fechada ---
+  \begin{frame}{ELBO -- KL entre normais}
+    A KL entre duas gaussianas tem expressão fechada. Aplicando-a:
+    \vspace{0.4em}
+    \begin{block}{KL desenvolvida}
+      \[
+        \mathbb{E}_{q(z_t|x)}\!\left[D_{KL}\!\left(q\,\|\,p\right)\right]
+        =
+        \tfrac{1}{2\sigma_t^{2}}\!\left|
+          \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
+          + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
+          - f_t[z_t,\thetav_t]
+        \right|^{2}
+      \]
+    \end{block}
+    \vspace{0.3em}
+    Substituindo na expressão do ELBO obtemos a \textbf{Diffusion Loss
+    Function}.
+  \end{frame}
+
+  %--- Slide: Diffusion Loss ---
+  \begin{frame}{\textit{Diffusion Loss Function}}
+    \resizebox{\linewidth}{!}{$\displaystyle
+      \mathcal{L}[\thetav_{1\ldots T}]
+      = \underbrace{\sum_{i=1}^{N}\!\big(-\log\mathcal{N}_x[f_1[z_1,\thetav_1],\sigma_1^2\mathbf{I}]\big)}_{\textcolor{ReconGreen}{\text{reconstrução}}}
+      + \underbrace{\sum_{t=2}^{T}\tfrac{1}{2\sigma_t^{2}}\left|
+        \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
+        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
+        - f_t[z_t,\thetav_t]
+      \right|^{2}}_{\textcolor{DecBlue}{\text{erro quadrático no \textit{timestep} } t}}
+    $}
+    \vspace{0.5em}
+    \begin{itemize}
+      \item Forma de \textbf{MSE} em vez de log-verossimilhança
+      intratável.
+      \item Cada termo $t$ pede a rede $f_t$ a prever a média da
+      reversa em $z_{t-1}$.
+    \end{itemize}
+  \end{frame}
+
+  %--------------------------------------------------------------------
+  % Reparametrização da loss e da rede
+  %--------------------------------------------------------------------
+
+  %--- Slide: porém ---
+  \begin{frame}{Porém\ldots\ um detalhe empírico}
+    \begin{alertblock}{Observação experimental}
+      Após treinar diversos modelos difusores que tentavam descobrir
+      \emph{diretamente} a imagem, percebeu-se empiricamente que os
+      resultados eram \textbf{melhores} ao usar a rede para
+      \textbf{estimar o ruído} $\epsilon$ adicionado, e não a imagem.
+    \end{alertblock}
+    \vspace{0.5em}
+    Vamos reparametrizar a função de custo para que a rede prediga
+    $\epsilon$ em vez de $z_{t-1}$.
+  \end{frame}
+
+  %--- Slide: isolar x ---
+  \begin{frame}{Reparametrizando a loss -- Isolar $x$}
+    Do kernel de difusão $z_t = \sqrt{\alpha_t}\,x + \sqrt{1-\alpha_t}\,\epsilon$:
+    \[
+      x = \frac{z_t}{\sqrt{\alpha_t}} - \frac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\epsilon.
+    \]
+    \vspace{0.3em}
+    Substituímos essa expressão de $x$ dentro da loss e simplificamos.
+  \end{frame}
+
+  %--- Slide: simplificação, coeficiente de z_t ---
+  \begin{frame}{Reparametrizando a loss -- Agrupando $z_t$}
+    O argumento dentro do quadrado (termo KL) era:
+    \[
+      \frac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
+      + \frac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
+      - f_t[z_t,\thetav_t].
+    \]
+    Substituímos $x = \tfrac{z_t}{\sqrt{\alpha_t}} - \tfrac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\epsilon$
+    e usamos $\sqrt{\alpha_t} = \sqrt{1-\beta_t}\,\sqrt{\alpha_{t-1}}$.
+    \begin{block}{Coeficiente de $z_t$}
+      \[
+        \frac{(1-\alpha_{t-1})\sqrt{1-\beta_t}}{1-\alpha_t}
+        + \frac{\beta_t}{(1-\alpha_t)\sqrt{1-\beta_t}}
+        = \frac{\overbrace{(1-\alpha_{t-1})(1-\beta_t)+\beta_t}^{=\;1-\alpha_t}}{(1-\alpha_t)\sqrt{1-\beta_t}}
+        = \frac{1}{\sqrt{1-\beta_t}},
+      \]
+      \vspace{0.1em}
+      pois $\alpha_{t-1}(1-\beta_t) = \alpha_t$.
+    \end{block}
+  \end{frame}
+
+  %--- Slide: simplificação, coeficiente de epsilon e resultado ---
+  \begin{frame}{Reparametrizando a loss -- Resultado}
+    \begin{block}{Coeficiente de $\epsilon$}
+      \[
+        -\,\frac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\cdot\frac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}
+        = -\,\frac{\beta_t}{\sqrt{1-\alpha_t}\,\sqrt{1-\beta_t}},
+        \qquad \text{pois } \tfrac{\sqrt{\alpha_{t-1}}}{\sqrt{\alpha_t}} = \tfrac{1}{\sqrt{1-\beta_t}}.
+      \]
+    \end{block}
+    Logo, o argumento se reduz a:
+    \[
+      \frac{1}{\sqrt{1-\beta_t}}\, z_t
+      - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\epsilon
+      - f_t[z_t,\thetav_t].
+    \]
+    \begin{block}{Reparametrização da rede}
+      Definimos $f_t$ na mesma forma, trocando $\epsilon$ pela
+      \textbf{nova rede $g_t$ que prediz o ruído}:
+      \[
+        f_t[z_t,\thetav_t] = \frac{1}{\sqrt{1-\beta_t}}\, z_t
+        - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[z_t,\thetav_t].
+      \]
+    \end{block}
+  \end{frame}
+
+  %--- Slide: cancelamento z_t ---
+  \begin{frame}{Reparametrizando a rede -- Cancelamento}
+    Como $f_t$ tem a \textbf{mesma forma} do argumento, ao substituí-la
+    os termos em $z_t$ (coeficiente $\tfrac{1}{\sqrt{1-\beta_t}}$ idêntico)
+    \textbf{se cancelam}:
+    \vspace{0.3em}
+    \[
+      \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, z_t}
+      - \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\epsilon
+      - \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, z_t}
+      + \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[z_t,\thetav_t].
+    \]
+    \vspace{0.2em}
+    Sobra apenas a diferença entre ruído predito e real, escalada por um
+    fator:
+    \[
+      \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,
+      \big(g_t[z_t,\thetav_t] - \epsilon\big).
+    \]
+  \end{frame}
+
+  %--- Slide: loss simplificada ---
+  \begin{frame}{Reparametrizando a rede -- Loss final}
+    Substituindo, o termo do quadrado vira simplesmente
+    $|g_t[z_t,\thetav_t] - \epsilon_t|^{2}$ a menos de uma constante
+    multiplicativa, que podemos absorver durante a otimização:
+    \vspace{0.3em}
+    \[
+      \boxed{
+        \mathcal{L}[\thetav_{1\ldots T}] = \sum_{i=1}^{N}\sum_{t=2}^{T} \big|g_t[z_t,\thetav_t] - \epsilon_t\big|^{2}
+      }
+    \]
+    \vspace{0.3em}
+    \begin{block}{Função de custo do modelo difusor}
+      É um \emph{erro quadrático médio} entre o ruído real $\epsilon_t$
+      adicionado em cada passo e a estimativa $g_t$ da rede.
+      \textbf{Surpreendentemente simples}.
+    \end{block}
+    \vspace{0.2em}
+    \footnotesize O termo de reconstrução ($t=1$) tem a mesma forma de MSE
+    em $\epsilon$; na prática o somatório roda de $t=1$ a $T$.
+  \end{frame}
+
+  %--- Slide: parametrizações do alvo ---
+  \begin{frame}{Reparametrizando a rede -- O que a rede prevê?}
+    A rede pode ser treinada para prever alvos \textbf{equivalentes}; a
+    escolha afeta a estabilidade e a qualidade:
+    \vspace{0.3em}
+    \begin{itemize}
+      \item \textbf{$\epsilon$-prediction} (DDPM, usado aqui): estima o
+      ruído $\epsilon$. Loss MSE simples e estável; é o \emph{default}.
+      \item \textbf{$x_0$-prediction}: estima diretamente a imagem limpa
+      $x$. Equivalente pela álgebra do kernel, mas empiricamente pior em
+      \emph{timesteps} de ruído alto.
+      \item \textbf{$v$-prediction} (Salimans \& Ho, 2022): estima
+      $v = \sqrt{\alpha_t}\,\epsilon - \sqrt{1-\alpha_t}\,x$, combinação de
+      ruído e sinal. Estável em todo o \emph{schedule}; comum em geração de
+      vídeo e em \emph{distillation}.
+    \end{itemize}
+    \begin{block}{Resumo}
+      As três são equivalentes via o kernel
+      $z_t = \sqrt{\alpha_t}\,x + \sqrt{1-\alpha_t}\,\epsilon$; diferem na
+      escala efetiva da loss por \emph{timestep}.
+    \end{block}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 4: TREINAMENTO E AMOSTRAGEM
+  %======================================================================
+  \section{Treinamento e Amostragem}
+
+  %--- Slide: algoritmo treinamento ---
+  \begin{frame}{Algoritmo de Treinamento}
+    \begin{algorithmic}
+      \State \textbf{Entrada:} dados de treino $x$
+      \State \textbf{Saída:} parâmetros do modelo $\thetav_t$
+      \Repeat
+        \For{$i \in \mathcal{B}$} \Comment{para cada exemplo do \textit{minibatch}}
+          \State $t \sim \mathrm{Uniform}[1,\ldots,T]$ \Comment{sorteia o passo}
+          \State $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ \Comment{sorteia o ruído}
+          \State $\ell_i = \big\| g_t\big[\sqrt{\alpha_t}\,x_i + \sqrt{1-\alpha_t}\,\epsilon,\ \thetav_t\big] - \epsilon \big\|^{2}$
+        \EndFor
+        \State Acumule as \textit{losses} do \textit{batch} e dê um passo de gradiente
+      \Until{convergir}
+    \end{algorithmic}
+    \vspace{0.8em}
+    {\footnotesize Monta-se $z_t$ pelo kernel ($\sqrt{\alpha_t}\,x_i +
+    \sqrt{1-\alpha_t}\,\epsilon$) e treina-se $g_t$ para prever o ruído
+    $\epsilon$.}
+  \end{frame}
+
+  %--- Slide: algoritmo amostragem ---
+  \begin{frame}{Algoritmo de Amostragem}
+    \begin{algorithmic}
+      \State \textbf{Entrada:} modelo $g_t[\,\cdot\,,\thetav_t]$
+      \State \textbf{Saída:} amostra $x$
+      \State $z_T \sim \mathcal{N}(0,\mathbf{I})$ \Comment{última variável latente}
+      \For{$t = T,\ldots,2$}
+        \State $\hat{z}_{t-1} = \dfrac{1}{\sqrt{1-\beta_t}}\,z_t -
+          \dfrac{\beta_t}{\sqrt{1-\alpha_t}\,\sqrt{1-\beta_t}}\,g_t[z_t,\thetav_t]$
+          \Comment{prediz o latente anterior}
+        \State $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ \Comment{novo ruído}
+        \State $z_{t-1} = \hat{z}_{t-1} + \sigma_t\,\epsilon$ \Comment{adiciona ruído}
+      \EndFor
+      \State $x = \dfrac{1}{\sqrt{1-\beta_1}}\,z_1 -
+        \dfrac{\beta_1}{\sqrt{1-\alpha_1}\,\sqrt{1-\beta_1}}\,g_1[z_1,\thetav_1]$
+        \Comment{gera $x$ sem ruído}
+    \end{algorithmic}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 5: IMPLEMENTAÇÃO E EXTENSÕES
+  %======================================================================
+  \section{Implementação e Extensões}
+
+  %--- Slide: U-Net ---
+  \begin{frame}{Modelo para estimar $\epsilon_t$ -- \textit{U-Net}}
+    \centering
+    \includegraphics[width=0.85\linewidth]{slides/img/05-geradores/dm-unet-architecture.png}\\
+    \vspace{0.3em}
+    \begin{itemize}
+      \item Arquitetura padrão: \textbf{U-Net} com blocos residuais e
+      auto-atenção.
+      \item Recebe $z_t$ + um \emph{time embedding} de $t$, devolve
+      uma estimativa de $\epsilon$ com a mesma forma de $z_t$.
+      \item \textit{Skip connections} preservam alta-frequência entre
+      escalas.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: classifier-free guidance ---
+  \begin{frame}{\textit{Classifier-Free Diffusion Guidance}\footfullcite{ho2022classifier}}
+    \begin{itemize}
+      \item É comum adicionar uma \textbf{informação condicionante} no
+      processo de geração.
+      \item Pode parecer contraintuitivo, contudo informações sobre a
+      classe que queremos gerar \textbf{auxiliam o processo} e geram
+      imagens com maior qualidade.
+      \item O treinamento condicionado é feito adicionando algum tipo
+      de \textbf{embedding} da classe à U-Net.
+      \begin{itemize}
+        \item Por exemplo, embeddings do BERT sobre a descrição da
+        imagem (texto-para-imagem).
+      \end{itemize}
+      \item \emph{Classifier-Free}: durante o treino, esporadicamente
+      ``descondicionamos'' a rede; na geração, interpolamos entre
+      versões condicionada e incondicional para controlar a força da
+      condição.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: latent diffusion ---
+  \begin{frame}{\textit{Latent Diffusion Models}\footfullcite{rombach2022high}}
+    \centering
+    \includegraphics[width=0.62\linewidth]{slides/img/05-geradores/dm-latent-diffusion.jpeg}\\
+    \vspace{0.2em}
+    \begin{itemize}
+      \item Aplique a difusão no \textbf{espaço latente} de um VAE, não
+      em pixels.
+      \item Reduz drasticamente o custo computacional (latente é
+      $\sim 64\!\times\!64$ em vez de $1024\!\times\!1024$).
+      \item Base de \textit{Stable Diffusion}.
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % SECTION 6: PANORAMA
+  %======================================================================
+  \section{Panorama}
+
+  %--- Slide: trilema ---
+  \begin{frame}{Onde modelos difusores ficam no trilema?}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{itemize}
+          \item \textbf{Qualidade visual}: $\checkmark\checkmark$
+          (estado-da-arte em imagens).
+          \item \textbf{Cobertura / diversidade}: $\checkmark$
+          (treino por NLL / ELBO cobre a distribuição toda).
+          \item \textbf{Amostragem rápida}: $\times$ (tipicamente
+          $T=1000$ passos pela U-Net; técnicas como DDIM e \emph{consistency
+          models} atacam esse problema).
+        \end{itemize}
+        \vspace{0.2em}
+        \begin{block}{Posicionamento}
+          Modelos difusores ocupam o canto \emph{qualidade + cobertura}
+          do trilema. Para baixa latência, \textit{Latent Diffusion} e
+          amostradores rápidos são o padrão.
+        \end{block}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \resizebox{\linewidth}{!}{\generativetrilemma[diffusion]}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================
+  % RESUMO
+  %======================================================================
+  \section*{Resumo}
+
+  \begin{frame}{Resumo}
+    \begin{itemize}
+      \item \textbf{Difusão} (encoder, sem parâmetros): cadeia de
+      Markov gaussiana que destrói gradualmente a estrutura de $x$.
+      \item \textbf{Kernel}: forma fechada para amostrar $z_t$
+      diretamente de $x$.
+      \item \textbf{Reverse process} (decoder): rede neural aprende a
+      reverter um passo da difusão.
+      \item \textbf{ELBO}: termo de reconstrução + soma de KLs entre
+      normais (todas com forma fechada).
+      \item \textbf{Reparametrização}: prever \emph{ruído} $\epsilon$
+      em vez da imagem leva a uma loss MSE simples.
+      \item \textbf{Arquitetura}: U-Net com \textit{time embedding}.
+      \item \textbf{Extensões}: \textit{classifier-free guidance},
+      \textit{latent diffusion} (Stable Diffusion).
+    \end{itemize}
+  \end{frame}
+
+  %======================================================================
+  % REFERÊNCIAS E LEITURAS
+  %======================================================================
+  \section*{Referências e Leituras}
+
+  \begin{frame}{Leituras Recomendadas}
+    \footnotesize
+    \begin{itemize}
+      \item Capítulo 18: \fullcite{prince2023understanding}
+      \item \fullcite{ho2020denoising}
+      \item \fullcite{ho2022classifier}
+      \item \fullcite{rombach2022high}
+      \item \fullcite{sohl2015deep}
+    \end{itemize}
+  \end{frame}
+
+  \begin{frame}[allowframebreaks]{Referências}
+    \sloppy
+    \printbibliography[heading=none]
+  \end{frame}
+
+\end{document}

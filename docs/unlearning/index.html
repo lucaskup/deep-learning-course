@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Demonstrações interativas de Machine Unlearning: o trade-off entre Forget Quality e Model Utility, o teste KS sobre Truth Ratios, ROUGE-L como medida de memorização literal e PrivLeak via ataque de inferência de pertencimento." />
+  <title>Machine Unlearning — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <link rel="stylesheet" href="unlearning.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Pareto</a></li>
+      <li><a href="#s2">Teste KS</a></li>
+      <li><a href="#s3">ROUGE-L</a></li>
+      <li><a href="#s4">PrivLeak</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Machine <span>Unlearning</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de Machine Unlearning</p>
+      <p class="course-desc">
+        Quatro visualizações que acompanham os slides: o trade-off entre esquecer
+        (<span class="formula">Forget Quality</span>) e preservar a capacidade do modelo
+        (<span class="formula">Model Utility</span>), o teste de Kolmogorov-Smirnov sobre os
+        <span class="formula">Truth Ratios</span> que mede a qualidade do esquecimento,
+        a métrica <span class="formula">ROUGE-L</span> de memorização literal via maior
+        subsequência comum, e o <span class="formula">PrivLeak</span> estimado por um ataque
+        de inferência de pertencimento (a AUC ideal fica perto de
+        <span class="formula">0,5</span>).
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: Trade-off Forget vs Utility ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · O trade-off Forget vs Utility</h2>
+      <p class="demo-text">
+        Toda receita de unlearning vive sobre uma fronteira de Pareto: melhorar o
+        esquecimento (<span class="formula">Forget Quality</span>, eixo x) tende a custar
+        capacidade no resto da tarefa (<span class="formula">Model Utility</span>, eixo y).
+        A fronteira mostrada é a relação ilustrativa
+        <span class="formula">Utility = 1 − ForgetQuality²</span>: nenhum ponto de operação
+        consegue ficar acima dela. Arraste a bola para escolher um ponto de operação (ele
+        fica preso na fronteira ou abaixo dela) e compare com os três regimes de referência.
+        O painel à direita mostra por que a <span class="formula">Model Utility</span> é
+        calculada como uma média harmônica das sub-métricas: basta uma delas desabar para a
+        utilidade global desabar junto.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">s₁ = <span id="s1-s1-val">0,80</span>
+            <input type="range" id="s1-s1" min="0.05" max="1" value="0.8" step="0.01" />
+          </label>
+          <label class="slider-label">s₂ = <span id="s1-s2-val">0,80</span>
+            <input type="range" id="s1-s2" min="0.05" max="1" value="0.8" step="0.01" />
+          </label>
+          <label class="slider-label">s₃ = <span id="s1-s3-val">0,80</span>
+            <input type="range" id="s1-s3" min="0.05" max="1" value="0.8" step="0.01" />
+          </label>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Fronteira de Pareto Forget × Utility (arraste a bola para mover o ponto de operação)</p>
+            <canvas id="s1-pareto"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Sub-métricas s₁, s₂, s₃ e a Model Utility H = 3 / Σ(1/sᵢ)</p>
+            <canvas id="s1-harm"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 O ponto "sem unlearning" tem utilidade alta e esquecimento quase nulo, o "modelo
+          trivial" (que apenas degrada tudo) esquece bem mas é inútil, e o ponto "ideal" busca
+          o joelho da curva. No painel da direita arraste uma sub-métrica para perto de
+          <span class="formula">0,05</span>: a média harmônica colapsa, enquanto a média
+          aritmética mal se mexeria. É por isso que a utilidade usa a harmônica, ela penaliza
+          fortemente qualquer dimensão que o unlearning tenha quebrado.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Truth Ratio e Forget Quality (teste KS) ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Truth Ratio e Forget Quality (teste KS)</h2>
+      <p class="demo-text">
+        A <span class="formula">Forget Quality</span> compara a distribuição dos
+        <span class="formula">Truth Ratios</span> do modelo desaprendido
+        (<span class="formula">θ_u</span>) com a do modelo de referência treinado sem os
+        dados esquecidos (o oráculo <span class="formula">θ*</span>). Se as duas amostras
+        forem indistinguíveis, o esquecimento foi bom. O teste de duas amostras de
+        Kolmogorov-Smirnov mede isso pela maior distância vertical entre as duas CDFs
+        empíricas, <span class="formula">D = sup|F_u − F*|</span>, e devolve um p-valor.
+        Arraste os pontos de cada conjunto sobre a linha de valores e veja D, o p-valor e o
+        veredito mudarem ao vivo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s2-good" type="button">✅ esquecimento bom</button>
+          <button class="btn-ctl" id="s2-bad" type="button">⚠ esquecimento ruim</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">CDFs empíricas F_u (ciano) e F* (laranja); o segmento vermelho marca D = sup|F_u − F*|</p>
+            <canvas id="s2-cdf"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Truth Ratios (arraste): θ_u em ciano, θ* em laranja</p>
+            <canvas id="s2-dots"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Quando os dois conjuntos se sobrepõem, D fica pequeno e o p-valor alto: as
+          distribuições são indistinguíveis e o esquecimento é considerado bom. Afaste um
+          conjunto do outro e D cresce, o p-valor despenca e o veredito vira esquecimento
+          insuficiente (o modelo desaprendido ainda denuncia que viu os dados).
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Memorização literal com ROUGE-L ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Memorização literal: ROUGE-L</h2>
+      <p class="demo-text">
+        Um sinal direto de que o modelo ainda memorizou um exemplo é ele reproduzir o texto
+        quase literalmente. O <span class="formula">ROUGE-L</span> mede essa sobreposição pela
+        maior subsequência comum (LCS) entre a referência memorizada e o que o modelo gera.
+        A partir do LCS calculamos
+        <span class="formula">precisão = LCS/|gerado|</span>,
+        <span class="formula">recall = LCS/|referência|</span> e o
+        <span class="formula">F1 = 2·precisão·recall/(precisão + recall)</span>.
+        Edite a sequência gerada abaixo e veja os tokens alinhados e as métricas mudarem.
+      </p>
+      <div class="panel">
+        <p class="un-ref">referência memorizada: <span id="s3-ref-text"></span></p>
+        <div class="controls">
+          <input type="text" id="s3-gen" class="text-input" autocomplete="off" spellcheck="false" aria-label="Sequência gerada pelo modelo" />
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s3-leak" type="button">📋 exemplo com vazamento</button>
+          <button class="btn-ctl" id="s3-noleak" type="button">🚫 exemplo sem vazamento</button>
+          <span class="readout" id="s3-readout"></span>
+          <span class="un-badge" id="s3-verdict"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Referência (acima) e sequência gerada (abaixo); tokens da maior subsequência comum em verde</p>
+            <canvas id="s3-align"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Troque os tokens por sinônimos ou reordene a frase e o F1 cai: o modelo está
+          parafraseando, não recitando. Mantenha a maior parte dos tokens na mesma ordem e o
+          F1 sobe acima do limiar, sinal de vazamento por memorização literal. Um unlearning
+          eficaz deveria empurrar essa métrica para perto de zero no conjunto a esquecer.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: PrivLeak via Membership Inference ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Privacidade: PrivLeak via Membership Inference</h2>
+      <p class="demo-text">
+        O <span class="formula">PrivLeak</span> pergunta se ainda dá para descobrir quais
+        exemplos estavam no conjunto de treino olhando apenas a loss do modelo. Um atacante
+        prevê "membro" quando a loss é baixa, pois exemplos vistos no treino costumam ter loss
+        menor. A força do ataque é a área sob a curva ROC,
+        <span class="formula">AUC = #{pares com loss(membro) &lt; loss(não-membro)} / (n_in·n_out)</span>.
+        Arraste a loss de cada ponto e observe a ROC e a AUC. O esquecimento ideal deixa a AUC
+        perto de <span class="formula">0,5</span>: membros e não-membros ficam indistinguíveis.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s4-leak" type="button">🔓 exemplo com vazamento</button>
+          <button class="btn-ctl" id="s4-private" type="button">🔒 exemplo privado</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+          <span class="un-badge" id="s4-verdict"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Loss por exemplo (arraste): membros em laranja, não-membros em ciano</p>
+            <canvas id="s4-loss"></canvas>
+          </div>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Curva ROC ao varrer o limiar de loss; a diagonal é a AUC = 0,5</p>
+            <canvas id="s4-roc"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Quando os membros têm loss claramente menor, a ROC sobe para o canto superior
+          esquerdo e a AUC vai bem acima de <span class="formula">0,5</span>, denunciando o
+          pertencimento. Arraste as losses até membros e não-membros se misturarem: a ROC se
+          cola à diagonal, a AUC volta para perto de <span class="formula">0,5</span> e o
+          PrivLeak fica baixo. AUC longe de <span class="formula">0,5</span> para qualquer
+          lado é ruim, indica que ainda há informação de pertencimento vazando.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Machine Unlearning</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/section1-pareto.js"></script>
+  <script defer src="js/section2-ks.js"></script>
+  <script defer src="js/section3-rougel.js"></script>
+  <script defer src="js/section4-privleak.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>
