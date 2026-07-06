@@ -12,8 +12,8 @@
     const U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
-    const cvHist = $('s1-hist'), cvSoft = $('s1-softmax');
-    const slD = $('s1-d');
+    const cvHist = $('s5-hist'), cvSoft = $('s5-softmax');
+    const slD = $('s5-d');
 
     let seed = 7;
     let d = Math.pow(2, +slD.value);
@@ -119,7 +119,7 @@
     function updateReadout() {
       const vRaw = variance(scoresRaw), vSc = variance(scoresScaled);
       const maxRaw = Math.max(...softRaw);
-      $('s1-readout').textContent =
+      $('s5-readout').textContent =
         'var(q·k) = ' + vRaw.toFixed(1) + ' (teoria: ' + d + ') · var(q·k/√d) = ' +
         vSc.toFixed(2) + ' · maior peso sem escala = ' + maxRaw.toFixed(2);
     }
@@ -132,11 +132,11 @@
 
     slD.addEventListener('input', () => {
       d = Math.pow(2, +slD.value);
-      $('s1-d-val').textContent = d;
+      $('s5-d-val').textContent = d;
       recompute();
       redraw();
     });
-    $('s1-resample').addEventListener('click', () => {
+    $('s5-resample').addEventListener('click', () => {
       seed = (seed * 1664525 + 1013904223) >>> 0;
       recompute();
       redraw();
@@ -149,5 +149,5 @@
     P.observeResize(cvSoft, redraw);
   }
 
-  DL.sections.push({ name: 's1-scaled-attention', init });
+  DL.sections.push({ name: 's5-scaled-attention', init });
 })();

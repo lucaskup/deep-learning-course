@@ -11,8 +11,8 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvHeat = $('s3-heatmap'), cvDot = $('s3-dot');
-    const slD = $('s3-d'), slN = $('s3-n'), slPos = $('s3-pos');
+    const cvHeat = $('s7-heatmap'), cvDot = $('s7-dot');
+    const slD = $('s7-d'), slN = $('s7-n'), slPos = $('s7-pos');
 
     let d = +slD.value;
     let n = Math.round(Math.pow(10, +slN.value));
@@ -105,7 +105,7 @@
       for (let j = 0; j < NPOS; j++) {
         if (Math.abs(j - pos) > 3 && dots[j] > side) side = dots[j];
       }
-      $('s3-readout').textContent =
+      $('s7-readout').textContent =
         'd = ' + d + ' · n = ' + n + ' · maior pico secundário = ' + side.toFixed(2);
     }
 
@@ -118,7 +118,7 @@
     function setPos(p) {
       pos = Math.max(0, Math.min(NPOS - 1, Math.round(p)));
       slPos.value = pos;
-      $('s3-pos-val').textContent = pos;
+      $('s7-pos-val').textContent = pos;
       recompute();
       redraw();
     }
@@ -139,13 +139,13 @@
 
     slD.addEventListener('input', () => {
       d = +slD.value;
-      $('s3-d-val').textContent = d;
+      $('s7-d-val').textContent = d;
       recompute();
       redraw();
     });
     slN.addEventListener('input', () => {
       n = Math.round(Math.pow(10, +slN.value));
-      $('s3-n-val').textContent = n;
+      $('s7-n-val').textContent = n;
       recompute();
       redraw();
     });
@@ -158,5 +158,5 @@
     P.observeResize(cvDot, redraw);
   }
 
-  DL.sections.push({ name: 's3-positional-encoding', init });
+  DL.sections.push({ name: 's7-positional-encoding', init });
 })();

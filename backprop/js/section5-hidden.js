@@ -16,8 +16,8 @@
 
     const boxes = [], canvases = [];
     for (let i = 0; i < MAXN; i++) {
-      boxes.push($('s2-box' + i));
-      canvases.push($('s2-n' + i));
+      boxes.push($('s5-box' + i));
+      canvases.push($('s5-n' + i));
     }
     const buf = new Float32Array(MAXN);
 
@@ -54,5 +54,5 @@
     P.observeResize(canvases[0], redraw);
   }
 
-  DL.sections.push({ name: 's2-hidden', init });
+  DL.sections.push({ name: 's5-hidden', init });
 })();

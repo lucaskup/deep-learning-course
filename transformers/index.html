@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Transformers: por que escalar o produto escalar por √d, self-attention multi-head com matrizes de atenção em heatmap, positional encoding sinusoidal e o papel de Add & Norm (residual + LayerNorm) em profundidade." />
-  <title>Transformers — Demo Interativa</title>
+  <meta name="description" content="Demonstrações interativas de Self-Attention e Transformers: o pipeline queries, keys e values passo a passo, a matriz de atenção softmax(QKᵀ/√d), a escala 1/√d e a atenção como média ponderada dos values; depois, como o bloco Transformer envolve esse mecanismo com self-attention multi-head, positional encoding sinusoidal e Add & Norm (residual + LayerNorm) em profundidade." />
+  <title>Self-Attention e Transformers — Demo Interativa</title>
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
@@ -22,37 +22,244 @@
     <span class="nav-brand">Deep Learning</span>
     <ul class="nav-links">
       <li><a href="../index.html">← Voltar ao curso</a></li>
-      <li><a href="#s1">Escala √d</a></li>
-      <li><a href="#s2">Multi-head</a></li>
-      <li><a href="#s3">Posicional</a></li>
-      <li><a href="#s4">Add &amp; Norm</a></li>
+      <li><a href="#s1">QKV</a></li>
+      <li><a href="#s2">Matriz A</a></li>
+      <li><a href="#s3">Escala 1/√d</a></li>
+      <li><a href="#s4">Média ponderada</a></li>
+      <li><a href="#s5">Scaled attention</a></li>
+      <li><a href="#s6">Multi-head</a></li>
+      <li><a href="#s7">Posicional</a></li>
+      <li><a href="#s8">Add &amp; Norm</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
 
   <header class="demo-hero">
     <div class="container">
-      <h1 class="course-title">Trans<span>formers</span></h1>
-      <p class="course-subtitle">Demonstrações interativas da aula de transformers</p>
+      <h1 class="course-title">Self-Attention e <span>Transformers</span></h1>
+      <p class="course-subtitle">Demonstrações interativas da aula de self-attention e transformers</p>
       <p class="course-desc">
-        Quatro visualizações que acompanham os slides: por que a atenção é
-        <em>scaled</em>, dividindo os scores por
-        <span class="formula">√d</span> antes da softmax; a self-attention multi-head
-        <span class="formula">attention(Q, K, V) = softmax(QK<sup>⊤</sup>/√d)·V</span>
-        sobre uma frase, com a matriz de atenção de cada cabeça em heatmap, a concatenação
-        e a projeção final <span class="formula">W<sub>O</sub></span>; o positional encoding
-        sinusoidal <span class="formula">P<sub>i,j</sub></span> de Vaswani et al. (2017);
-        e o bloco Add &amp; Norm, com
-        <span class="formula">LN(x) = γ⊙(x − μ)/σ + β</span> e o efeito da conexão
-        residual ao empilhar <span class="formula">N</span> blocos.
+        Oito visualizações que acompanham os slides, em duas metades. Primeiro, o
+        mecanismo de self-attention: o pipeline de
+        <span class="formula">queries</span>, <span class="formula">keys</span> e
+        <span class="formula">values</span> passo a passo numa frase curta,
+        a matriz de atenção <span class="formula">softmax(QK<sup>⊤</sup>/√d)</span>
+        como heatmap, por que escalar os scores por <span class="formula">1/√d</span>
+        evita a saturação da softmax, e a saída da atenção como média ponderada dos values.
+        Depois, como o bloco Transformer envolve esse mecanismo: a atenção
+        <em>scaled</em> dividindo os scores por <span class="formula">√d</span>,
+        a self-attention multi-head com a matriz de cada cabeça em heatmap, o positional
+        encoding sinusoidal de Vaswani et al. (2017) e o bloco Add &amp; Norm
+        (residual + LayerNorm) que mantém o sinal estável em profundidade.
       </p>
     </div>
   </header>
 
-  <!-- ════════ Seção 1: Por que scaled dot product ════════ -->
+  <!-- ════════ Seção 1: Pipeline QKV passo a passo ════════ -->
   <section id="s1" class="demo-section">
     <div class="container">
-      <h2 class="section-title">1 · Por que dividir por √d?</h2>
+      <h2 class="section-title">1 · O mecanismo QKV passo a passo</h2>
+      <p class="demo-text">
+        Cada token <span class="formula">x<sub>t</sub> ∈ ℝ³</span> da frase
+        <em>"o gato caça o rato"</em> é projetado em três vetores por matrizes aprendidas:
+        a query <span class="formula">q<sub>t</sub> = x<sub>t</sub>W<sub>q</sub></span>,
+        a key <span class="formula">k<sub>t</sub> = x<sub>t</sub>W<sub>k</sub></span> e o
+        value <span class="formula">v<sub>t</sub> = x<sub>t</sub>W<sub>v</sub></span>
+        (aqui <span class="formula">d = 2</span>, então cada projeção tem 2 componentes,
+        mostradas como barras). Escolha o token de consulta <span class="formula">t</span>
+        nas abas e use ⏭ para avançar pelas etapas vistas em aula: embeddings, projeções,
+        scores <span class="formula">q<sub>t</sub><sup>⊤</sup>k<sub>i</sub>/√d</span>,
+        softmax e soma ponderada dos values. Note que o token repetido "o" tem o mesmo
+        embedding nas duas posições, logo as mesmas projeções.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-tok-0" type="button">o</button>
+            <button class="tab active" id="s1-tok-1" type="button">gato</button>
+            <button class="tab" id="s1-tok-2" type="button">caça</button>
+            <button class="tab" id="s1-tok-3" type="button">o</button>
+            <button class="tab" id="s1-tok-4" type="button">rato</button>
+          </div>
+          <button class="btn-ctl primary" id="s1-step" type="button">⏭ Próxima etapa</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-rand" type="button">🎲 Novos pesos</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Embeddings x<sub>i</sub> e projeções q<sub>i</sub>, k<sub>i</sub>, v<sub>i</sub> de cada token (a coluna destacada é o token de consulta t)</p>
+            <canvas id="s1-pipeline"></canvas>
+          </div>
+          <div class="canvas-box tall">
+            <p class="canvas-caption">Scores, pesos a<sub>i</sub><sup>(t)</sup> e saída c<sup>(t)</sup> para a query escolhida</p>
+            <canvas id="s1-attn"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Avance até a etapa da softmax e troque o token de consulta nas abas: os pesos
+          <span class="formula">a<sub>i</sub><sup>(t)</sup></span> mudam, mas as keys e os
+          values continuam os mesmos, cada query faz uma consulta diferente sobre a mesma
+          memória. Compare as colunas dos dois "o": embeddings idênticos geram
+          <span class="formula">q</span>, <span class="formula">k</span> e
+          <span class="formula">v</span> idênticos, então as duas posições recebem o mesmo
+          peso de atenção. Clique em 🎲 e observe que outros
+          <span class="formula">W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub></span> produzem
+          outro padrão de atenção: é exatamente isso que o treinamento ajusta.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Matriz de atenção como heatmap ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · A matriz de atenção softmax(QK<sup>⊤</sup>/√d)</h2>
+      <p class="demo-text">
+        Na forma matricial vista em aula,
+        <span class="formula">attention(Q, K, V) = softmax(QK<sup>⊤</sup>/√d)·V</span>,
+        a matriz <span class="formula">softmax(QK<sup>⊤</sup>/√d)</span> tem shape
+        <span class="formula">seq_size × seq_size</span>: a linha
+        <span class="formula">t</span> contém os pesos da query do token
+        <span class="formula">t</span> sobre todos os tokens, e cada linha soma 1.
+        Abaixo, a frase dos slides em português:
+        <em>"o animal não cruzou a rua porque ele estava cansado"</em>.
+        Com pesos "treinados" (escolhidos à mão para imitar uma cabeça de atenção útil),
+        o pronome "ele" atende ao substantivo animado "animal". Passe o mouse sobre as
+        células para ver cada par e clique numa linha para detalhá-la à direita.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab active" id="s2-tab-trained" type="button">Pesos treinados</button>
+            <button class="tab" id="s2-tab-random" type="button">Pesos aleatórios</button>
+          </div>
+          <button class="btn-ctl" id="s2-rand" type="button">🎲 Sortear pesos</button>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Matriz de atenção: linhas são queries, colunas são keys (hover mostra o par, clique seleciona a linha)</p>
+            <canvas id="s2-matrix"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Linha selecionada: pesos a<sub>i</sub><sup>(t)</sup> da query sobre cada token</p>
+            <canvas id="s2-row"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com os pesos treinados, olhe a linha de "ele": o maior peso vai para "animal",
+          a atenção resolve a correferência do exemplo dos slides. Veja também as linhas dos
+          artigos "o" e "a" (atendem substantivos) e a de "não" (atende verbos). Troque para
+          pesos aleatórios e sorteie algumas vezes com 🎲: antes do treinamento a matriz não
+          tem estrutura útil, são os <span class="formula">W<sub>q</sub></span> e
+          <span class="formula">W<sub>k</sub></span> aprendidos que criam o padrão.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Escala 1/√d ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Por que escalar por 1/√d</h2>
+      <p class="demo-text">
+        Como visto em aula, se as componentes de <span class="formula">q</span> e
+        <span class="formula">k</span> são i.i.d. com média 0 e variância 1, então
+        <span class="formula">𝔼[q·k] = 0</span> e
+        <span class="formula">var[q·k] = d</span>: a magnitude típica dos scores cresce
+        com <span class="formula">√d</span>. Scores grandes saturam a softmax (pesos quase
+        0 ou 1) e os gradientes somem. Dividir por <span class="formula">√d</span> traz a
+        variância de volta para 1, independente da dimensão. Mova o slider de
+        <span class="formula">d</span> e compare a distribuição dos scores e a softmax
+        resultante com e sem a escala.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">d = <span id="s3-d-val">32</span>
+            <input type="range" id="s3-d" min="0" max="8" value="4" step="1" />
+          </label>
+          <button class="btn-ctl" id="s3-rand" type="button">🎲 Reamostrar</button>
+          <span class="readout" id="s3-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Distribuição de q·k (ciano, var = d) e de q·k/√d (laranja, var = 1), alturas normalizadas</p>
+            <canvas id="s3-hist"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Softmax sobre m = 10 scores: sem escala (ciano) vs com escala (laranja)</p>
+            <canvas id="s3-softmax"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Em <span class="formula">d = 2</span> as duas distribuições quase coincidem e
+          as duas softmax são parecidas. Suba para <span class="formula">d = 128</span> ou
+          <span class="formula">512</span>: sem escala os scores se espalham
+          (desvio padrão <span class="formula">√d ≈ 22.6</span> em
+          <span class="formula">d = 512</span>) e a softmax vira quase one-hot, com o maior
+          peso perto de 1 e os demais perto de 0. Com a escala, a distribuição laranja não
+          muda com <span class="formula">d</span> e a softmax permanece suave. Use 🎲 para
+          ver que o efeito não depende da amostra.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 4: Atenção como média ponderada ════════ -->
+  <section id="s4" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">4 · Atenção é uma média ponderada dos values</h2>
+      <p class="demo-text">
+        A saída de uma query é
+        <span class="formula">c<sup>(t)</sup> = Σ a<sub>i</sub><sup>(t)</sup>·v<sub>i</sub></span>
+        com <span class="formula">a<sub>i</sub><sup>(t)</sup> ≥ 0</span> e
+        <span class="formula">Σ a<sub>i</sub><sup>(t)</sup> = 1</span>: uma combinação
+        convexa, então <span class="formula">c<sup>(t)</sup></span> sempre cai dentro do
+        fecho convexo dos values. Abaixo, seis values
+        <span class="formula">v<sub>i</sub> ∈ ℝ²</span> arrastáveis e scores fixos
+        <span class="formula">s<sub>i</sub></span>. O slider
+        <span class="formula">γ</span> multiplica os scores antes da softmax,
+        <span class="formula">a = softmax(γ·s)</span>, fazendo o papel da magnitude dos
+        scores da seção anterior (sem escala, γ grande; com escala, γ moderado).
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">γ = <span id="s4-gamma-val">1.0</span>
+            <input type="range" id="s4-gamma" min="0" max="6" value="1" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-rand" type="button">🎲 Novos values e scores</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Values v<sub>i</sub> (arraste os pontos; o raio acompanha o peso), saída c em roxo e média simples em verde</p>
+            <canvas id="s4-plane"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Pesos a<sub>i</sub> = softmax(γ·s<sub>i</sub>); a linha tracejada marca o caso uniforme 1/m</p>
+            <canvas id="s4-weights"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">γ = 0</span> a softmax é uniforme e
+          <span class="formula">c</span> coincide com a média simples (× verde). Em torno de
+          <span class="formula">γ ≈ 1</span> a saída é uma mistura suave. Com
+          <span class="formula">γ = 6</span> a softmax fica quase one-hot e
+          <span class="formula">c</span> gruda no value de maior score: a atenção vira uma
+          seleção. Arraste um value de peso alto e veja <span class="formula">c</span>
+          acompanhá-lo; arraste um de peso baixo e quase nada muda. Note que
+          <span class="formula">c</span> nunca sai do polígono tracejado.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 5: Por que scaled dot product ════════ -->
+  <section id="s5" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">5 · Por que dividir por √d?</h2>
       <p class="demo-text">
         Como visto em aula, se as componentes de <span class="formula">q, k ∈ ℝ<sup>d</sup></span>
         são i.i.d. com <span class="formula">𝒩(0, 1)</span>, então
@@ -67,20 +274,20 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">d = <span id="s1-d-val">64</span>
-            <input type="range" id="s1-d" min="1" max="9" value="6" step="1" />
+          <label class="slider-label">d = <span id="s5-d-val">64</span>
+            <input type="range" id="s5-d" min="1" max="9" value="6" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar vetores</button>
-          <span class="readout" id="s1-readout"></span>
+          <button class="btn-ctl" id="s5-resample" type="button">🎲 Reamostrar vetores</button>
+          <span class="readout" id="s5-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide">
             <p class="canvas-caption">Histograma de q·k (laranja) e de q·k/√d (ciano) sobre 1500 pares aleatórios</p>
-            <canvas id="s1-hist"></canvas>
+            <canvas id="s5-hist"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">Pesos da softmax de uma query sobre m = 10 keys: sem escala (laranja) vs com escala (ciano)</p>
-            <canvas id="s1-softmax"></canvas>
+            <canvas id="s5-softmax"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -95,10 +302,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 2: Self-attention multi-head ════════ -->
-  <section id="s2" class="demo-section">
+  <!-- ════════ Seção 6: Self-attention multi-head ════════ -->
+  <section id="s6" class="demo-section">
     <div class="container">
-      <h2 class="section-title">2 · Self-attention multi-head</h2>
+      <h2 class="section-title">6 · Self-attention multi-head</h2>
       <p class="demo-text">
         Cada token <span class="formula">x<sub>t</sub></span> da frase dos slides,
         <span class="formula">"The animal didn't cross the street because it was tired"</span>,
@@ -116,24 +323,24 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">H = <span id="s2-heads-val">4</span>
-            <input type="range" id="s2-heads" min="0" max="3" value="2" step="1" />
+          <label class="slider-label">H = <span id="s6-heads-val">4</span>
+            <input type="range" id="s6-heads" min="0" max="3" value="2" step="1" />
           </label>
           <div class="tabs" role="tablist">
-            <button class="tab active" id="s2-tab-enc" type="button">Sem máscara (encoder)</button>
-            <button class="tab" id="s2-tab-dec" type="button">Máscara causal (decoder)</button>
+            <button class="tab active" id="s6-tab-enc" type="button">Sem máscara (encoder)</button>
+            <button class="tab" id="s6-tab-dec" type="button">Máscara causal (decoder)</button>
           </div>
-          <button class="btn-ctl" id="s2-resample" type="button">🎲 Novos pesos W</button>
-          <span class="readout" id="s2-readout"></span>
+          <button class="btn-ctl" id="s6-resample" type="button">🎲 Novos pesos W</button>
+          <span class="readout" id="s6-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide tall">
             <p class="canvas-caption">Matriz de atenção softmax(QK<sup>⊤</sup>/√d) de cada cabeça (linha = query, coluna = key; clique para selecionar)</p>
-            <canvas id="s2-grid"></canvas>
+            <canvas id="s6-grid"></canvas>
           </div>
           <div class="canvas-box tall">
             <p class="canvas-caption">Pesos a<sub>i</sub><sup>(t)</sup> da cabeça selecionada e, abaixo, concat(head<sub>1</sub>, …, head<sub>H</sub>) → W<sub>O</sub></p>
-            <canvas id="s2-detail"></canvas>
+            <canvas id="s6-detail"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -151,10 +358,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 3: Positional encoding sinusoidal ════════ -->
-  <section id="s3" class="demo-section">
+  <!-- ════════ Seção 7: Positional encoding sinusoidal ════════ -->
+  <section id="s7" class="demo-section">
     <div class="container">
-      <h2 class="section-title">3 · Positional encoding sinusoidal</h2>
+      <h2 class="section-title">7 · Positional encoding sinusoidal</h2>
       <p class="demo-text">
         Self-attention pura é invariante à ordem dos tokens, então somamos ao embedding uma
         codificação de posição. A definição dos slides é
@@ -171,25 +378,25 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">d = <span id="s3-d-val">32</span>
-            <input type="range" id="s3-d" min="8" max="64" value="32" step="2" />
+          <label class="slider-label">d = <span id="s7-d-val">32</span>
+            <input type="range" id="s7-d" min="8" max="64" value="32" step="2" />
           </label>
-          <label class="slider-label">n = <span id="s3-n-val">10000</span>
-            <input type="range" id="s3-n" min="1" max="4" value="4" step="0.1" />
+          <label class="slider-label">n = <span id="s7-n-val">10000</span>
+            <input type="range" id="s7-n" min="1" max="4" value="4" step="0.1" />
           </label>
-          <label class="slider-label">posição i = <span id="s3-pos-val">24</span>
-            <input type="range" id="s3-pos" min="0" max="95" value="24" step="1" />
+          <label class="slider-label">posição i = <span id="s7-pos-val">24</span>
+            <input type="range" id="s7-pos" min="0" max="95" value="24" step="1" />
           </label>
-          <span class="readout" id="s3-readout"></span>
+          <span class="readout" id="s7-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide tall">
             <p class="canvas-caption">Matriz P: posição i (vertical) × dimensão j (horizontal); ciano = +1, laranja = −1 (arraste para mover i)</p>
-            <canvas id="s3-heatmap"></canvas>
+            <canvas id="s7-heatmap"></canvas>
           </div>
           <div class="canvas-box tall">
             <p class="canvas-caption">P<sub>i</sub>·P<sub>j</sub>/‖P<sub>i</sub>‖² em função de j (pico em j = i)</p>
-            <canvas id="s3-dot"></canvas>
+            <canvas id="s7-dot"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -206,10 +413,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 4: Add & Norm e profundidade ════════ -->
-  <section id="s4" class="demo-section">
+  <!-- ════════ Seção 8: Add & Norm e profundidade ════════ -->
+  <section id="s8" class="demo-section">
     <div class="container">
-      <h2 class="section-title">4 · Add &amp; Norm: residual e LayerNorm em profundidade</h2>
+      <h2 class="section-title">8 · Add &amp; Norm: residual e LayerNorm em profundidade</h2>
       <p class="demo-text">
         Cada sub-bloco do transformer é embrulhado em
         <span class="formula">output = LayerNorm(x + Subblock(x))</span>.
@@ -227,37 +434,37 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">deslocamento μ<sub>in</sub> = <span id="s4-mu-val">1.0</span>
-            <input type="range" id="s4-mu" min="0" max="3" value="1" step="0.1" />
+          <label class="slider-label">deslocamento μ<sub>in</sub> = <span id="s8-mu-val">1.0</span>
+            <input type="range" id="s8-mu" min="0" max="3" value="1" step="0.1" />
           </label>
-          <label class="slider-label">escala σ<sub>in</sub> = <span id="s4-sigma-val">1.0</span>
-            <input type="range" id="s4-sigma" min="0.2" max="3" value="1" step="0.1" />
+          <label class="slider-label">escala σ<sub>in</sub> = <span id="s8-sigma-val">1.0</span>
+            <input type="range" id="s8-sigma" min="0.2" max="3" value="1" step="0.1" />
           </label>
-          <label class="slider-label">γ = <span id="s4-gamma-val">1.0</span>
-            <input type="range" id="s4-gamma" min="0.2" max="2" value="1" step="0.1" />
+          <label class="slider-label">γ = <span id="s8-gamma-val">1.0</span>
+            <input type="range" id="s8-gamma" min="0.2" max="2" value="1" step="0.1" />
           </label>
-          <label class="slider-label">β = <span id="s4-beta-val">0.0</span>
-            <input type="range" id="s4-beta" min="-1" max="1" value="0" step="0.1" />
+          <label class="slider-label">β = <span id="s8-beta-val">0.0</span>
+            <input type="range" id="s8-beta" min="-1" max="1" value="0" step="0.1" />
           </label>
         </div>
         <div class="controls">
-          <label class="slider-label">N blocos = <span id="s4-N-val">16</span>
-            <input type="range" id="s4-N" min="1" max="32" value="16" step="1" />
+          <label class="slider-label">N blocos = <span id="s8-N-val">16</span>
+            <input type="range" id="s8-N" min="1" max="32" value="16" step="1" />
           </label>
-          <label class="slider-label">ganho g = <span id="s4-gain-val">1.00</span>
-            <input type="range" id="s4-gain" min="0.5" max="1.6" value="1" step="0.05" />
+          <label class="slider-label">ganho g = <span id="s8-gain-val">1.00</span>
+            <input type="range" id="s8-gain" min="0.5" max="1.6" value="1" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s4-resample" type="button">🎲 Novos pesos</button>
-          <span class="readout" id="s4-readout"></span>
+          <button class="btn-ctl" id="s8-resample" type="button">🎲 Novos pesos</button>
+          <span class="readout" id="s8-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide">
             <p class="canvas-caption">Batch de 6 tokens × d = 16: antes (esquerda) e depois da LayerNorm (direita); ciano = +, laranja = −</p>
-            <canvas id="s4-ln"></canvas>
+            <canvas id="s8-ln"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">log₁₀‖x<sup>(ℓ)</sup>‖ por profundidade ℓ: sem residual (laranja), x + F(x) (verde), LN(x + F(x)) (ciano)</p>
-            <canvas id="s4-depth"></canvas>
+            <canvas id="s8-depth"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -277,15 +484,19 @@
   </section>
 
   <footer>
-    <p>Demo interativa da aula de <span>Transformers</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+    <p>Demo interativa da aula de <span>Self-Attention e Transformers</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
   </footer>
 
   <script defer src="../shared/js/utils.js"></script>
   <script defer src="../shared/js/plot.js"></script>
-  <script defer src="js/section1-scaled-attention.js"></script>
-  <script defer src="js/section2-multihead.js"></script>
-  <script defer src="js/section3-positional-encoding.js"></script>
-  <script defer src="js/section4-addnorm-depth.js"></script>
+  <script defer src="js/section1-qkv.js"></script>
+  <script defer src="js/section2-attention-matrix.js"></script>
+  <script defer src="js/section3-scaling.js"></script>
+  <script defer src="js/section4-weighted-average.js"></script>
+  <script defer src="js/section5-scaled-attention.js"></script>
+  <script defer src="js/section6-multihead.js"></script>
+  <script defer src="js/section7-positional-encoding.js"></script>
+  <script defer src="js/section8-addnorm-depth.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

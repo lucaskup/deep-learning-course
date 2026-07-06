@@ -12,9 +12,9 @@
     const U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
-    const cvLN = $('s4-ln'), cvDepth = $('s4-depth');
-    const slMu = $('s4-mu'), slSigma = $('s4-sigma'), slGamma = $('s4-gamma'), slBeta = $('s4-beta');
-    const slN = $('s4-N'), slGain = $('s4-gain');
+    const cvLN = $('s8-ln'), cvDepth = $('s8-depth');
+    const slMu = $('s8-mu'), slSigma = $('s8-sigma'), slGamma = $('s8-gamma'), slBeta = $('s8-beta');
+    const slN = $('s8-N'), slGain = $('s8-gain');
 
     let mu = +slMu.value, sigma = +slSigma.value, gamma = +slGamma.value, beta = +slBeta.value;
     let N = +slN.value, gain = +slGain.value;
@@ -216,7 +216,7 @@
     }
 
     function updateReadout(run) {
-      $('s4-readout').textContent =
+      $('s8-readout').textContent =
         'cos(x^(0), x^(N)): com residual = ' + cosSim(x0, run.res).toFixed(2) +
         ' · sem residual = ' + cosSim(x0, run.plain).toFixed(2);
     }
@@ -235,14 +235,14 @@
         redraw();
       });
     }
-    bindSlider(slMu, 's4-mu-val', (v) => v.toFixed(1), (v) => { mu = v; });
-    bindSlider(slSigma, 's4-sigma-val', (v) => v.toFixed(1), (v) => { sigma = v; });
-    bindSlider(slGamma, 's4-gamma-val', (v) => v.toFixed(1), (v) => { gamma = v; });
-    bindSlider(slBeta, 's4-beta-val', (v) => v.toFixed(1), (v) => { beta = v; });
-    bindSlider(slN, 's4-N-val', (v) => String(v), (v) => { N = v; });
-    bindSlider(slGain, 's4-gain-val', (v) => v.toFixed(2), (v) => { gain = v; });
+    bindSlider(slMu, 's8-mu-val', (v) => v.toFixed(1), (v) => { mu = v; });
+    bindSlider(slSigma, 's8-sigma-val', (v) => v.toFixed(1), (v) => { sigma = v; });
+    bindSlider(slGamma, 's8-gamma-val', (v) => v.toFixed(1), (v) => { gamma = v; });
+    bindSlider(slBeta, 's8-beta-val', (v) => v.toFixed(1), (v) => { beta = v; });
+    bindSlider(slN, 's8-N-val', (v) => String(v), (v) => { N = v; });
+    bindSlider(slGain, 's8-gain-val', (v) => v.toFixed(2), (v) => { gain = v; });
 
-    $('s4-resample').addEventListener('click', () => {
+    $('s8-resample').addEventListener('click', () => {
       wseed = (wseed * 1664525 + 1013904223) >>> 0;
       buildBlocks();
       redraw();
@@ -255,5 +255,5 @@
     P.observeResize(cvDepth, redraw);
   }
 
-  DL.sections.push({ name: 's4-addnorm-depth', init });
+  DL.sections.push({ name: 's8-addnorm-depth', init });
 })();

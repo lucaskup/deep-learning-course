@@ -199,13 +199,13 @@
     const U = DL.utils, P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvBoundary = $('s1-boundary'), cvLoss = $('s1-loss');
-    const btnTrain = $('s1-train'), btnReset = $('s1-reset'), btnResample = $('s1-resample');
-    const selArch = $('s1-arch'), selAct = $('s1-act'), sliderLr = $('s1-lr');
+    const cvBoundary = $('s4-boundary'), cvLoss = $('s4-loss');
+    const btnTrain = $('s4-train'), btnReset = $('s4-reset'), btnResample = $('s4-resample');
+    const selArch = $('s4-arch'), selAct = $('s4-act'), sliderLr = $('s4-lr');
     const tabs = {
-      moons: $('s1-tab-moons'),
-      circles: $('s1-tab-circles'),
-      xor: $('s1-tab-xor'),
+      moons: $('s4-tab-moons'),
+      circles: $('s4-tab-circles'),
+      xor: $('s4-tab-xor'),
     };
 
     const DATASETS = {
@@ -272,7 +272,7 @@
       lastLoss = res.loss; lastAcc = res.acc;
       if (!isFinite(res.loss)) {
         stopTraining();
-        $('s1-status').textContent = 'a loss divergiu: reduza η e resete os pesos';
+        $('s4-status').textContent = 'a loss divergiu: reduza η e resete os pesos';
         return;
       }
       frameCount++;
@@ -329,13 +329,13 @@
     }
     sliderLr.addEventListener('input', () => {
       lr = lrFromSlider();
-      $('s1-lr-val').textContent = lr.toFixed(3);
+      $('s4-lr-val').textContent = lr.toFixed(3);
     });
     lr = lrFromSlider();
-    $('s1-lr-val').textContent = lr.toFixed(3);
+    $('s4-lr-val').textContent = lr.toFixed(3);
 
     function updateStatus() {
-      $('s1-status').textContent = 'épocas: ' + epochs +
+      $('s4-status').textContent = 'épocas: ' + epochs +
         ' · loss: ' + (lastLoss === null ? '—' : lastLoss.toFixed(3)) +
         ' · acurácia: ' + (lastAcc === null ? '—' : (100 * lastAcc).toFixed(1) + '%');
     }
@@ -387,5 +387,5 @@
     P.observeResize(cvLoss, drawLoss);
   }
 
-  DL.sections.push({ name: 's1-playground', init });
+  DL.sections.push({ name: 's4-playground', init });
 })();

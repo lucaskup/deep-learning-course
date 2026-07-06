@@ -14,9 +14,9 @@
     const U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
-    const cvGrid = $('s2-grid'), cvDetail = $('s2-detail');
-    const slH = $('s2-heads');
-    const tabEnc = $('s2-tab-enc'), tabDec = $('s2-tab-dec');
+    const cvGrid = $('s6-grid'), cvDetail = $('s6-detail');
+    const slH = $('s6-heads');
+    const tabEnc = $('s6-tab-enc'), tabDec = $('s6-tab-dec');
 
     let H = Math.pow(2, +slH.value);
     let wseed = 11;
@@ -256,7 +256,7 @@
       const A = heads[selHead].A[selTok];
       let best = 0;
       for (let i = 1; i < M; i++) if (A[i] > A[best]) best = i;
-      $('s2-readout').textContent =
+      $('s6-readout').textContent =
         'cabeça ' + (selHead + 1) + ' · query "' + TOKENS[selTok] + '" · maior peso: "' +
         TOKENS[best] + '" (' + A[best].toFixed(2) + ')';
     }
@@ -283,7 +283,7 @@
 
     slH.addEventListener('input', () => {
       H = Math.pow(2, +slH.value);
-      $('s2-heads-val').textContent = H;
+      $('s6-heads-val').textContent = H;
       if (selHead >= H) selHead = H - 1;
       recompute();
       redraw();
@@ -297,7 +297,7 @@
     }
     tabEnc.addEventListener('click', () => setCausal(false));
     tabDec.addEventListener('click', () => setCausal(true));
-    $('s2-resample').addEventListener('click', () => {
+    $('s6-resample').addEventListener('click', () => {
       wseed = (wseed * 1664525 + 1013904223) >>> 0;
       recompute();
       redraw();
@@ -311,5 +311,5 @@
     P.observeResize(cvDetail, redraw);
   }
 
-  DL.sections.push({ name: 's2-multihead', init });
+  DL.sections.push({ name: 's6-multihead', init });
 })();
