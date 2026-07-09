@@ -8,7 +8,7 @@
 %----------------------------------------------------------------------------------------
 
 \title{Deep Learning}
-\subtitle{Grafo Computacional e Programação Diferenciável}
+\subtitle{Grafo Computacional}
 
 \author{Lucas Silveira Kupssinskü}
 
@@ -26,9 +26,36 @@
 \tikzset{
   cgvar/.style   ={circle, draw=black, fill=PastelBlue, minimum size=0.85cm, inner sep=1pt, font=\small},
   cgop/.style    ={circle, draw=black, fill=Apricot!50, minimum size=0.85cm, inner sep=1pt, font=\small},
+  cgopw/.style   ={rectangle, rounded corners=2pt, draw=black, fill=Apricot!50, minimum height=0.85cm, inner sep=5pt, font=\small},
   cgedge/.style  ={->, >=stealth, thick, gray!80},
   cgval/.style   ={font=\scriptsize, fill=white, inner sep=1pt},
   cggrad/.style  ={font=\scriptsize, color=red, fill=white, inner sep=1pt},
+}
+
+% Matriz compacta para anotações no grafo
+\newcommand{\cgm}[1]{\left[\begin{smallmatrix}#1\end{smallmatrix}\right]}
+
+% Grafo do MLP vetorizado (aula de backpropagation), reutilizado em três slides
+\newcommand{\mlpgrafo}{%
+  \node[cgvar] (X)   at (0,1.9)     {$X$};
+  \node[cgvar] (t1)  at (0,-2.7)    {$\theta^{(1)}$};
+  \node[cgopw] (mm1) at (0,0)       {\textit{matmul}};
+  \node[cgop]  (s1)  at (4.0,0)     {$\sigma$};
+  \node[cgopw] (mm2) at (8.0,0)     {\textit{matmul}};
+  \node[cgvar] (t2)  at (8.0,-2.7)  {$\theta^{(2)}$};
+  \node[cgop]  (s2)  at (11.0,0)    {$\sigma$};
+  \node[cgopw] (L)   at (13.4,0)    {\textit{loss}};
+  \node[cgvar] (yv)  at (13.4,1.9)  {$y$};
+  \node        (J)   at (15.4,0)    {$J$};
+  \draw[cgedge] (X)   -- (mm1);
+  \draw[cgedge] (t1)  -- (mm1);
+  \draw[cgedge] (mm1) -- (s1);
+  \draw[cgedge] (s1)  -- (mm2);
+  \draw[cgedge] (t2)  -- (mm2);
+  \draw[cgedge] (mm2) -- (s2);
+  \draw[cgedge] (s2)  -- (L);
+  \draw[cgedge] (yv)  -- (L);
+  \draw[cgedge] (L)   -- (J);
 }
 
 \begin{document}
@@ -66,8 +93,8 @@
       \item Um \alert{grafo computacional} é um DAG (\textit{directed acyclic graph})
         em que:
         \begin{itemize}
-          \item nós-folha representam \textbf{variáveis} (entradas, parâmetros);
-          \item nós internos representam \textbf{operações} elementares (soma,
+          \item nodos-folha representam \textbf{variáveis} (entradas, parâmetros);
+          \item nodos internos representam \textbf{operações} elementares (soma,
             produto, $\exp$, ReLU, $\dots$);
           \item arestas indicam o fluxo de dados, das entradas em direção à
             saída final.
@@ -81,7 +108,7 @@
   \end{frame}
 
   %--- Slide: exemplo (a+b)*c forward + backward com overlays ---
-  \begin{frame}{Exemplo simples: $f(a,b,c) = (a+b)\cdot c$\footfullcite{karpathy2016cs231n}}
+  \begin{frame}{Exemplo simples\footfullcite{karpathy2016cs231n}: $f(a,b,c) = (a+b)\cdot c$}
     \centering
     \resizebox{!}{0.62\textheight}{%
     \begin{tikzpicture}[node distance=1.2cm and 1.8cm]
@@ -101,26 +128,23 @@
       \draw[cgedge] (times) -- (out);
 
       \onslide<2->{
-        \node[cgval, left=0.1cm of a] {$2$};
-        \node[cgval, left=0.1cm of b] {$3$};
-        \node[cgval, left=0.1cm of c] {$4$};
-        \node[cgval, above=0.1cm of plus] {$5$};
-        \node[cgval, above=0.1cm of times] {$20$};
+        \node[cgval, above right=0.05cm and 0.1cm of a] {$2$};
+        \node[cgval, above right=0.05cm and 0.1cm of b] {$3$};
+        \node[cgval, above right=0.05cm and 0.1cm of c] {$4$};
+        \node[cgval, above right=0.05cm and 0.1cm of plus] {$5$};
+        \node[cgval, above right=0.05cm and 0.1cm of times] {$20$};
       }
 
       \onslide<3->{
-        \node[cggrad, above=0.1cm of out] {$1$};
+        \node[cggrad, below right=0.05cm and 0.1cm of times] {$1$};
       }
       \onslide<4->{
-        \node[cggrad, below=0.1cm of times] {$4$};
+        \node[cggrad, below right=0.05cm and 0.1cm of plus] {$4$};
+        \node[cggrad, below right=0.05cm and 0.1cm of c] {$5$};
       }
       \onslide<5->{
-        \node[cggrad, below=0.1cm of c] {$5$};
-      }
-      \onslide<6->{
-        \node[cggrad, below=0.1cm of plus] {$4$};
-        \node[cggrad, above left=0.1cm and 0.1cm of a] {$4$};
-        \node[cggrad, below left=0.1cm and 0.1cm of b] {$4$};
+        \node[cggrad, below right=0.05cm and 0.1cm of a] {$4$};
+        \node[cggrad, below right=0.05cm and 0.1cm of b] {$4$};
       }
     \end{tikzpicture}
     }
@@ -128,16 +152,16 @@
     \medskip
     \footnotesize
     Valores em \textbf{preto} (forward), gradientes em \textbf{vermelho} (backward).\\
-    \onslide<4->{Gate $\times$ comuta valores: gradiente recebe o valor da \textit{outra} entrada. \;}
-    \onslide<6->{Gate $+$ distribui o gradiente igualmente.}
+    \onslide<4->{Nodo $\times$ comuta valores: gradiente recebe o valor da \textit{outra} entrada. \;}
+    \onslide<5->{Nodo $+$ distribui o gradiente igualmente.}
   \end{frame}
 
   %======================================================================
   \section{Forward e backward genéricos}
   %======================================================================
 
-  %--- Slide: nó genérico forward ---
-  \begin{frame}{Um nó genérico no \textit{forward}}
+  %--- Slide: nodo genérico forward ---
+  \begin{frame}{Um nodo genérico no \textit{forward}}
     \centering
     \begin{tikzpicture}[node distance=1.0cm and 1.6cm]
       \node[cgvar] (x) {$x$};
@@ -150,18 +174,18 @@
       \draw[cgedge] (f) -- (z);
     \end{tikzpicture}
     \begin{itemize}
-      \item No \textit{forward}, cada nó recebe valores de entrada e calcula
+      \item No \textit{forward}, cada nodo recebe valores de entrada e calcula
         sua saída local.
-      \item As saídas alimentam os nós seguintes na ordem topológica.
+      \item As saídas alimentam os nodos seguintes na ordem topológica.
       \item No final do grafo temos o valor da função, tipicamente uma
         \textit{loss} escalar $L$.
     \end{itemize}
   \end{frame}
 
-  %--- Slide: nó genérico backward ---
-  \begin{frame}{O mesmo nó no \textit{backward}}
+  %--- Slide: nodo genérico backward ---
+  \begin{frame}{O mesmo nodo no \textit{backward}}
     \centering
-    \begin{tikzpicture}[node distance=1.6cm and 2.6cm]
+    \begin{tikzpicture}[node distance=1.6cm and 4.2cm]
       \node[cgvar] (x) {$x$};
       \node[cgvar, below=of x] (y) {$y$};
       \node[cgop, right=of x, yshift=-0.8cm] (f) {$f$};
@@ -171,23 +195,23 @@
       \draw[cgedge] (y) -- (f);
       \draw[cgedge] (f) -- (z);
 
-      \node[cggrad, above=0.1cm of x] {$\dfrac{\partial L}{\partial x} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial x}$};
-      \node[cggrad, below=0.1cm of y] {$\dfrac{\partial L}{\partial y} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial y}$};
-      \node[cggrad, above=0.1cm of z] {$\dfrac{\partial L}{\partial z}$};
+      \node[cggrad, below right=0.1cm and 0.1cm of x] {$\dfrac{\partial L}{\partial x} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial x}$};
+      \node[cggrad, below right=0.1cm and 0.1cm of y] {$\dfrac{\partial L}{\partial y} = \dfrac{\partial L}{\partial z}\cdot\dfrac{\partial z}{\partial y}$};
+      \node[cggrad, below right=0.05cm and 0.05cm of z] {$\dfrac{\partial L}{\partial z}$};
     \end{tikzpicture}
     \begin{itemize}
       \item Cada aresta no sentido oposto carrega o \alert{gradiente
         \textit{upstream}} $\partial L / \partial z$.
-      \item O nó multiplica esse gradiente pela \alert{derivada local}
+      \item O nodo multiplica esse gradiente pela \alert{derivada local}
         $\partial z / \partial x$ (regra da cadeia) e envia para a aresta de
         entrada.
-      \item Se uma variável aparece em múltiplos nós, os gradientes que chegam
+      \item Se uma variável aparece em múltiplos nodos, os gradientes que chegam
         nela são \textbf{somados}.
     \end{itemize}
   \end{frame}
 
-  %--- Slide: padrões de gates ---
-  \begin{frame}{Padrões comuns de \textit{gates}}
+  %--- Slide: padrões de nodos ---
+  \begin{frame}{Padrões comuns de nodos}
     \begin{columns}
       \begin{column}{.6\linewidth}
         \begin{itemize}
@@ -205,26 +229,26 @@
         \centering
         \begin{tikzpicture}[node distance=0.7cm and 1.0cm, font=\scriptsize]
           \node[cgop] (p) {$+$};
-          \node[left=of p, yshift=0.3cm] (pa) {$a$};
-          \node[left=of p, yshift=-0.3cm] (pb) {$b$};
+          \node[left=of p, yshift=0.55cm] (pa) {$a$};
+          \node[left=of p, yshift=-0.55cm] (pb) {$b$};
           \node[right=of p] (po) {};
           \draw[cgedge] (pa) -- (p);
           \draw[cgedge] (pb) -- (p);
           \draw[cgedge] (p) -- (po);
-          \node[cggrad, above=0.0cm of po,xshift=-0.1cm] {$g$};
-          \node[cggrad, left=0.05cm of pa] {$g$};
-          \node[cggrad, left=0.05cm of pb] {$g$};
+          \node[cggrad, below right=0.02cm and 0.02cm of p] {$g$};
+          \node[cggrad, below right=0.0cm and 0.02cm of pa] {$g$};
+          \node[cggrad, below right=0.0cm and 0.02cm of pb] {$g$};
 
           \node[cgop, below=1.6cm of p] (m) {$\times$};
-          \node[left=of m, yshift=0.3cm] (ma) {$a$};
-          \node[left=of m, yshift=-0.3cm] (mb) {$b$};
+          \node[left=of m, yshift=0.55cm] (ma) {$a$};
+          \node[left=of m, yshift=-0.55cm] (mb) {$b$};
           \node[right=of m] (mo) {};
           \draw[cgedge] (ma) -- (m);
           \draw[cgedge] (mb) -- (m);
           \draw[cgedge] (m) -- (mo);
-          \node[cggrad, above=0.0cm of mo,xshift=-0.1cm] {$g$};
-          \node[cggrad, left=0.05cm of ma] {$g\,b$};
-          \node[cggrad, left=0.05cm of mb] {$g\,a$};
+          \node[cggrad, below right=0.02cm and 0.02cm of m] {$g$};
+          \node[cggrad, below right=0.0cm and 0.02cm of ma] {$g\,b$};
+          \node[cggrad, below right=0.0cm and 0.02cm of mb] {$g\,a$};
         \end{tikzpicture}
       \end{column}
     \end{columns}
@@ -239,12 +263,12 @@
     \begin{itemize}
       \item Considere a função
         $$f(\bm\theta, \bm x) = \frac{1}{1 + \exp\!\bigl(-(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\bigr)}.$$
-      \item Composição de \textit{gates} elementares: combinação afim,
+      \item Composição de nodos elementares: combinação afim,
         $\times(-1)$, $\exp$, $+1$, $1/u$.
       \item Vamos avaliar para
         $\theta_0 = -3,\; \theta_1 = -2,\; \theta_2 = 1,\;
          x_1 = -1,\; x_2 = -2$, depois rodar o backward.
-      \item No fim, observaremos que vários \textit{gates} podem ser agrupados
+      \item No fim, observaremos que vários nodos podem ser agrupados
         em uma única operação \textit{sigmoide}.
     \end{itemize}
   \end{frame}
@@ -263,8 +287,8 @@
       \node[cgop, right=of t1, xshift=0.4cm, yshift=-0.4cm] (m1) {$\times$};
       \node[cgop, right=of x1, xshift=0.4cm, yshift=-0.4cm] (m2) {$\times$};
 
-      \node[cgop, right=of m1, xshift=0.5cm, yshift=-0.4cm] (s1) {$+$};
-      \node[cgop, right=of m2, xshift=0.5cm, yshift=-0.4cm] (s2) {$+$};
+      \node[cgop, right=of m1, xshift=0.5cm] (s1) {$+$};
+      \node[cgop, right=of m2, xshift=0.5cm] (s2) {$+$};
 
       \node[cgop, right=of s2, xshift=0.4cm] (neg) {$\times{-}1$};
       \node[cgop, right=of neg, xshift=0.4cm] (exp) {$\exp$};
@@ -288,38 +312,37 @@
       \draw[cgedge] (inv) -- (out);
 
       \onslide<2->{
-        \node[cgval, above=0.05cm of t0] {$-3$};
-        \node[cgval, above=0.05cm of t1] {$-2$};
-        \node[cgval, above=0.05cm of x1] {$-1$};
-        \node[cgval, above=0.05cm of t2] {$1$};
-        \node[cgval, above=0.05cm of x2] {$-2$};
-        \node[cgval, above=0.05cm of m1] {$2$};
-        \node[cgval, above=0.05cm of m2] {$-2$};
-        \node[cgval, above=0.05cm of s1] {$-1$};
-        \node[cgval, above=0.05cm of s2] {$-3$};
-        \node[cgval, above=0.05cm of neg] {$3$};
-        \node[cgval, above=0.05cm of exp] {$20.09$};
-        \node[cgval, above=0.05cm of add1] {$21.09$};
-        \node[cgval, above=0.05cm of inv] {$0.047$};
+        \node[cgval, above right=0.05cm and 0.05cm of t0] {$-3$};
+        \node[cgval, above right=0.05cm and 0.05cm of t1] {$-2$};
+        \node[cgval, above right=0.05cm and 0.05cm of x1] {$-1$};
+        \node[cgval, above right=0.05cm and 0.05cm of t2] {$1$};
+        \node[cgval, above right=0.05cm and 0.05cm of x2] {$-2$};
+        \node[cgval, above right=0.05cm and 0.05cm of m1] {$2$};
+        \node[cgval, above right=0.05cm and 0.05cm of m2] {$-2$};
+        \node[cgval, above right=0.05cm and 0.05cm of s1] {$-1$};
+        \node[cgval, above right=0.05cm and 0.05cm of s2] {$-3$};
+        \node[cgval, above right=0.05cm and 0.05cm of neg] {$3$};
+        \node[cgval, above right=0.05cm and 0.05cm of exp] {$20.09$};
+        \node[cgval, above right=0.05cm and 0.05cm of add1] {$21.09$};
+        \node[cgval, above right=0.05cm and 0.05cm of inv] {$0.047$};
       }
 
       \onslide<3->{
-        \node[cggrad, right=0.05cm of out] {$1$};
-        \node[cggrad, below=0.05cm of inv] {$-0.002$};
-        \node[cggrad, below=0.05cm of add1] {$-0.002$};
-        \node[cggrad, below=0.05cm of exp] {$-0.045$};
-        \node[cggrad, below=0.05cm of neg] {$0.045$};
-        \node[cggrad, below=0.05cm of s2] {$-0.045$};
-        \node[cggrad, below=0.05cm of s1] {$-0.045$};
-        \node[cggrad, below=0.05cm of m1] {$-0.045$};
-        \node[cggrad, below=0.05cm of m2] {$-0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of inv] {$1$};
+        \node[cggrad, below right=0.05cm and 0.05cm of add1] {$-0.002$};
+        \node[cggrad, below right=0.05cm and 0.05cm of exp] {$-0.002$};
+        \node[cggrad, below right=0.05cm and 0.05cm of neg] {$-0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of s2] {$0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of s1] {$0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of m1] {$0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of m2] {$0.045$};
       }
       \onslide<4->{
-        \node[cggrad, below=0.05cm of t0] {$-0.045$};
-        \node[cggrad, below=0.05cm of t1] {$0.045$};
-        \node[cggrad, below=0.05cm of x1] {$0.090$};
-        \node[cggrad, below=0.05cm of t2] {$0.090$};
-        \node[cggrad, below=0.05cm of x2] {$-0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of t0] {$0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of t1] {$-0.045$};
+        \node[cggrad, below right=0.05cm and 0.05cm of x1] {$-0.090$};
+        \node[cggrad, below right=0.05cm and 0.05cm of t2] {$-0.090$};
+        \node[cggrad, below right=0.05cm and 0.05cm of x2] {$0.045$};
       }
     \end{tikzpicture}
     }
@@ -330,7 +353,7 @@
   \end{frame}
 
   %--- Slide: agrupando em sigmoide ---
-  \begin{frame}{Agrupando \textit{gates}: a sigmoide}
+  \begin{frame}{Agrupando nodos: a sigmoide}
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
@@ -338,7 +361,7 @@
             implementa $\sigma(z) = 1/(1+e^{-z})$.
           \item Sua derivada tem forma fechada:
             $$\sigma'(z) = \sigma(z)\,(1 - \sigma(z)).$$
-          \item Substituir os 4 \textit{gates} por um único nó \textit{sigmoide}
+          \item Substituir os 4 nodos por um único nodo \textit{sigmoide}
             simplifica o grafo, evita instabilidades numéricas e cobra apenas
             uma multiplicação no \textit{backward}.
           \item Granularidade fina (flexível) versus grossa (eficiente) é
@@ -355,8 +378,8 @@
           \draw[cgedge] (z) -- (sig);
           \draw[cgedge] (sig) -- (out);
 
-          \node[cggrad, below=0.1cm of z] {$\sigma(1{-}\sigma)\cdot g$};
-          \node[cggrad, above=0.1cm of out, xshift=-0.1cm] {$g$};
+          \node[cggrad, below right=0.1cm and 0.05cm of z] {$\sigma(1{-}\sigma)\cdot g$};
+          \node[cggrad, below right=0.05cm and 0.05cm of sig] {$g$};
         \end{tikzpicture}\\
         \footnotesize \textit{Forward} entrega $\sigma(z)$;
         \textit{backward} multiplica o gradiente \textit{upstream} por
@@ -366,96 +389,249 @@
   \end{frame}
 
   %======================================================================
-  \section{Programação diferenciável}
+  \section{O MLP como grafo computacional}
   %======================================================================
 
-  %--- Slide: autodiff ---
-  \begin{frame}{Programação diferenciável}
-    \begin{itemize}
-      \item Se cada operação elementar conhece sua derivada local,
-        o computador pode montar o grafo \textit{automaticamente} ao executar
-        o código \textit{forward}.
-      \item Esse processo é chamado \alert{diferenciação automática}
-        (\textit{autodiff}\footfullcite{baydin2018automatic}), distinto de:
-        \begin{itemize}
-          \item \textit{symbolic} differentiation (manipulação algébrica de fórmulas);
-          \item \textit{numerical} differentiation (diferença finita,
-            $\partial f / \partial x \approx (f(x{+}h) - f(x))/h$).
-        \end{itemize}
-      \item Programação que usa \textit{autodiff} no laço principal recebe o nome
-        de \textit{differentiable programming}: redes neurais são apenas um
-        caso particular.
-    \end{itemize}
-  \end{frame}
-
-  %--- Slide: forward mode vs reverse mode ---
-  \begin{frame}{\textit{Forward mode} vs. \textit{reverse mode}}
+  %--- Slide: nodo de produto de matrizes ---
+  \begin{frame}{Nodos vetorizados: produto de matrizes}
     \begin{columns}
-      \begin{column}{.5\linewidth}
-        \textbf{Forward mode}
+      \begin{column}{.58\linewidth}
         \begin{itemize}
-          \item Propaga derivadas \textit{junto} com o forward, da entrada para a saída.
-          \item Custo proporcional ao número de \textbf{entradas}.
-          \item Eficiente quando $|\text{entradas}| \ll |\text{saídas}|$.
-          \item Usado em simulações físicas e análise de sensibilidade.
+          \item No MLP vetorizado, a pré-ativação de cada camada é um produto
+            de matrizes: $Z = A\,\theta^{\top}$, com
+            $A \in \mathbb{R}^{N\times d_e}$ (entradas da camada),
+            $\theta \in \mathbb{R}^{d_s\times d_e}$ (pesos) e
+            $Z \in \mathbb{R}^{N\times d_s}$.
+          \item No \textit{backward}, o gradiente \textit{upstream} é
+            $G = \partial J/\partial Z$, com a mesma forma de $Z$:
+            \[
+              \frac{\partial J}{\partial A} = G\,\theta
+              \qquad
+              \frac{\partial J}{\partial \theta} = G^{\top}A
+            \]
+          \item Mesma regra do nodo $\times$ escalar: cada entrada
+            recebe o gradiente multiplicado pela \textit{outra} entrada.
+          \item Confira as dimensões: $G\,\theta$ é $N\times d_e$ (forma de $A$)
+            e $G^{\top}A$ é $d_s\times d_e$ (forma de $\theta$).
         \end{itemize}
       \end{column}
-      \begin{column}{.5\linewidth}
-        \textbf{Reverse mode (\textit{backprop})}
-        \begin{itemize}
-          \item Faz o forward, depois propaga gradientes da saída para as entradas.
-          \item Custo proporcional ao número de \textbf{saídas}.
-          \item Eficiente quando $|\text{saídas}| \ll |\text{entradas}|$, caso típico
-            de redes neurais (saída escalar, milhões de parâmetros).
-          \item Padrão em \textit{frameworks} de deep learning.
-        \end{itemize}
+      \begin{column}{.42\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.4cm and 1.6cm]
+          \node[cgvar] (A) {$A$};
+          \node[cgvar, below=of A] (T) {$\theta$};
+          \node[cgopw, right=of A, yshift=-1.1cm] (mm) {\textit{matmul}};
+          \node[right=of mm, xshift=-0.4cm] (Z) {$Z$};
+          \draw[cgedge] (A) -- (mm);
+          \draw[cgedge] (T) -- (mm);
+          \draw[cgedge] (mm) -- (Z);
+          \node[cggrad, below right=0.05cm and 0.05cm of mm] {$G$};
+          \node[cggrad, below right=0.0cm and 0.05cm of A] {$G\,\theta$};
+          \node[cggrad, below right=0.0cm and 0.05cm of T] {$G^{\top}A$};
+        \end{tikzpicture}
       \end{column}
     \end{columns}
   \end{frame}
 
-  %--- Slide: autograd na prática ---
-  \begin{frame}{Na prática: \textit{autograd} de PyTorch\footfullcite{paszke2019pytorch}}
+  %--- Slide: nodo de ativação elemento a elemento ---
+  \begin{frame}{Nodos vetorizados: ativação elemento a elemento}
+    \begin{columns}
+      \begin{column}{.58\linewidth}
+        \begin{itemize}
+          \item O nodo de ativação aplica $\sigma$ em cada posição da
+            matriz: $A = \sigma(Z)$, e $A$ tem a mesma forma de $Z$.
+          \item Como o nodo não mistura posições, o \textit{backward}
+            é a regra escalar aplicada elemento a elemento:
+            \[
+              \frac{\partial J}{\partial Z} = G \odot \sigma'(Z)
+              \qquad
+              \sigma'(Z) = A \odot (1 - A)
+            \]
+          \item $\odot$ é o produto de Hadamard (elemento a elemento), o mesmo
+            da aula de \textit{backpropagation}.
+          \item Como no nodo sigmoide escalar, $\sigma'$ reaproveita a
+            saída $A$ já calculada no \textit{forward}.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.42\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.0cm and 1.6cm]
+          \node[cgvar] (Z) {$Z$};
+          \node[cgop, right=of Z] (sig) {$\sigma$};
+          \node[right=of sig, xshift=-0.4cm] (A) {$A$};
+          \draw[cgedge] (Z) -- (sig);
+          \draw[cgedge] (sig) -- (A);
+          \node[cggrad, below right=0.05cm and 0.05cm of sig] {$G$};
+          \node[cggrad, below right=0.05cm and 0.05cm of Z] {$G \odot \sigma'(Z)$};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: nodo de função de custo ---
+  \begin{frame}{Nodos vetorizados: função de custo}
+    \begin{columns}
+      \begin{column}{.58\linewidth}
+        \begin{itemize}
+          \item O último nodo compara a saída da rede com o alvo e
+            reduz tudo a um escalar (\textit{half SSE} da aula anterior):
+            \[
+              J = \frac{1}{2}\sum_{i}\left(y_i - \hat{y}_i\right)^{2}
+              \qquad
+              \frac{\partial J}{\partial \hat{y}} = \hat{y} - y
+            \]
+          \item O \textit{backward} começa nesse escalar, com
+            $\partial J/\partial J = 1$; o gradiente devolvido tem a mesma
+            forma de $\hat{y}$ (o fator $\tfrac{1}{2}$ cancela o $2$ da
+            derivada).
+          \item $y$ é dado do problema: não é treinável, então nenhum gradiente
+            é propagado para ele.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.42\linewidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.4cm and 1.6cm]
+          \node[cgvar] (yh) {$\hat{y}$};
+          \node[cgvar, below=of yh] (yy) {$y$};
+          \node[cgopw, right=of yh, yshift=-1.1cm] (Ls) {\textit{loss}};
+          \node[right=of Ls, xshift=-0.4cm] (Jn) {$J$};
+          \draw[cgedge] (yh) -- (Ls);
+          \draw[cgedge] (yy) -- (Ls);
+          \draw[cgedge] (Ls) -- (Jn);
+          \node[cggrad, below right=0.05cm and 0.05cm of Ls] {$1$};
+          \node[cggrad, below right=0.0cm and 0.05cm of yh] {$\hat{y} - y$};
+        \end{tikzpicture}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: estrutura do grafo do MLP ---
+  \begin{frame}{O MLP da aula anterior como grafo computacional}
     \begin{itemize}
-      \item Cada \texttt{Tensor} pode ter \texttt{requires\_grad=True}.
-      \item Cada operação registrada constrói nós em um \textbf{grafo dinâmico},
-        reconstruído a cada \textit{forward}.
-      \item \texttt{loss.backward()} faz o reverse mode: percorre o grafo a
-        partir da saída e acumula gradientes em \texttt{parameter.grad}.
-      \item O otimizador (\texttt{SGD}, \texttt{Adam}, $\dots$) lê esses
-        \texttt{.grad} e atualiza os parâmetros.
-      \item JAX, TensorFlow 2 e Flax seguem o mesmo princípio, com variações:
-        grafos estáticos compilados, transformações de funções (\texttt{jax.grad},
-        \texttt{jax.jit}, \texttt{jax.vmap}).
+      \item Mesma rede do exemplo vetorizado: 2 entradas, camada oculta com 3
+        unidades, 1 saída, sigmoide nas duas camadas, sem \textit{bias}.
+      \item \textit{Batch} com 2 exemplos: cinco nodos encadeados
+        computam $J = \tfrac{1}{2}\sum\left(y - \sigma\bigl(\sigma(X{\theta^{(1)}}^{\top}){\theta^{(2)}}^{\top}\bigr)\right)^{2}$.
     \end{itemize}
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}
+      \mlpgrafo
+      \node[cgval, above right=0.05cm and 0.05cm of X]   {$2\times 2$};
+      \node[cgval, above right=0.0cm and 0.05cm of t1]   {$3\times 2$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm1] {$Z^{(1)}\;(2\times 3)$};
+      \node[cgval, above right=0.05cm and 0.05cm of s1]  {$A^{(1)}\;(2\times 3)$};
+      \node[cgval, above right=0.0cm and 0.05cm of t2]   {$1\times 3$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm2] {$Z^{(2)}\;(2\times 1)$};
+      \node[cgval, above right=0.05cm and 0.05cm of s2]  {$A^{(2)} = \hat{y}\;(2\times 1)$};
+      \node[cgval, above right=0.05cm and 0.05cm of yv]  {$2\times 1$};
+      \node[cgval, above right=0.05cm and 0.05cm of L]   {escalar};
+    \end{tikzpicture}
+    }
   \end{frame}
 
-  %--- Slide: autograd em ação ---
-  \begin{frame}[fragile]{\textit{autograd} em ação}
-    \begin{columns}[T]
-      \begin{column}{0.55\linewidth}
-        \begin{lstlisting}[style=vscode-light, basicstyle=\ttfamily\scriptsize, language=Python]
-import torch
+  %--- Slide: forward do MLP no grafo ---
+  \begin{frame}{MLP no grafo: \textit{forward pass}}
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}
+      \mlpgrafo
+      \onslide<2->{
+        \node[cgval, above right=0.05cm and 0.05cm of X]  {$\cgm{0.5 & 0.1 \\ 0.2 & 0.6}$};
+        \node[cgval, above right=0.0cm and 0.05cm of t1]  {$\cgm{0.5 & 0.2 \\ 0.6 & -0.1 \\ -0.4 & -0.3}$};
+        \node[cgval, above right=0.0cm and 0.05cm of t2]  {$\cgm{0.7 & -0.1 & 0.2}$};
+        \node[cgval, above right=0.05cm and 0.05cm of yv] {$\cgm{0.6 \\ 0.8}$};
+      }
+      \onslide<3->{
+        \node[cgval, above right=0.05cm and 0.05cm of mm1] {$\cgm{0.27 & 0.29 & -0.23 \\ 0.22 & 0.06 & -0.26}$};
+      }
+      \onslide<4->{
+        \node[cgval, above right=0.05cm and 0.05cm of s1]  {$\cgm{0.5671 & 0.5720 & 0.4428 \\ 0.5548 & 0.5150 & 0.4354}$};
+      }
+      \onslide<5->{
+        \node[cgval, above right=0.05cm and 0.05cm of mm2] {$\cgm{0.4283 \\ 0.4239}$};
+      }
+      \onslide<6->{
+        \node[cgval, above right=0.05cm and 0.05cm of s2]  {$\cgm{0.6055 \\ 0.6044}$};
+      }
+      \onslide<7->{
+        \node[cgval, above right=0.05cm and 0.05cm of L]   {$0.01914$};
+      }
+    \end{tikzpicture}
+    }
 
-a = torch.tensor(2.0, requires_grad=True)
-b = torch.tensor(3.0, requires_grad=True)
-c = torch.tensor(4.0, requires_grad=True)
+    \medskip
+    \footnotesize
+    \onslide<3->{$Z^{(1)} = X\,{\theta^{(1)}}^{\top}$ \;}
+    \onslide<4->{$A^{(1)} = \sigma(Z^{(1)})$ \;}
+    \onslide<5->{$Z^{(2)} = A^{(1)}{\theta^{(2)}}^{\top}$ \;}
+    \onslide<6->{$\hat{y} = A^{(2)} = \sigma(Z^{(2)})$ \;}
+    \onslide<7->{$J = \tfrac{1}{2}\sum\left(y - \hat{y}\right)^{2}$}
+  \end{frame}
 
-f = (a + b) * c          # forward
-f.backward()             # reverse mode
+  %--- Slide: backward do MLP no grafo ---
+  \begin{frame}{MLP no grafo: \textit{backward pass}}
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}
+      \mlpgrafo
+      \node[cgval, above right=0.05cm and 0.05cm of X]   {$\cgm{0.5 & 0.1 \\ 0.2 & 0.6}$};
+      \node[cgval, above right=0.0cm and 0.05cm of t1]   {$\cgm{0.5 & 0.2 \\ 0.6 & -0.1 \\ -0.4 & -0.3}$};
+      \node[cgval, above right=0.0cm and 0.05cm of t2]   {$\cgm{0.7 & -0.1 & 0.2}$};
+      \node[cgval, above right=0.05cm and 0.05cm of yv]  {$\cgm{0.6 \\ 0.8}$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm1] {$\cgm{0.27 & 0.29 & -0.23 \\ 0.22 & 0.06 & -0.26}$};
+      \node[cgval, above right=0.05cm and 0.05cm of s1]  {$\cgm{0.5671 & 0.5720 & 0.4428 \\ 0.5548 & 0.5150 & 0.4354}$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm2] {$\cgm{0.4283 \\ 0.4239}$};
+      \node[cgval, above right=0.05cm and 0.05cm of s2]  {$\cgm{0.6055 \\ 0.6044}$};
+      \node[cgval, above right=0.05cm and 0.05cm of L]   {$0.01914$};
+      \onslide<2->{
+        \node[cggrad, below right=0.05cm and 0.05cm of L]   {$1$};
+      }
+      \onslide<3->{
+        \node[cggrad, below right=0.05cm and 0.05cm of s2]  {$\cgm{0.0055 \\ -0.1956}$};
+      }
+      \onslide<4->{
+        \node[cggrad, below right=0.05cm and 0.05cm of mm2] {$\cgm{0.00131 \\ -0.04676}$};
+      }
+      \onslide<5->{
+        \node[cggrad, below right=0.0cm and 0.05cm of t2]   {$\cgm{-0.0252 & -0.0233 & -0.0198}$};
+        \node[cggrad, below right=0.05cm and 0.05cm of s1]  {$\cgm{0.00092 & -0.00013 & 0.00026 \\ -0.03273 & 0.00468 & -0.00935}$};
+      }
+      \onslide<6->{
+        \node[cggrad, below right=0.05cm and 0.05cm of mm1] {$\cgm{0.00022 & -0.00003 & 0.00006 \\ -0.00809 & 0.00117 & -0.00230}$};
+      }
+      \onslide<7->{
+        \node[cggrad, below right=0.0cm and 0.05cm of t1]   {$\cgm{-0.00150 & -0.00483 \\ 0.00022 & 0.00070 \\ -0.00043 & -0.00137}$};
+      }
+    \end{tikzpicture}
+    }
 
-print(a.grad, b.grad, c.grad)
-# tensor(4.) tensor(4.) tensor(5.)
-        \end{lstlisting}
-      \end{column}
-      \begin{column}{0.42\linewidth}
-        \begin{itemize}
-          \item Mesmo grafo do primeiro exemplo: $f = (a + b)\cdot c$ com $a{=}2, b{=}3, c{=}4$.
-          \item Gradientes coincidem com a derivação manual:
-            $\partial f/\partial a = c = 4$, $\partial f/\partial b = c = 4$, $\partial f/\partial c = a + b = 5$.
-          \item O grafo foi montado \textbf{automaticamente} ao executar a expressão; nenhum código de derivada foi escrito.
-        \end{itemize}
-      \end{column}
-    \end{columns}
+    \medskip
+    \footnotesize
+    \onslide<3->{$\tfrac{\partial J}{\partial \hat{y}} = \hat{y} - y$ \;}
+    \onslide<4->{$\delta^{(2)} = \tfrac{\partial J}{\partial \hat{y}} \odot \sigma'(Z^{(2)})$ \;}
+    \onslide<5->{$\tfrac{\partial J}{\partial \theta^{(2)}} = {\delta^{(2)}}^{\top}A^{(1)}$ \; $\tfrac{\partial J}{\partial A^{(1)}} = \delta^{(2)}\theta^{(2)}$ \;}
+    \onslide<6->{$\delta^{(1)} = \tfrac{\partial J}{\partial A^{(1)}} \odot \sigma'(Z^{(1)})$ \;}
+    \onslide<7->{$\tfrac{\partial J}{\partial \theta^{(1)}} = {\delta^{(1)}}^{\top}X$}\\
+    \onslide<7->{$X$ e $y$ não são treináveis, então não precisam de gradiente.
+      Os gradientes de $\theta^{(1)}$ e $\theta^{(2)}$ são os mesmos calculados
+      à mão na aula de \textit{backpropagation}.}
+  \end{frame}
+
+  %--- Slide: fechamento ---
+  \begin{frame}{Redes neurais são implementadas como Grafos}
+    \begin{itemize}
+      \item Podemos decompor funções em nodos com \textit{forward} e
+        derivada local: nodos escalares ($+$, $\times$, $\exp$, $1/u$), o nodo
+        sigmoide e os nodos vetorizados (\textit{matmul}, ativação,
+        \textit{loss}).
+      \item Todas as arquiteturas que veremos no curso são decompostas da
+        mesma forma
+        
+       \item Se cada nodo conhece seu \textit{forward} e sua derivada local, o \textit{backpropagation} no grafo computacional treina qualquer arquitetura, por mais complexa que pareça.
+    \end{itemize}
+    
+    
   \end{frame}
 
   %======================================================================
