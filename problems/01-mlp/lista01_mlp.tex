@@ -136,7 +136,7 @@
 
 \subsection*{Softmax, Entropia Cruzada e Grafo Computacional}
 
-    \item Em um grafo computacional, o \textit{backward pass} percorre o grafo na ordem inversa aplicando a regra da cadeia localmente em cada nó. Para calcular o gradiente que envia às suas arestas de entrada, o que cada nó precisa conhecer?
+    \item Em um grafo computacional, o \textit{backward pass} percorre o grafo na ordem inversa aplicando a regra da cadeia localmente em cada nodo. Para calcular o gradiente que envia às suas arestas de entrada, o que cada nodo precisa conhecer?
     \begin{enumerate}[(a)]
         \item O gradiente \textit{upstream} que chega pela sua saída e a derivada local da sua operação em relação a cada entrada.
         \item A expressão simbólica completa da função representada pelo grafo e a derivada algébrica dela em relação a cada folha.
@@ -145,7 +145,7 @@
     \end{enumerate}
     %a
 
-    \item Considere o grafo computacional da função $f(a,b,c) = (a + b)\cdot(b \cdot c)$, com nós intermediários $u = a + b$ e $v = b \cdot c$. Note que a variável $b$ alimenta dois nós do grafo. Para $a = 1$, $b = 2$ e $c = 3$, após o \textit{forward pass} e o \textit{backward pass} iniciado com $\partial f / \partial f = 1$, qual o valor de $\partial f / \partial b$?
+    \item Considere o grafo computacional da função $f(a,b,c) = (a + b)\cdot(b \cdot c)$, com nodos intermediários $u = a + b$ e $v = b \cdot c$. Note que a variável $b$ alimenta dois nodos do grafo. Para $a = 1$, $b = 2$ e $c = 3$, após o \textit{forward pass} e o \textit{backward pass} iniciado com $\partial f / \partial f = 1$, qual o valor de $\partial f / \partial b$?
     \begin{enumerate}[(a)]
         \item $6$
         \item $9$
@@ -154,19 +154,35 @@
     \end{enumerate}
     %c
 
-    \item Considere a função $f(a,b,c) = (a + b)\cdot\max(b, c)$, decomposta em um grafo computacional com três nós de operação: $u = a + b$ (\textit{gate} de soma), $v = \max(b, c)$ (\textit{gate} de máximo) e $f = u \cdot v$ (\textit{gate} de produto). Repare que a variável $b$ alimenta dois nós. Para $a = 2$, $b = 3$ e $c = 4$, resolva os itens abaixo:
+    \item Considere a função $f(a,b,c) = (a + b)\cdot\max(b, c)$, decomposta em um grafo computacional com três nodos de operação: $u = a + b$ (nodo de soma), $v = \max(b, c)$ (nodo de máximo) e $f = u \cdot v$ (nodo de produto). Repare que a variável $b$ alimenta dois nodos. Para $a = 2$, $b = 3$ e $c = 4$, resolva os itens abaixo:
     \begin{enumerate}[a)]
-        \item Compute o \textit{forward pass}, informando o valor de cada nó intermediário e da saída $f$.
-        \item Compute o \textit{backward pass} nó a nó, iniciando com $\partial f/\partial f = 1$, e informe os gradientes $\partial f/\partial a$, $\partial f/\partial b$ e $\partial f/\partial c$. Indique, em cada nó, qual padrão de \textit{gate} foi aplicado (distribuidor, comutador ou roteador) e como os gradientes que chegam em $b$ são combinados.
+        \item Compute o \textit{forward pass}, informando o valor de cada nodo intermediário e da saída $f$.
+        \item Compute o \textit{backward pass} nodo a nodo, iniciando com $\partial f/\partial f = 1$, e informe os gradientes $\partial f/\partial a$, $\partial f/\partial b$ e $\partial f/\partial c$. Indique, em cada nodo, qual padrão foi aplicado (distribuidor, comutador ou roteador) e como os gradientes que chegam em $b$ são combinados.
     \end{enumerate}
 
     \item A regressão logística $\hat{y} = \sigma(\theta_0 + \theta_1 x_1 + \theta_2 x_2)$, treinada com a \textit{Binary Cross Entropy} $L = -\left(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\right)$, pode ser vista como um grafo computacional. Resolva os itens abaixo:
     \begin{enumerate}[a)]
-        \item Decomponha a computação de $L$ em nós elementares, explicitando os nós de produto, os nós de soma, o nó sigmoide (já agrupado em uma única operação, como visto em aula) e o nó da \textit{loss}.
-        \item Derive $\partial L/\partial \theta_0$, $\partial L/\partial \theta_1$ e $\partial L/\partial \theta_2$ aplicando a regra da cadeia nó a nó, no sentido inverso do grafo, informando o gradiente que atravessa cada nó. Simplifique as expressões finais.
+        \item Decomponha a computação de $L$ em nodos elementares, explicitando os nodos de produto, os nodos de soma, o nodo sigmoide (já agrupado em uma única operação, como visto em aula) e o nodo da \textit{loss}.
+        \item Derive $\partial L/\partial \theta_0$, $\partial L/\partial \theta_1$ e $\partial L/\partial \theta_2$ aplicando a regra da cadeia nodo a nodo, no sentido inverso do grafo, informando o gradiente que atravessa cada nodo. Simplifique as expressões finais.
     \end{enumerate}
 
-    \item \textit{Frameworks} de programação diferenciável como PyTorch representam a computação como um grafo construído automaticamente durante a execução do código \textit{forward}. Explique por que essa representação é necessária para o cálculo automático de gradientes e descreva o que precisa ser armazenado durante o \textit{forward pass} para que o \textit{backward pass} seja possível. Ilustre com pelo menos dois \textit{gates} concretos cujas derivadas locais dependem de valores calculados no \textit{forward}.
+    \item \textit{Frameworks} como PyTorch representam a computação como um grafo construído automaticamente durante a execução do código \textit{forward}, e é esse grafo que permite calcular as derivadas automaticamente, como discutido em aula. Explique por que essa representação é necessária para o cálculo automático de gradientes e descreva o que precisa ser armazenado durante o \textit{forward pass} para que o \textit{backward pass} seja possível. Ilustre com pelo menos dois nodos concretos cujas derivadas locais dependem de valores calculados no \textit{forward}.
+
+    \item No nodo de produto de matrizes $Z = A\,\theta^{\top}$, visto na versão vetorizada do grafo computacional, temos $A \in \mathbb{R}^{N\times d_e}$, $\theta \in \mathbb{R}^{d_s\times d_e}$, e o \textit{backward} recebe o gradiente \textit{upstream} $G = \partial J/\partial Z \in \mathbb{R}^{N\times d_s}$. Quais expressões computam os gradientes das duas entradas do nodo?
+    \begin{enumerate}[(a)]
+        \item $\partial J/\partial A = G\,\theta$ e $\partial J/\partial \theta = G^{\top}A$.
+        \item $\partial J/\partial A = G\,\theta^{\top}$ e $\partial J/\partial \theta = A^{\top}G$.
+        \item $\partial J/\partial A = G^{\top}A$ e $\partial J/\partial \theta = G\,\theta$.
+        \item $\partial J/\partial A = \theta^{\top}G$ e $\partial J/\partial \theta = A\,G^{\top}$.
+    \end{enumerate}
+    %a
+
+    \item Considere o MLP vetorizado representado como grafo computacional com os nodos \textit{matmul}, sigmoide e \textit{loss}, como visto em aula: $Z^{(1)} = X{\theta^{(1)}}^{\top}$, $A^{(1)} = \sigma(Z^{(1)})$, $Z^{(2)} = A^{(1)}{\theta^{(2)}}^{\top}$, $\hat{y} = \sigma(Z^{(2)})$ e $J = \tfrac{1}{2}\sum\left(y - \hat{y}\right)^{2}$. Use uma única observação $X = \begin{bmatrix} 1 & 2 \end{bmatrix}$ com alvo $y = 1$ e pesos
+    $$\theta^{(1)} = \begin{bmatrix} 0.5 & -0.5 \\ 0.5 & 0.5 \end{bmatrix}, \qquad \theta^{(2)} = \begin{bmatrix} 0.5 & -0.5 \end{bmatrix}.$$
+    \begin{enumerate}[a)]
+        \item Execute o \textit{forward pass} nodo a nodo, informando $Z^{(1)}$, $A^{(1)}$, $Z^{(2)}$, $\hat{y}$ e $J$.
+        \item Execute o \textit{backward pass} nodo a nodo, iniciando com $\partial J/\partial J = 1$, informando o gradiente na saída de cada nodo e, ao final, $\partial J/\partial \theta^{(1)}$ e $\partial J/\partial \theta^{(2)}$. Em cada passo, indique qual regra de \textit{backward} foi aplicada (nodo \textit{loss}, nodo de ativação ou nodo \textit{matmul}).
+    \end{enumerate}
 
 \subsection*{Descida de Gradiente}
 
@@ -563,7 +579,7 @@
         \beta^{(2)} &\leftarrow 0.4 - 0.1(-0.86) = 0.486
     \end{align*}
 
-    \item a. A regra da cadeia local exige apenas o gradiente \textit{upstream}, que resume todo o caminho da \textit{loss} até a saída do nó, e a derivada local da operação do nó em relação a cada entrada. Essa localidade é o que torna o \textit{backpropagation} eficiente. A alternativa (b) descreve diferenciação simbólica e (c) descreve diferenças finitas, métodos que a diferenciação automática substitui; (d) inverte a lógica, pois os gradientes dos parâmetros são o resultado do percurso, não um pré-requisito.
+    \item a. A regra da cadeia local exige apenas o gradiente \textit{upstream}, que resume todo o caminho da \textit{loss} até a saída do nodo, e a derivada local da operação do nodo em relação a cada entrada. Essa localidade é o que torna o \textit{backpropagation} eficiente. A alternativa (b) descreve diferenciação simbólica e (c) descreve diferenças finitas, métodos que a diferenciação automática substitui; (d) inverte a lógica, pois os gradientes dos parâmetros são o resultado do percurso, não um pré-requisito.
 
     \item c. \textit{Forward}: $u = 3$, $v = 6$, $f = 18$. No \textit{backward}, $b$ recebe contribuição por dois caminhos: via $u$, $\frac{\partial f}{\partial u} \cdot 1 = v = 6$; via $v$, $\frac{\partial f}{\partial v} \cdot c = u \cdot c = 9$. Somando, $\frac{\partial f}{\partial b} = 6 + 9 = 15$. Os distratores $6$ e $9$ são os caminhos isolados e $18$ é o valor do \textit{forward}. Verificação analítica: com $a=1$ e $c=3$, $f(b) = 3b + 3b^2$ e $f'(2) = 3 + 12 = 15$.
 
@@ -577,17 +593,17 @@
         \end{align*}
         \item \textit{Backward pass}, iniciando com $\partial f/\partial f = 1$ e percorrendo o grafo na ordem inversa:
         \begin{itemize}
-            \item Nó $f = u \cdot v$ (comutador): cada entrada recebe o gradiente \textit{upstream} multiplicado pelo valor da outra entrada, logo $\frac{\partial f}{\partial u} = 1 \cdot v = 4$ e $\frac{\partial f}{\partial v} = 1 \cdot u = 5$.
-            \item Nó $u = a + b$ (distribuidor): copia o gradiente \textit{upstream} para as duas entradas, logo $\frac{\partial f}{\partial a} = 4$ e a contribuição para $b$ por este caminho é $4$.
-            \item Nó $v = \max(b, c)$ (roteador): como $c = 4 > b = 3$, a entrada vencedora é $c$, que recebe o gradiente inteiro, $\frac{\partial f}{\partial c} = 5$. A contribuição para $b$ por este caminho é $0$.
-            \item Variável $b$ usada em dois nós (somador no \textit{backward}): os gradientes que chegam são somados, $\frac{\partial f}{\partial b} = 4 + 0 = 4$.
+            \item Nodo $f = u \cdot v$ (comutador): cada entrada recebe o gradiente \textit{upstream} multiplicado pelo valor da outra entrada, logo $\frac{\partial f}{\partial u} = 1 \cdot v = 4$ e $\frac{\partial f}{\partial v} = 1 \cdot u = 5$.
+            \item Nodo $u = a + b$ (distribuidor): copia o gradiente \textit{upstream} para as duas entradas, logo $\frac{\partial f}{\partial a} = 4$ e a contribuição para $b$ por este caminho é $4$.
+            \item Nodo $v = \max(b, c)$ (roteador): como $c = 4 > b = 3$, a entrada vencedora é $c$, que recebe o gradiente inteiro, $\frac{\partial f}{\partial c} = 5$. A contribuição para $b$ por este caminho é $0$.
+            \item Variável $b$ usada em dois nodos (somador no \textit{backward}): os gradientes que chegam são somados, $\frac{\partial f}{\partial b} = 4 + 0 = 4$.
         \end{itemize}
         Resultado: $\frac{\partial f}{\partial a} = 4$, $\frac{\partial f}{\partial b} = 4$ e $\frac{\partial f}{\partial c} = 5$. Verificação: na região em que $c > b$ vale $f = (a+b)\,c$, portanto $\frac{\partial f}{\partial a} = c = 4$, $\frac{\partial f}{\partial b} = c = 4$ e $\frac{\partial f}{\partial c} = a + b = 5$.
     \end{enumerate}
 
     \item
     \begin{enumerate}[a)]
-        \item Decomposição em nós elementares, na ordem do \textit{forward}:
+        \item Decomposição em nodos elementares, na ordem do \textit{forward}:
         \begin{align*}
             t_1 &= \theta_1 \cdot x_1 \quad (\text{produto})\\
             t_2 &= \theta_2 \cdot x_2 \quad (\text{produto})\\
@@ -596,23 +612,46 @@
             \hat{y} &= \sigma(z) \quad (\text{sigmoide agrupada})\\
             L &= -\left(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\right) \quad (\textit{loss})
         \end{align*}
-        \item \textit{Backward pass} nó a nó, iniciando com $\partial L/\partial L = 1$:
+        \item \textit{Backward pass} nodo a nodo, iniciando com $\partial L/\partial L = 1$:
         \begin{itemize}
-            \item Nó da \textit{loss}: derivando $L$ em relação a $\hat{y}$,
+            \item Nodo da \textit{loss}: derivando $L$ em relação a $\hat{y}$,
             $$\frac{\partial L}{\partial \hat{y}} = -\frac{y}{\hat{y}} + \frac{1-y}{1-\hat{y}} = \frac{\hat{y} - y}{\hat{y}(1-\hat{y})}.$$
-            \item Nó sigmoide: a derivada local é $\sigma'(z) = \hat{y}(1-\hat{y})$, então
+            \item Nodo sigmoide: a derivada local é $\sigma'(z) = \hat{y}(1-\hat{y})$, então
             $$\frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \hat{y}(1-\hat{y}) = \frac{\hat{y} - y}{\hat{y}(1-\hat{y})} \cdot \hat{y}(1-\hat{y}) = \hat{y} - y.$$
-            \item Nós de soma (distribuidores): copiam $\hat{y} - y$ para todas as entradas, logo
+            \item Nodos de soma (distribuidores): copiam $\hat{y} - y$ para todas as entradas, logo
             $$\frac{\partial L}{\partial s_1} = \frac{\partial L}{\partial t_2} = \frac{\partial L}{\partial \theta_0} = \frac{\partial L}{\partial t_1} = \hat{y} - y.$$
-            \item Nós de produto (comutadores): multiplicam o gradiente \textit{upstream} pelo valor da outra entrada, logo
+            \item Nodos de produto (comutadores): multiplicam o gradiente \textit{upstream} pelo valor da outra entrada, logo
             $$\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1 \quad \text{e} \quad \frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2.$$
         \end{itemize}
         Resumo: $\frac{\partial L}{\partial \theta_0} = \hat{y} - y$, $\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1$ e $\frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2$. A simplificação ocorre porque o denominador $\hat{y}(1-\hat{y})$ da derivada da BCE cancela exatamente com a derivada da sigmoide, deixando o gradiente na pré-ativação igual ao erro $\hat{y} - y$.
     \end{enumerate}
 
-    \item O \textit{backward pass} é a aplicação repetida da regra da cadeia sobre uma composição de operações elementares. Para automatizar esse processo (diferenciação automática, \textit{autodiff}), o \textit{framework} precisa saber quais operações foram executadas e em que ordem de dependência, e é exatamente isso que o grafo (um DAG) registra: cada operação executada no \textit{forward} vira um nó, e as arestas indicam de quais valores cada nó depende. Com o grafo montado, basta percorrê-lo na ordem topológica inversa multiplicando o gradiente \textit{upstream} pela derivada local de cada nó (\textit{reverse mode}), o que é eficiente no caso típico de redes neurais, com uma \textit{loss} escalar e muitos parâmetros.
+    \item O \textit{backward pass} é a aplicação repetida da regra da cadeia sobre uma composição de operações elementares. Para automatizar esse processo, o \textit{framework} precisa saber quais operações foram executadas e em que ordem de dependência, e é exatamente isso que o grafo (um DAG) registra: cada operação executada no \textit{forward} vira um nodo, e as arestas indicam de quais valores cada nodo depende. Com o grafo montado, basta percorrê-lo na ordem topológica inversa multiplicando o gradiente \textit{upstream} pela derivada local de cada nodo, o que é eficiente no caso típico de redes neurais, com uma \textit{loss} escalar e muitos parâmetros.
 
-    Durante o \textit{forward pass}, três coisas precisam ser armazenadas: (1) a estrutura do grafo, ou seja, quais nós alimentam quais, pois sem ela não há como saber para onde propagar cada gradiente; (2) a operação realizada em cada nó, pois cada operação elementar conhece a própria regra de derivada local; (3) os valores intermediários calculados no \textit{forward} que as derivadas locais consomem. Exemplos do item (3): o \textit{gate} de produto $z = x \cdot y$ precisa guardar os valores das entradas, pois no \textit{backward} cada entrada recebe o gradiente multiplicado pelo valor da outra ($\partial z/\partial x = y$ e $\partial z/\partial y = x$); o nó sigmoide precisa guardar a própria saída, pois $\sigma'(z) = \sigma(z)(1 - \sigma(z))$; o \textit{gate} de máximo precisa registrar qual entrada venceu para rotear o gradiente inteiro para ela. Em PyTorch isso acontece de forma dinâmica: tensores com \texttt{requires\_grad=True} fazem cada operação registrar um nó no grafo, reconstruído a cada \textit{forward}, e \texttt{loss.backward()} percorre esse grafo acumulando os gradientes em \texttt{parameter.grad}.
+    Durante o \textit{forward pass}, três coisas precisam ser armazenadas: (1) a estrutura do grafo, ou seja, quais nodos alimentam quais, pois sem ela não há como saber para onde propagar cada gradiente; (2) a operação realizada em cada nodo, pois cada operação elementar conhece a própria regra de derivada local; (3) os valores intermediários calculados no \textit{forward} que as derivadas locais consomem. Exemplos do item (3): o nodo de produto $z = x \cdot y$ precisa guardar os valores das entradas, pois no \textit{backward} cada entrada recebe o gradiente multiplicado pelo valor da outra ($\partial z/\partial x = y$ e $\partial z/\partial y = x$); o nodo sigmoide precisa guardar a própria saída, pois $\sigma'(z) = \sigma(z)(1 - \sigma(z))$; o nodo de máximo precisa registrar qual entrada venceu para rotear o gradiente inteiro para ela.
+
+    \item a. Com $Z = A\,\theta^{\top}$, o nodo \textit{matmul} segue a mesma regra do nodo $\times$ escalar: cada entrada recebe o gradiente \textit{upstream} multiplicado pela outra entrada, com as transpostas ajustando as dimensões. Conferindo: $G\,\theta$ é $(N\times d_s)(d_s\times d_e) = N\times d_e$, a forma de $A$, e $G^{\top}A$ é $(d_s\times N)(N\times d_e) = d_s\times d_e$, a forma de $\theta$. A alternativa (b) aplica a regra do produto sem transposta $C = AB$, ignorando a convenção $Z = A\,\theta^{\top}$, e produz até uma multiplicação indefinida ($G\,\theta^{\top}$ tenta multiplicar $N\times d_s$ por $d_e\times d_s$); em (c) as duas expressões estão trocadas e nenhuma tem a forma da entrada correspondente; em (d) nenhuma das multiplicações é definida em geral.
+
+    \item
+    \begin{enumerate}[a)]
+        \item \textit{Forward pass}, nodo a nodo:
+        \begin{align*}
+            Z^{(1)} &= X{\theta^{(1)}}^{\top} = \begin{bmatrix} 1 & 2 \end{bmatrix}\begin{bmatrix} 0.5 & 0.5 \\ -0.5 & 0.5 \end{bmatrix} = \begin{bmatrix} -0.5 & 1.5 \end{bmatrix}\\
+            A^{(1)} &= \sigma(Z^{(1)}) = \begin{bmatrix} 0.3775 & 0.8176 \end{bmatrix}\\
+            Z^{(2)} &= A^{(1)}{\theta^{(2)}}^{\top} = 0.5 \cdot 0.3775 - 0.5 \cdot 0.8176 = -0.2200\\
+            \hat{y} &= \sigma(-0.2200) = 0.4452\\
+            J &= \tfrac{1}{2}(1 - 0.4452)^{2} = 0.1539
+        \end{align*}
+        \item \textit{Backward pass}, iniciando com $\partial J/\partial J = 1$:
+        \begin{itemize}
+            \item Nodo \textit{loss}: $\frac{\partial J}{\partial \hat{y}} = \hat{y} - y = -0.5548$.
+            \item Nodo sigmoide da saída: $\delta^{(2)} = \frac{\partial J}{\partial \hat{y}} \odot \hat{y}(1-\hat{y}) = -0.5548 \cdot 0.2470 = -0.1370$.
+            \item Nodo \textit{matmul} da camada 2: $\frac{\partial J}{\partial \theta^{(2)}} = {\delta^{(2)}}^{\top}A^{(1)} = \begin{bmatrix} -0.0517 & -0.1120 \end{bmatrix}$ e $\frac{\partial J}{\partial A^{(1)}} = \delta^{(2)}\theta^{(2)} = \begin{bmatrix} -0.0685 & 0.0685 \end{bmatrix}$.
+            \item Nodo sigmoide da camada oculta: $\delta^{(1)} = \frac{\partial J}{\partial A^{(1)}} \odot A^{(1)} \odot (1 - A^{(1)}) = \begin{bmatrix} -0.0685 & 0.0685 \end{bmatrix} \odot \begin{bmatrix} 0.2350 & 0.1491 \end{bmatrix} = \begin{bmatrix} -0.0161 & 0.0102 \end{bmatrix}$.
+            \item Nodo \textit{matmul} da camada 1: $\frac{\partial J}{\partial \theta^{(1)}} = {\delta^{(1)}}^{\top}X = \begin{bmatrix} -0.0161 \\ 0.0102 \end{bmatrix}\begin{bmatrix} 1 & 2 \end{bmatrix} = \begin{bmatrix} -0.0161 & -0.0322 \\ 0.0102 & 0.0204 \end{bmatrix}$.
+        \end{itemize}
+        $X$ e $y$ são dados do problema, então não recebem gradiente.
+    \end{enumerate}
 
     \item c. Estimar o gradiente com uma única observação caracteriza o \textit{Stochastic Gradient Descent}. O \textit{Batch Gradient Descent} usa o conjunto de treino inteiro em cada passo e o \textit{Mini Batch} usa subconjuntos com mais de uma observação; \textit{Deterministic Gradient Descent} não é uma variação padrão do algoritmo.
 
