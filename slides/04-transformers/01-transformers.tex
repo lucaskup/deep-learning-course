@@ -29,6 +29,31 @@
 \newcommand{\Kc}{\textcolor{kcolor}{K}}
 \newcommand{\Vc}{\textcolor{vcolor}{V}}
 
+% Slide da arquitetura completa em duas colunas.
+% #1: texto da coluna esquerda; #2: destaques desenhados sobre a figura,
+% em coordenadas relativas ((0,0) = canto inferior esquerdo, (1,1) = superior direito).
+\tikzset{foco/.style={draw=red, line width=1.6pt}}
+\newcommand{\archslide}[2]{%
+\begin{frame}{A Arquitetura Completa}
+\begin{columns}[c]
+\begin{column}{0.46\textwidth}
+#1
+\end{column}
+\begin{column}{0.50\textwidth}
+\centering
+\begin{tikzpicture}
+    \node[anchor=south west, inner sep=0] (img) at (0,0) {\includegraphics[height=0.80\textheight]{slides/img/04-transformers/vaswani2017-arquitetura.png}};
+    \begin{scope}[x={(img.south east)}, y={(img.north west)}, overlay]
+        #2
+    \end{scope}
+\end{tikzpicture}
+
+\vspace{2pt}
+{\footnotesize Figura de Vaswani et al., 2017. \textit{Attention is All You Need.}\par}
+\end{column}
+\end{columns}
+\end{frame}}
+
 % Título
 \title{Deep Learning}
 \subtitle{Transformers: Da Atenção em RNNs à Arquitetura Completa}
@@ -291,7 +316,7 @@ c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} s_k
 \vspace{6pt}
 
 \begin{itemize}
-    \item Escalar por $\sqrt{d}$ mantém a variância dos scores em $\mathcal{O}(1)$
+    \item Escalar por $\sqrt{d}$ mantém a variância dos scores em $1$
     \item A softmax recebe valores em uma faixa estável: gradientes mais saudáveis
     \item Componente fundamental do transformer (Vaswani et al., 2017)
 \end{itemize}
@@ -329,7 +354,7 @@ A palavra \texttt{it} se refere a quais outras palavras da frase? Podemos usar \
 
 \vspace{2pt}
 \centering
-\footnotesize Vaswani et al., 2017. \textit{Attention is All You Need.}
+\footnotesize Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, {\L}., \& Polosukhin, I. (2017). Attention is All You Need. \textit{Advances in Neural Information Processing Systems}, v.\ 30.
 
 \end{frame}
 
@@ -404,23 +429,19 @@ Não há \textbf{nada para aprender} aqui: o cálculo é determinístico nas ent
 
 \begin{frame}[shrink=10]{Queries, Keys e Values}
 
-Para cada token $x_t$, projetamos em três vetores via matrizes aprendidas:
+Para cada token $x_t \in \mathbb{R}^{d_{\text{emb}}}$, projetamos em três vetores via matrizes aprendidas:
 
 \vspace{6pt}
 
 \begin{columns}[T]
-\begin{column}{0.50\textwidth}
-\[
-\textcolor{qcolor}{q_t} = x_t \, W_q + b_q
-\]
-\[
-\textcolor{kcolor}{k_t} = x_t \, W_k + b_k
-\]
-\[
-\textcolor{vcolor}{v_t} = x_t \, W_v + b_v
-\]
+\begin{column}{0.52\textwidth}
+\begin{flalign*}
+\textcolor{qcolor}{q_t} &= x_t \, W_q + b_q, & W_q &\in \mathbb{R}^{d_{\text{emb}} \times d}, & q_t &\in \mathbb{R}^{d} && \\
+\textcolor{kcolor}{k_t} &= x_t \, W_k + b_k, & W_k &\in \mathbb{R}^{d_{\text{emb}} \times d}, & k_t &\in \mathbb{R}^{d} && \\
+\textcolor{vcolor}{v_t} &= x_t \, W_v + b_v, & W_v &\in \mathbb{R}^{d_{\text{emb}} \times d_v}, & v_t &\in \mathbb{R}^{d_v} &&
+\end{flalign*}
 \end{column}
-\begin{column}{0.50\textwidth}
+\begin{column}{0.48\textwidth}
 \textbf{Analogia (recuperação de informação):}
 \begin{itemize}
     \item \textcolor{qcolor}{\textbf{Query}}: vetor que codifica uma consulta
@@ -553,11 +574,11 @@ A implementação anterior processa cada query \textbf{de forma independente}. C
 
 \vspace{6pt}
 
-\textbf{Com:}
+\textbf{Com} ($X$: \texttt{seq\_size $\times$ emb\_size}):
 \begin{itemize}
-    \item $\Qc = X W_q$, $\quad$ shape: \texttt{seq\_size $\times$ d}
-    \item $\Kc = X W_k$, $\quad$ shape: \texttt{seq\_size $\times$ d}
-    \item $\Vc = X W_v$, $\quad$ shape: \texttt{seq\_size $\times$ value\_size}
+    \item $\Qc = X W_q$, $\quad$ $W_q$: \texttt{emb\_size $\times$ d}, $\quad$ $\Qc$: \texttt{seq\_size $\times$ d}
+    \item $\Kc = X W_k$, $\quad$ $W_k$: \texttt{emb\_size $\times$ d}, $\quad$ $\Kc$: \texttt{seq\_size $\times$ d}
+    \item $\Vc = X W_v$, $\quad$ $W_v$: \texttt{emb\_size $\times$ value\_size}, $\quad$ $\Vc$: \texttt{seq\_size $\times$ value\_size}
 \end{itemize}
 
 \vspace{4pt}
@@ -922,75 +943,94 @@ Isso permite ao modelo perceber proximidade relativa entre tokens.
 \section{Arquitetura Transformer}
 % ============================================================
 
-\begin{frame}{A Arquitetura Completa}
-
+\archslide{
 Finalmente estamos prontos para abrir o transformer. Na prática, já vimos quase todos os componentes.
 
-\vspace{2pt}
+\vspace{8pt}
 
-\begin{center}
-\begin{tikzpicture}[
-    >=Stealth, font=\scriptsize,
-    transform shape, scale=0.72,
-    block/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.55cm, align=center},
-    arrow/.style={->, thick, gray!70!black},
-]
-    % Encoder column (lifted by 1.5 to align with decoder upper blocks)
-    \node[block, fill=lightred]   (ein)  at (0, 1.0) {Input Embedding};
-    \node[block, fill=mhablock]   (emha) at (0, 2.0) {Multi-Head Attention};
-    \node[block, fill=normblock]  (en1)  at (0, 2.7) {Add \& Norm};
-    \node[block, fill=ffblock]    (eff)  at (0, 3.4) {Feed Forward};
-    \node[block, fill=normblock]  (en2)  at (0, 4.1) {Add \& Norm};
+\begin{itemize}
+    \item À esquerda, o \textbf{encoder}: processa a sequência de entrada
+    \item À direita, o \textbf{decoder}: gera a saída token a token
+\end{itemize}
+}{}
 
-    % N x marker for encoder, placed to the LEFT to avoid the cross-attn arrow
-    \node[font=\scriptsize, left=0.05cm of en1] {$N\!\times$};
+% ============================================================
 
-    % Decoder column
-    \node[block, fill=lightred]   (din)  at (6.0, 0.0) {Output Embedding};
-    \node[block, fill=mhablock]   (dmha1) at (6.0, 1.0) {Masked Multi-Head};
-    \node[block, fill=normblock]  (dn1)   at (6.0, 1.7) {Add \& Norm};
-    \node[block, fill=mhablock]   (dmha2) at (6.0, 2.7) {Multi-Head (cross)};
-    \node[block, fill=normblock]  (dn2)   at (6.0, 3.4) {Add \& Norm};
-    \node[block, fill=ffblock]    (dff)   at (6.0, 4.1) {Feed Forward};
-    \node[block, fill=normblock]  (dn3)   at (6.0, 4.8) {Add \& Norm};
+\archslide{
+\textbf{Em foco: Input Embedding.}
 
-    % N x marker for decoder, placed to the RIGHT
-    \node[font=\scriptsize, right=0.05cm of dn1] {$N\!\times$};
+\vspace{6pt}
 
-    % Output head
-    \node[block, fill=lightblue]   (lin) at (6.0, 5.7) {Linear};
-    \node[block, fill=lightyellow] (sm)  at (6.0, 6.4) {Softmax};
-    \node[font=\scriptsize, anchor=south] at (sm.north) {output prob.};
+A porta de entrada do transformer: transforma índices de tokens em vetores.
+}{
+\draw[foco] (0.321,0.1675) ellipse (0.155 and 0.05);
+}
 
-    % Vertical arrows encoder
-    \draw[arrow] (ein)  -- (emha);
-    \draw[arrow] (emha) -- (en1);
-    \draw[arrow] (en1)  -- (eff);
-    \draw[arrow] (eff)  -- (en2);
+% ============================================================
 
-    % Vertical arrows decoder
-    \draw[arrow] (din)   -- (dmha1);
-    \draw[arrow] (dmha1) -- (dn1);
-    \draw[arrow] (dn1)   -- (dmha2);
-    \draw[arrow] (dmha2) -- (dn2);
-    \draw[arrow] (dn2)   -- (dff);
-    \draw[arrow] (dff)   -- (dn3);
-    \draw[arrow] (dn3)   -- (lin);
-    \draw[arrow] (lin)   -- (sm);
+\begin{frame}{Input Embedding: uma Matriz Aprendida}
 
-    % Cross-attention K, V from encoder top to decoder cross-attention block
-    \draw[arrow, dashed, red!70!black] (en2.east) to[bend left=15] node[pos=0.55, above, font=\scriptsize, fill=white, inner sep=1pt]{$K, V$} (dmha2.west);
+Após a tokenização, cada token da sequência é um \textbf{índice inteiro} do vocabulário $V$.
 
-    % Positional encoding annotations
-    \node[font=\scriptsize, anchor=east] at ([xshift=-0.1cm]ein.west) {PE $\bigoplus$};
-    \node[font=\scriptsize, anchor=west] at ([xshift=0.1cm]din.east)  {$\bigoplus$ PE};
-\end{tikzpicture}
-\end{center}
+\vspace{6pt}
 
-\vspace{2pt}
-\centering
-\footnotesize Vaswani et al., 2017. \textit{Attention is All You Need.}
+\begin{block}{A camada de embedding}
+É uma \textbf{matriz de parâmetros aprendidos}
+\[
+E \in \mathbb{R}^{|V| \times d},
+\]
+com uma linha por token do vocabulário: a linha $t$ é o embedding do token de índice $t$. A matriz é treinada por backpropagation como qualquer outro peso da rede.
+\end{block}
+
+\vspace{6pt}
+
+\begin{exampleblock}{Ordem de grandeza}
+Com $|V| = 50\,000$ e $d = 512$, a camada de embedding tem $|V| \times d = 25{,}6$ milhões de parâmetros.
+\end{exampleblock}
+
 \end{frame}
+
+% ============================================================
+
+\begin{frame}{Selecionando o Embedding de um Token}
+
+Como o modelo seleciona o embedding do token de índice $t$? O índice vira um vetor \textbf{one-hot} $u \in \{0,1\}^{|V|}$, com $1$ apenas na posição $t$, e o produto $u^{\top} E$ devolve exatamente a \textbf{linha $t$} de $E$.
+
+\vspace{4pt}
+
+\begin{exampleblock}{Exemplo com $|V| = 4$ e $d = 3$, token de índice $3$}
+\[
+u^{\top} E =
+\begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix}
+\begin{bmatrix}
+0.2 & -1.1 & 0.7 \\
+1.5 & 0.3 & -0.4 \\
+-0.8 & 0.9 & 2.1 \\
+0.6 & -0.5 & 1.3
+\end{bmatrix}
+=
+\begin{bmatrix} -0.8 & 0.9 & 2.1 \end{bmatrix}
+= E_{3,:}
+\]
+\end{exampleblock}
+
+\vspace{6pt}
+
+Na prática, os frameworks implementam a operação como \textit{lookup}: indexam a linha $t$ diretamente, sem multiplicação de matrizes.
+
+\end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: Multi-Head Attention.}
+
+\vspace{6pt}
+
+O bloco de atenção que já conhecemos, agora dividido em várias ``cabeças'' paralelas.
+}{
+\draw[foco] (0.322,0.3725) ellipse (0.16 and 0.055);
+}
 
 % ============================================================
 
@@ -1051,6 +1091,19 @@ Finalmente estamos prontos para abrir o transformer. Na prática, já vimos quas
 \end{columns}
 
 \end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: Add \& Norm.}
+
+\vspace{6pt}
+
+Skip connections e normalização em torno de cada sub-bloco do encoder e do decoder.
+}{
+\draw[foco] (0.322,0.5925) ellipse (0.15 and 0.035);
+\draw[foco] (0.322,0.4275) ellipse (0.15 and 0.035);
+}
 
 % ============================================================
 
@@ -1144,6 +1197,18 @@ Para um \textit{token} $x_i \in \mathbb{R}^{d}$,
 
 % ============================================================
 
+\archslide{
+\textbf{Em foco: Feed Forward.}
+
+\vspace{6pt}
+
+Um pequeno MLP aplicado a cada posição da sequência, de forma independente.
+}{
+\draw[foco] (0.322,0.5375) ellipse (0.15 and 0.05);
+}
+
+% ============================================================
+
 \begin{frame}{Feed-Forward Network}
 
 Após o bloco \textit{Multi-Head Attention} e o \textit{Add \& Norm}, o transformer aplica um pequeno MLP a cada posição.
@@ -1166,6 +1231,18 @@ Após o bloco \textit{Multi-Head Attention} e o \textit{Add \& Norm}, o transfor
 \end{itemize}
 
 \end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: o bloco do encoder.}
+
+\vspace{6pt}
+
+Os componentes que acabamos de ver formam um bloco, replicado $N$ vezes.
+}{
+\draw[foco] (0.27,0.457) ellipse (0.245 and 0.21);
+}
 
 % ============================================================
 
@@ -1193,6 +1270,18 @@ Replicamos esse bloco $N$ vezes (no paper original, $N = 6$). Cada bloco refina 
 \end{itemize}
 
 \end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: Masked Multi-Head Attention.}
+
+\vspace{6pt}
+
+O primeiro bloco de atenção do decoder só pode olhar para tokens já gerados.
+}{
+\draw[foco] (0.676,0.3825) ellipse (0.16 and 0.068);
+}
 
 % ============================================================
 
@@ -1243,7 +1332,7 @@ O modelo nunca olha para tokens à direita: a atenção é estritamente \textbf{
 \centering
 \begin{tikzpicture}[font=\scriptsize]
 \matrix (m) [matrix of nodes,
-    nodes={draw, minimum size=0.55cm, anchor=center},
+    nodes={draw, minimum size=0.55cm, anchor=center, inner sep=0pt},
     column sep=-\pgflinewidth, row sep=-\pgflinewidth,
 ] {
 |[fill=lightgreen]| 0 & |[fill=lightred]| {\tiny$-\infty$} & |[fill=lightred]| {\tiny$-\infty$} & |[fill=lightred]| {\tiny$-\infty$} \\
@@ -1258,6 +1347,18 @@ O modelo nunca olha para tokens à direita: a atenção é estritamente \textbf{
 \end{columns}
 
 \end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: cross-attention.}
+
+\vspace{6pt}
+
+O segundo bloco de atenção do decoder consulta a saída do encoder.
+}{
+\draw[foco] (0.676,0.56) ellipse (0.16 and 0.055);
+}
 
 % ============================================================
 
@@ -1285,6 +1386,18 @@ Ao gerar a palavra ``cat'', a query do decoder consulta as keys do encoder e des
 \end{exampleblock}
 
 \end{frame}
+
+% ============================================================
+
+\archslide{
+\textbf{Em foco: a cabeça de saída.}
+
+\vspace{6pt}
+
+Uma projeção linear seguida de softmax produz a distribuição sobre o próximo token.
+}{
+\draw[foco] (0.676,0.86) ellipse (0.155 and 0.065);
+}
 
 % ============================================================
 
@@ -1320,37 +1433,23 @@ A geração ocorre token a token: amostramos (ou pegamos o argmax) do próximo t
 \section{Interpretabilidade}
 % ============================================================
 
-\begin{frame}[fragile]{A Matriz de Atenção como Janela para o Modelo}
+\begin{frame}{A Matriz de Atenção como Janela para o Modelo}
 
 Os mecanismos de atenção são \textbf{especialmente fáceis de inspecionar}: podemos plotar os pesos da atenção e ver o que o modelo está ``olhando''.
 
-\vspace{8pt}
+\vspace{2pt}
 
 \begin{center}
-\begin{tikzpicture}[font=\scriptsize]
-\matrix (m) [matrix of nodes,
-    nodes={draw, minimum size=0.45cm, anchor=center, font=\tiny},
-    column sep=-\pgflinewidth, row sep=-\pgflinewidth,
-] {
-|[fill=black!80]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  \\
-|[fill=black!10]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!75]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!20]|  & |[fill=black!90]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-|[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!85]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  & |[fill=black!10]|  \\
-};
-\end{tikzpicture}
+\includegraphics[height=0.50\textheight]{slides/img/04-transformers/voita2019-attention-weights.png}
 \end{center}
 
-\vspace{6pt}
+\vspace{2pt}
 
-\textbf{Exemplo (tradução):} a diagonal predominante mostra que, em uma tarefa de tradução, cada token alvo tende a atender ao token correspondente da fonte.
+\textbf{Exemplo real:} self-attention no encoder de um modelo de tradução. A diagonal predominante mostra que cada token atende sobretudo a si mesmo e aos vizinhos.
 
 \vspace{2pt}
 \centering
-\footnotesize Voita et al., 2019. \textit{Analyzing multi-head self-attention.}
+\footnotesize Figura de Voita et al., 2019. \textit{Analyzing multi-head self-attention.}
 
 \end{frame}
 

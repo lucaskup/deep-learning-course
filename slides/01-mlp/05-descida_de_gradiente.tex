@@ -236,7 +236,7 @@
           \item $\|u\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
           \item Logo, o sinal vem inteiramente de $\cos(\beta)$.
           \item Negativo para $\beta\in(90^{\circ},180^{\circ})$.
-          \item \alert{Mais negativo} para $\beta=180^{\circ}$, ou seja
+          \item \alert{``Mais negativo''} para $\beta=180^{\circ}$, ou seja
             $u=-\nabla_{\thetav}\mathcal{L}$.
         \end{itemize}
       \end{column}
@@ -368,7 +368,11 @@
   \end{frame}
 
   %======================================================================
-  \section{Tamanho do Mini-batch}
+  \section{Otimizadores}
+  %======================================================================
+
+  %======================================================================
+  \subsection{Tamanho do Mini-batch}
   %======================================================================
 
   %--- Slide: três tamanhos canônicos ---
@@ -452,8 +456,25 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: exemplo numérico SGD ---
+  \begin{frame}{Exemplo numérico: descida de gradiente}
+    \begin{block}{Cenário}
+      \[
+        \eta = 0.1,\qquad \theta_t = \cvec{3}{5},\qquad
+        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2}.
+      \]
+    \end{block}
+    \[
+      \theta_{t+1} = \theta_t - \eta\,\nabla_{\theta}\mathcal{L}(\theta_t)
+      = \cvec{3}{5} - 0.1\,\cvec{1}{2} = \cvec{2.9}{4.8}.
+    \]
+    \begin{itemize}
+      \item O passo é proporcional ao gradiente: a segunda coordenada anda o dobro (0.2 contra 0.1).
+    \end{itemize}
+  \end{frame}
+
   %======================================================================
-  \section{Momentum e Nesterov}
+  \subsection{Momentum e Nesterov}
   %======================================================================
 
   %--- Slide: motivação ---
@@ -497,6 +518,25 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: exemplo numérico Momentum ---
+  \begin{frame}{Exemplo numérico: \textit{Momentum}}
+    \begin{block}{Cenário}
+      \[
+        \eta = 0.1,\quad \beta = 0.9,\quad \theta_t = \cvec{3}{5},\quad
+        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2},\quad v_t = \cvec{2}{1}.
+      \]
+    \end{block}
+    \[
+      \begin{aligned}
+        v_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{1}{2} = \cvec{1.9}{1.1}\\[4pt]
+        \theta_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.9}{1.1} = \cvec{2.81}{4.89}
+      \end{aligned}
+    \]
+    \begin{itemize}
+      \item A memória $v_t$ empurra o passo além do gradiente atual: 0.19 na primeira coordenada, contra 0.1 do SGD.
+    \end{itemize}
+  \end{frame}
+
   %--- Slide: Nesterov ---
   \begin{frame}{\textit{Nesterov Accelerated Momentum}\footfullcite{nesterov1983method}}
     \begin{itemize}
@@ -534,8 +574,31 @@
     \end{columns}
   \end{frame}
 
+  %--- Slide: exemplo numérico Nesterov ---
+  \begin{frame}{Exemplo numérico: Nesterov}
+    \begin{block}{Cenário}
+      \[
+        \eta=0.1,\quad \beta=0.9,\quad \theta_t=\cvec{3}{5},\quad v_t=\cvec{2}{1}.
+      \]
+    \end{block}
+    Ponto adiantado pelo momentum e gradiente avaliado nele:
+    \[
+      \theta_t - \eta\beta\,v_t = \cvec{3}{5} - 0.09\,\cvec{2}{1} = \cvec{2.82}{4.91},
+      \qquad \nabla_{\theta}\mathcal{L}\!\left(\cvec{2.82}{4.91}\right) = \cvec{0.8}{1.6}.
+    \]
+    \[
+      \begin{aligned}
+        v_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{0.8}{1.6} = \cvec{1.88}{1.06}\\[4pt]
+        \theta_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.88}{1.06} = \cvec{2.812}{4.894}
+      \end{aligned}
+    \]
+    \begin{itemize}
+      \item O gradiente é medido já no ponto deslocado pelo momentum, não em $\theta_t$.
+    \end{itemize}
+  \end{frame}
+
   %======================================================================
-  \section{Métodos com Taxa Adaptativa}
+  \subsection{Métodos com Taxa Adaptativa}
   %======================================================================
 
   %--- Slide: motivação normalização ---
@@ -567,8 +630,27 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: exemplo numérico normalização ---
+  \begin{frame}{Exemplo numérico: normalização do gradiente}
+    \begin{block}{Cenário}
+      \[
+        \eta=0.1,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad \epsilon\approx 0.
+      \]
+    \end{block}
+    \[
+      m_{t+1} = \cvec{1}{2},\qquad v_{t+1} = \cvec{1^2}{2^2} = \cvec{1}{4}.
+    \]
+    \[
+      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}}
+      = \cvec{3}{5} - 0.1\,\cvec{1}{1} = \cvec{2.9}{4.9}.
+    \]
+    \begin{itemize}
+      \item Divisão elemento a elemento. Apesar do gradiente assimétrico, o passo normalizado é igual nas duas coordenadas.
+    \end{itemize}
+  \end{frame}
+
   %--- Slide: AdaGrad ---
-  \begin{frame}{AdaGrad\footfullcite{duchi2011adagrad}}
+  \begin{frame}{AdaGrad: \textit{Adaptive (per-parameter) Gradient}\footfullcite{duchi2011adagrad}}
     \begin{block}{Atualização}
       \[
         G_{t+1} = G_{t} + \big(\nabla_{\thetav}\mathcal{L}\big)^{2}
@@ -578,21 +660,38 @@
       \]
     \end{block}
     \begin{itemize}
-      \item \textit{Adaptive (per-parameter) Gradient}.
       \item Cada parâmetro tem sua própria taxa de aprendizado efetiva, baseada em
         $G_{t}$, a soma acumulada dos gradientes ao quadrado.
       \item Parâmetros com gradientes consistentemente grandes recebem passos menores;
         parâmetros raros recebem passos maiores.
     \end{itemize}
     \begin{alertblock}{Limitação}
-      $G_{t}$ é monotonamente crescente, logo $\dfrac{\eta}{\sqrt{G_{t}}+\epsilon}$ decai sempre. Após muitas iterações, a taxa efetiva tende a zero e o aprendizado para, mesmo se ainda houver progresso a fazer. Como evitar a decadência sem perder a normalização por parâmetro?
+      $G_{t}$ é monotonamente crescente, logo $\dfrac{\eta}{\sqrt{G_{t}}+\epsilon}$ decai sempre. Após muitas iterações, a taxa efetiva tende a zero e o aprendizado para.
     \end{alertblock}
   \end{frame}
 
-  %--- Slide: RMSProp ---
-  \begin{frame}{RMSProp\footfullcite{tieleman2012rmsprop}}
+  %--- Slide: exemplo numérico AdaGrad ---
+  \begin{frame}{Exemplo numérico: AdaGrad}
+    \begin{block}{Cenário}
+      \[
+        \eta=0.1,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad G_t=\cvec{24}{12}.
+      \]
+    \end{block}
+    \[
+      G_{t+1} = \cvec{24}{12} + \cvec{1^2}{2^2} = \cvec{25}{16}.
+    \]
+    \[
+      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{25}}{2/\sqrt{16}}
+      = \cvec{3}{5} - 0.1\,\cvec{0.2}{0.5} = \cvec{2.98}{4.95}.
+    \]
     \begin{itemize}
-      \item \textit{Root Mean Square Propagation}.
+      \item $G_t$ acumula os quadrados dos gradientes e só cresce. Cada coordenada ganha uma taxa efetiva própria $\eta/\sqrt{G_{t+1}}$, então o passo $(0.02,\ 0.05)$ difere entre os parâmetros: fica menor onde $G$ acumulou mais.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: RMSProp ---
+  \begin{frame}{RMSProp: \textit{Root Mean Square Propagation}\footfullcite{tieleman2012rmsprop}}
+    \begin{itemize}
       \item Apresentado por Hinton em um \textit{slide} de aula; nunca foi formalmente publicado.
       \item Disponível em praticamente todos os \textit{frameworks}.
       \item Ideia: substituir a soma do AdaGrad por uma \textbf{média móvel exponencial}.
@@ -611,10 +710,27 @@
     \end{itemize}
   \end{frame}
 
-  %--- Slide: Adam motivação ---
-  \begin{frame}{Adam\footfullcite{kingma2015adam}: combinando momentum e normalização}
+  %--- Slide: exemplo numérico RMSProp ---
+  \begin{frame}{Exemplo numérico: RMSProp}
+    \begin{block}{Cenário}
+      \[
+        \eta=0.1,\quad \rho=0.9,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad \mathbb{E}[g^2]_t=\cvec{1}{4}.
+      \]
+    \end{block}
+    \[
+      \mathbb{E}[g^2]_{t+1} = 0.9\,\cvec{1}{4} + 0.1\,\cvec{1}{4} = \cvec{1}{4}.
+    \]
+    \[
+      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
+    \]
     \begin{itemize}
-      \item \textit{Adaptive Moment Estimation}.
+      \item Mesmo passo do AdaGrad neste instante; a diferença (média móvel contra soma acumulada) aparece ao longo de várias iterações.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam motivação ---
+  \begin{frame}{Adam: \textit{Adaptive Moment Estimation}\footfullcite{kingma2015adam}}
+    \begin{itemize}
       \item Junta as duas ideias vistas: \textbf{momentum} (sobre o gradiente) e
         \textbf{normalização} (pela raiz da média móvel do gradiente ao quadrado).
       \item Considerado, por muitos anos, o otimizador padrão para deep learning.
@@ -655,6 +771,29 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: exemplo numérico Adam ---
+  \begin{frame}{Exemplo numérico: Adam (primeiro passo)}
+    \begin{block}{Cenário}
+      \[
+        \eta=0.1,\ \beta_1=0.9,\ \beta_2=0.999,\ \theta_t=\cvec{3}{5},\ \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\ m_0=v_0=0.
+      \]
+    \end{block}
+    \[
+      m_1 = 0.1\,\cvec{1}{2} = \cvec{0.1}{0.2},\qquad v_1 = 0.001\,\cvec{1}{4} = \cvec{0.001}{0.004}.
+    \]
+    Correção de viés ($t=1$):
+    \[
+      \widetilde{m}_1 = \frac{1}{1-0.9}\cvec{0.1}{0.2} = \cvec{1}{2},\qquad
+      \widetilde{v}_1 = \frac{1}{1-0.999}\cvec{0.001}{0.004} = \cvec{1}{4}.
+    \]
+    \[
+      \theta_1 = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
+    \]
+    \begin{itemize}
+      \item A correção de viés desfaz a subestimativa inicial: o passo por parâmetro fica $\approx \eta$.
+    \end{itemize}
+  \end{frame}
+
   %--- Slide: Adam visual em loss anisotrópica (figura limpa) ---
   \begin{frame}{Por que o Adam ajuda em loss anisotrópica}
     \begin{columns}
@@ -689,41 +828,122 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: AdamW ---
+  \begin{frame}{AdamW: \textit{weight decay} desacoplado\footfullcite{loshchilov2019adamw}}
+    \begin{itemize}
+      \item \textit{Weight decay}: encolher os pesos um pouco a cada passo, penalizando
+        pesos de magnitude alta.
+      \item No SGD, basta somar $\lambda\,\thetav_t$ ao gradiente: o efeito é o decaimento
+        multiplicativo $(1-\eta\lambda)\,\thetav_t$.
+      \item No Adam, esse termo entraria em $m$ e $v$ e passaria pela divisão por
+        $\sqrt{\widetilde{v}}$: pesos com histórico de gradientes grandes quase não decairiam.
+      \item O \textbf{AdamW} desacopla o decaimento, aplicando-o fora da parte adaptativa:
+    \end{itemize}
+    \begin{block}{Atualização do AdamW}
+      \[
+        \thetav_{t+1}=\thetav_{t}-\eta\left(\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}+\epsilon}
+        + \lambda\,\thetav_{t}\right)
+      \]
+    \end{block}
+  \end{frame}
+
   %======================================================================
-  \section{MUON: a próxima geração}
+  \subsection{Muon: a próxima geração}
   %======================================================================
 
-  %--- Slide: motivação MUON ---
-  \begin{frame}{O que mudou desde Adam (2015)?}
+  %--- Slide: motivação Muon ---
+  \begin{frame}{Muon: \textit{MomentUm Orthogonalized by Newton-schulz}\footfullcite{jordan2024muon}}
     \begin{itemize}
       \item Por quase uma década, Adam (e variantes como AdamW) foi o padrão de fato em
         deep learning.
-      \item Em 2024, o otimizador \textbf{MUON}\footfullcite{jordan2024muon} foi proposto
-        como o primeiro avanço fundamental significativo desde Adam.
-      \item Foco do MUON: as \alert{matrizes de pesos} das camadas ocultas (parâmetros 2D).
-        Bias e \textit{embeddings} continuam usando Adam ou SGD.
+      \item Em 2024, o \textbf{Muon} foi proposto, apresentado pelos autores como o
+        primeiro avanço fundamental desde Adam.
+      \item Foco do Muon: as \alert{matrizes de pesos} das camadas ocultas (parâmetros 2D).
+        Bias e \textit{embeddings} continuam usando AdamW.
     \end{itemize}
   \end{frame}
 
-  %--- Slide: ideia central MUON ---
+  %--- Slide: valores singulares (conceito) ---
+  \begin{frame}{Valores singulares: quanto a matriz estica cada direção}
+    Uma matriz $A$ leva todos os vetores de norma 1 em uma \alert{elipse}.
+    \vfill
+    \centering
+    \begin{tikzpicture}[scale=0.72]
+      \begin{scope}[shift={(-3.6,0)}]
+        \draw[gray!40,->] (-1.5,0)--(1.5,0);
+        \draw[gray!40,->] (0,-1.5)--(0,1.5);
+        \draw[very thick,NavyBlue] (0,0) circle (1);
+        \node[below] at (0,-1.8) {\small vetores de norma 1};
+      \end{scope}
+      \draw[->,very thick] (-1.6,0) -- node[above]{$A$} (0.4,0);
+      \begin{scope}[shift={(3.6,0)}]
+        \draw[gray!40,->] (-2.3,0)--(2.3,0);
+        \draw[gray!40,->] (0,-1.5)--(0,1.5);
+        \draw[very thick,BrickRed,rotate=25] (0,0) ellipse (2 and 0.6);
+        \draw[->,thick,rotate=25] (0,0) -- node[sloped,above,pos=0.6]{$\sigma_1$} (2,0);
+        \draw[->,thick,rotate=25] (0,0) -- (0,0.6) node[above,inner sep=1.5pt]{$\sigma_2$};
+        \node[below] at (0,-1.8) {\small a imagem é uma elipse};
+      \end{scope}
+    \end{tikzpicture}
+    \vfill
+    \raggedright
+    \begin{itemize}
+      \item Os \textbf{valores singulares} $\sigma_1\ge\sigma_2$ são os comprimentos dos semieixos.
+      \item $\sigma$ grande significa direção muito amplificada; $\sigma$ pequeno, direção quase apagada.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: matrizes ortogonais (conceito) ---
+  \begin{frame}{Ortogonalizar: transformar a elipse em círculo}
+    Uma matriz $O$ é \textbf{ortogonal} quando $O^{\top}O=I$, ou seja, suas colunas têm norma 1 \alert{e} são ortogonais entre si.
+    \vfill
+    \centering
+    \begin{tikzpicture}[scale=0.72]
+      \begin{scope}[shift={(-3.6,0)}]
+        \draw[gray!40,->] (-2.3,0)--(2.3,0);
+        \draw[gray!40,->] (0,-1.5)--(0,1.5);
+        \draw[very thick,BrickRed,rotate=25] (0,0) ellipse (2 and 0.6);
+        \draw[->,thick,rotate=25] (0,0) -- node[sloped,above,pos=0.6]{$\sigma_1$} (2,0);
+        \draw[->,thick,rotate=25] (0,0) -- (0,0.6) node[above,inner sep=1.5pt]{$\sigma_2$};
+        \node[below] at (0,-1.8) {\small $\sigma_1 \gg \sigma_2$};
+      \end{scope}
+      \draw[->,very thick] (-1.2,0) -- node[above,align=center]{\small ortogonalizar} (1.2,0);
+      \begin{scope}[shift={(3.6,0)}]
+        \draw[gray!40,->] (-1.5,0)--(1.5,0);
+        \draw[gray!40,->] (0,-1.5)--(0,1.5);
+        \draw[very thick,NavyBlue] (0,0) circle (1);
+        \draw[->,thick,rotate=25] (0,0) -- (1,0);
+        \draw[->,thick,rotate=25] (0,0) -- (0,1);
+        \node[below] at (0,-1.8) {\small $\sigma_1=\sigma_2=1$};
+      \end{scope}
+    \end{tikzpicture}
+    \vfill
+    \raggedright
+    \begin{itemize}
+      \item Uma matriz ortogonal preserva comprimentos e ângulos: leva o círculo nele mesmo.
+      \item \textbf{Ortogonalizar} $M$ é trocá-la pela matriz ortogonal mais próxima, mantendo as direções singulares e igualando todos os $\sigma$ a 1.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: ideia central Muon ---
   \begin{frame}{Ideia central: ortogonalizar a atualização}
     \begin{itemize}
       \item As matrizes de gradientes em redes neurais costumam ter \textit{rank efetivo}
         baixo, ou seja, são dominadas por poucas direções singulares.
       \item Isso desperdiça capacidade do passo: direções pequenas mas úteis recebem
         magnitude desprezível.
-      \item MUON substitui a matriz de atualização pela \alert{matriz ortogonal mais próxima},
+      \item Muon substitui a matriz de atualização pela \alert{matriz ortogonal mais próxima},
         redistribuindo a magnitude entre todas as direções singulares.
-      \item Geometricamente, o passo do MUON é a \textit{steepest descent} sob a norma
+      \item Geometricamente, o passo do Muon é a \textit{steepest descent} sob a norma
         espectral, não sob a norma de Frobenius.
     \end{itemize}
   \end{frame}
 
-  %--- Slide: pseudocódigo MUON ---
-  \begin{frame}{Pseudocódigo do MUON}
+  %--- Slide: pseudocódigo Muon ---
+  \begin{frame}{Pseudocódigo do Muon}
     \begin{block}{Atualização (matriz $G$ do gradiente)}
       \begin{algorithmic}[1]
-        \State $M_{t+1} \gets \beta M_{t} + (1-\beta)\,G_{t}$ \Comment{momentum (média móvel dos gradientes)}
+        \State $M_{t+1} \gets \beta M_{t} + G_{t}$ \Comment{momentum (acumulador de gradientes)}
         \State $\widehat{M}_{t+1} \gets M_{t+1}/\|M_{t+1}\|_{F}$ \Comment{normaliza pela norma de Frobenius}
         \State $O_{t+1} \gets \mathrm{NewtonSchulz5}(\widehat{M}_{t+1})$ \Comment{aproxima a matriz ortogonal mais próxima}
         \State $W_{t+1} \gets W_{t} - \eta\,O_{t+1}$
@@ -731,12 +951,112 @@
     \end{block}
     \begin{itemize}
       \item Newton-Schulz é uma iteração de polinômios matriciais que aproxima a parte
-        ortogonal de $\widehat{M}$ sem calcular SVD.
-      \item Com 5 passos, roda eficientemente em \textit{tensor cores} de GPU.
+        ortogonal de $\widehat{M}$ sem calcular SVD. Com 5 passos, roda eficientemente
+        em \textit{tensor cores} de GPU.
+      \item A normalização da linha 2 existe só para trazer os valores singulares à região
+        de convergência do Newton-Schulz: a matriz ortogonal mais próxima não muda com a escala.
+    \end{itemize}
+    {\footnotesize\color{gray!50!black}Na implementação de referência, a normalização ocorre
+    dentro do \texttt{NewtonSchulz5}, o momentum usa a variante de Nesterov e o passo é
+    reescalado por $\sqrt{\max(m,n)}$ para casar a magnitude com a do AdamW.}
+  \end{frame}
+
+  %--- Slide: exemplo numérico Muon (parte 1) ---
+  \begin{frame}{Exemplo numérico: Muon (momentum e normalização)}
+    \begin{block}{Cenário: parâmetro 2D, como o Muon exige}
+      \[
+        \eta=0.1,\quad \beta=0.9,\quad
+        W_t=\begin{bmatrix}3&5\\2&4\end{bmatrix},\quad
+        M_t=\begin{bmatrix}2&-3\\5&2\end{bmatrix},\quad
+        G_t=\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}.
+      \]
+    \end{block}
+    Passo 1, momentum (elemento a elemento):
+    \[
+      M_{t+1}=0.9\begin{bmatrix}2&-3\\5&2\end{bmatrix}+\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}
+      =\begin{bmatrix}3&-1\\7&3\end{bmatrix}.
+    \]
+    Passo 2, normalização pela norma de Frobenius:
+    \[
+      \|M_{t+1}\|_{F}=\sqrt{9+1+49+9}=\sqrt{68}\approx 8.25,
+      \qquad
+      \widehat{M}_{t+1}\approx\begin{bmatrix}0.36&-0.12\\0.85&0.36\end{bmatrix}.
+    \]
+    \begin{itemize}
+      \item Falta o passo 3, a ortogonalização. Antes dele, vejamos o que $M_{t+1}$ faz com cada direção.
     \end{itemize}
   \end{frame}
 
-  %--- Slide: intuição MUON ---
+  %--- Slide: calculo dos valores singulares ---
+  \begin{frame}{Os valores singulares de $M_{t+1}$}
+    Os valores singulares de $M$ são as raízes quadradas dos autovalores de $M^{\top}M$:
+    \[
+      M_{t+1}^{\top}M_{t+1}
+      =\begin{bmatrix}3&7\\-1&3\end{bmatrix}\begin{bmatrix}3&-1\\7&3\end{bmatrix}
+      =\begin{bmatrix}58&18\\18&10\end{bmatrix}.
+    \]
+    Com traço e determinante
+    \[
+      \operatorname{tr}\!\big(M^{\top}M\big)=58+10=68,
+      \qquad
+      \det\!\big(M^{\top}M\big)=58\cdot 10-18\cdot 18=580-324=256,
+    \]
+    a equação característica fica
+    \[
+      \lambda^{2}-68\lambda+256=0,
+      \qquad
+      \lambda=\frac{68\pm\sqrt{4624-1024}}{2}=\frac{68\pm 60}{2}.
+    \]
+    \[
+      \lambda_1=64,\quad \lambda_2=4
+      \qquad\Longrightarrow\qquad
+      \sigma_1=8,\quad \sigma_2=2.
+    \]
+    \begin{itemize}
+      \item Uma direção é amplificada 4 vezes mais que a outra: é a assimetria que o Muon vai corrigir.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: exemplo numérico Muon (parte 2) ---
+  \begin{frame}{Exemplo numérico: Muon (a tentativa ingênua)}
+    As colunas de $M_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ não são ortogonais entre si:
+    \[
+      (3,\,7)\cdot(-1,\,3) = -3+21 = 18 \neq 0.
+    \]
+    A tentativa ingênua seria normalizar cada coluna separadamente:
+    \[
+      \frac{(3,\,7)}{\sqrt{58}}=(0.39,\,0.92),
+      \qquad
+      \frac{(-1,\,3)}{\sqrt{10}}=(-0.32,\,0.95).
+    \]
+    \begin{alertblock}{Normalizar as colunas não basta}
+      Cada coluna ficou com norma 1, mas o produto interno entre elas é $0.75$, ainda longe de zero. A matriz resultante não é ortogonal.
+    \end{alertblock}
+  \end{frame}
+
+  %--- Slide: exemplo numérico Muon (parte 3) ---
+  \begin{frame}{Exemplo numérico: Muon (ortogonalização e atualização)}
+    Passo 3, ortogonalização de $M_{t+1}=\begin{bmatrix}a&b\\c&d\end{bmatrix}$ por forma fechada (requer $\det M_{t+1}>0$):
+    \[
+      \det M_{t+1}=3\cdot 3-(-1)\cdot 7=16,\qquad
+      p=a+d=6,\qquad q=c-b=8,\qquad \sqrt{p^{2}+q^{2}}=10,
+    \]
+    \[
+      O_{t+1}=\frac{1}{10}\begin{bmatrix}6&-8\\8&6\end{bmatrix}=\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}.
+    \]
+    Passo 4, atualização dos pesos:
+    \[
+      W_{t+1}=\begin{bmatrix}3&5\\2&4\end{bmatrix}-0.1\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}
+      =\begin{bmatrix}2.94&5.08\\1.92&3.94\end{bmatrix}.
+    \]
+    \begin{itemize}
+      \item Os valores singulares passaram de $(8,\,2)$ para $(1,\,1)$: toda direção com igual magnitude.
+      \item Aplicamos a forma fechada a $M_{t+1}$, não a $\widehat{M}_{t+1}$: as duas têm a mesma
+        ortogonal mais próxima. A normalização do passo 2 só importa para a convergência do Newton-Schulz.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: intuição Muon ---
   \begin{frame}{Intuição: por que ortogonalizar ajuda?}
     \begin{columns}
       \begin{column}{.55\linewidth}
@@ -745,7 +1065,7 @@
             com magnitude pequena.
           \item Adam normaliza \textit{por parâmetro} (entrada da matriz), mas não trata o
             problema de \textit{rank} efetivo.
-          \item MUON normaliza \textit{por direção singular}: todas as direções recebem
+          \item Muon normaliza \textit{por direção singular}: todas as direções recebem
             magnitude semelhante.
           \item Resultado: melhor uso da capacidade de cada passo, especialmente em redes
             largas.
@@ -770,7 +1090,7 @@
               };
               \addlegendentry{gradiente bruto}
               \addplot+[fill=Green!60,draw=Green!60!black] coordinates {
-                (1,0.62)(2,0.62)(3,0.62)(4,0.62)(5,0.62)(6,0.62)(7,0.62)(8,0.62)
+                (1,1.0)(2,1.0)(3,1.0)(4,1.0)(5,1.0)(6,1.0)(7,1.0)(8,1.0)
               };
               \addlegendentry{após ortogonalização}
             \end{axis}
@@ -780,14 +1100,16 @@
     \end{columns}
   \end{frame}
 
-  %--- Slide: resultados MUON ---
+  %--- Slide: resultados Muon ---
   \begin{frame}{Resultados empíricos}
     \begin{itemize}
       \item Recordes de velocidade em \textit{NanoGPT speedrun} ($\sim$1.35$\times$ speedup
         para atingir loss de validação 3.28).
       \item Recordes em CIFAR-10 \textit{speedrun} (de 3.3 para 2.6 segundos-A100 para
         atingir 94\% de acurácia).
-      \item Escalabilidade demonstrada até 1.5B de parâmetros (Liu et al., 2025).
+      \item Em larga escala: o Moonlight\footfullcite{liu2025muonscalable}, um MoE de 16B de
+        parâmetros, foi treinado com Muon; o Kimi K2\footfullcite{kimiteam2025k2}, com 1
+        trilhão de parâmetros, usou a variante MuonClip.
     \end{itemize}
     \vfill
     \begin{alertblock}{Limitações práticas}
@@ -807,8 +1129,8 @@
         dos modelos.
       \item \textbf{Visão computacional clássica}: SGD com momentum costuma generalizar tão
         bem ou melhor, especialmente com \textit{learning rate schedules} bem ajustados.
-      \item \textbf{Modelos grandes (LLMs)}: Adam/AdamW continuam sendo o padrão; MUON é
-        emergente e relevante para parâmetros 2D em camadas ocultas.
+      \item \textbf{Modelos grandes (LLMs)}: AdamW continua sendo o padrão; Muon vem
+        ganhando adoção para as matrizes das camadas ocultas (Moonlight, Kimi K2).
       \item \textbf{Importante}: a taxa de aprendizado $\eta$ é o hiperparâmetro de maior
         impacto em qualquer um deles.
     \end{itemize}
@@ -822,7 +1144,7 @@
       \item Capítulos 4 e 8 de \fullcite{goodfellow2016deep}
       \item Capítulo 6 de \fullcite{prince2023understanding}
       \item Adam original: \fullcite{kingma2015adam}
-      \item MUON: \fullcite{jordan2024muon}
+      \item Muon: \fullcite{jordan2024muon}
     \end{itemize}
   \end{frame}
 

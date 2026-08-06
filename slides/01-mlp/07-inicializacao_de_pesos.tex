@@ -77,8 +77,8 @@
       \item Antes da primeira atualização, a rede não foi ajustada aos dados.
       \item A magnitude das ativações em cada camada é determinada inteiramente pelos
         pesos iniciais e pelas funções de ativação.
-      \item Se a magnitude crescer ou encolher exponencialmente camada após camada,
-        o gradiente faz o mesmo.
+      \item Se a magnitude das ativações crescer ou encolher exponencialmente
+        camada após camada, o gradiente faz o mesmo.
     \end{itemize}
   \end{frame}
 
@@ -123,7 +123,7 @@
     \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
       \node (x) at (0, 0) {$X = A^{[0]}$};
       \node[below=0.15cm of x, font=\scriptsize, align=center]
-        {batch de 100 imagens $28\times28$\\shape $(784, 100)$};
+        {batch de 100 imagens $28\times28$\\shape $(100, 784)$};
       \node[circle, draw, minimum size=1.1cm] (h1) at (2.6, 0) {tanh};
       \node[circle, draw, minimum size=1.1cm] (h2) at (5.2, 0) {tanh};
       \node[circle, draw, minimum size=1.1cm] (h3) at (7.8, 0) {tanh};
@@ -131,12 +131,12 @@
       \node[circle, draw, minimum size=1.1cm, font=\scriptsize] (out) at (13.2, 0) {softmax};
       \node (y) at (15.8, 0) {$\hat{y} = A^{[5]}$};
       \node[below=0.15cm of y, font=\scriptsize, align=center]
-        {probabilidades das 10 classes\\shape $(10, 100)$};
+        {probabilidades das 10 classes\\shape $(100, 10)$};
       \draw[->] (x)  -- (h1);
-      \draw[->] (h1) -- node[above]{$A^{[1]}$} node[below, font=\scriptsize]{$(300, 100)$} (h2);
-      \draw[->] (h2) -- node[above]{$A^{[2]}$} node[below, font=\scriptsize]{$(300, 100)$} (h3);
-      \draw[->] (h3) -- node[above]{$A^{[3]}$} node[below, font=\scriptsize]{$(300, 100)$} (h4);
-      \draw[->] (h4) -- node[above]{$A^{[4]}$} node[below, font=\scriptsize]{$(300, 100)$} (out);
+      \draw[->] (h1) -- node[above]{$A^{[1]}$} node[below, font=\scriptsize]{$(100, 300)$} (h2);
+      \draw[->] (h2) -- node[above]{$A^{[2]}$} node[below, font=\scriptsize]{$(100, 300)$} (h3);
+      \draw[->] (h3) -- node[above]{$A^{[3]}$} node[below, font=\scriptsize]{$(100, 300)$} (h4);
+      \draw[->] (h4) -- node[above]{$A^{[4]}$} node[below, font=\scriptsize]{$(100, 300)$} (out);
       \draw[->] (out) -- (y);
       \node[below=0.15cm of h1, font=\scriptsize, align=center]
         {300 unidades\\$\theta^{[1]}\!: (300, 784)$};
@@ -219,8 +219,8 @@
         e da função de ativação utilizada.
       \item Visualização interativa que motiva a derivação:
         \begin{center}
-          \href{https://www.deeplearning.ai/ai-notes/initialization/index.html}{%
-            \textit{\color{blue}\underline{deeplearning.ai: Initialization notes}}
+          \href{https://lucaskup.github.io/deep-learning-course/weight-init/}{%
+            \textit{\color{blue}\underline{Demo interativo: Inicialização de Pesos}}
           }
         \end{center}
     \end{itemize}
@@ -232,13 +232,17 @@
 
   %--- Slide: definição ---
   \begin{frame}{Definição da pré-ativação por camada}
+    Cada exemplo é um vetor linha e o peso multiplica a entrada pela direita:
     \[
-      z^{(l)}_i = b^{(l)}_i + \sum_{j=1}^{n^{(l-1)}} \theta^{(l)}_{ij}\,\varphi\!\left(z^{(l-1)}_j\right)
+      z^{(l)} = \varphi\!\left(z^{(l-1)}\right)\theta^{(l)\top} + b^{(l)}
+      \qquad\Longrightarrow\qquad
+      z^{(l)}_i = b^{(l)}_i + \sum_{j=1}^{n^{(l-1)}} \varphi\!\left(z^{(l-1)}_j\right)\theta^{(l)}_{ij}
     \]
     \begin{itemize}
-      \item $z^{(l)}$: pré-ativação da camada $l$.
+      \item $z^{(l)}$: pré-ativação da camada $l$, vetor linha com $n^{(l)}$ componentes.
       \item $b^{(l)}$: bias, \alert{inicializado em 0}.
-      \item $\theta^{(l)}$: pesos, $\theta^{(l)}_{ij} \sim \mathcal{N}(0,\sigma_\theta^2)$.
+      \item $\theta^{(l)}$: pesos, matriz de shape $(n^{(l)}, n^{(l-1)})$,
+        com $\theta^{(l)}_{ij} \sim \mathcal{N}(0,\sigma_\theta^2)$.
       \item $\varphi$: ativação (tomamos ReLU como referência).
     \end{itemize}
     \vfill
@@ -253,23 +257,23 @@
     Aplicando a linearidade da esperança:
     \[
       E[z^{(l)}_i]
-        = E[b^{(l)}_i] + E\!\left[\sum_{j=1}^{n^{(l-1)}} \theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right].
+        = E[b^{(l)}_i] + E\!\left[\sum_{j=1}^{n^{(l-1)}} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
     \]
     \begin{itemize}
       \item Como inicializamos $b^{(l)}_i = 0$, $E[b^{(l)}_i] = 0$.
       \item Sobra a esperança do somatório, que reescrevemos como soma das esperanças.
     \end{itemize}
     \[
-      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E\!\left[\theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right].
+      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
     \]
   \end{frame}
 
   %--- Slide: independência ---
-  \begin{frame}{Esperança: independência $\theta\perp\varphi$}
-    Como $\theta^{(l)}_{ij}$ é independente de $\varphi(z^{(l-1)}_j)$,
+  \begin{frame}{Esperança: independência $\varphi\perp\theta$}
+    Como $\varphi(z^{(l-1)}_j)$ é independente de $\theta^{(l)}_{ij}$,
     \[
-      E\!\left[\theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\right]
-        = E[\theta^{(l)}_{ij}]\,E[\varphi(z^{(l-1)}_j)].
+      E\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right]
+        = E[\varphi(z^{(l-1)}_j)]\,E[\theta^{(l)}_{ij}].
     \]
     \begin{itemize}
       \item Por construção, $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$, logo
@@ -277,7 +281,7 @@
       \item O produto inteiro é zero, independentemente de $\varphi$.
     \end{itemize}
     \[
-      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} 0 \cdot E[\varphi(z^{(l-1)}_j)] = 0.
+      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E[\varphi(z^{(l-1)}_j)] \cdot 0 = 0.
     \]
   \end{frame}
 
@@ -304,7 +308,7 @@
     \[
       \sigma^2_{z^{(l)}}
         = E\!\left[(z^{(l)}_i)^2\right] - \cancelto{0}{\big(E[z^{(l)}_i]\big)^2}
-        = E\!\left[\Big(b^{(l)}_i + \sum_{j} \theta^{(l)}_{ij}\,\varphi(z^{(l-1)}_j)\Big)^2\right].
+        = E\!\left[\Big(b^{(l)}_i + \sum_{j} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\Big)^2\right].
     \]
     \begin{itemize}
       \item Como $b^{(l)}_i = 0$, expandimos sem o termo do bias.
@@ -313,8 +317,8 @@
     \end{itemize}
     \[
       \sigma^2_{z^{(l)}}
-        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right]\,
-                                 E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
+        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\,
+                                 E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right].
     \]
   \end{frame}
 
@@ -328,6 +332,7 @@
     Substituindo:
     \[
       \sigma^2_{z^{(l)}}
+        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\sigma_\theta^2
         = \sigma_\theta^2 \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
     \]
     \begin{itemize}
@@ -583,8 +588,8 @@
       \item Xavier (Glorot e Bengio, 2010): \citeauthoryear{glorot2010xavier}
       \item Kaiming (He et al., 2015): \citeauthoryear{he2015delving}
       \item Visualização interativa:
-        \href{https://www.deeplearning.ai/ai-notes/initialization/index.html}{%
-          \textit{deeplearning.ai/ai-notes/initialization}}
+        \href{https://lucaskup.github.io/deep-learning-course/weight-init/}{%
+          \textit{lucaskup.github.io/deep-learning-course/weight-init}}
     \end{itemize}
   \end{frame}
 
