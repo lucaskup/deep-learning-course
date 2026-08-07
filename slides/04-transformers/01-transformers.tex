@@ -406,7 +406,7 @@ Aplicar dot product attention diretamente sobre os tokens da entrada $x_1, \dots
 \vspace{4pt}
 
 \[
-\mathrm{score}(x_t, x_k) = \frac{x_t^{\top} x_k}{\sqrt{d}}, \qquad
+\mathrm{score}(x_t, x_k) = \frac{x_t \, x_k^{\top}}{\sqrt{d}}, \qquad
 a_k^{(t)} = \mathrm{softmax}_k\bigl(\mathrm{score}(x_t, x_k)\bigr)
 \]
 \[
@@ -455,7 +455,7 @@ Para cada token $x_t \in \mathbb{R}^{d_{\text{emb}}}$, projetamos em três vetor
 
 A atenção passa a ser:
 \[
-\mathrm{score}(q_t, k_i) = \frac{q_t^{\top} k_i}{\sqrt{d}}, \qquad
+\mathrm{score}(q_t, k_i) = \frac{q_t \, k_i^{\top}}{\sqrt{d}}, \qquad
 a_i^{(t)} = \mathrm{softmax}_i(\mathrm{score}(q_t, k_i))
 \]
 \[
@@ -490,27 +490,78 @@ Projetamos cada token aplicando $W_q, W_k, W_v$; os cálculos completos vêm a s
 
 % ============================================================
 
-\begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções}
+\begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{qcolor}{Queries})}
 
-Cada token ($x_1 = [1,-3,2]$, $x_2 = [2,-1,1]$) é projetado por $W_q, W_k, W_v$:
+Cada token é um vetor linha, multiplicado pela matriz $W_q$ ($q_i = x_i W_q$):
 
-\vspace{2pt}
-\textcolor{qcolor}{\textbf{Queries}} ($q_i = x_i W_q$):
 \begin{align*}
-q_1 &= [\,1(1){+}(-3)(1){+}2(0),\ \ 1(0){+}(-3)(-1){+}2(-2)\,] = [-2,\ -1] \\
-q_2 &= [\,2(1){+}(-1)(1){+}1(0),\ \ 2(0){+}(-1)(-1){+}1(-2)\,] = [1,\ -1]
+\textcolor{qcolor}{q_1} = x_1 W_q &=
+\begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
+= \begin{bmatrix} 1(1){+}(-3)(1){+}2(0) & \;\; 1(0){+}(-3)(-1){+}2(-2) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} -2 & -1 \end{bmatrix}
 \end{align*}
 
-\textcolor{kcolor}{\textbf{Keys}} ($k_i = x_i W_k$):
+\vspace{4pt}
+
 \begin{align*}
-k_1 &= [\,1(1){+}(-3)(0){+}2(0),\ \ 1(1){+}(-3)(-1){+}2(0)\,] = [1,\ 4] \\
-k_2 &= [\,2(1){+}(-1)(0){+}1(0),\ \ 2(1){+}(-1)(-1){+}1(0)\,] = [2,\ 3]
+\textcolor{qcolor}{q_2} = x_2 W_q &=
+\begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
+= \begin{bmatrix} 2(1){+}(-1)(1){+}1(0) & \;\; 2(0){+}(-1)(-1){+}1(-2) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} 1 & -1 \end{bmatrix}
 \end{align*}
 
-\textcolor{vcolor}{\textbf{Values}} ($v_i = x_i W_v$):
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{kcolor}{Keys})}
+
+O mesmo procedimento com a matriz $W_k$ ($k_i = x_i W_k$):
+
 \begin{align*}
-v_1 &= [\,1(-2){+}(-3)(0){+}2(0),\ \ 1(1){+}(-3)(1){+}2(2)\,] = [-2,\ 2] \\
-v_2 &= [\,2(-2){+}(-1)(0){+}1(0),\ \ 2(1){+}(-1)(1){+}1(2)\,] = [-4,\ 3]
+\textcolor{kcolor}{k_1} = x_1 W_k &=
+\begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
+= \begin{bmatrix} 1(1){+}(-3)(0){+}2(0) & \;\; 1(1){+}(-3)(-1){+}2(0) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} 1 & 4 \end{bmatrix}
+\end{align*}
+
+\vspace{4pt}
+
+\begin{align*}
+\textcolor{kcolor}{k_2} = x_2 W_k &=
+\begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
+= \begin{bmatrix} 2(1){+}(-1)(0){+}1(0) & \;\; 2(1){+}(-1)(-1){+}1(0) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} 2 & 3 \end{bmatrix}
+\end{align*}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{vcolor}{Values})}
+
+E, por fim, com a matriz $W_v$ ($v_i = x_i W_v$):
+
+\begin{align*}
+\textcolor{vcolor}{v_1} = x_1 W_v &=
+\begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
+\begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
+= \begin{bmatrix} 1(-2){+}(-3)(0){+}2(0) & \;\; 1(1){+}(-3)(1){+}2(2) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} -2 & 2 \end{bmatrix}
+\end{align*}
+
+\vspace{4pt}
+
+\begin{align*}
+\textcolor{vcolor}{v_2} = x_2 W_v &=
+\begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
+\begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
+= \begin{bmatrix} 2(-2){+}(-1)(0){+}1(0) & \;\; 2(1){+}(-1)(1){+}1(2) \end{bmatrix} \\[2pt]
+&= \begin{bmatrix} -4 & 3 \end{bmatrix}
 \end{align*}
 
 \end{frame}
@@ -523,10 +574,16 @@ v_2 &= [\,2(-2){+}(-1)(0){+}1(0),\ \ 2(1){+}(-1)(1){+}1(2)\,] = [-4,\ 3]
 
 \vspace{6pt}
 
-\textbf{Scores não normalizados:}
+\textbf{Scores não normalizados} (vetor linha vezes coluna):
 \[
-q_1 \cdot k_1 = (-2)(1) + (-1)(4) = -6, \qquad
-q_1 \cdot k_2 = (-2)(2) + (-1)(3) = -7
+q_1 k_1^{\top} =
+\begin{bmatrix} -2 & -1 \end{bmatrix}
+\begin{bmatrix} 1 \\ 4 \end{bmatrix}
+= -6, \qquad
+q_1 k_2^{\top} =
+\begin{bmatrix} -2 & -1 \end{bmatrix}
+\begin{bmatrix} 2 \\ 3 \end{bmatrix}
+= -7
 \]
 
 \vspace{4pt}
