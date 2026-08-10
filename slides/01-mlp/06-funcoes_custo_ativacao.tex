@@ -281,7 +281,7 @@
   \end{frame}
 
   %--- Slide: Leaky ReLU / PReLU ---
-  \begin{frame}{Leaky ReLU e PReLU}
+  \begin{frame}{Leaky ReLU\footfullcite{maas2013leaky} e PReLU\footfullcite{he2015delving}}
     \begin{columns}
       \begin{column}{.45\linewidth}
         \[
@@ -815,6 +815,28 @@
     \end{columns}
   \end{frame}
 
+  %--- Slide: Laplace -> MAE ---
+  \begin{frame}{A mesma receita com outra distribuição: Laplace $\to$ MAE}
+    Trocando a gaussiana pela distribuição de \textbf{Laplace}, com $\mu = f(\mathbf{x};\thetav)$
+    e escala $b$ constante:
+    \[
+      \Pr(y\mid \mu, b) = \frac{1}{2b}\,\exp\!\left(-\frac{|y-\mu|}{b}\right).
+    \]
+    Substituindo na NLL:
+    \begin{align*}
+      \mathcal{L}(\thetav)
+        &= -\sum_{i=1}^{N}\log\!\left[\frac{1}{2b}\,
+           \exp\!\left(-\frac{|y^{(i)}-f(x^{(i)};\thetav)|}{b}\right)\right]
+         \propto \sum_{i=1}^{N}\big|y^{(i)}-f(x^{(i)};\thetav)\big|
+    \end{align*}
+    \begin{itemize}
+      \item O resultado é a \textbf{$L_1$ loss} (MAE): penaliza desvios linearmente,
+        não quadraticamente.
+      \item A Laplace tem caudas mais pesadas que a gaussiana: erros grandes são menos
+        surpreendentes, logo a loss é mais \alert{robusta a outliers}.
+    \end{itemize}
+  \end{frame}
+
   %======================================================================
   % Bloco: exemplo 2, classificação binária
   %======================================================================
@@ -903,6 +925,50 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: por que não MSE em classificação ---
+  \begin{frame}{Por que não usar MSE em classificação?}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        Com saída $\hat y = \sigma(z)$:
+        \[
+          \frac{\partial}{\partial z}\big(\sigma(z)-y\big)^{2}
+            = 2\big(\sigma(z)-y\big)\,\alert{\sigma'(z)}
+        \]
+        \[
+          \frac{\partial \mathcal{L}_{\text{BCE}}}{\partial z} = \sigma(z)-y
+        \]
+        \begin{itemize}
+          \item Na BCE, o $\sigma'$ cancela: gradiente proporcional ao erro.
+          \item No MSE, $\sigma'(z)$ sobrevive: se o modelo erra com confiança,
+            o gradiente \alert{morre} onde a correção é mais necessária.
+          \item MSE embute a hipótese gaussiana; para $y\in\{0,1\}$,
+            a Bernoulli leva à BCE.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=8cm,height=5.5cm,
+              xlabel={$z$}, ylabel={$\left|\partial \mathcal{L}/\partial z\right|$},
+              axis lines=middle,
+              domain=-6:6, samples=120,
+              ymin=0, ymax=1.1,
+              legend style={font=\tiny,at={(0.97,0.97)},anchor=north east}
+            ]
+              \addplot[thick,blue] {1 - 1/(1+exp(-x))};
+              \addlegendentry{BCE}
+              \addplot[thick,red,dashed] {2*(1 - 1/(1+exp(-x)))*exp(-x)/((1+exp(-x))^2)};
+              \addlegendentry{MSE}
+            \end{axis}
+          \end{tikzpicture}
+        }\\
+        \footnotesize Magnitude do gradiente para um exemplo com $y=1$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
   %======================================================================
   % Bloco: exemplo 3, classificação multiclasse
   %======================================================================
@@ -960,7 +1026,83 @@
     \]
     \begin{itemize}
       \item $\log\sum e^{z_j}$ é o \textit{log-sum-exp}, calculado de forma estável em \textit{frameworks}.
-      \item A derivada de softmax + log será desenvolvida na aula 08 (grafo computacional).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: derivada da softmax, preparação ---
+  \begin{frame}{Derivada da softmax: preparação}
+    Escrevendo $S = \sum_{j=1}^{K} e^{z_j}$, cada saída da softmax é um quociente:
+    \[
+      \lambda_k = \frac{e^{z_k}}{S}.
+    \]
+    \begin{itemize}
+      \item Como $S$ soma todos os logits, $\lambda_k$ depende de \alert{todos} os $z_j$:
+        a derivada completa é uma matriz (Jacobiano) $K\times K$ de termos
+        $\partial\lambda_k/\partial z_j$.
+      \item Ferramenta: regra do quociente,
+        $\left(\dfrac{u}{v}\right)' = \dfrac{u'v - u\,v'}{v^{2}}$.
+      \item Há duas situações distintas: derivar em relação ao \textbf{próprio} logit
+        ($j = k$) ou em relação a \textbf{outro} logit ($j \ne k$).
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: derivada da softmax, caso j = k ---
+  \begin{frame}{Derivada da softmax: caso $j = k$}
+    Com $u = e^{z_k}$ e $v = S$, temos $\dfrac{\partial u}{\partial z_k} = e^{z_k}$
+    e $\dfrac{\partial S}{\partial z_k} = e^{z_k}$:
+    \begin{align*}
+      \frac{\partial \lambda_k}{\partial z_k}
+        &= \frac{e^{z_k}\,S - e^{z_k}\,e^{z_k}}{S^{2}}
+         = \frac{e^{z_k}}{S}\cdot\frac{S - e^{z_k}}{S} \\
+        &= \lambda_k\,(1-\lambda_k)
+    \end{align*}
+    \begin{itemize}
+      \item Mesma forma da derivada da sigmoid: aumentar $z_k$ aumenta $\lambda_k$,
+        com efeito máximo quando $\lambda_k = 1/2$.
+      \item Satura quando $\lambda_k \to 0$ ou $\lambda_k \to 1$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: derivada da softmax, caso j != k ---
+  \begin{frame}{Derivada da softmax: caso $j \ne k$}
+    Agora o numerador $e^{z_k}$ não depende de $z_j$
+    ($\partial u/\partial z_j = 0$), mas $S$ sim ($\partial S/\partial z_j = e^{z_j}$):
+    \begin{align*}
+      \frac{\partial \lambda_k}{\partial z_j}
+        &= \frac{0\cdot S - e^{z_k}\,e^{z_j}}{S^{2}}
+         = -\frac{e^{z_k}}{S}\cdot\frac{e^{z_j}}{S} \\
+        &= -\lambda_k\,\lambda_j
+    \end{align*}
+    \begin{itemize}
+      \item Sinal negativo: aumentar outro logit \alert{rouba} massa de probabilidade de $\lambda_k$.
+      \item Os dois casos se unificam com o colchete de Iverson (delta de Kronecker):
+    \end{itemize}
+    \[
+      \boxed{\frac{\partial \lambda_k}{\partial z_j} = \lambda_k\big([k=j] - \lambda_j\big)}
+    \]
+  \end{frame}
+
+  %--- Slide: por que derivar a loss direto nos logits ---
+  \begin{frame}{Por que derivar a loss direto nos logits?}
+    \textbf{Caminho 1}: regra da cadeia atravessando o Jacobiano da softmax, com
+    $\dfrac{\partial \mathcal{L}}{\partial \lambda_k} = -\dfrac{y_k}{\lambda_k}$:
+    \[
+      \frac{\partial \mathcal{L}}{\partial z_j}
+        = \sum_{k=1}^{K} \left(-\frac{y_k}{\lambda_k}\right)\lambda_k\big([k=j]-\lambda_j\big)
+        = -y_j + \lambda_j\underbrace{\sum_{k=1}^{K} y_k}_{=\,1}
+        = \lambda_j - y_j.
+    \]
+    \textbf{Caminho 2}: derivar a forma log-softmax do slide anterior, direto em $z_j$:
+    \[
+      \frac{\partial}{\partial z_j}\left[-z_{k^{*}} + \log S\right]
+        = -[j=k^{*}] + \frac{e^{z_j}}{S}
+        = \lambda_j - y_j.
+    \]
+    \begin{itemize}
+      \item Mesmo resultado, mas o caminho 2 dispensa o Jacobiano inteiro e evita a divisão
+        por $\lambda_k$, que explode quando $\lambda_k \to 0$.
+      \item O gradiente nos logits é simplesmente \alert{softmax menos one-hot}:
+        por isso \textit{frameworks} calculam a cross-entropy direto sobre os logits.
     \end{itemize}
   \end{frame}
 
@@ -1021,7 +1163,7 @@
       \begin{column}{.5\linewidth}
         \centering
         \begin{tikzpicture}
-          \node[draw,fill=PastelBlue,minimum width=4cm,minimum height=2.4cm] {Imagem cachorro};
+          \node[draw,inner sep=0pt] {\includegraphics[height=2.4cm]{slides/img/02-cnn/mlp_dog.jpeg}};
           \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
           \node[anchor=west,font=\small] at (2.4,0.15) {2. Gato};
           \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
@@ -1032,7 +1174,7 @@
       \begin{column}{.5\linewidth}
         \centering
         \begin{tikzpicture}
-          \node[draw,fill=PastelGreen,minimum width=4cm,minimum height=2.4cm] {Imagem cão+gato};
+          \node[draw,inner sep=0pt] {\includegraphics[height=2.4cm]{slides/img/02-cnn/det_cat_dog.jpg}};
           \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
           \node[anchor=west,font=\small] at (2.4,0.15) {\textbf{2. Gato}};
           \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
@@ -1061,7 +1203,7 @@
       \item Em PyTorch: \texttt{BCEWithLogitsLoss} (binária e multilabel) e
         \texttt{CrossEntropyLoss} (multiclasse) já incorporam softmax/sigmoid.
       \item Para regressão com restrições (ex.: $\hat y\ge 0$), pode-se trocar a Linear
-        por uma SoftPlus na saída e usar uma Poisson (derivação como exercício, ver \textit{lista 02} \textsection{} ``Funções de Custo'').
+        por uma SoftPlus na saída e usar uma Poisson.
     \end{itemize}
   \end{frame}
 
