@@ -5,8 +5,8 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
-  const N = 64;          // largura (= fan-in n^(l-1) de todas as camadas)
-  const B = 256;         // tamanho do batch de entradas x ~ N(0, I)
+  const N = 300;         // largura (= fan-in n^(l-1) de todas as camadas), como nos slides
+  const B = 100;         // tamanho do batch de entradas x ~ N(0, I), como nos slides
   const FLOOR = 1e-13;   // piso para a escala log (zeros dão desvio 0)
   const NBINS = 36;
 
@@ -223,8 +223,8 @@
       let txt;
       if (cfg.init === 'zeros') txt = 'θ = 0';
       else if (cfg.init === 'normal') txt = 'σ<sub>θ</sub> = ' + cfg.sigma.toFixed(2);
-      else if (cfg.init === 'xavier') txt = 'σ<sub>θ</sub>² = 1/64, σ<sub>θ</sub> ≈ 0.125';
-      else txt = 'σ<sub>θ</sub>² = 2/64, σ<sub>θ</sub> ≈ 0.177';
+      else if (cfg.init === 'xavier') txt = 'σ<sub>θ</sub>² = 1/300, σ<sub>θ</sub> ≈ 0.058';
+      else txt = 'σ<sub>θ</sub>² = 2/300, σ<sub>θ</sub> ≈ 0.082';
       $('s1-readout').innerHTML = txt;
     }
 
