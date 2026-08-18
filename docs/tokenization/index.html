@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Tokenização: granularidade caractere vs palavra vs subpalavra, treinamento de BPE passo a passo no corpus dos slides, codificação de texto novo com os merges aprendidos e a comparação entre BPE e WordPiece." />
+  <meta name="description" content="Demonstrações interativas de Tokenização: granularidade caractere vs palavra vs subpalavra, treinamento de BPE passo a passo no corpus dos slides, codificação de texto novo com os merges aprendidos, a comparação entre BPE e WordPiece e o lattice de segmentações do Unigram LM com Viterbi e poda do vocabulário." />
   <title>Tokenização — Demo Interativa</title>
   <script>
     (function () {
@@ -27,6 +27,7 @@
       <li><a href="#s2">Treinar BPE</a></li>
       <li><a href="#s3">Codificar</a></li>
       <li><a href="#s4">WordPiece</a></li>
+      <li><a href="#s5">Unigram</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -36,14 +37,16 @@
       <h1 class="course-title"><span>Tokenização</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de tokenização em modelos de linguagem</p>
       <p class="course-desc">
-        Quatro visualizações que acompanham os slides, todas sobre o mesmo corpus recorrente
-        da aula (<span class="formula">low ×5, lower ×2, newest ×6, widest ×3</span>, com o
-        marcador de fim de palavra <span class="formula">_</span>): a granularidade
+        Cinco visualizações que acompanham os slides. As quatro primeiras usam o corpus
+        recorrente da aula (<span class="formula">low ×5, lower ×2, newest ×6, widest ×3</span>,
+        com o marcador de fim de palavra <span class="formula">_</span>): a granularidade
         caractere vs palavra vs subpalavra, o treinamento do BPE que mescla o par adjacente
         mais frequente por <span class="formula">k</span> merges, a codificação de texto novo
         aplicando os merges em ordem, e o critério do WordPiece
         <span class="formula">score(x, y) = freq(xy) / (freq(x)·freq(y))</span>
-        comparado à frequência pura. Notação dos slides:
+        comparado à frequência pura. A quinta usa o corpus da seção de Unigram
+        (<span class="formula">low ×10, er ×10, lower ×1</span>) para explorar o lattice de
+        segmentações, o Viterbi e a poda. Notação dos slides:
         <span class="formula">𝒱</span> é o vocabulário e <span class="formula">|𝒱|</span> seu tamanho.
       </p>
     </div>
@@ -254,6 +257,64 @@
     </div>
   </section>
 
+  <!-- ════════ Seção 5: Unigram LM ════════ -->
+  <section id="s5" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">5 · Unigram: lattice, Viterbi e poda</h2>
+      <p class="demo-text">
+        O Unigram LM faz o caminho oposto ao BPE: começa com um vocabulário grande (aqui, os
+        15 substrings do corpus <span class="formula">low ×10, er ×10, lower ×1</span>, com
+        <span class="formula">P(t) = count(t)/105</span>) e poda os tokens menos úteis.
+        Segmentar uma palavra é escolher um caminho no <strong>lattice</strong>: cada aresta
+        é um token, com peso <span class="formula">ln P(token)</span>, e a melhor segmentação
+        é o caminho de maior soma, encontrado por programação dinâmica (Viterbi). A qualidade
+        do vocabulário é a log-likelihood do corpus,
+        <span class="formula">L = Σ freq(w) · ln P(melhor segmentação de w)</span>.
+        Clique nos tokens do vocabulário para podá-los e veja o lattice, as segmentações e
+        <span class="formula">L</span> reagirem.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl primary" id="s5-prune" type="button">✂ Podar tokens com Δ = 0</button>
+          <button class="btn-ctl" id="s5-reset" type="button">↺ Restaurar vocabulário</button>
+          <label class="slider-label"><input type="checkbox" id="s5-renorm" /> renormalizar P no vocabulário atual</label>
+        </div>
+        <p class="tok-label">Vocabulário 𝒱 (clique para podar ou restaurar; caracteres nunca são podados)</p>
+        <div class="tok-row" id="s5-vocab"></div>
+        <div class="canvas-row">
+          <div class="canvas-box wide tall">
+            <p class="canvas-caption">Lattice de "lower": arestas cheias são tokens frequentes, tracejadas são os raros, verde é o melhor caminho (Viterbi)</p>
+            <canvas id="s5-lattice"></canvas>
+          </div>
+        </div>
+        <div class="tok-grid">
+          <div class="tok-pane">
+            <p class="tok-label">Viterbi em "lower": δ(j) por prefixo</p>
+            <div id="s5-viterbi"></div>
+          </div>
+          <div class="tok-pane">
+            <p class="tok-label">Melhor segmentação de cada palavra do corpus</p>
+            <div id="s5-segs"></div>
+          </div>
+        </div>
+        <p class="demo-text small" id="s5-readout"></p>
+        <p class="demo-text small">
+          💡 Reproduza o slide de poda: remova <span class="formula">owe</span> ou
+          <span class="formula">lo</span> e note <span class="formula">ΔL = 0</span>, nenhum
+          melhor caminho passa por eles. Agora remova <span class="formula">low</span>:
+          "low" vira <span class="formula">l·ow</span>, "lower" vira o token único
+          <span class="formula">lower</span> e <span class="formula">L</span> despenca de
+          −49.6 para −72.3. Restaure, clique em "Podar tokens com Δ = 0" (sobram
+          <span class="formula">low</span>, <span class="formula">er</span> e os caracteres)
+          e ligue a renormalização: <span class="formula">L</span> sobe para −42.8, melhor
+          que o vocabulário completo, porque a massa de probabilidade se concentra nos
+          tokens que o corpus realmente usa. É este ciclo, re-estimar, medir Δ, podar, que o
+          algoritmo repete até o vocabulário atingir o tamanho alvo.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>Demo interativa da aula de <span>Tokenização</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
   </footer>
@@ -265,6 +326,7 @@
   <script defer src="js/section2-bpe-training.js"></script>
   <script defer src="js/section3-encode.js"></script>
   <script defer src="js/section4-wordpiece.js"></script>
+  <script defer src="js/section5-unigram.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>
