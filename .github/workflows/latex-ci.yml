@@ -11,6 +11,7 @@ on:
       - 'problems/**'
       - 'slides/**'
       - 'exams/**'
+      - 'projects/**'
       - 'docs/**'
       - 'latexmkrc'
       - '.github/workflows/latex-ci.yml'
@@ -20,6 +21,7 @@ on:
       - 'problems/**'
       - 'slides/**'
       - 'exams/**'
+      - 'projects/**'
       - 'docs/**'
       - 'latexmkrc'
       - '.github/workflows/latex-ci.yml'
@@ -63,7 +65,7 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Create build directory
-        run: mkdir -p build deploy/slides deploy/problems deploy/exams
+        run: mkdir -p build deploy/slides deploy/problems deploy/exams deploy/projects
 
       - name: Diagnose checkout contents
         run: |
@@ -133,6 +135,8 @@ jobs:
                   cp "$pdffile" "deploy/problems/${module}/$(basename "$pdffile")"
                 elif [[ "$texfile" == exams/* ]]; then
                   cp "$pdffile" "deploy/exams/$(basename "$pdffile")"
+                elif [[ "$texfile" == projects/* ]]; then
+                  cp "$pdffile" "deploy/projects/$(basename "$pdffile")"
                 fi
               else
                 echo "FAIL: PDF not produced at expected path $pdffile" | tee -a "$LATEXMK_LOG"
@@ -144,7 +148,7 @@ jobs:
               FAILED=$((FAILED + 1))
               SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Compilation error |"$'\n'
             fi
-          done 3< <(find problems/ slides/ exams/ -name '*.tex' -print0 \
+          done 3< <(find problems/ slides/ exams/ projects/ -name '*.tex' -print0 \
                     | xargs -0 grep -l '\\documentclass' \
                     | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
                     | grep -Ev '_gabarito\.tex$')
@@ -214,7 +218,7 @@ jobs:
             basename_only="$(basename "${logfile%.log}")"
 
             # Locate the .tex source whose filename (without path) matches the log.
-            texfile=$(find problems/ slides/ exams/ -name '*.tex' -print0 \
+            texfile=$(find problems/ slides/ exams/ projects/ -name '*.tex' -print0 \
               | xargs -0 grep -l '\\documentclass' \
               | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
               | grep -Ev '_gabarito\.tex$' \

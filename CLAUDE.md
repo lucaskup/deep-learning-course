@@ -8,11 +8,12 @@ Before planning or executing a task, ask clarifying questions whenever any aspec
 
 ## Repository purpose
 
-LaTeX source for a Brazilian (Portuguese) "Introdução a Deep Learning" course at PUCRS, taught by Prof. Lucas S. Kupssinskü. Three artifact families coexist:
+LaTeX source for a Brazilian (Portuguese) "Introdução a Deep Learning" course at PUCRS, taught by Prof. Lucas S. Kupssinskü. The LaTeX artifact families are:
 
 - `slides/` — Beamer presentations, one `.tex` per lecture, organised by unit (`01-mlp` … `06-topicos`).
 - `problems/` — Problem sets (`listaNN_*.tex`), organised by the same unit numbering.
 - `exams/` — Provas. Each prova has a paired `_gabarito.tex` (answer key) that CI builds locally but excludes from the public deploy.
+- `projects/` — Course project specs (`projetoNN_*.tex`), flat folder (projects span units). Same `\documentclass{dlproblemset}` as listas; deliberately contain only technical requirements, no assessment context (grading, deadlines, delivery mechanics live on moodle, not in the PDF).
 
 ## Build commands
 
@@ -21,8 +22,10 @@ Everything is LuaLaTeX + latexmk + `-shell-escape` (minted needs it). Always run
 ```bash
 make problems          # compile every problems/**/*.tex with \documentclass
 make exams             # compile every exams/**/*.tex (includes _gabarito.tex)
+make projects          # compile every projects/**/*.tex with \documentclass
 make clean-problems    # latexmk -C on problems + remove build/
 make clean-exams       # latexmk -C on exams
+make clean-projects    # latexmk -C on projects
 
 # Single file (slides, problems, or exams — same invocation):
 latexmk -lualatex slides/01-mlp/02-perceptron.tex
@@ -30,7 +33,7 @@ latexmk -lualatex slides/01-mlp/02-perceptron.tex
 
 PDFs land in `build/` (set by `latexmkrc`'s `$out_dir = 'build'`). The same `latexmkrc` enables `-shell-escape` for lualatex and points biber at the `slides/` directory for the shared `reference.bib`.
 
-There is no `make slides` target, slides are compiled individually or through CI. CI compiles slides, problems, and exams in one pass (`.github/workflows/latex-ci.yml`).
+There is no `make slides` target, slides are compiled individually or through CI. CI compiles slides, problems, exams, and projects in one pass (`.github/workflows/latex-ci.yml`); project PDFs deploy flat to `deploy/projects/`.
 
 ## Rendering PDFs and PPTX to PNG (visual inspection)
 
@@ -85,6 +88,8 @@ Notes: `Open(file, ReadOnly, Untitled, WithWindow)` with `WithWindow=$false` kee
 - `slides/img/` is the shared figure root, `slides/code/` holds Python snippets referenced from `\lstinputlisting`, `slides/ppt/` holds source PowerPoint/TikZ originals (not compiled).
 
 **Problems** (`problems/**/*.tex`) use `\documentclass{dlproblemset}`. The class at `problems/style/dlproblemset.cls` bundles XCharter serif + matched `newtxmath`, KOMA `scrartcl` base, gray 1pt rules above the running header and below the footer, the split header (title left / subtitle right, in sans 8pt gray), and the bottom-left "Prof. Lucas Silveira Kupssinkü" footer. Each lista declares `\title{}` and `\subtitle{}` in the preamble; the body starts directly with content (no `\chapter*` or `\section*{Lista de Exercícios}` heading, no `\maketitle`). The class loads `graphicx`, `float`, `subfig`, `emoji`, `hyperref`, `amsmath`/`amssymb`/`amsthm`, `xcolor`, `microtype`, and `enumerate` already — listas only re-load what they genuinely need beyond that. Note `tikz`, `booktabs`, and `pgfplots` are **not** bundled, so a lista that uses tables or diagrams must `\usepackage` them explicitly (e.g. `\usepackage{booktabs}` for `\toprule`/`\midrule`, otherwise compilation fails with "Undefined control sequence").
+
+**Projects** (`projects/*.tex`) also use `\documentclass{dlproblemset}` with `\title{}`/`\subtitle{}` (subtitle "Projeto N"), so everything said above about the class applies to them too.
 
 **Exams** are standalone `article` documents (no shared style file). The `_gabarito.tex` variant of each prova holds the answer key and is filtered out of the public deploy pipeline.
 

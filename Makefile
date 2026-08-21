@@ -1,4 +1,4 @@
-.PHONY: problems clean-problems exams clean-exams
+.PHONY: problems clean-problems exams clean-exams projects clean-projects
 
 # Compile every problem-set .tex file that contains \documentclass.
 # Requires latexmk and a LuaTeX installation (e.g. texlive-full).
@@ -57,3 +57,32 @@ exams:
 
 clean-exams:
 	latexmk -lualatex -cd- -C $$(grep -rl '\\documentclass' exams/ --include='*.tex')
+
+# Compile every project spec .tex file. Projects use \documentclass{dlproblemset}
+# (resolved via the TEXINPUTS extension in latexmkrc), so this must also run
+# from the repo root.
+projects:
+	@mkdir -p build
+	@FAILED=0; COMPILED=0; \
+	for texfile in $$(grep -rl '\\documentclass' projects/ --include='*.tex'); do \
+		echo "--- Compiling: $$texfile ---"; \
+		if latexmk -lualatex -cd- "$$texfile"; then \
+			pdffile="build/$$(basename "$${texfile%.tex}").pdf"; \
+			if [ -f "$$pdffile" ]; then \
+				echo "OK: $$pdffile"; \
+				COMPILED=$$((COMPILED + 1)); \
+			else \
+				echo "FAIL: PDF not produced at expected path $$pdffile"; \
+				FAILED=$$((FAILED + 1)); \
+			fi; \
+		else \
+			echo "FAIL: latexmk returned non-zero for $$texfile"; \
+			FAILED=$$((FAILED + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "Results: $$COMPILED compiled successfully, $$FAILED failed"; \
+	test $$FAILED -eq 0
+
+clean-projects:
+	latexmk -lualatex -cd- -C $$(grep -rl '\\documentclass' projects/ --include='*.tex')

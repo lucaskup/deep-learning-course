@@ -1,0 +1,68 @@
+\documentclass{dlproblemset}
+
+\title{MLP com Diferenciação Automática}
+\subtitle{Projeto 1}
+
+\begin{document}
+
+\section*{Descrição}
+
+Neste projeto você deverá projetar e implementar um Multilayer Perceptron (MLP) inteiramente em Numpy (ou biblioteca análoga de computação numérica), capaz de resolver tanto problemas de classificação quanto problemas de regressão. Não é permitido utilizar \textit{frameworks} de \textit{deep learning} (PyTorch, TensorFlow, JAX, \ldots) em nenhuma etapa: o \textit{backward pass} da rede deve ser computado por um motor de diferenciação automática desenvolvido por você, também em Numpy.
+
+A diferenciação automática é um dos recursos centrais de todos os \textit{frameworks} modernos de redes neurais artificiais. Sua principal funcionalidade é permitir que qualquer função que possa ser computada no \textit{framework} possa também ser derivada. O MLP deste projeto deve ser construído sobre esse recurso: o \textit{forward pass} é expresso com as operações do motor e os gradientes usados no treinamento são obtidos pelo \textit{backward pass} do motor, sem derivadas codificadas manualmente por camada.
+
+\section*{Requisitos do motor de diferenciação automática}
+
+O motor de diferenciação automática deverá suportar operações com escalares e operações matriciais. No mínimo, as seguintes operações devem estar disponíveis, com seus respectivos \textit{backward passes}:
+
+\begin{enumerate}[1)]
+    \item Soma, subtração, produto e divisão entre escalares ou entre escalar e matriz;
+    \item Multiplicação de matrizes;
+    \item Exponenciação, radiciação e logaritmos (de escalares ou com \textit{broadcast} para matrizes);
+    \item Somatório.
+\end{enumerate}
+
+Serão observadas a completude e a corretude do motor: para toda operação suportada, o gradiente produzido pelo \textit{backward pass} deve estar correto. 
+
+\section*{Requisitos do MLP}
+
+O MLP desenvolvido deverá possibilitar, no mínimo, as seguintes hiperparametrizações:
+
+\begin{enumerate}[1)]
+    \item Número de camadas ocultas;
+    \item Número de unidades em cada camada oculta;
+    \item Funções de ativação: \textit{Sigmoid}, \textit{Tanh}, \textit{ReLU}, \textit{Leaky ReLU} e Linear;
+    \item Função de custo: BCE e \textit{Mean Squared Error};
+    \item Otimizador: SGD e Adam;
+    \item Método de inicialização dos pesos: He, Xavier, Normal ou Uniforme.
+\end{enumerate}
+
+Além disso, deve ser possível exportar um arquivo (em formato definido por você) que contenha tanto a topologia da rede (camadas, funções de ativação, \ldots) quanto os pesos do modelo treinado. Também deve ser possível importar um desses arquivos e fazer inferência com a rede pré-treinada, sem novo treinamento.
+
+\section*{Conjuntos de dados}
+
+O MLP deverá ser testado em pelo menos 2 conjuntos de dados. Obrigatoriamente devem ser explorados um problema de classificação e um problema de regressão. Abaixo constam algumas sugestões, mas outros conjuntos podem ser utilizados:
+
+\begin{enumerate}[1)]
+    \item Boston Housing;
+    \item IRIS;
+    \item MNIST 1D;
+    \item MNIST;
+    \item Fashion MNIST.
+\end{enumerate}
+
+\section*{Experimentos}
+
+Além de buscar bons resultados nos conjuntos de dados escolhidos, você deverá mostrar na prática o problema do gradiente que se dissipa ou do gradiente explosivo, provocando o fenômeno em uma configuração adequada da rede e evidenciando o comportamento nos gráficos de monitoramento.
+
+\section*{Monitoramento}
+
+Durante o treinamento das redes, os seguintes gráficos deverão ser produzidos:
+
+\begin{enumerate}[1)]
+    \item Histograma das ativações e dos gradientes ao longo do treinamento (auxilia na identificação do problema do gradiente que se dissipa);
+    \item Função de custo vs. iteração (ou época), tanto em treino quanto em validação;
+    \item Métrica de avaliação (acurácia, $R^2$, \ldots) vs. iteração (ou época), tanto em treino quanto em validação.
+\end{enumerate}
+
+\end{document}

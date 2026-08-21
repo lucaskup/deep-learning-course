@@ -46,132 +46,408 @@
   \end{frame}
 
   %======================================================================================
-  % SECTION 1: REVISÃO DO TRANSFORMER
+  % SECTION 1: DO ENCODER-DECODER AO DECODER-ONLY
   %======================================================================================
-  \section{Revisão do Transformer}
+  \section{Do Encoder-Decoder ao Decoder-Only}
 
+  \begin{frame}{O que Encoder e Decoder fazem?}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Encoder: compreensão}
+          \begin{itemize}
+            \item Processa \textbf{toda a entrada} de uma vez
+            \item Atenção bidirecional
+            \item Produz vetor de contexto rico
+            \item Exemplos: BERT, RoBERTa
+          \end{itemize}
+        \end{block}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \begin{block}{Decoder: geração}
+          \begin{itemize}
+            \item Gera \textbf{um token por vez}
+            \item Atenção causal (só vê o passado)
+            \item Recebe contexto via cross-attention
+            \item Exemplos: GPT, T5-decoder
+          \end{itemize}
+        \end{block}
+      \end{column}
+    \end{columns}
+    \vspace{0.5em}
+    \begin{center}
+      \textcolor{DarkRed}{\textbf{Para LLMs, o encoder é desnecessário.}}\\
+      \vspace{0.2em}
+      O decoder processa o \textit{prompt} como parte da sequência.
+    \end{center}
+  \end{frame}
 
-  \begin{frame}{Arquitetura Original: Encoder-Decoder \cite{vaswani2017attention}}
+  \begin{frame}{Máscara Causal vs.\ Atenção Bidirecional}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        \textcolor{DarkGreen}{\textbf{Encoder}} (esquerda):
-        \begin{itemize}
-          \item Lê toda a entrada \textbf{bidirecional}
-          \item Self-attention não mascarada
-          \item Produz representações contextuais ricas
-        \end{itemize}
-        \vspace{0.2em}
-        \textcolor{DarkBlue}{\textbf{Decoder}} (direita):
-        \begin{itemize}
-          \item Gera tokens \textbf{autorregressivamente}
-          \item Self-attention \textbf{mascarada} (causal)
-          \item \textbf{Cross-attention}: lê saída do encoder
-        \end{itemize}
+        \textbf{Bidirecional (BERT/Encoder)}:\\
+        cada posição vê \textit{toda} a sequência.
         \vspace{0.3em}
-        \begin{alertblock}{Pergunta-chave}
-          Precisamos do encoder para geração de linguagem?
-        \end{alertblock}
+
+        \resizebox{0.85\linewidth}{!}{%
+        \begin{tabular}{c|cccc}
+          & $t_1$ & $t_2$ & $t_3$ & $t_4$ \\\hline
+          $t_1$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
+          $t_2$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
+          $t_3$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
+          $t_4$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
+        \end{tabular}}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[
-          enc/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.65cm,
-                      fill=CellGreen, align=center, font=\small},
-          dec/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.65cm,
-                      fill=CellYellow, align=center, font=\small},
-          arrow/.style={->, >=Stealth, thick},
-          node distance=0.5cm
-        ]
-          \node[enc] (einput) {Input Emb + PE};
-          \node[enc, above=of einput] (emha) {Self-Attention};
-          \node[enc, above=of emha] (eff) {Feed-Forward};
-          \node[above=0.2cm of eff, font=\scriptsize\bfseries] {Encoder $\times N$};
+        \textbf{Causal (GPT/Decoder-Only)}:\\
+        posição $i$ só vê $j \le i$.
+        \vspace{0.3em}
 
-          \draw[arrow] (einput) -- (emha);
-          \draw[arrow] (emha) -- (eff);
-          \draw[arrow] (eff) -- ++(0,0.5);
-
-          \node[dec, right=1.8cm of einput] (doutput) {Output Emb + PE};
-          \node[dec, above=of doutput] (dmask) {Masked Attn};
-          \node[dec, above=of dmask] (dcross) {Cross-Attention};
-          \node[dec, above=of dcross] (dff) {Feed-Forward};
-          \node[above=0.2cm of dff, font=\scriptsize\bfseries] {Decoder $\times N$};
-          \node[dec, above=0.6cm of dff] (linear) {Linear + Softmax};
-
-          \draw[arrow] (doutput) -- (dmask);
-          \draw[arrow] (dmask) -- (dcross);
-          \draw[arrow] (dcross) -- (dff);
-          \draw[arrow] (dff) -- (linear);
-
-          \draw[arrow, dashed, DarkRed] (eff.east) ++(0,0) -- ++(0.4,0) |- (dcross.west);
-        \end{tikzpicture}}
+        \resizebox{0.85\linewidth}{!}{%
+        \begin{tabular}{c|cccc}
+          & $t_1$ & $t_2$ & $t_3$ & $t_4$ \\\hline
+          $t_1$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ \\
+          $t_2$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ \\
+          $t_3$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ \\
+          $t_4$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
+        \end{tabular}}
+        \vspace{0.3em}
+        Garante que $t_4$ não ``veja o futuro'' durante o treino.
       \end{column}
     \end{columns}
   \end{frame}
 
-  \begin{frame}{Multi-Head Self-Attention}
+  \begin{frame}{Máscara Causal: Exemplo Numérico}
+    Sequência de 3 tokens; scores $S = \dfrac{QK^\top}{\sqrt{d_k}}$, máscara $M$ somada antes do softmax (por linha):
+    \vspace{0.4em}
+    \begin{center}
+    \resizebox{0.94\linewidth}{!}{%
+      $\underbrace{\begin{bmatrix} 2 & 1 & 3 \\ 0 & 2 & 1 \\ 1 & 0 & 2 \end{bmatrix}}_{S}
+      \;+\;
+      \underbrace{\begin{bmatrix} 0 & \textcolor{DarkRed}{-\infty} & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & 0 \end{bmatrix}}_{M}
+      \;=\;
+      \begin{bmatrix} 2 & \textcolor{DarkRed}{-\infty} & \textcolor{DarkRed}{-\infty} \\ 0 & 2 & \textcolor{DarkRed}{-\infty} \\ 1 & 0 & 2 \end{bmatrix}
+      \;\xrightarrow{\;\text{softmax}\;}\;
+      \begin{bmatrix} 1.00 & \textcolor{gray}{0} & \textcolor{gray}{0} \\ 0.12 & 0.88 & \textcolor{gray}{0} \\ 0.24 & 0.09 & 0.67 \end{bmatrix}$}
+    \end{center}
+    \vspace{0.5em}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        Dado um token, computamos queries, keys e values:
-        \begin{block}{Atenção escalada}
-          $\text{Attn}(Q,K,V) = \text{softmax}\!\left(\dfrac{QK^\top}{\sqrt{d_k}}\right)V$
-        \end{block}
-        \vspace{0.3em}
-        Cada cabeça aprende padrões diferentes:
-        \[
-          \text{MHA} = \text{Concat}(\text{head}_1,\ldots,\text{head}_H)\,W^O
-        \]
+        \begin{itemize}
+          \item $e^{-\infty} = 0$: os pesos acima da diagonal \textbf{zeram} após o softmax
+          \item Linha 2: $\dfrac{e^{0}}{e^{0}+e^{2}} = 0.12$, \quad $\dfrac{e^{2}}{e^{0}+e^{2}} = 0.88$
+        \end{itemize}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \begin{itemize}
-          \item $H$ cabeças $\times$ $d_k = d_\text{model}/H$
-          \item Custo: $\mathcal{O}(n^2 d)$ por camada
-          \item Paralelizável sobre toda a sequência
-        \end{itemize}
-        \vspace{0.4em}
-        \begin{exampleblock}{Máscara causal (decoder)}
-          Posição $i$ só pode atender a $j \le i$:
-          \[
-            M_{ij} = \begin{cases} 0 & j \le i \\ -\infty & j > i \end{cases}
-          \]
+        \begin{exampleblock}{Leitura}
+          O token 1 só atende a si mesmo; o token 3 distribui atenção pelos três tokens do passado (inclusive ele próprio).
         \end{exampleblock}
       \end{column}
     \end{columns}
   \end{frame}
 
-  \begin{frame}{Bloco Transformer: FFN, Resíduo e Normalização}
+  \begin{frame}{Do Encoder-Decoder para o Decoder-Only}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        Cada camada contém:
-        \begin{enumerate}
-          \item \textbf{(Masked) Self-Attention} + resíduo + norma
-          \item \textbf{Feed-Forward} + resíduo + norma
-        \end{enumerate}
-        \vspace{0.3em}
-        \begin{block}{FFN de dois estágios}
-          $\text{FFN}(x) = \max(0,\, xW_1 + b_1)\,W_2 + b_2$
-        \end{block}
-        Dimensão interna: $d_\text{ff} \approx 4\,d_\text{model}$\\
-        {\footnotesize (Valor empírico de \cite{vaswani2017attention}; com SwiGLU parte-se de $\tfrac{8}{3}\,d_\text{model}$, arredondado para múltiplos convenientes.)}
+        \textbf{Ideia central}: treine apenas o decoder.\\[0.5em]
+        O modelo recebe o \textbf{prompt} e continua gerando autorregressivamente.\\[0.5em]
+        \begin{itemize}
+          \item Sem cross-attention
+          \item Sem encoder separado
+          \item Arquitetura mais simples
+        \end{itemize}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \begin{block}{Add \& Norm (por subcamada)}
-          $x \leftarrow \text{Norm}\bigl(x + \text{SubLayer}(x)\bigr)$\\[2pt]
-          O resíduo preserva o sinal; a \textbf{norma} estabiliza as ativações.
+        \centering
+        \begin{tikzpicture}[
+          block/.style={draw, rounded corners, minimum width=4.5cm, minimum height=0.50cm,
+                        fill=CellYellow, align=center, font=\footnotesize},
+          norm/.style={draw, rounded corners, minimum width=4.5cm, minimum height=0.50cm,
+                       fill=CellBlue, align=center, font=\footnotesize},
+          add/.style={draw, circle, minimum size=0.32cm, fill=white,
+                      inner sep=0pt, font=\footnotesize},
+          arrow/.style={->, >=Stealth, thick},
+          node distance=0.28cm
+        ]
+          \node[norm]  (n1)   {RMSNorm};
+          \node[block, above=of n1]   (attn) {Masked Self-Attention};
+          \node[add,   above=of attn] (add1) {$+$};
+          \node[norm,  above=of add1] (n2)   {RMSNorm};
+          \node[block, above=of n2]   (ff)   {Feed-Forward (MLP)};
+          \node[add,   above=of ff]   (add2) {$+$};
+          \node[block, above=of add2] (lm)   {LM Head (Linear)};
+          \node[below=0.4cm of n1, font=\footnotesize] (inp) {tokens de entrada};
+
+          % Main forward flow
+          \draw[arrow] (inp)  -- (n1);
+          \draw[arrow] (n1)   -- (attn);
+          \draw[arrow] (attn) -- (add1);
+          \draw[arrow] (add1) -- (n2);
+          \draw[arrow] (n2)   -- (ff);
+          \draw[arrow] (ff)   -- (add2);
+          \draw[arrow] (add2) -- (lm);
+
+          % Reference point just outside the left edge of all blocks
+          \coordinate (resLeft) at ([xshift=-0.4cm]n1.west);
+
+          % Residual 1: inp → left of blocks → add1
+          \draw[->, >=Stealth, thick, DarkRed]
+            (inp.west) -- (inp.west -| resLeft) -- (add1.west -| resLeft) -- (add1.west);
+          % Residual 2: add1 → left of blocks → add2
+          \draw[->, >=Stealth, thick, DarkRed]
+            (add1.west) -- (add1.west -| resLeft) -- (add2.west -| resLeft) -- (add2.west);
+          \node[font=\tiny, DarkRed, left] at ($(add1.west -| resLeft)!0.5!(add2.west -| resLeft)$) {resíduo};
+        \end{tikzpicture}
+        \vspace{0.2em}
+        \footnotesize Repetido $N$ vezes (bloco).
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{LM Head: do Vetor aos Logits}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Após os $N$ blocos, cada posição $t$ carrega um vetor $h_t \in \mathbb{R}^{d_\text{model}}$.\\[0.4em]
+        \begin{block}{Projeção no vocabulário}
+          $z = h_t\, W_\text{LM}, \qquad W_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}$
         \end{block}
         \vspace{0.3em}
-        Empilhar $N$ desses blocos $=$ Transformer.\\[4pt]
-        {\footnotesize Os tipos de norma (Layer/RMS Norm) e sua posição (Pre/Post-Norm) vêm na próxima seção.}
+        Cada logit é um \textbf{produto interno}, $z_v = h_t \cdot w_v$, onde $w_v$ é a coluna de $W_\text{LM}$ associada ao token $v$: mede o alinhamento entre o estado atual e cada token do vocabulário.
+        \vspace{0.3em}
+        \begin{itemize}
+          \item \textbf{Weight tying}: muitos modelos reutilizam a matriz de embedding ($W_\text{LM} = E^\top$)
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \footnotesize\textbf{Exemplo}: $d_\text{model}=3$, $|V|=5$, uma coluna por token:\\[0.5em]
+        \resizebox{\linewidth}{!}{$
+          \underbrace{\begin{bmatrix}1.0 & 0.5 & -0.5\end{bmatrix}}_{h_t}
+          \underbrace{\begin{bmatrix}
+            2.0 & 1.5 & 0.8 & 0.3 & -0.3\\
+            1.6 & 1.0 & 0.2 & 0.6 & 0.0\\
+            -0.4 & -0.2 & -0.2 & 0.2 & 0.4
+          \end{bmatrix}}_{W_\text{LM}}
+        $}\\[0.6em]
+        \resizebox{0.88\linewidth}{!}{$
+          =\;
+          \underbrace{\begin{bmatrix}
+            \overset{\scriptstyle\texttt{rolha}}{\mathbf{3.0}} &
+            \overset{\scriptstyle\texttt{roupa}}{2.1} &
+            \overset{\scriptstyle\texttt{rua}}{1.0} &
+            \overset{\scriptstyle\texttt{rainha}}{0.5} &
+            \overset{\scriptstyle\texttt{rei}}{-0.5}
+          \end{bmatrix}}_{z}
+        $}
+        \vspace{0.5em}
+        \begin{exampleblock}{\footnotesize Cálculo de $z_{\texttt{rolha}}$ (primeira coluna)}
+          \scriptsize $1.0 \times 2.0 + 0.5 \times 1.6 + (-0.5) \times (-0.4) = 2.0 + 0.8 + 0.2 = 3.0$
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{LM Head: dos Logits à Distribuição}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        O softmax converte os logits em uma distribuição de probabilidade sobre o vocabulário:
+        \begin{block}{Da pontuação à probabilidade}
+          $P(v \mid x_{\le t}) = \text{softmax}(z)_v = \dfrac{e^{z_v}}{\sum_{u \in V} e^{z_u}}$
+        \end{block}
+        \vspace{0.3em}
+        \begin{itemize}
+          \item $z$: \textbf{logits}, um score por token do vocabulário
+          \item A exponenciação amplia as diferenças entre scores; a soma normaliza o total para 1
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \footnotesize\textbf{Exemplo}: \textit{``O rato roeu a \_\_\_''}, logits do slide anterior:\\[0.4em]
+        \resizebox{0.9\linewidth}{!}{%
+        \begin{tabular}{lrr}
+          \toprule
+          \textbf{Token} & \textbf{Logit $z_v$} & $P(v \mid x_{\le t})$ \\
+          \midrule
+          \texttt{rolha}  & 3.0    & \cellcolor{CellGreen}\textbf{0.60} \\
+          \texttt{roupa}  & 2.1    & 0.25 \\
+          \texttt{rua}    & 1.0    & 0.08 \\
+          \texttt{rainha} & 0.5    & 0.05 \\
+          \texttt{rei}    & $-0.5$ & 0.02 \\
+          \bottomrule
+        \end{tabular}}
+        \vspace{0.4em}
+        \begin{exampleblock}{\footnotesize Cálculo}
+          \scriptsize $P(\texttt{rolha}) = \dfrac{e^{3.0}}{e^{3.0}+\cdots+e^{-0.5}} = \dfrac{20.1}{33.2} \approx 0.60$
+        \end{exampleblock}
+        \vspace{0.2em}
+        {\scriptsize A \textbf{estratégia de decodificação} (seção adiante) decide qual token emitir a partir dessa distribuição.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Treinamento: Todas as Posições em Paralelo}
+    A máscara causal permite computar a perda de \textbf{todas as posições em um único passe}:\\[0.4em]
+    \begin{center}
+    \resizebox{0.82\linewidth}{!}{%
+    \begin{tabular}{lccccc}
+      \toprule
+      \textbf{Posição} & 1 & 2 & 3 & 4 & 5 \\
+      \midrule
+      \textbf{Entrada} & \cellcolor{CellBlue}\texttt{<s>} & \cellcolor{CellBlue}\texttt{O} & \cellcolor{CellBlue}\texttt{rato} & \cellcolor{CellBlue}\texttt{roeu} & \cellcolor{CellBlue}\texttt{a} \\
+      \textbf{Alvo}    & \cellcolor{CellGreen}\texttt{O} & \cellcolor{CellGreen}\texttt{rato} & \cellcolor{CellGreen}\texttt{roeu} & \cellcolor{CellGreen}\texttt{a} & \cellcolor{CellGreen}\texttt{rolha} \\
+      \textbf{Perda}   & $-\log P(\texttt{O})$ & $-\log P(\texttt{rato})$ & $-\log P(\texttt{roeu})$ & $-\log P(\texttt{a})$ & $-\log P(\texttt{rolha})$ \\
+      \bottomrule
+    \end{tabular}}
+    \end{center}
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{itemize}
+          \item Alvo = entrada deslocada uma posição (\textit{shift-by-one})
+          \item Uma sequência de $n$ tokens fornece $n$ exemplos de treino simultâneos
+          \item A máscara causal garante que a posição $t$ não ``veja'' o próprio alvo
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{alertblock}{Por que o decoder-only venceu}
+          Treino massivamente paralelo (ao contrário das RNNs, que processam token a token) com um objetivo simples, aplicável a qualquer texto bruto, sem anotação.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 2: A FAMÍLIA GPT
+  %======================================================================================
+  \section{A Família GPT e o Paradigma Decoder-Only}
+
+  \begin{frame}{GPT-1: Pré-Treino + Fine-Tuning\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Paradigma}
+          Pré-treino generativo em texto bruto; depois, \textit{fine-tuning} supervisionado para cada tarefa.
+        \end{block}
+        \vspace{0.3em}
+        \textbf{Objetivo de pré-treino}: modelagem de linguagem causal
+        \[
+          \mathcal{L} = -\sum_{t} \log P(x_t \mid x_1,\ldots,x_{t-1};\,\Theta)
+        \]
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \textbf{Arquitetura e treino}:
+        \begin{itemize}
+          \item 117M parâmetros
+          \item 12 camadas, $d=768$, 12 cabeças
+          \item Contexto: 512 tokens
+          \item Treino: BooksCorpus ($\approx$1B tokens)
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{exampleblock}{Contribuição}
+          Mostrou que pré-treino auto-supervisionado em texto melhora fortemente o fine-tuning.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{radford2018gpt1}}
+  \end{frame}
+
+  \begin{frame}{GPT-2: Multitarefa Zero-Shot, sem Fine-Tuning\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Paradigma}
+          Zero-shot: um LM suficientemente grande realiza tarefas \textbf{sem fine-tuning} e sem exemplos.
+        \end{block}
+        \vspace{0.3em}
+        \textit{``Language models are unsupervised multitask learners''}\\[0.4em]
+        A tarefa é induzida pelo próprio prompt: por exemplo, \texttt{TL;DR:} ao final de um texto induz sumarização.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \textbf{Arquitetura e treino}:
+        \begin{itemize}
+          \item 1.5B parâmetros (XL; versões de 117M a 1.5B)
+          \item 48 camadas, $d=1600$, 25 cabeças; Pre-Norm
+          \item Contexto: 1024 tokens
+          \item Treino: WebText ($\approx$10B tokens de texto web filtrado)
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{exampleblock}{Contribuição}
+          Um único LM realiza múltiplas tarefas zero-shot.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{radford2019gpt2}}
+  \end{frame}
+
+  \begin{frame}{GPT-3: Few-Shot In-Context Learning\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{Paradigma}
+          Few-shot: exemplos fornecidos \textit{no contexto}, sem atualização de pesos.
+        \end{block}
+        \vspace{0.3em}
+        \textbf{Modos de uso em contexto}:
+        \begin{itemize}
+          \item \textbf{Zero-shot}: só a instrução
+          \item \textbf{One-shot}: 1 exemplo no prompt
+          \item \textbf{Few-shot}: K exemplos no prompt
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \textbf{Arquitetura e treino}:
+        \begin{itemize}
+          \item 175B parâmetros
+          \item 96 camadas, $d=12288$, 96 cabeças
+          \item Contexto: 2048 tokens
+          \item Treino: 300B tokens (Common Crawl filtrado, livros, Wikipedia)
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{exampleblock}{Contribuição}
+          Capacidades emergentes com escala (aritmética, tradução, raciocínio); o fine-tuning por tarefa dá lugar à engenharia de \textit{prompts}.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{brown2020gpt3}}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 3: O BLOCO DECODER
+  %======================================================================================
+  \section{O Bloco Decoder}
+
+  \begin{frame}{Bloco Transformer Decoder-Only em Detalhe}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        O bloco básico repete-se $N$ vezes:\\[0.3em]
+        \begin{enumerate}
+          \item \textbf{Normalização} (Pre-Norm)
+          \item \textbf{Masked Self-Attention}
+          \item Conexão residual: $x \mathrel{+}= \text{Attn}(\cdot)$
+          \item \textbf{Normalização}
+          \item \textbf{Feed-Forward} (MLP)
+          \item Conexão residual: $x \mathrel{+}= \text{FFN}(\cdot)$
+        \end{enumerate}
+        \vspace{0.3em}
+        \textbf{Sem} cross-attention. Toda informação está nas $n$ posições anteriores da sequência.
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{exampleblock}{O que mudou desde 2017?}
+          \begin{itemize}
+            \item ReLU-FFN $\to$ \textbf{SwiGLU}
+            \item LayerNorm $\to$ \textbf{RMSNorm}
+            \item Post-Norm $\to$ \textbf{Pre-Norm}
+            \item Codificação posicional: RoPE
+          \end{itemize}
+          As três primeiras mudanças serão detalhadas a seguir.
+        \end{exampleblock}
       \end{column}
     \end{columns}
   \end{frame}
 
   \begin{frame}{FFN Padrão: Exemplo Numérico (ReLU)}
+    \begin{center}
+      $\text{FFN}(x) = \text{ReLU}(x W_1)\, W_2 = \max(0,\, x W_1)\, W_2$
+    \end{center}
     \begin{columns}[T]
       % ── LEFT: single-path computation flow ──────────────────────────────
       \begin{column}{0.52\textwidth}
         \centering
-        \resizebox{0.78\linewidth}{!}{%
+        \resizebox{0.68\linewidth}{!}{%
         \begin{tikzpicture}[
           vec/.style={draw, rounded corners, minimum width=3.0cm, minimum height=0.52cm,
                       fill=CellBlue, align=center, font=\small},
@@ -201,6 +477,7 @@
 
       % ── RIGHT: numerical example ─────────────────────────────────────
       \begin{column}{0.44\textwidth}
+        \vspace{1.2em}
         \footnotesize\textbf{Exemplo numérico}\\[0.1em]
         \scriptsize$d_\mathrm{model}=3,\quad d_{ff}=4\times3=12$\\[0.5em]
 
@@ -212,7 +489,7 @@
         \textcolor{red!70!black}{\tiny$\Rightarrow$ ReLU \textbf{zera} o valor negativo $-1.0$!}\\[0.5em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellYellow}{$[\,\cdots\,]W_2\;\approx\;y = [\,0.7,\;{-0.2},\;0.4\,]$}
+        \colorbox{CellYellow}{$[\,\cdots\,]W_2\;\approx\;y = [\,0.9,\;{-0.1},\;0.3\,]$}
         }
       \end{column}
     \end{columns}
@@ -395,7 +672,7 @@
         \[
           \text{LN}(\mathbf{x}) = \boldsymbol{\gamma} \odot \hat{\mathbf{x}} + \boldsymbol{\beta}
         \]
-        $\boldsymbol{\gamma}, \boldsymbol{\beta} \in \mathbb{R}^d$: parâmetros aprendidos (\textit{gain} e \textit{bias}).
+        $\boldsymbol{\gamma}, \boldsymbol{\beta} \in \mathbb{R}^d$: parâmetros aprendidos.
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{itemize}
@@ -411,6 +688,36 @@
     \end{columns}
   \end{frame}
 
+  \begin{frame}{RMS Norm: Simplificação do Layer Norm\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        O re-centramento (subtração de $\mu$) é desnecessário quando a invariância de escala é suficiente.\\[0.4em]
+        Normaliza apenas pela raiz do valor quadrático médio:
+        \[
+          \text{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2}
+        \]
+        \[
+          \text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\text{RMS}(\mathbf{x})} \odot \boldsymbol{\gamma}
+        \]
+        \textbf{Sem} $\mu$, \textbf{sem} $\boldsymbol{\beta}$, mais simples e rápido.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{itemize}
+          \item Mais rápido: sem cálculo de média
+          \item Mesma qualidade empírica que LayerNorm
+          \item Menos parâmetros (sem $\boldsymbol{\beta}$)
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{exampleblock}{Adotado por}
+          Llama 1/2/3, Mistral, Mixtral, Gemma, Falcon, PaLM, \ldots
+        \end{exampleblock}
+        \vspace{0.2em}
+        Citado em \cite{stanfordcme295} como padrão atual para LLMs eficientes.
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{zhang2019rmsnorm}}
+  \end{frame}
+
   \begin{frame}{Layer Norm, RMS Norm e Batch Norm: Exemplo Numérico}
     Lote de 2 tokens, cada um com $d=4$ \textit{features}:
     \begin{center}
@@ -424,17 +731,20 @@
           $\hat{\mathbf{x}}=\dfrac{\mathbf{x}-\mu}{\sqrt{\sigma^2}}=[-1.34,\,-0.45,\,0.45,\,1.34]$\\[2pt]
           {\footnotesize média $0$ e variância $1$, usando só as features do token}
         \end{block}
+        \onslide<2->
         \begin{block}{RMSNorm --- token 1 (eixo $d$)}
           $\text{RMS}=\sqrt{\tfrac{1}{4}\textstyle\sum_i x_i^2}=4.58$\\[2pt]
           $\mathbf{x}/\text{RMS}=[0.22,\,0.66,\,1.09,\,1.53]$\ {\footnotesize(só reescala)}
         \end{block}
       \end{column}
       \begin{column}{0.44\textwidth}
+        \onslide<3->
         \begin{alertblock}{BatchNorm --- feature 1 (lote)}
           coluna $1=[1,\,9]$:\ $\mu=5,\ \sigma^2=16$\\[2pt]
           $\hat{\mathbf{x}}=[-1,\,1]$\\[2pt]
           {\footnotesize usa estatísticas \textbf{do lote}, depende do batch}
         \end{alertblock}
+        \onslide<4->
         \begin{exampleblock}{Conclusão}
           LN/RMS normalizam \textbf{por token}; BN \textbf{por feature}. Transformers usam LN/RMS por independerem do batch.
         \end{exampleblock}
@@ -467,303 +777,567 @@
     \end{center}
   \end{frame}
 
-  \begin{frame}{RMS Norm: Simplificação do Layer Norm \cite{zhang2019rmsnorm}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Zhang \& Sennrich (2019)}: o re-centramento (subtração de $\mu$) é desnecessário quando a invariância de escala é suficiente.\\[0.4em]
-        Normaliza apenas pela raiz do valor quadrático médio:
-        \[
-          \text{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2}
-        \]
-        \[
-          \text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\text{RMS}(\mathbf{x})} \odot \boldsymbol{\gamma}
-        \]
-        \textbf{Sem} $\mu$, \textbf{sem} $\boldsymbol{\beta}$, mais simples e rápido.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{itemize}
-          \item Mais rápido: sem cálculo de média
-          \item Mesma qualidade empírica que LayerNorm
-          \item Menos parâmetros (sem $\boldsymbol{\beta}$)
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{exampleblock}{Adotado por}
-          Llama 1/2/3, Mistral, Mixtral, Gemma, Falcon, PaLM, \ldots
-        \end{exampleblock}
-        \vspace{0.2em}
-        Citado em \cite{stanfordcme295} como padrão atual para LLMs eficientes.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Qual Normalização Cada Modelo Usa?}
-    \begin{center}
-    \resizebox{0.88\linewidth}{!}{%
-    \begin{tabular}{lllll}
-      \toprule
-      \textbf{Modelo} & \textbf{Norma} & \textbf{Posição} & \textbf{Bias $\boldsymbol{\beta}$?} & \textbf{Observação} \\
-      \midrule
-      BERT            & LayerNorm & Post-Norm & Sim & Encoder bidirecional \\
-      GPT-2           & LayerNorm & Pre-Norm  & Sim & Decoder-only \\
-      GPT-3           & LayerNorm & Pre-Norm  & Sim & Decoder-only \\
-      Llama 1/2/3     & RMSNorm   & Pre-Norm  & Não & Decoder-only \\
-      Mistral 7B      & RMSNorm   & Pre-Norm  & Não & Decoder-only \\
-      Gemma           & RMSNorm   & Pre+Post  & Não & ``Sandwich'' norm, estabiliza treino profundo \\
-      PaLM            & RMSNorm   & Pre-Norm  & Não & Decoder-only \\
-      \bottomrule
-    \end{tabular}}
-    \end{center}
-    \vspace{0.3em}
-    \begin{center}
-      \textcolor{DarkBlue}{\textbf{Tendência: RMSNorm + Pre-Norm para LLMs modernos.}}
-    \end{center}
-  \end{frame}
-
   %======================================================================================
-  % SECTION: DO ENCODER-DECODER AO DECODER-ONLY
+  % SECTION 5: DECODIFICAÇÃO
   %======================================================================================
-  \section{Do Encoder-Decoder ao Decoder-Only}
+  \section{Estratégias de Decodificação}
 
-  \begin{frame}{O que Encoder e Decoder fazem?}
-    \begin{columns}[T]
-      \begin{column}{0.48\textwidth}
-        \begin{block}{Encoder: compreensão}
-          \begin{itemize}
-            \item Processa \textbf{toda a entrada} de uma vez
-            \item Atenção bidirecional
-            \item Produz vetor de contexto rico
-            \item Exemplos: BERT, RoBERTa
-          \end{itemize}
-        \end{block}
-      \end{column}
-      \begin{column}{0.48\textwidth}
-        \begin{block}{Decoder: geração}
-          \begin{itemize}
-            \item Gera \textbf{um token por vez}
-            \item Atenção causal (só vê o passado)
-            \item Recebe contexto via cross-attention
-            \item Exemplos: GPT, T5-decoder
-          \end{itemize}
-        \end{block}
-      \end{column}
-    \end{columns}
-    \vspace{0.5em}
-    \begin{center}
-      \textcolor{DarkRed}{\textbf{Para LLMs, o encoder é desnecessário.}}\\
-      \vspace{0.2em}
-      O decoder processa o \textit{prompt} como parte da sequência.
-    \end{center}
-  \end{frame}
-
-  \begin{frame}{Máscara Causal vs.\ Atenção Bidirecional}
+  \begin{frame}{Decodificação Greedy}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        \textbf{Bidirecional (BERT/Encoder)}:\\
-        cada posição vê \textit{toda} a sequência.
+        Após o LM produzir a distribuição $P(\cdot \mid x_{<t})$:
+        \begin{block}{Greedy}
+          $x_t = \arg\max_v P(v \mid x_{<t})$
+        \end{block}
         \vspace{0.3em}
-
-        \resizebox{0.85\linewidth}{!}{%
-        \begin{tabular}{c|cccc}
-          & $t_1$ & $t_2$ & $t_3$ & $t_4$ \\\hline
-          $t_1$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
-          $t_2$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
-          $t_3$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
-          $t_4$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
-        \end{tabular}}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \textbf{Causal (GPT/Decoder-Only)}:\\
-        posição $i$ só vê $j \le i$.
-        \vspace{0.3em}
-
-        \resizebox{0.85\linewidth}{!}{%
-        \begin{tabular}{c|cccc}
-          & $t_1$ & $t_2$ & $t_3$ & $t_4$ \\\hline
-          $t_1$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ \\
-          $t_2$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ & \cellcolor{CellRed}$\times$ \\
-          $t_3$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellRed}$\times$ \\
-          $t_4$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ & \cellcolor{CellGreen}$\checkmark$ \\
-        \end{tabular}}
-        \vspace{0.3em}
-        Garante que $t_4$ não ``veja o futuro'' durante o treino.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Do Encoder-Decoder para o Decoder-Only}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Ideia central}: treine apenas o decoder.\\[0.5em]
-        O modelo recebe o texto de entrada como \textit{prefixo} e continua gerando autorregressivamente.\\[0.5em]
         \begin{itemize}
-          \item Sem cross-attention
-          \item Sem encoder separado
-          \item Toda informação está nas posições anteriores
-          \item Arquitetura mais simples
+          \item Rápido: nenhuma busca adicional
+          \item Determinístico: mesma saída para o mesmo prompt
+          \item Pode ser subótimo: maximiza cada passo isoladamente, não a sequência
         \end{itemize}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \centering
-        \begin{tikzpicture}[
-          block/.style={draw, rounded corners, minimum width=4.5cm, minimum height=0.50cm,
-                        fill=CellYellow, align=center, font=\footnotesize},
-          norm/.style={draw, rounded corners, minimum width=4.5cm, minimum height=0.50cm,
-                       fill=CellBlue, align=center, font=\footnotesize},
-          add/.style={draw, circle, minimum size=0.32cm, fill=white,
-                      inner sep=0pt, font=\footnotesize},
-          arrow/.style={->, >=Stealth, thick},
-          node distance=0.28cm
-        ]
-          \node[norm]  (n1)   {RMSNorm};
-          \node[block, above=of n1]   (attn) {Masked Self-Attention};
-          \node[add,   above=of attn] (add1) {$+$};
-          \node[norm,  above=of add1] (n2)   {RMSNorm};
-          \node[block, above=of n2]   (ff)   {Feed-Forward (MLP)};
-          \node[add,   above=of ff]   (add2) {$+$};
-          \node[block, above=of add2] (lm)   {LM Head (Linear)};
-          \node[below=0.4cm of n1, font=\footnotesize] (inp) {tokens de entrada};
-
-          % Main forward flow
-          \draw[arrow] (inp)  -- (n1);
-          \draw[arrow] (n1)   -- (attn);
-          \draw[arrow] (attn) -- (add1);
-          \draw[arrow] (add1) -- (n2);
-          \draw[arrow] (n2)   -- (ff);
-          \draw[arrow] (ff)   -- (add2);
-          \draw[arrow] (add2) -- (lm);
-
-          % Reference point just outside the left edge of all blocks
-          \coordinate (resLeft) at ([xshift=-0.4cm]n1.west);
-
-          % Residual 1: inp → left of blocks → add1
-          \draw[->, >=Stealth, thick, DarkRed]
-            (inp.west) -- (inp.west -| resLeft) -- (add1.west -| resLeft) -- (add1.west);
-          % Residual 2: add1 → left of blocks → add2
-          \draw[->, >=Stealth, thick, DarkRed]
-            (add1.west) -- (add1.west -| resLeft) -- (add2.west -| resLeft) -- (add2.west);
-          \node[font=\tiny, DarkRed, left] at ($(add1.west -| resLeft)!0.5!(add2.west -| resLeft)$) {resíduo};
-        \end{tikzpicture}
-        \vspace{0.2em}
-        \footnotesize Repetido $N$ vezes (bloco).
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  %======================================================================================
-  % SECTION 2: A FAMÍLIA GPT
-  %======================================================================================
-  \section{A Família GPT e o Paradigma Decoder-Only}
-
-  \begin{frame}{GPT-1: Pré-Treino + Fine-Tuning \cite{radford2018gpt1}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Radford et al.\ (2018)}, OpenAI\\[0.4em]
-        \textbf{Objetivo de pré-treino}: modelagem de linguagem causal
-        \[
-          \mathcal{L} = -\sum_{t} \log P(x_t \mid x_1,\ldots,x_{t-1};\,\Theta)
-        \]
-        Depois: \textit{fine-tuning} supervisionado para cada tarefa.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{itemize}
-          \item 117M parâmetros
-          \item 12 camadas, $d=768$, 12 cabeças
-          \item BooksCorpus ($\approx$800M tokens)
-          \item Tokenização BPE
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{exampleblock}{Contribuição}
-          Mostrou que pré-treino auto-supervisionado em texto melhora fortemente o fine-tuning.
+        \begin{exampleblock}{Exemplo}
+          Para \textit{``O rato roeu a \_\_\_''}:\\[0.2em]
+          $P(\texttt{rolha}) = 0.60$, $P(\texttt{roupa}) = 0.25$, \ldots\\[0.2em]
+          Greedy emite \texttt{rolha} \textbf{sempre}, mesmo que a continuação a partir de \texttt{roupa} fosse melhor.
         \end{exampleblock}
       \end{column}
     \end{columns}
   \end{frame}
 
-  \begin{frame}{GPT-2: Geração Zero-Shot \cite{radford2019gpt2}}
+  \begin{frame}{Beam Search}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{block}{Beam Search}
+          Mantém $B$ hipóteses parciais; a cada passo expande todas e retém as $B$ de maior \textbf{probabilidade conjunta}.
+        \end{block}
+        \vspace{0.3em}
+        \begin{itemize}
+          \item $\mathcal{O}(B)$ mais lento que greedy
+          \item Encontra sequências de maior probabilidade total que greedy perde
+          \item Também determinístico
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{exampleblock}{Exemplo com $B=2$}
+          \centering
+          \resizebox{\linewidth}{!}{%
+          \begin{tikzpicture}[
+            tok/.style={draw, rounded corners, fill=CellBlue, font=\scriptsize\ttfamily,
+                        inner sep=2.5pt, minimum height=0.45cm},
+            win/.style={fill=CellGreen, draw=DarkGreen, thick},
+            cut/.style={fill=LightGray, draw=gray, text=gray},
+            lbl/.style={font=\tiny, midway, above, sloped},
+            arr/.style={->, >=Stealth, thick}
+          ]
+            \node[tok] (root)  at (0, 0)      {\ldots roeu a};
+            \node[tok] (rolha) at (2.4, 1.0)  {rolha};
+            \node[tok] (roupa) at (2.4, -0.1) {roupa};
+            \node[tok, cut] (rua) at (2.4, -1.2) {rua};
+            \node[tok] (toda)  at (4.6, 1.0)  {toda};
+            \node[tok, win] (suja) at (4.6, -0.1) {suja};
+
+            \draw[arr] (root) -- node[lbl] {$0.60$} (rolha);
+            \draw[arr] (root) -- node[lbl] {$0.25$} (roupa);
+            \draw[arr, dashed, gray] (root) -- node[lbl] {$0.08$} (rua);
+            \draw[arr] (rolha) -- node[lbl] {$0.20$} (toda);
+            \draw[arr] (roupa) -- node[lbl] {$0.80$} (suja);
+
+            \node[font=\tiny, right=0.12cm of toda] {$0.60 \times 0.20 = 0.12$};
+            \node[font=\tiny, right=0.12cm of suja] {$0.25 \times 0.80 = \mathbf{0.20}$};
+            \node[font=\tiny, gray, right=0.12cm of rua] {podada ($B{=}2$)};
+          \end{tikzpicture}}
+          \vspace{0.3em}
+
+          \raggedright O beam escolhe \texttt{roupa suja}; greedy teria travado em \texttt{rolha}.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Amostragem}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{block}{Amostragem}
+          $x_t \sim P(\cdot \mid x_{<t})$
+        \end{block}
+        \vspace{0.3em}
+        \begin{itemize}
+          \item Estocástico: saídas variam entre execuções
+          \item Necessário para criatividade e diversidade
+          \item Risco: tokens raros da cauda geram incoerências
+        \end{itemize}
+        \vspace{0.3em}
+        Os parâmetros \textbf{temperature}, \textbf{top-$k$} e \textbf{top-$p$} (próximos slides) controlam essa distribuição.
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{exampleblock}{Exemplo}
+          Em 100 gerações de \textit{``O rato roeu a \_\_\_''}:\\[0.2em]
+          $\approx$60 emitem \texttt{rolha}, $\approx$25 \texttt{roupa}, $\approx$8 \texttt{rua}, \ldots\\[0.2em]
+          Até \texttt{rei} ($P = 0.02$) aparece ocasionalmente, coerente ou não.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Por que Não Usar Sempre Greedy ou Beam? \cite{holtzman2020degeneration}}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        \textbf{Radford et al.\ (2019)}\\[0.4em]
-        \textbf{Hipótese}: um LM suficientemente grande aprende a realizar tarefas \textbf{sem fine-tuning}.\\[0.4em]
-        \textit{``Language models are unsupervised multitask learners''}\\[0.4em]
-        Novidades técnicas:
+        \textbf{Holtzman et al.\ (2020)}: em geração aberta, maximizar a probabilidade produz \textbf{degeneração}.\\[0.4em]
+        \begin{alertblock}{Saída típica de beam search (GPT-2)}
+          \footnotesize\textit{``Eu adoro música. Eu adoro música. Eu adoro música. Eu adoro música. Eu adoro\ldots''}
+        \end{alertblock}
+        \vspace{0.3em}
         \begin{itemize}
-          \item Pre-Norm ao invés de Post-Norm
-          \item Contexto: 1024 tokens
-          \item Vocabulário: 50257 tokens (BPE\footnote{\scriptsize BPE = \textit{Byte-Pair Encoding}: segmenta palavras em sub-palavras frequentes, reduzindo o tamanho do vocabulário.})
+          \item Repetição em loop: repetir aumenta a probabilidade da própria repetição
+          \item Texto genérico e previsível, sem informação nova
         \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Observação central}
+          Texto humano \textbf{não} é o texto mais provável: humanos alternam tokens esperados e surpreendentes.
+        \end{block}
+        \vspace{0.3em}
+        \begin{itemize}
+          \item Amostragem pura resolve a repetição, mas a \textbf{cauda} da distribuição gera incoerências
+          \item Solução: \textbf{amostragem truncada} (top-$k$, top-$p$), corta a cauda e amostra do resto
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Temperature, Top-$k$ e Top-$p$}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Temperature}:
+        \[
+          P_T(x) = \frac{\exp(z_x / T)}{\sum_v \exp(z_v / T)}
+        \]
+        \begin{itemize}
+          \item $T \to 0$: greedy
+          \item $T = 1$: distribuição original
+          \item $T > 1$: distribuição mais uniforme
+        \end{itemize}
+        \vspace{0.3em}
+        \textbf{Top-$p$}: selecione o menor conjunto de tokens cuja probabilidade acumulada $\ge p$ (ex: $p=0.9$), então amostre dentro desse conjunto.
       \end{column}
       \begin{column}{0.44\textwidth}
         \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lrrrr}
-          \toprule
-          \textbf{Versão} & \textbf{Params} & \textbf{Camadas} & $d$ & $H$ \\
-          \midrule
-          Small  & 117M  & 12 & 768  & 12 \\
-          Medium & 345M  & 24 & 1024 & 16 \\
-          Large  & 762M  & 36 & 1280 & 20 \\
-          XL     & 1.5B  & 48 & 1600 & 25 \\
-          \bottomrule
-        \end{tabular}}
-        \vspace{0.3em}
-        Dataset: WebText (40GB de texto web filtrado).
+        \begin{tikzpicture}
+          \begin{axis}[
+            ybar,
+            bar width=0.38cm,
+            xlabel={Token},
+            ylabel={Probabilidade},
+            symbolic x coords={$v_1$,$v_2$,$v_3$,$v_4$,$v_5$,$v_6$,$v_7$,$v_8$},
+            xtick=data,
+            ymin=0, ymax=0.55,
+            width=7cm, height=4.5cm,
+            enlarge x limits=0.08
+          ]
+            \addplot[fill=CellBlue] coordinates
+              {($v_1$,0.45)($v_2$,0.25)($v_3$,0.15)($v_4$,0.07)($v_5$,0.04)($v_6$,0.02)($v_7$,0.01)($v_8$,0.01)};
+            \draw[DarkRed, dashed, thick]
+              (axis cs:{$v_4$}, 0) -- (axis cs:{$v_4$}, 0.55)
+              node[above, font=\tiny, DarkRed] {top-$p{=}0.85$};
+          \end{axis}
+        \end{tikzpicture}}
       \end{column}
     \end{columns}
   \end{frame}
 
-  \begin{frame}{GPT-3: Zero e Few-shot learning\cite{brown2020gpt3}}
+  \begin{frame}{Temperature, Top-$k$ e Top-$p$: Exemplo Numérico}
+    Logits para \textit{``O rato roeu a \_\_\_''} (mesmo exemplo da LM head):
+    \vspace{0.3em}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        \textbf{Brown et al.\ (2020)}, 175 bilhões de parâmetros\\[0.4em]
-        \textbf{Few-shot prompting}: exemplos fornecidos \textit{no contexto}, sem atualização de pesos.
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{lrccc}
+          \toprule
+          \textbf{Token} & \textbf{Logit} & $P_{T=0.5}$ & $P_{T=1}$ & $P_{T=2}$ \\
+          \midrule
+          \texttt{rolha} & 3.0    & \textbf{0.84} & \textbf{0.64} & \textbf{0.46} \\
+          \texttt{roupa} & 2.1    & 0.14 & 0.26 & 0.29 \\
+          \texttt{rua}   & 1.0    & 0.02 & 0.09 & 0.17 \\
+          \texttt{rei}   & $-0.5$ & 0.00 & 0.02 & 0.08 \\
+          \bottomrule
+        \end{tabular}}
         \vspace{0.3em}
-        \begin{block}{Modos de uso em contexto}
+        \begin{itemize}
+          \item $T{=}0.5$ \textbf{afia}: quase greedy
+          \item $T{=}2$ \textbf{achata}: mais diversidade, mais risco
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        Truncamento sobre $P_{T=1}$:
+        \begin{block}{Top-$k$ com $k=2$}
+          Mantém \texttt{rolha}, \texttt{roupa}; renormaliza:\\
+          $P(\texttt{rolha}) = \dfrac{0.64}{0.64+0.26} = 0.71$
+        \end{block}
+        \begin{block}{Top-$p$ com $p=0.9$}
+          Acumulada: $0.64 \to 0.90$; o conjunto $\{\texttt{rolha}, \texttt{roupa}\}$ já atinge $p$, os demais são cortados.
+        \end{block}
+        \vspace{0.2em}
+        {\footnotesize Top-$k$ fixa o \textbf{tamanho} do conjunto; top-$p$ fixa a \textbf{massa} de probabilidade, adaptando-se à incerteza do modelo.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Quando Parar de Gerar?}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        A geração autorregressiva não termina sozinha; três critérios de parada usuais:
+        \begin{enumerate}
+          \item \textbf{Token \texttt{<eos>}} (\textit{end of sequence}): o modelo emite um token especial de fim
+          \item \textbf{Limite de tokens}: teto de custo e de janela de contexto
+          \item \textbf{Stop sequences}: strings definidas pela aplicação (ex.: \texttt{"\textbackslash n\textbackslash n"}, fim de bloco de código)
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{De onde vem o \texttt{<eos>}?}
+          No pré-treino, documentos são concatenados separados por \texttt{<eos>}. O modelo aprende $P(\texttt{<eos>} \mid \text{contexto})$ como qualquer outro token.
+        \end{block}
+        \vspace{0.3em}
+        \begin{exampleblock}{Na prática}
+          Amostrar \texttt{<eos>} encerra a resposta; atingir o limite de tokens \textbf{trunca} a resposta no meio, situação que as APIs sinalizam (ex.: \texttt{finish\_reason}).
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Decodificação Guiada (\textit{Constrained Decoding}) \cite{willard2023guided}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Problema}: LLMs podem gerar texto que não segue formato específico (JSON, SQL, código).\\[0.4em]
+        \textbf{Solução}: restringir a distribuição de saída a tokens válidos segundo uma \textbf{gramática} ou \textbf{esquema}.\\[0.4em]
+        \textbf{Willard \& Louf (2023)}: pré-compila um DFA para cada gramática, o mascaramento de tokens inválidos é $\mathcal{O}(1)$ por token.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Exemplos de uso}
           \begin{itemize}
-            \item \textbf{Zero-shot}: só a instrução
-            \item \textbf{One-shot}: 1 exemplo no prompt
-            \item \textbf{Few-shot}: K exemplos no prompt
+            \item Geração de JSON estruturado
+            \item SQL sem erros de sintaxe
+            \item Extração em formato fixo
+            \item Chamadas de API com parâmetros corretos
           \end{itemize}
         \end{block}
+        \vspace{0.2em}
+        Implementações: \texttt{outlines}, \texttt{guidance}, \texttt{llama.cpp} grammar mode, vLLM structured outputs.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Decodificação Guiada: DFA para um Fragmento de SQL}
+    \small Gramática simplificada: \texttt{SELECT}, depois \texttt{*} ou lista de colunas separadas por \texttt{,}, depois \texttt{FROM} e uma tabela.
+    \begin{center}
+    \resizebox{0.50\linewidth}{!}{%
+    \begin{tikzpicture}[
+      state/.style={draw, circle, thick, minimum size=0.95cm, fill=LightGray, font=\small},
+      cur/.style={fill=CellYellow, draw=DarkRed, line width=1.4pt},
+      arr/.style={->, >=Stealth, thick},
+      lbl/.style={font=\scriptsize, fill=white, inner sep=1.5pt},
+      ann/.style={font=\tiny, MidGray, align=center}
+    ]
+      \node[state]      (q0) at (0,0)       {$q_0$};
+      \node[state, cur] (q1) at (2.8,0)     {$q_1$};
+      \node[state]      (q2) at (5.8,1.2)   {$q_2$};
+      \node[state]      (q3) at (5.8,-1.2)  {$q_3$};
+      \node[state]      (q4) at (8.8,0)     {$q_4$};
+      \node[state]      (q5) at (2.8,-2.4)  {$q_5$};
+
+      \draw[arr] (-1.0,0) -- (q0);
+      \draw[arr] (q0) -- node[lbl, above] {\texttt{SELECT}} (q1);
+      \draw[arr] (q1) -- node[lbl, above, sloped] {\texttt{*}} (q2);
+      \draw[arr] (q1) -- node[lbl, above, sloped] {\textit{ident}} (q3);
+      \draw[arr] (q2) -- node[lbl, above, sloped] {\texttt{FROM}} (q4);
+      \draw[arr] (q3) -- node[lbl, below, sloped] {\texttt{FROM}} (q4);
+      \draw[arr] (q3) to[bend left=25]  node[lbl, right] {\texttt{,}} (q5);
+      \draw[arr] (q5) to[bend left=25]  node[lbl, left]  {\textit{ident}} (q3);
+
+      \node[ann, below=0.10cm of q0] {início};
+      \node[ann, above=0.10cm of q1] {após \texttt{SELECT}};
+      \node[ann, above=0.10cm of q2] {após \texttt{*}};
+      \node[ann, right=0.12cm of q3] {após coluna};
+      \node[ann, below=0.10cm of q4] {espera tabela};
+      \node[ann, below=0.10cm of q5] {após vírgula};
+    \end{tikzpicture}}
+    \end{center}
+    \begin{alertblock}{Estado atual: $q_1$}
+      \small O modelo já gerou \texttt{SELECT}. De $q_1$ só saem transições que consomem \texttt{*} ou um identificador de coluna; qualquer outro token é bloqueado (próximo slide).
+    \end{alertblock}
+  \end{frame}
+
+  \begin{frame}{Decodificação Guiada: Máscara sobre os Logits em $q_1$}
+    \small O DFA define o conjunto válido $V_{q_1} = \{\texttt{*},\ \textit{identificadores}\}$; a máscara soma $-\infty$ ao logit dos demais antes do softmax:
+    \[
+      P(v \mid x_{\le t}) = \text{softmax}\bigl(z + M_{q_1}\bigr)_v,
+      \qquad
+      M_{q_1}[v] = 0 \text{ se } v \in V_{q_1},\ {-\infty} \text{ caso contrário}
+    \]
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \resizebox{0.96\linewidth}{!}{%
+        \begin{tabular}{lrcrr}
+          \toprule
+          \textbf{Token} & \textbf{Logit $z_v$} & $v \in V_{q_1}$? & $z_v + M_{q_1}$ & $P$ \\
+          \midrule
+          \texttt{FROM}  & 2.5 & \cellcolor{CellRed}$\times$        & \textcolor{DarkRed}{$-\infty$} & \textcolor{gray}{0} \\
+          \texttt{*}     & 2.1 & \cellcolor{CellGreen}$\checkmark$ & 2.1 & \textbf{0.49} \\
+          \texttt{nome}  & 1.8 & \cellcolor{CellGreen}$\checkmark$ & 1.8 & 0.36 \\
+          \texttt{WHERE} & 1.2 & \cellcolor{CellRed}$\times$        & \textcolor{DarkRed}{$-\infty$} & \textcolor{gray}{0} \\
+          \texttt{idade} & 0.9 & \cellcolor{CellGreen}$\checkmark$ & 0.9 & 0.15 \\
+          \texttt{;}     & 0.3 & \cellcolor{CellRed}$\times$        & \textcolor{DarkRed}{$-\infty$} & \textcolor{gray}{0} \\
+          \bottomrule
+        \end{tabular}}
+        \vspace{0.3em}
+
+        {\footnotesize $P(\texttt{*}) = \dfrac{e^{2.1}}{e^{2.1}+e^{1.8}+e^{0.9}} = \dfrac{8.2}{16.7} \approx 0.49$}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{exampleblock}{Leitura}
+          \small Sem a máscara, \texttt{FROM} seria o token mais provável ($P \approx 0.36$) e produziria \texttt{SELECT FROM}, inválido. Com a máscara, o softmax renormaliza a probabilidade apenas entre os tokens válidos.
+        \end{exampleblock}
+        \vspace{0.2em}
+        {\footnotesize \textbf{Por que $\mathcal{O}(1)$ por token?} A tabela estado $\to$ máscara é pré-compilada a partir da gramática; a cada passo basta indexá-la pelo estado atual \cite{willard2023guided}.\\[0.3em]
+        \scriptsize Nomes de coluna fora do vocabulário são gerados em vários subtokens; o DFA é definido sobre o vocabulário de subtokens do modelo.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Decodificação Especulativa: Ideia Geral \cite{leviathan2023speculative}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Gargalo}: LLMs grandes são lentos, cada token exige um passe completo.\\[0.4em]
+        \textbf{Observação}: a maioria dos tokens é fácil de prever; tokens difíceis são exceção.\\[0.4em]
+        \textbf{Algoritmo}:
+        \begin{enumerate}
+          \item \textbf{Draft model} pequeno gera $\gamma$ tokens
+          \item \textbf{Target model} verifica \textit{em paralelo}
+          \item No primeiro rejeitado: re-amostra o token e \textbf{descarta o restante} do rascunho
+          \item Todos aceitos: amostra um token extra do passe do alvo, ganhando $\gamma + 1$ tokens
+        \end{enumerate}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Propriedade chave}
+          Saída \textbf{idêntica em distribuição} ao modelo alvo, sem perda de qualidade por construção.
+        \end{block}
+        \vspace{0.3em}
+        \begin{exampleblock}{Speedup típico}
+          $2$--$3\times$ com draft $10\times$ menor.\\
+          Ex: Llama 3 70B + Llama 3 8B como draft.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Algoritmo Especulativo: Critério de Aceitação}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Draft model $M_q$, target model $M_p$:\\[0.4em]
+        Para cada token $\tilde{x}_t$ proposto pelo draft:
+        \[
+          \text{Aceitar com prob.} \min\!\left(1,\; \frac{p(\tilde{x}_t \mid x_{<t})}{q(\tilde{x}_t \mid x_{<t})}\right)
+        \]
+        Se rejeitado: re-amostre de
+        \[
+          p'(x) \propto \max\!\bigl(0,\, p(x)-q(x)\bigr)
+        \]
+        Verifique todos os $\gamma$ tokens \textbf{em um único passe} do modelo alvo.\\[0.4em]
+        {\footnotesize O tamanho do rascunho $\gamma$ é um hiperparâmetro de inferência; valores típicos ficam entre 3 e 8, equilibrando taxa de aceitação e custo do draft.}
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{itemize}
-          \item 96 camadas, $d=12288$, 96 cabeças
-          \item Contexto: 2048 tokens
-          \item Treinado em 300B tokens
-          \item \textbf{Capacidades emergentes}: habilidades que \textit{surgem abruptamente} com escala (aritmética, tradução, raciocínio)
+          \item $p \ge q$: token \textbf{sempre aceito}
+          \item Draft e target concordam $\to$ aceleração máxima
+          \item Tokens difíceis: target corrige
+          \item Rejeição na posição $t$: as posições $t{+}1, \ldots, \gamma$ do rascunho são \textbf{descartadas}
         \end{itemize}
-        \vspace{0.2em}
-        \begin{alertblock}{Mudança de paradigma}
-          A partir do GPT-3, o fine-tuning por tarefa foi substituído pela engenharia de \textit{prompts}.
+        \vspace{0.3em}
+        \begin{block}{Complexidade}
+          $\gamma+1$ passos de $M_q$ + 1 passe de $M_p$\\
+          $\to$ até $\gamma+1$ tokens gerados\\
+          ($\gamma$ aceitos + 1 extra amostrado de $M_p$).\\
+          Sem especulação: $\gamma+1$ passes de $M_p$.
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Decodificação Especulativa: Exemplo Passo a Passo}
+    \textbf{Contexto:} completar \enquote{O gato subiu na \_\_\_} com $\gamma=3$.\\[0.3em]
+    Draft $M_q$ propõe: \texttt{árvore}, \texttt{e}, \texttt{dormiu}, verificados em \textbf{um único passe} de $M_p$.\\[0.4em]
+    \begin{columns}[T]
+      \begin{column}{0.58\textwidth}
+      \resizebox{\linewidth}{!}{
+        \begin{tabular}{lcccc}
+          \toprule
+          Token & $q$ & $p$ & $\min\!\left(1,\tfrac{p}{q}\right)$ & Decisão \\
+          \midrule
+          \texttt{árvore} & 0.6 & 0.9 & \textbf{1,00} & sempre aceito \\
+          \texttt{e}      & 0.7 & 0.4 & 0.57 & aceito c/ prob.\ 57\% \\
+          \texttt{dormiu} & 0.8 & 0.2 & 0.25 & aceito c/ prob.\ 25\% \\
+          \bottomrule
+        \end{tabular}}
+      \end{column}
+      \begin{column}{0.38\textwidth}
+        \begin{exampleblock}{Cenário A (todos aceitos)}
+          3 aceitos + 1 extra de $M_p$:\\
+          4 tokens em 1 passe.\\
+          Sem especulação: 4 passes.
+        \end{exampleblock}
+        \vspace{0.3em}
+        \begin{alertblock}{Cenário B (\texttt{e} rejeitado)}
+          Re-amostra \texttt{e} de $p'\!\propto\!\max(0,p{-}q)$ e descarta \texttt{dormiu};\\
+          \texttt{árvore} + token corrigido, ainda 1 passe.
         \end{alertblock}
       \end{column}
     \end{columns}
   \end{frame}
 
-  \begin{frame}{Bloco Transformer Decoder-Only em Detalhe}
+  %─── Slide: Rejeição ─────────────────────────────────────────────────────────
+  \begin{frame}{Rejeição: Distribuições $q$ e $p$ para \texttt{dormiu}}
+    \textbf{Contexto:} ``O gato subiu na árvore e \_\_\_''
+    (\texttt{árvore} e \texttt{e} já aceitos).\\[0.3em]
+    Draft $M_q$ propõe \texttt{dormiu} com $q{=}0.8$; modelo alvo tem $p{=}0.2$.\\[0.2em]
     \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        O bloco básico repete-se $N$ vezes:\\[0.3em]
-        \begin{enumerate}
-          \item \textbf{Normalização} (Pre-Norm)
-          \item \textbf{Masked Self-Attention}
-          \item Conexão residual: $x \mathrel{+}= \text{Attn}(\cdot)$
-          \item \textbf{Normalização}
-          \item \textbf{Feed-Forward} (MLP)
-          \item Conexão residual: $x \mathrel{+}= \text{FFN}(\cdot)$
-        \end{enumerate}
-        \vspace{0.3em}
-        \textbf{Sem} cross-attention. Toda informação está nas $n$ posições anteriores da sequência.
+      \begin{column}{0.52\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}
+          \begin{axis}[
+            ybar,
+            bar width=0.30cm,
+            ylabel={Probabilidade},
+            xlabel={Token candidato},
+            symbolic x coords={dormiu,pulou,caiu,desceu},
+            xtick=data,
+            x tick label style={font=\small\ttfamily},
+            ymin=0, ymax=0.95,
+            ytick={0,0.2,0.4,0.6,0.8},
+            width=7.5cm, height=5.0cm,
+            enlarge x limits=0.18,
+            legend style={at={(0.98,0.97)}, anchor=north east, font=\small},
+            legend cell align=left,
+          ]
+            \addplot[fill=CellBlue, draw=DarkBlue] coordinates {
+              (dormiu,0.80)(pulou,0.10)(caiu,0.05)(desceu,0.05)
+            };
+            \addlegendentry{$q$ (draft $M_q$)}
+            \addplot[fill=CellYellow, draw=DarkRed] coordinates {
+              (dormiu,0.20)(pulou,0.40)(caiu,0.25)(desceu,0.15)
+            };
+            \addlegendentry{$p$ (alvo $M_p$)}
+            \node[above, font=\scriptsize\bfseries]
+              at (axis cs:dormiu, 0.85) {\textcolor{DarkRed}{REJEITADO}};
+            \draw[DarkRed, very thick, ->]
+              (axis cs:dormiu, 0.83) -- (axis cs:dormiu, 0.78);
+          \end{axis}
+        \end{tikzpicture}}
       \end{column}
-      \begin{column}{0.46\textwidth}
-        \begin{exampleblock}{KV-Cache}
-          Durante inferência, K e V já calculados são armazenados.\\[0.2em]
-          \textbf{Sem cache}: custo $\mathcal{O}(n^2 d)$ por token\\
-          \textbf{Com cache}: custo $\mathcal{O}(n d)$ por token\\[0.2em]
-          Essencial para geração eficiente em sequências longas.
-        \end{exampleblock}
+      \begin{column}{0.44\textwidth}
+        \scriptsize
+        \begin{alertblock}{Por que \texttt{dormiu} é rejeitado?}
+          $p(\texttt{dormiu}) = 0.2 < q(\texttt{dormiu}) = 0.8$\\[0.3em]
+          Aceitar com probabilidade:
+          \[
+            \min\!\left(1,\;\frac{p}{q}\right) = \frac{0.2}{0.8} = 0.25
+          \]
+          Neste cenário, \textbf{\texttt{dormiu} é rejeitado.}
+        \end{alertblock}
+        \vspace{0.4em}
+        \begin{block}{Observação}
+          $M_p$ prefere \texttt{pulou} ($p{=}0.4$), o draft superestimou a certeza em \texttt{dormiu}.
+        \end{block}
       \end{column}
     \end{columns}
   \end{frame}
+
+  %─── Slide: Re-amostragem ────────────────────────────────────────────────────
+  \begin{frame}{Re-amostragem: $p'(x) \propto \max\!\bigl(0,\, p(x) - q(x)\bigr)$}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{lcccc}
+          \toprule
+          Token & $p$ & $q$ & $p{-}q$ & $p'$ (norm.) \\
+          \midrule
+          \texttt{dormiu} & 0.20 & 0.80 & \textcolor{DarkRed}{$-$0.60} & \cellcolor{CellRed}0.00 \\
+          \texttt{pulou}  & 0.40 & 0.10 & $+$0.30 & \cellcolor{CellGreen}\textbf{0.50} \\
+          \texttt{caiu}   & 0.25 & 0.05 & $+$0.20 & \cellcolor{CellGreen}0.33 \\
+          \texttt{desceu} & 0.15 & 0.05 & $+$0.10 & \cellcolor{CellGreen}0.17 \\
+          \bottomrule
+        \end{tabular}}
+        \vspace{0.4em}
+        \begin{exampleblock}{Token selecionado de $p'$}
+          \textbf{\texttt{pulou}} ($p'{=}0.50$)\\
+          ``O gato subiu na árvore e \textbf{\texttt{pulou}}\ldots''
+        \end{exampleblock}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \resizebox{.8\linewidth}{!}{%
+        \begin{tikzpicture}
+          \begin{axis}[
+            ybar,
+            bar width=0.45cm,
+            ylabel={$p'(x)$ normalizado},
+            xlabel={Token candidato},
+            symbolic x coords={dormiu,pulou,caiu,desceu},
+            xtick=data,
+            x tick label style={font=\small\ttfamily},
+            ymin=0, ymax=0.8,
+            ytick={0,0.1,0.2,0.3,0.4,0.5},
+            width=6.5cm, height=5.2cm,
+            enlarge x limits=0.22,
+            nodes near coords,
+            nodes near coords align={vertical},
+            every node near coord/.append style={font=\scriptsize},
+          ]
+            \addplot[fill=CellGreen, draw=DarkGreen] coordinates {
+              (dormiu,0.00)(pulou,0.50)(caiu,0.33)(desceu,0.17)
+            };
+            \node[above, font=\scriptsize\bfseries, DarkGreen, align=center]
+              at (axis cs:pulou, 0.60) {amostrado\\$\checkmark$};
+          \end{axis}
+        \end{tikzpicture}}
+        \vspace{0.2em}
+        \begin{block}{Garantia de correção}
+          $p'$ concentra massa onde $M_p$ discorda de $M_q$, garantindo distribuição \textbf{idêntica a amostrar de $M_p$}.
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Decodificação Especulativa: Variantes e Resultados}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Leviathan et al.\ (2023)}:
+        \begin{itemize}
+          \item Testado: T5-XXL (11B) + T5-small (60M) como draft
+          \item Speedup $2$--$3\times$ dependendo da tarefa
+          \item HumanEval (código): maior speedup (tokens repetitivos)
+          \item Sem degradação de qualidade
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \textbf{Variantes modernas}:
+        \begin{itemize}
+          \item \textbf{Self-speculative}: camadas rascunho do próprio modelo
+          \item \textbf{Medusa}: múltiplas cabeças de predição em paralelo
+          \item \textbf{Eagle}: alinha representações de draft e target
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{alertblock}{Requisito}
+          Benefício depende da taxa de aceitação $\alpha$: quanto mais similares os modelos, maior $\alpha$ e maior o speedup.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+
+  %======================================================================================
+  % SECTION 6: INFERÊNCIA EFICIENTE
+  %======================================================================================
+  \section{Inferência Eficiente}
 
   \begin{frame}{KV-Cache: Como Funciona na Prática}
     \begin{columns}[T]
@@ -955,8 +1529,495 @@
     {\footnotesize \colorbox{CellGreen}{\,} = cache (reutilizado) \quad \colorbox{CellYellow}{\,} = computando agora}
   \end{frame}
 
+  \begin{frame}{Multi-Head Attention (MHA)}{Recapitulação}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Com $H$ cabeças, $d_k = d_\text{model}/H$:
+        \begin{itemize}
+          \item $H$ projeções de Q, K, V independentes
+          \item $H$ pares de matrizes KV em cache por camada
+          \item Custo de KV-cache por token: $2 \cdot H \cdot d_k \cdot L$
+        \end{itemize}
+        \vspace{0.3em}
+        Para GPT-3 ($H=96$, $d_k=128$, $L=96$):
+        \[
+          \text{Cache} = 2 \times 96 \times 128 \times 96 \approx 2.4\text{M floats/token}
+        \]
+        Em fp16 (2 bytes/float): $\approx$4.7 MB por token; um contexto de 2048 tokens ocupa $\approx$\textbf{9.7 GB por requisição}.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          head/.style={draw, fill=CellBlue, minimum width=1.1cm, minimum height=1.4cm,
+                       rounded corners, font=\small, align=center},
+          node distance=0.4cm
+        ]
+          \foreach \i/\l in {1/1,2/2,3/3,4/H} {
+            \node[head] (h\i) at (\i*1.3, 0) {Q\textsubscript{\l}\\K\textsubscript{\l}\\V\textsubscript{\l}};
+          }
+          \node[font=\small] at (4*1.3+0.9, 0) {\ldots};
+          \node[font=\small] at (2.6, -1.1) {KV-cache: $H$ pares por camada};
+        \end{tikzpicture}}
+        \vspace{0.3em}
+        Gargalo em inferência: KV-cache cresce com $n$, $H$, $L$.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Multi-Query Attention (MQA)\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Reduza K e V para \textbf{uma única cabeça} compartilhada; mantenha $H$ cabeças de Q.
+        \[
+          \text{head}_h = \text{Attn}(QW_h^Q,\; K W^K,\; V W^V)
+        \]
+        \textbf{Redução de cache:} $H\times \to 1\times$ nos tensores K, V.\\[0.3em]
+        Cache por token: $2 \cdot d_k \cdot L$ (independente de $H$).
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}[
+          qhead/.style={draw, fill=CellBlue, minimum width=0.8cm, minimum height=0.85cm,
+                        rounded corners, font=\small, align=center},
+          kvhead/.style={draw, fill=CellGreen, minimum width=1.0cm, minimum height=0.85cm,
+                         rounded corners, font=\small, align=center},
+          arrow/.style={->, >=Stealth, thick}
+        ]
+          \foreach \i in {1,2,3,4} {
+            \node[qhead] (q\i) at (\i*0.95, 1.5) {Q\textsubscript{\i}};
+          }
+          \node[kvhead] (kv) at (2.375, 0) {K\,V};
+          \foreach \i in {1,2,3,4} {
+            \draw[arrow] (kv) -- (q\i);
+          }
+          \node[right=0.2cm of q4, font=\footnotesize] {$H$ cabeças Q};
+          \node[below=0.12cm of kv, font=\footnotesize] {1 par K,V};
+        \end{tikzpicture}}
+        \begin{itemize}
+          \item KV-cache $H\times$ menor
+          \item Inferência muito mais rápida
+          \item Leve queda de qualidade
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{shazeer2019mqa}}
+  \end{frame}
+
+  \begin{frame}{Grouped Query Attention (GQA)\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Um intermediário entre MHA e MQA.\\[0.4em]
+        Divida as $H$ cabeças de Q em $G$ grupos. Cada grupo compartilha um par K,V.
+        \[
+          G = 1 \;\Rightarrow\; \text{MQA}
+          \qquad
+          G = H \;\Rightarrow\; \text{MHA}
+        \]
+        Llama 2 (34B e 70B), Llama 3, Mistral e Mixtral usam GQA; as variantes 7B e 13B do Llama 2 ainda usam MHA.
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          qhead/.style={draw, fill=CellBlue, minimum width=0.75cm, minimum height=0.8cm,
+                        rounded corners, font=\small, align=center},
+          kvhead/.style={draw, fill=CellGreen, minimum width=0.9cm, minimum height=0.8cm,
+                         rounded corners, font=\small, align=center},
+          arrow/.style={->, >=Stealth, thick}
+        ]
+          \node[qhead] (q1) at (0.5,1.6) {Q\textsubscript{1}};
+          \node[qhead] (q2) at (1.3,1.6) {Q\textsubscript{2}};
+          \node[kvhead] (kva) at (0.9,0) {K\textsubscript{a}V\textsubscript{a}};
+          \draw[arrow] (kva)--(q1); \draw[arrow] (kva)--(q2);
+
+          \node[qhead] (q3) at (2.8,1.6) {Q\textsubscript{3}};
+          \node[qhead] (q4) at (3.6,1.6) {Q\textsubscript{4}};
+          \node[kvhead] (kvb) at (3.2,0) {K\textsubscript{b}V\textsubscript{b}};
+          \draw[arrow] (kvb)--(q3); \draw[arrow] (kvb)--(q4);
+
+          \node[font=\footnotesize, below=0.08cm of kva] {grupo 1};
+          \node[font=\footnotesize, below=0.08cm of kvb] {grupo 2};
+        \end{tikzpicture}
+        \begin{itemize}
+          \item $G=8$ típico (Llama 2 70B: $H=64$, $G=8$)
+          \item Cache reduzido $H/G\times$
+          \item Qualidade quase idêntica ao MHA
+        \end{itemize}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{ainslie2023gqa}}
+  \end{frame}
+
+  \begin{frame}{Comparação: MHA, MQA e GQA}
+    \begin{center}
+    \resizebox{0.92\linewidth}{!}{%
+    \begin{tabular}{lcccl}
+      \toprule
+      \textbf{Variante} & \textbf{Pares K,V} & \textbf{Cache KV} & \textbf{Qualidade} & \textbf{Exemplos} \\
+      \midrule
+      MHA & $H$            & $H \cdot d_k$ & Referência         & GPT-2, GPT-3, BERT \\
+      MQA & $1$            & $d_k$         & $\downarrow$ levemente & PaLM, Falcon \\
+      GQA & $G$ ($1<G<H$) & $G \cdot d_k$ & $\approx$ MHA     & Llama 2 70B, Llama 3, Mistral \\
+      \bottomrule
+    \end{tabular}}
+    \end{center}
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{exampleblock}{GQA na prática}
+          Llama 2 70B: $H=64$ cabeças Q, $G=8$ grupos KV.\\
+          Cache $8\times$ menor que MHA com qualidade semelhante.
+        \end{exampleblock}
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \begin{alertblock}{Por que importa?}
+          Redução do KV-cache é fundamental para servir muitos usuários simultaneamente, o cache de todos os requests cabe na GPU.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{O Gargalo Quadrático da Atenção}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Custo da atenção padrão} \cite{vaswani2017attention}:
+        \begin{itemize}
+          \item Memória: $\mathcal{O}(n^2)$, matriz de scores
+          \item Compute: $\mathcal{O}(n^2 d)$, produto $QK^\top$
+        \end{itemize}
+        \vspace{0.3em}
+        Com $n=32\,768$ tokens e $H=32$ cabeças:\\
+        Matriz de atenção: $32768^2 \times 32 \approx 34$ bilhões de valores $\approx 69$ GB (float16)
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tikzpicture}
+          \begin{axis}[
+            xlabel={Comprimento $n$},
+            ylabel={Custo relativo},
+            xmin=0, xmax=34500,
+            ymin=0, ymax=4500,
+            xtick={512,8192,16384,24576,32768},
+            xticklabels={512,8K,16K,24K,32K},
+            scaled x ticks=false,
+            grid=both,
+            grid style={line width=0.3pt,draw=gray!30},
+            width=7cm, height=6cm,
+            thick,
+            legend pos=north west
+          ]
+            \addplot[DarkRed, thick, domain=512:32768, samples=60]
+              {(x/512)^2};
+            \addplot[DarkBlue, thick, domain=512:32768, samples=2]
+              {(x/512)};
+            \legend{$\mathcal{O}(n^2)$, $\mathcal{O}(n)$}
+            \node[font=\tiny, DarkRed, anchor=south east] at (axis cs:32300,4050) {$4096\times$};
+            \node[font=\tiny, DarkBlue, anchor=south west] at (axis cs:25000,180) {$64\times$ em 32K};
+          \end{axis}
+        \end{tikzpicture}}
+      \end{column}
+    \end{columns}
+    \vspace{0.3em}
+    \textcolor{DarkRed}{\textbf{Motivação:}} reduzir custo ao escalar o contexto \cite{stanfordcme295}.
+  \end{frame}
+
+  \begin{frame}{Sliding Window Attention \cite{jiang2023mistral}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Motivação}: em sequências longas, a maioria das informações úteis está \textbf{próxima} do token atual.\\[0.4em]
+        Cada posição $i$ atende apenas às $W$ posições anteriores:
+        \[
+          \text{Attn}(i) \leftarrow \text{tokens em } [i-W,\; i]
+        \]
+        Custo: $\mathcal{O}(n \cdot W)$ em vez de $\mathcal{O}(n^2)$.\\[0.3em]
+        Campo receptivo em $L$ camadas: $L \cdot W$.\\
+        {\footnotesize Informação distante propaga-se por composição: camada $l$ agrega o que camada $l{-}1$ já resumiu da janela anterior.}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Configuração Mistral 7B}
+          \begin{itemize}
+            \item Janela local: $W = 4096$
+            \item 32 camadas
+            \item Campo receptivo: $32 \times 4096 = 131\text{K}$
+            \item Contexto declarado: 32K tokens
+          \end{itemize}
+        \end{block}
+        \vspace{0.3em}
+        \textcolor{DarkBlue}{\textbf{Resultado}}: Mistral 7B supera Llama 2 13B em benchmarks com $2\times$ menos parâmetros.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{FlashAttention: Atenção Exata e Eficiente \cite{dao2022flashattention}}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \small MQA/GQA/SWA \textbf{alteram} a atenção. FlashAttention ataca outro gargalo: a \textbf{movimentação de memória} na GPU.\\[0.4em]
+        \begin{itemize}
+          \item GPUs computam rápido, mas ler e escrever na memória principal (HBM) é lento
+          \item A implementação padrão \textbf{materializa} a matriz $n \times n$ de scores na HBM
+          \item FlashAttention computa a atenção \textbf{por blocos} na SRAM (cache rápido), com \textit{online softmax}, sem nunca materializar a matriz completa
+        \end{itemize}
+        \vspace{0.2em}
+        {\scriptsize \textit{Online softmax}: acumula o softmax bloco a bloco, guardando apenas o máximo e a soma parciais dos scores, corrigidos a cada novo bloco.}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{block}{Propriedades}
+          \begin{itemize}
+            \item \textbf{Exata}: mesmo resultado numérico, sem aproximação
+            \item Memória extra $\mathcal{O}(n)$ em vez de $\mathcal{O}(n^2)$
+            \item Speedup de $2$--$4\times$ no treino
+            \item FlashAttention-2 \cite{dao2023flashattention2}: padrão de fato atual
+          \end{itemize}
+        \end{block}
+        \vspace{0.3em}
+        \begin{alertblock}{Lição}
+          Parte do custo da atenção estava na \textbf{implementação}, não na matemática: otimizar antes de aproximar.
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Resumo: Variantes de Atenção e Trade-offs}
+    \begin{center}
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{lccccc}
+      \toprule
+      \textbf{Variante} & \textbf{Compute} & \textbf{Mem.\ KV} & \textbf{Contexto longo} & \textbf{Qualidade} & \textbf{Exemplos} \\
+      \midrule
+      MHA (padrão) & $\mathcal{O}(n^2 d)$ & $H \cdot d_k$ & Limitado    & Referência           & GPT-2/3 \\
+      MQA          & $\mathcal{O}(n^2 d)$ & $d_k$         & Moderado    & $\downarrow$ levemente & PaLM, Falcon \\
+      GQA          & $\mathcal{O}(n^2 d)$ & $G \cdot d_k$ & Moderado    & $\approx$ MHA        & Llama 2 70B, Llama 3, Mistral \\
+      SWA          & $\mathcal{O}(n W d)$ & $W \cdot d_k$ & Alto        & Boa (local)          & Mistral \\
+      \bottomrule
+    \end{tabular}}
+    \end{center}
+    \vspace{0.2em}
+    \begin{center}
+      \footnotesize Baseado em \cite{stanfordcme295}. SWA = Sliding Window Attention.
+    \end{center}
+  \end{frame}
+
   %======================================================================================
-  % SECTION 3: LEIS DE ESCALA
+  % SECTION 7: MISTURA DE ESPECIALISTAS
+  %======================================================================================
+  \section{Mistura de Especialistas (MoE)}
+
+  \begin{frame}{Motivação: Mais Parâmetros sem Mais Compute}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Dilema}:
+        \begin{itemize}
+          \item Modelos maiores $\to$ melhor qualidade
+          \item Modelos maiores $\to$ mais compute por token
+        \end{itemize}
+        \vspace{0.4em}
+        \textbf{Ideia da Mistura de Especialistas (MoE)}:\\
+        Substitua a FFN densa por $E$ redes menores (\textit{especialistas}).\\
+        Cada token ativa apenas $k$ especialistas ($k \ll E$).
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{exampleblock}{Exemplo: Mixtral 8×7B}
+          8 especialistas FFN\\
+          Apenas 2 ativados por token\\
+          $\to$ 46.7B parâmetros totais\\
+          $\to$ compute $\approx$ 12.9B por token
+        \end{exampleblock}
+        \vspace{0.3em}
+        Origem: \textbf{Sparsely-Gated MoE} \cite{shazeer2017moe} (2017), revivido em LLMs a partir de 2022.
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Arquitetura MoE: Router + Especialistas}
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \centering
+        \begin{tikzpicture}[
+          router/.style={draw, fill=CellYellow, rounded corners,
+                         minimum width=3cm, minimum height=0.7cm, font=\small, align=center},
+          expert/.style={draw, fill=CellBlue, rounded corners,
+                         minimum width=1.6cm, minimum height=0.65cm, font=\small, align=center},
+          sum/.style={draw, circle, fill=white, minimum size=0.45cm, font=\small},
+          arrow/.style={->, >=Stealth, thick},
+          node distance=0.5cm
+        ]
+          \node[router] (r) {Router $G(x)$};
+          \node[expert, above left=0.9cm and 0.2cm of r] (e1) {FFN$_1$};
+          \node[expert, above=0.9cm of r]               (e2) {FFN$_2$};
+          \node[expert, above right=0.9cm and 0.2cm of r] (e3) {FFN$_3$};
+          \node[sum, above=2.7cm of r] (s) {$\sum$};
+          \node[above=0.3cm of s, font=\small] (out) {saída};
+          \node[below=0.5cm of r, font=\small] (inp) {entrada $x$};
+
+          \draw[arrow] (inp) -- (r);
+          \draw[arrow] (r) -- (e1);
+          \draw[arrow] (r) -- (e2);
+          \draw[arrow] (r) -- (e3);
+          \draw[arrow] (e1) |- (s);
+          \draw[arrow] (e2) -- (s);
+          \draw[arrow] (e3) |- (s);
+          \draw[arrow] (s) -- (out);
+        \end{tikzpicture}
+      \end{column}
+      \begin{column}{0.50\textwidth}
+        \textbf{Em cada bloco MoE}:
+        \begin{enumerate}
+          \item Router calcula scores para cada especialista
+          \item Seleciona top-$k$ especialistas
+          \item Processa $x$ nos $k$ especialistas
+          \item Combina saídas ponderadas pelos scores
+        \end{enumerate}
+        \vspace{0.4em}
+        \begin{block}{Nota importante}
+          As camadas de \textbf{atenção} permanecem densas.\\
+          Somente a FFN vira MoE.
+        \end{block}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Top-$k$ Routing: Mecanismo de Gating}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        Dado token $x \in \mathbb{R}^d$ e pesos $W_g \in \mathbb{R}^{d \times E}$:
+        \[
+          g(x) = \text{softmax}\!\left(\text{TopK}\!\left(x W_g,\; k\right)\right)
+        \]
+        onde $\text{TopK}$ mantém os $k$ maiores scores e zera o resto.\\[0.4em]
+        Saída:
+        \[
+          y = \sum_{i \in \text{Top-}k} g_i(x)\; \text{FFN}_i(x)
+        \]
+      \end{column}
+      \begin{column}{0.44\textwidth}
+      \scriptsize
+        \begin{itemize}
+          \item Mixtral usa $k=2$, $E=8$
+          \item $\sim$25\% dos parâmetros ativos por token
+          \item Backward: apenas pelos $k$ especialistas ativos
+        \end{itemize}
+        \vspace{0.3em}
+        \begin{alertblock}{Expert collapse}
+          \textbf{Causa}: o router aprende a enviar tokens ao especialista que já é o melhor, que melhora ainda mais, atraindo mais tokens, em ciclo de reforço positivo.\\[0.15em]
+          \textbf{Resultado}: 1--2 especialistas processam quase tudo; os demais recebem gradiente zero e nunca aprendem.\\[0.15em]
+          \textbf{Solução}: \textit{Loss} auxiliar de balanceamento (próximo slide).
+        \end{alertblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Top-$k$ Routing: Exemplo Numérico}
+    Token $x$, $E=4$ especialistas, $k=2$:
+    \vspace{0.3em}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        {\setlength{\fboxsep}{3pt}%
+        \colorbox{CellYellow}{$s = x W_g = [\,1.2,\;\mathbf{3.1},\;0.4,\;\mathbf{2.6}\,]$}\\[0.45em]
+        \colorbox{CellBlue}{$\text{TopK}(s, 2) = [\,-\infty,\;3.1,\;-\infty,\;2.6\,]$}\\[0.45em]
+        \colorbox{CellGreen}{$g = \text{softmax} = [\,0,\;\mathbf{0.62},\;0,\;\mathbf{0.38}\,]$}\\[0.45em]
+        }%
+        {\footnotesize $g_2 = \dfrac{e^{3.1}}{e^{3.1}+e^{2.6}} = \dfrac{22.2}{35.7} = 0.62$}\\[0.5em]
+        {\setlength{\fboxsep}{3pt}%
+        \colorbox{PastelOrange}{$y = 0.62\,\text{FFN}_2(x) + 0.38\,\text{FFN}_4(x)$}
+        }
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{exampleblock}{O que foi economizado}
+          $\text{FFN}_1$ e $\text{FFN}_3$ \textbf{nem são computadas} para este token: com $E=4$ e $k=2$, metade do compute da camada é evitado.
+        \end{exampleblock}
+        \vspace{0.3em}
+        \begin{itemize}
+          \item Outro token da mesma sequência pode ativar especialistas diferentes
+          \item O gradiente flui apenas pelos $k$ especialistas ativos e pelo router
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Problemas de MoE: Balanceamento de Carga}
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \textbf{Perda auxiliar de balanceamento}:
+        \[
+          \mathcal{L}_\text{aux} = \alpha \cdot E \cdot \sum_{i=1}^E f_i \cdot P_i
+        \]
+        onde $f_i$ = fração de tokens roteados ao especialista $i$,\\
+        $P_i$ = score médio do router para o especialista $i$.\\[0.3em]
+        Minimizar $\mathcal{L}_\text{aux}$ encoraja distribuição uniforme.
+      \end{column}
+      \begin{column}{0.46\textwidth}
+        Outros desafios:
+        \begin{itemize}
+          \item \textbf{Instabilidade}: gradientes esparsas podem causar divergência
+          \item \textbf{Comunicação}: especialistas distribuídos em GPUs diferentes (\textit{model parallelism})
+          \item \textbf{Capacidade máxima}: tokens descartados se um especialista ficar sobrecarregado
+        \end{itemize}
+        \vspace{0.2em}
+        \begin{exampleblock}{Mixtral}
+          Usa $\alpha=0.01$, roteamento token a token.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  \begin{frame}{Mixtral 8×7B\footnotemark[1]}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \textbf{Mistral AI}\\[0.4em]
+        Arquitetura:
+        \begin{itemize}
+          \item 32 camadas transformer
+          \item Cada FFN $\to$ 8 especialistas de 14336 neurônios
+          \item Top-2 routing por token
+          \item GQA ($G=8$), RMSNorm, SWA
+          \item Contexto: 32\,768 tokens
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{lrr}
+          \toprule
+          \textbf{Modelo} & \textbf{Params ativos} & \textbf{Params totais} \\
+          \midrule
+          Llama 2 13B   & 13B  & 13B   \\
+          Llama 2 70B   & 70B  & 70B   \\
+          Mistral 7B    & 7B   & 7B    \\
+          Mixtral 8×7B  & 12.9B & 46.7B \\
+          \bottomrule
+        \end{tabular}}
+        \vspace{0.3em}
+        \begin{exampleblock}{Resultado}
+          Mixtral 8×7B supera Llama 2 70B em benchmarks com $5.4\times$ menos parâmetros ativos.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
+    \footnotetext[1]{\fullcite{jiang2024mixtral}}
+  \end{frame}
+
+  \begin{frame}{MoE Sparse vs.\ Modelos Densos}
+    \begin{center}
+    \resizebox{0.90\linewidth}{!}{%
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Característica} & \textbf{Denso (Llama 2 70B)} & \textbf{Sparse MoE (Mixtral 8×7B)} \\
+      \midrule
+      Parâmetros totais       & 70B   & 46.7B \\
+      Parâmetros ativos       & 70B   & 12.9B \\
+      Compute por token       & Alto  & $\sim5\times$ menor \\
+      Memória total (fp16)    & $\sim$140 GB & $\sim$93 GB \\
+      Throughput (tokens/s)   & Menor & Maior \\
+      Qualidade (MMLU)        & 68.9\% & 70.6\% \\
+      \bottomrule
+    \end{tabular}}
+    \end{center}
+    \vspace{0.4em}
+    \begin{center}
+      \textcolor{DarkBlue}{\textbf{MoE: mais capacidade com menor custo de inferência}},\\
+      ao custo de maior memória total e complexidade de treino.
+    \end{center}
+  \end{frame}
+
+  %======================================================================================
+  % SECTION 8: LEIS DE ESCALA
   %======================================================================================
   \section{Leis de Escala}
 
@@ -982,6 +2043,11 @@
           Dado um orçamento de compute fixo, como distribuir entre $N$ (modelo maior) e $D$ (mais dados)?
         \end{alertblock}
         \vspace{0.4em}
+        \begin{exampleblock}{Exemplo: Llama 2 7B (2T tokens)}
+          $C \approx 6 \times (7{\times}10^{9}) \times (2{\times}10^{12}) \approx 8.4{\times}10^{22}$ FLOPs\\[2pt]
+          {\footnotesize A $\sim\!1.5{\times}10^{14}$ FLOP/s úteis por A100, são $\approx$6500 GPU-dias: 3 semanas em 300 GPUs.}
+        \end{exampleblock}
+        \vspace{0.3em}
         Isso é exatamente o que as \textbf{leis de escala} respondem.
       \end{column}
     \end{columns}
@@ -1104,7 +2170,7 @@
       \midrule
       GPT-2 XL       & 1.5B   & $\sim$40B      & 1\,024  & Pre-LN  & MHA \\
       GPT-3          & 175B   & 300B           & 2\,048  & Pre-LN  & MHA \\
-      Llama 2 7B     & 7B     & 2T             & 4\,096  & RMSNorm & GQA \\
+      Llama 2 7B     & 7B     & 2T             & 4\,096  & RMSNorm & MHA \\
       Llama 2 70B    & 70B    & 2T             & 4\,096  & RMSNorm & GQA \\
       Llama 3 8B     & 8B     & 15T            & 8\,192  & RMSNorm & GQA \\
       Mistral 7B     & 7B     & $\sim$1T       & 32\,768 & RMSNorm & GQA+SWA \\
@@ -1118,759 +2184,7 @@
   \end{frame}
 
   %======================================================================================
-  % SECTION 5: APROXIMAÇÕES DE ATENÇÃO
-  %======================================================================================
-  \section{Aproximações de Atenção}
-
-  \begin{frame}{O Gargalo Quadrático da Atenção}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Custo da atenção padrão} \cite{vaswani2017attention}:
-        \begin{itemize}
-          \item Memória: $\mathcal{O}(n^2)$, matriz de scores
-          \item Compute: $\mathcal{O}(n^2 d)$, produto $QK^\top$
-        \end{itemize}
-        \vspace{0.3em}
-        Com $n=32\,768$ tokens e $H=32$ cabeças:\\
-        Matriz de atenção: $32768^2 \times 32 \approx 34$ bilhões de valores $\approx 69$ GB (float16)
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}
-          \begin{axis}[
-            xlabel={Comprimento $n$},
-            ylabel={Custo relativo},
-            xmin=512, xmax=32768,
-            xmode=log, log basis x=2,
-            ymode=log,
-            ymin=1, ymax=5000,
-            xtick={512,2048,8192,32768},
-            xticklabels={512,2K,8K,32K},
-            grid=both,
-            grid style={line width=0.3pt,draw=gray!30},
-            width=7cm, height=4.5cm,
-            thick
-          ]
-            \addplot[DarkRed, thick, domain=512:32768, samples=40]
-              {(x/512)^2};
-            \addplot[DarkBlue, thick, domain=512:32768, samples=10]
-              {(x/512)};
-            \legend{$\mathcal{O}(n^2)$, $\mathcal{O}(n)$}
-          \end{axis}
-        \end{tikzpicture}}
-      \end{column}
-    \end{columns}
-    \vspace{0.3em}
-    \textcolor{DarkRed}{\textbf{Motivação:}} reduzir custo ao escalar o contexto \cite{stanfordcme295}.
-  \end{frame}
-
-  \begin{frame}{Multi-Head Attention (MHA)}{Recapitulação}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        Com $H$ cabeças, $d_k = d_\text{model}/H$:
-        \begin{itemize}
-          \item $H$ projeções de Q, K, V independentes
-          \item $H$ pares de matrizes KV em cache por camada
-          \item Custo de KV-cache por token: $2 \cdot H \cdot d_k \cdot L$
-        \end{itemize}
-        \vspace{0.3em}
-        Para GPT-3 ($H=96$, $d_k=128$, $L=96$):
-        \[
-          \text{Cache} = 2 \times 96 \times 128 \times 96 \approx 2.4\text{M floats/token}
-        \]
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[
-          head/.style={draw, fill=CellBlue, minimum width=1.1cm, minimum height=1.4cm,
-                       rounded corners, font=\small, align=center},
-          node distance=0.4cm
-        ]
-          \foreach \i/\l in {1/1,2/2,3/3,4/H} {
-            \node[head] (h\i) at (\i*1.3, 0) {Q\textsubscript{\l}\\K\textsubscript{\l}\\V\textsubscript{\l}};
-          }
-          \node[font=\small] at (4*1.3+0.9, 0) {\ldots};
-          \node[font=\small] at (2.6, -1.1) {KV-cache: $H$ pares por camada};
-        \end{tikzpicture}}
-        \vspace{0.3em}
-        Gargalo em inferência: KV-cache cresce com $n$, $H$, $L$.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Multi-Query Attention (MQA) \cite{shazeer2019mqa}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Shazeer (2019)}: reduza K e V para \textbf{uma única cabeça} compartilhada; mantenha $H$ cabeças de Q.
-        \[
-          \text{head}_h = \text{Attn}(QW_h^Q,\; K W^K,\; V W^V)
-        \]
-        \textbf{Redução de cache:} $H\times \to 1\times$ nos tensores K, V.\\[0.3em]
-        Cache por token: $2 \cdot d_k \cdot L$ (independente de $H$).
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[
-          qhead/.style={draw, fill=CellBlue, minimum width=0.8cm, minimum height=0.85cm,
-                        rounded corners, font=\small, align=center},
-          kvhead/.style={draw, fill=CellGreen, minimum width=1.0cm, minimum height=0.85cm,
-                         rounded corners, font=\small, align=center},
-          arrow/.style={->, >=Stealth, thick}
-        ]
-          \foreach \i in {1,2,3,4} {
-            \node[qhead] (q\i) at (\i*0.95, 1.5) {Q\textsubscript{\i}};
-          }
-          \node[kvhead] (kv) at (2.375, 0) {K\,V};
-          \foreach \i in {1,2,3,4} {
-            \draw[arrow] (kv) -- (q\i);
-          }
-          \node[right=0.2cm of q4, font=\footnotesize] {$H$ cabeças Q};
-          \node[below=0.12cm of kv, font=\footnotesize] {1 par K,V};
-        \end{tikzpicture}}
-        \begin{itemize}
-          \item KV-cache $H\times$ menor
-          \item Inferência muito mais rápida
-          \item Leve queda de qualidade
-        \end{itemize}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Grouped Query Attention (GQA) \cite{ainslie2023gqa}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Ainslie et al.\ (2023)}: compromisso entre MHA e MQA.\\[0.4em]
-        Divida as $H$ cabeças de Q em $G$ grupos. Cada grupo compartilha um par K,V.
-        \[
-          G = 1 \;\Rightarrow\; \text{MQA}
-          \qquad
-          G = H \;\Rightarrow\; \text{MHA}
-        \]
-        Llama 2/3, Mistral, Mixtral usam GQA.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \centering
-        \begin{tikzpicture}[
-          qhead/.style={draw, fill=CellBlue, minimum width=0.75cm, minimum height=0.8cm,
-                        rounded corners, font=\small, align=center},
-          kvhead/.style={draw, fill=CellGreen, minimum width=0.9cm, minimum height=0.8cm,
-                         rounded corners, font=\small, align=center},
-          arrow/.style={->, >=Stealth, thick}
-        ]
-          \node[qhead] (q1) at (0.5,1.6) {Q\textsubscript{1}};
-          \node[qhead] (q2) at (1.3,1.6) {Q\textsubscript{2}};
-          \node[kvhead] (kva) at (0.9,0) {K\textsubscript{a}V\textsubscript{a}};
-          \draw[arrow] (kva)--(q1); \draw[arrow] (kva)--(q2);
-
-          \node[qhead] (q3) at (2.8,1.6) {Q\textsubscript{3}};
-          \node[qhead] (q4) at (3.6,1.6) {Q\textsubscript{4}};
-          \node[kvhead] (kvb) at (3.2,0) {K\textsubscript{b}V\textsubscript{b}};
-          \draw[arrow] (kvb)--(q3); \draw[arrow] (kvb)--(q4);
-
-          \node[font=\footnotesize, below=0.08cm of kva] {grupo 1};
-          \node[font=\footnotesize, below=0.08cm of kvb] {grupo 2};
-        \end{tikzpicture}
-        \begin{itemize}
-          \item $G=8$ típico (Llama 2 70B: $H=64$, $G=8$)
-          \item Cache reduzido $H/G\times$
-          \item Qualidade quase idêntica ao MHA
-        \end{itemize}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Comparação: MHA, MQA e GQA}
-    \begin{center}
-    \resizebox{0.92\linewidth}{!}{%
-    \begin{tabular}{lcccl}
-      \toprule
-      \textbf{Variante} & \textbf{Pares K,V} & \textbf{Cache KV} & \textbf{Qualidade} & \textbf{Exemplos} \\
-      \midrule
-      MHA & $H$            & $H \cdot d_k$ & Referência         & GPT-2, GPT-3, BERT \\
-      MQA & $1$            & $d_k$         & $\downarrow$ levemente & PaLM, Falcon \\
-      GQA & $G$ ($1<G<H$) & $G \cdot d_k$ & $\approx$ MHA     & Llama 2/3, Mistral \\
-      \bottomrule
-    \end{tabular}}
-    \end{center}
-    \vspace{0.4em}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \begin{exampleblock}{GQA na prática}
-          Llama 2 70B: $H=64$ cabeças Q, $G=8$ grupos KV.\\
-          Cache $8\times$ menor que MHA com qualidade semelhante.
-        \end{exampleblock}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \begin{alertblock}{Por que importa?}
-          Redução do KV-cache é fundamental para servir muitos usuários simultaneamente, o cache de todos os requests cabe na GPU.
-        \end{alertblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Sliding Window Attention \cite{jiang2023mistral}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Motivação}: em sequências longas, a maioria das informações úteis está \textbf{próxima} do token atual.\\[0.4em]
-        Cada posição $i$ atende apenas às $W$ posições anteriores:
-        \[
-          \text{Attn}(i) \leftarrow \text{tokens em } [i-W,\; i]
-        \]
-        Custo: $\mathcal{O}(n \cdot W)$ em vez de $\mathcal{O}(n^2)$.\\[0.3em]
-        Campo receptivo em $L$ camadas: $L \cdot W$.\\
-        {\footnotesize Informação distante propaga-se por composição: camada $l$ agrega o que camada $l{-}1$ já resumiu da janela anterior.}
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{block}{Configuração Mistral 7B}
-          \begin{itemize}
-            \item Janela local: $W = 4096$
-            \item 32 camadas
-            \item Campo receptivo: $32 \times 4096 = 131\text{K}$
-            \item Contexto declarado: 32K tokens
-          \end{itemize}
-        \end{block}
-        \vspace{0.3em}
-        \textcolor{DarkBlue}{\textbf{Resultado}}: Mistral 7B supera Llama 2 13B em benchmarks com $2\times$ menos parâmetros.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Resumo: Variantes de Atenção e Trade-offs}
-    \begin{center}
-    \resizebox{\linewidth}{!}{%
-    \begin{tabular}{lccccc}
-      \toprule
-      \textbf{Variante} & \textbf{Compute} & \textbf{Mem.\ KV} & \textbf{Contexto longo} & \textbf{Qualidade} & \textbf{Exemplos} \\
-      \midrule
-      MHA (padrão) & $\mathcal{O}(n^2 d)$ & $H \cdot d_k$ & Limitado    & Referência           & GPT-2/3 \\
-      MQA          & $\mathcal{O}(n^2 d)$ & $d_k$         & Moderado    & $\downarrow$ levemente & PaLM, Falcon \\
-      GQA          & $\mathcal{O}(n^2 d)$ & $G \cdot d_k$ & Moderado    & $\approx$ MHA        & Llama 2/3, Mistral \\
-      SWA          & $\mathcal{O}(n W d)$ & $W \cdot d_k$ & Alto        & Boa (local)          & Mistral \\
-      \bottomrule
-    \end{tabular}}
-    \end{center}
-    \vspace{0.2em}
-    \begin{center}
-      \footnotesize Baseado em \cite{stanfordcme295}. SWA = Sliding Window Attention.
-    \end{center}
-  \end{frame}
-
-  %======================================================================================
-  % SECTION 6: MISTURA DE ESPECIALISTAS
-  %======================================================================================
-  \section{Mistura de Especialistas (MoE)}
-
-  \begin{frame}{Motivação: Mais Parâmetros sem Mais Compute}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Dilema}:
-        \begin{itemize}
-          \item Modelos maiores $\to$ melhor qualidade
-          \item Modelos maiores $\to$ mais compute por token
-        \end{itemize}
-        \vspace{0.4em}
-        \textbf{Ideia da Mistura de Especialistas (MoE)}:\\
-        Substitua a FFN densa por $E$ redes menores (\textit{especialistas}).\\
-        Cada token ativa apenas $k$ especialistas ($k \ll E$).
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{exampleblock}{Exemplo: Mixtral 8×7B}
-          8 especialistas FFN\\
-          Apenas 2 ativados por token\\
-          $\to$ 46.7B parâmetros totais\\
-          $\to$ compute $\approx$ 12.9B por token
-        \end{exampleblock}
-        \vspace{0.3em}
-        Origem: \textbf{Sparsely-Gated MoE} \cite{shazeer2017moe} (2017), revivido em LLMs a partir de 2022.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Arquitetura MoE: Router + Especialistas}
-    \begin{columns}[T]
-      \begin{column}{0.46\textwidth}
-        \centering
-        \begin{tikzpicture}[
-          router/.style={draw, fill=CellYellow, rounded corners,
-                         minimum width=3cm, minimum height=0.7cm, font=\small, align=center},
-          expert/.style={draw, fill=CellBlue, rounded corners,
-                         minimum width=1.6cm, minimum height=0.65cm, font=\small, align=center},
-          sum/.style={draw, circle, fill=white, minimum size=0.45cm, font=\small},
-          arrow/.style={->, >=Stealth, thick},
-          node distance=0.5cm
-        ]
-          \node[router] (r) {Router $G(x)$};
-          \node[expert, above left=0.9cm and 0.2cm of r] (e1) {FFN$_1$};
-          \node[expert, above=0.9cm of r]               (e2) {FFN$_2$};
-          \node[expert, above right=0.9cm and 0.2cm of r] (e3) {FFN$_3$};
-          \node[sum, above=2.7cm of r] (s) {$\sum$};
-          \node[above=0.3cm of s, font=\small] (out) {saída};
-          \node[below=0.5cm of r, font=\small] (inp) {entrada $x$};
-
-          \draw[arrow] (inp) -- (r);
-          \draw[arrow] (r) -- (e1);
-          \draw[arrow] (r) -- (e2);
-          \draw[arrow] (r) -- (e3);
-          \draw[arrow] (e1) |- (s);
-          \draw[arrow] (e2) -- (s);
-          \draw[arrow] (e3) |- (s);
-          \draw[arrow] (s) -- (out);
-        \end{tikzpicture}
-      \end{column}
-      \begin{column}{0.50\textwidth}
-        \textbf{Em cada bloco MoE}:
-        \begin{enumerate}
-          \item Router calcula scores para cada especialista
-          \item Seleciona top-$k$ especialistas
-          \item Processa $x$ nos $k$ especialistas
-          \item Combina saídas ponderadas pelos scores
-        \end{enumerate}
-        \vspace{0.4em}
-        \begin{block}{Nota importante}
-          As camadas de \textbf{atenção} permanecem densas.\\
-          Somente a FFN vira MoE.
-        \end{block}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Top-$k$ Routing: Mecanismo de Gating}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        Dado token $x \in \mathbb{R}^d$ e pesos $W_g \in \mathbb{R}^{d \times E}$:
-        \[
-          g(x) = \text{softmax}\!\left(\text{TopK}\!\left(x W_g,\; k\right)\right)
-        \]
-        onde $\text{TopK}$ mantém os $k$ maiores scores e zera o resto.\\[0.4em]
-        Saída:
-        \[
-          y = \sum_{i \in \text{Top-}k} g_i(x)\; \text{FFN}_i(x)
-        \]
-      \end{column}
-      \begin{column}{0.44\textwidth}
-      \scriptsize
-        \begin{itemize}
-          \item Mixtral usa $k=2$, $E=8$
-          \item $\sim$25\% dos parâmetros ativos por token
-          \item Backward: apenas pelos $k$ especialistas ativos
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{alertblock}{Expert collapse}
-          \textbf{Causa}: o router aprende a enviar tokens ao especialista que já é o melhor, que melhora ainda mais, atraindo mais tokens, em ciclo de reforço positivo.\\[0.15em]
-          \textbf{Resultado}: 1--2 especialistas processam quase tudo; os demais recebem gradiente zero e nunca aprendem.\\[0.15em]
-          \textbf{Solução}: \textit{Loss} auxiliar de balanceamento (próximo slide).
-        \end{alertblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Problemas de MoE: Balanceamento de Carga}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Perda auxiliar de balanceamento}:
-        \[
-          \mathcal{L}_\text{aux} = \alpha \cdot E \cdot \sum_{i=1}^E f_i \cdot P_i
-        \]
-        onde $f_i$ = fração de tokens roteados ao especialista $i$,\\
-        $P_i$ = score médio do router para o especialista $i$.\\[0.3em]
-        Minimizar $\mathcal{L}_\text{aux}$ encoraja distribuição uniforme.
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        Outros desafios:
-        \begin{itemize}
-          \item \textbf{Instabilidade}: gradientes esparsas podem causar divergência
-          \item \textbf{Comunicação}: especialistas distribuídos em GPUs diferentes (\textit{model parallelism})
-          \item \textbf{Capacidade máxima}: tokens descartados se um especialista ficar sobrecarregado
-        \end{itemize}
-        \vspace{0.2em}
-        \begin{exampleblock}{Mixtral}
-          Usa $\alpha=0.01$, roteamento token a token.
-        \end{exampleblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Mixtral 8×7B \cite{jiang2024mixtral}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Jiang et al.\ (2024)}, Mistral AI\\[0.4em]
-        Arquitetura:
-        \begin{itemize}
-          \item 32 camadas transformer
-          \item Cada FFN $\to$ 8 especialistas de 14336 neurônios
-          \item Top-2 routing por token
-          \item GQA ($G=8$), RMSNorm, SWA
-          \item Contexto: 32\,768 tokens
-        \end{itemize}
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lrr}
-          \toprule
-          \textbf{Modelo} & \textbf{Params ativos} & \textbf{Params totais} \\
-          \midrule
-          Llama 2 13B   & 13B  & 13B   \\
-          Llama 2 70B   & 70B  & 70B   \\
-          Mistral 7B    & 7B   & 7B    \\
-          Mixtral 8×7B  & 12.9B & 46.7B \\
-          \bottomrule
-        \end{tabular}}
-        \vspace{0.3em}
-        \begin{exampleblock}{Resultado}
-          Mixtral 8×7B supera Llama 2 70B em benchmarks com $5.4\times$ menos parâmetros ativos.
-        \end{exampleblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{MoE Sparse vs.\ Modelos Densos}
-    \begin{center}
-    \resizebox{0.90\linewidth}{!}{%
-    \begin{tabular}{lcc}
-      \toprule
-      \textbf{Característica} & \textbf{Denso (Llama 2 70B)} & \textbf{Sparse MoE (Mixtral 8×7B)} \\
-      \midrule
-      Parâmetros totais       & 70B   & 46.7B \\
-      Parâmetros ativos       & 70B   & 12.9B \\
-      Compute por token       & Alto  & $\sim5\times$ menor \\
-      Memória total (fp16)    & $\sim$140 GB & $\sim$93 GB \\
-      Throughput (tokens/s)   & Menor & Maior \\
-      Qualidade (MMLU)        & 68.9\% & 70.6\% \\
-      \bottomrule
-    \end{tabular}}
-    \end{center}
-    \vspace{0.4em}
-    \begin{center}
-      \textcolor{DarkBlue}{\textbf{MoE: mais capacidade com menor custo de inferência}},\\
-      ao custo de maior memória total e complexidade de treino.
-    \end{center}
-  \end{frame}
-
-  %======================================================================================
-  % SECTION 7: DECODIFICAÇÃO
-  %======================================================================================
-  \section{Estratégias de Decodificação}
-
-  \begin{frame}{Estratégias de Decodificação: Greedy, Beam, Sampling}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        Após o LM produzir logits $z \in \mathbb{R}^{|V|}$:
-        \begin{block}{Greedy}
-          $x_t = \arg\max_v P(v \mid x_{<t})$\\
-          Rápido, determinístico, pode ser subótimo.
-        \end{block}
-        \begin{block}{Beam Search}
-          Mantém $B$ hipóteses; escolhe a de maior probabilidade conjunta.
-          $\mathcal{O}(B)$ mais lento; ótimo para tradução.
-        \end{block}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \begin{block}{Amostragem}
-          $x_t \sim P(\cdot \mid x_{<t})$\\
-          Estocástico; necessário para criatividade.
-        \end{block}
-        \vspace{0.3em}
-        Parâmetros de controle:
-        \begin{itemize}
-          \item \textbf{Temperature} $T$: $P_T \propto \exp(z_v / T)$
-          \item \textbf{Top-$k$}: restringe ao top-$k$ tokens
-          \item \textbf{Top-$p$} (nucleus): restringe ao menor conjunto com prob.\ acumulada $\ge p$
-        \end{itemize}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Temperature, Top-$k$ e Top-$p$}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Temperature}:
-        \[
-          P_T(x) = \frac{\exp(z_x / T)}{\sum_v \exp(z_v / T)}
-        \]
-        \begin{itemize}
-          \item $T \to 0$: greedy
-          \item $T = 1$: distribuição original
-          \item $T > 1$: distribuição mais uniforme
-        \end{itemize}
-        \vspace{0.3em}
-        \textbf{Top-$p$}: selecione o menor conjunto de tokens cuja probabilidade acumulada $\ge p$ (ex: $p=0.9$), então amostre dentro desse conjunto.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}
-          \begin{axis}[
-            ybar,
-            bar width=0.38cm,
-            xlabel={Token},
-            ylabel={Probabilidade},
-            symbolic x coords={$v_1$,$v_2$,$v_3$,$v_4$,$v_5$,$v_6$,$v_7$,$v_8$},
-            xtick=data,
-            ymin=0, ymax=0.55,
-            width=7cm, height=4.5cm,
-            enlarge x limits=0.08
-          ]
-            \addplot[fill=CellBlue] coordinates
-              {($v_1$,0.45)($v_2$,0.25)($v_3$,0.15)($v_4$,0.07)($v_5$,0.04)($v_6$,0.02)($v_7$,0.01)($v_8$,0.01)};
-            \draw[DarkRed, dashed, thick]
-              (axis cs:{$v_4$}, 0) -- (axis cs:{$v_4$}, 0.55)
-              node[above, font=\tiny, DarkRed] {top-$p{=}0.85$};
-          \end{axis}
-        \end{tikzpicture}}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Decodificação Guiada (\textit{Constrained Decoding}) \cite{willard2023guided}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Problema}: LLMs podem gerar texto que não segue formato específico (JSON, SQL, código).\\[0.4em]
-        \textbf{Solução}: restringir a distribuição de saída a tokens válidos segundo uma \textbf{gramática} ou \textbf{esquema}.\\[0.4em]
-        \textbf{Willard \& Louf (2023)}: pré-compila um DFA para cada gramática, o mascaramento de tokens inválidos é $\mathcal{O}(1)$ por token.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{block}{Exemplos de uso}
-          \begin{itemize}
-            \item Geração de JSON estruturado
-            \item SQL sem erros de sintaxe
-            \item Extração em formato fixo
-            \item Chamadas de API com parâmetros corretos
-          \end{itemize}
-        \end{block}
-        \vspace{0.2em}
-        Implementações: \texttt{outlines}, \texttt{guidance}, \texttt{llama.cpp} grammar mode, vLLM structured outputs.
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Decodificação Especulativa: Ideia Geral \cite{leviathan2023speculative}}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \textbf{Gargalo}: LLMs grandes são lentos, cada token exige um passe completo.\\[0.4em]
-        \textbf{Observação}: a maioria dos tokens é fácil de prever; tokens difíceis são exceção.\\[0.4em]
-        \textbf{Algoritmo}:
-        \begin{enumerate}
-          \item \textbf{Draft model} pequeno gera $\gamma$ tokens
-          \item \textbf{Target model} verifica \textit{em paralelo}
-          \item No primeiro rejeitado: re-amostra o token e \textbf{descarta o restante} do rascunho
-          \item Todos aceitos: amostra um token extra do passe do alvo, ganhando $\gamma + 1$ tokens
-        \end{enumerate}
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{block}{Propriedade chave}
-          Saída \textbf{idêntica em distribuição} ao modelo alvo, sem perda de qualidade por construção.
-        \end{block}
-        \vspace{0.3em}
-        \begin{exampleblock}{Speedup típico}
-          $2$--$3\times$ com draft $10\times$ menor.\\
-          Ex: Llama 3 70B + Llama 3 8B como draft.
-        \end{exampleblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Algoritmo Especulativo: Critério de Aceitação}
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        Draft model $M_q$, target model $M_p$:\\[0.4em]
-        Para cada token $\tilde{x}_t$ proposto pelo draft:
-        \[
-          \text{Aceitar com prob.} \min\!\left(1,\; \frac{p(\tilde{x}_t \mid x_{<t})}{q(\tilde{x}_t \mid x_{<t})}\right)
-        \]
-        Se rejeitado: re-amostre de
-        \[
-          p'(x) \propto \max\!\bigl(0,\, p(x)-q(x)\bigr)
-        \]
-        Verifique todos os $\gamma$ tokens \textbf{em um único passe} do modelo alvo.
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \begin{itemize}
-          \item $p \ge q$: token \textbf{sempre aceito}
-          \item Draft e target concordam $\to$ aceleração máxima
-          \item Tokens difíceis: target corrige
-          \item Rejeição na posição $t$: as posições $t{+}1, \ldots, \gamma$ do rascunho são \textbf{descartadas}
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{block}{Complexidade}
-          $\gamma+1$ passos de $M_q$ + 1 passe de $M_p$\\
-          $\to$ até $\gamma+1$ tokens gerados\\
-          ($\gamma$ aceitos + 1 extra amostrado de $M_p$).\\
-          Sem especulação: $\gamma+1$ passes de $M_p$.
-        \end{block}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Decodificação Especulativa: Exemplo Passo a Passo}
-    \textbf{Contexto:} completar \enquote{O gato subiu na \_\_\_} com $\gamma=3$.\\[0.3em]
-    Draft $M_q$ propõe: \texttt{árvore}, \texttt{e}, \texttt{dormiu}, verificados em \textbf{um único passe} de $M_p$.\\[0.4em]
-    \begin{columns}[T]
-      \begin{column}{0.58\textwidth}
-      \resizebox{\linewidth}{!}{
-        \begin{tabular}{lcccc}
-          \toprule
-          Token & $q$ & $p$ & $\min\!\left(1,\tfrac{p}{q}\right)$ & Decisão \\
-          \midrule
-          \texttt{árvore} & 0.6 & 0.9 & \textbf{1,00} & sempre aceito \\
-          \texttt{e}      & 0.7 & 0.4 & 0.57 & aceito c/ prob.\ 57\% \\
-          \texttt{dormiu} & 0.8 & 0.2 & 0.25 & aceito c/ prob.\ 25\% \\
-          \bottomrule
-        \end{tabular}}
-      \end{column}
-      \begin{column}{0.38\textwidth}
-        \begin{exampleblock}{Cenário A (todos aceitos)}
-          3 aceitos + 1 extra de $M_p$:\\
-          4 tokens em 1 passe.\\
-          Sem especulação: 4 passes.
-        \end{exampleblock}
-        \vspace{0.3em}
-        \begin{alertblock}{Cenário B (\texttt{e} rejeitado)}
-          Re-amostra \texttt{e} de $p'\!\propto\!\max(0,p{-}q)$ e descarta \texttt{dormiu};\\
-          \texttt{árvore} + token corrigido, ainda 1 passe.
-        \end{alertblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  %─── Slide: Rejeição ─────────────────────────────────────────────────────────
-  \begin{frame}{Rejeição: Distribuições $q$ e $p$ para \texttt{dormiu}}
-    \textbf{Contexto:} ``O gato subiu na árvore e \_\_\_''
-    (\texttt{árvore} e \texttt{e} já aceitos).\\[0.3em]
-    Draft $M_q$ propõe \texttt{dormiu} com $q{=}0.8$; modelo alvo tem $p{=}0.2$.\\[0.2em]
-    \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}
-          \begin{axis}[
-            ybar,
-            bar width=0.30cm,
-            ylabel={Probabilidade},
-            xlabel={Token candidato},
-            symbolic x coords={dormiu,pulou,caiu,desceu},
-            xtick=data,
-            x tick label style={font=\small\ttfamily},
-            ymin=0, ymax=0.95,
-            ytick={0,0.2,0.4,0.6,0.8},
-            width=7.5cm, height=5.0cm,
-            enlarge x limits=0.18,
-            legend style={at={(0.98,0.97)}, anchor=north east, font=\small},
-            legend cell align=left,
-          ]
-            \addplot[fill=CellBlue, draw=DarkBlue] coordinates {
-              (dormiu,0.80)(pulou,0.10)(caiu,0.05)(desceu,0.05)
-            };
-            \addlegendentry{$q$ (draft $M_q$)}
-            \addplot[fill=CellYellow, draw=DarkRed] coordinates {
-              (dormiu,0.20)(pulou,0.40)(caiu,0.25)(desceu,0.15)
-            };
-            \addlegendentry{$p$ (alvo $M_p$)}
-            \node[above, font=\scriptsize\bfseries]
-              at (axis cs:dormiu, 0.85) {\textcolor{DarkRed}{REJEITADO}};
-            \draw[DarkRed, very thick, ->]
-              (axis cs:dormiu, 0.83) -- (axis cs:dormiu, 0.78);
-          \end{axis}
-        \end{tikzpicture}}
-      \end{column}
-      \begin{column}{0.44\textwidth}
-        \scriptsize
-        \begin{alertblock}{Por que \texttt{dormiu} é rejeitado?}
-          $p(\texttt{dormiu}) = 0.2 < q(\texttt{dormiu}) = 0.8$\\[0.3em]
-          Aceitar com probabilidade:
-          \[
-            \min\!\left(1,\;\frac{p}{q}\right) = \frac{0.2}{0.8} = 0.25
-          \]
-          Neste cenário, \textbf{\texttt{dormiu} é rejeitado.}
-        \end{alertblock}
-        \vspace{0.4em}
-        \begin{block}{Observação}
-          $M_p$ prefere \texttt{pulou} ($p{=}0.4$), o draft superestimou a certeza em \texttt{dormiu}.
-        \end{block}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  %─── Slide: Re-amostragem ────────────────────────────────────────────────────
-  \begin{frame}{Re-amostragem: $p'(x) \propto \max\!\bigl(0,\, p(x) - q(x)\bigr)$}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lcccc}
-          \toprule
-          Token & $p$ & $q$ & $p{-}q$ & $p'$ (norm.) \\
-          \midrule
-          \texttt{dormiu} & 0.20 & 0.80 & \textcolor{DarkRed}{$-$0.60} & \cellcolor{CellRed}0.00 \\
-          \texttt{pulou}  & 0.40 & 0.10 & $+$0.30 & \cellcolor{CellGreen}\textbf{0.50} \\
-          \texttt{caiu}   & 0.25 & 0.05 & $+$0.20 & \cellcolor{CellGreen}0.33 \\
-          \texttt{desceu} & 0.15 & 0.05 & $+$0.10 & \cellcolor{CellGreen}0.17 \\
-          \bottomrule
-        \end{tabular}}
-        \vspace{0.4em}
-        \begin{exampleblock}{Token selecionado de $p'$}
-          \textbf{\texttt{pulou}} ($p'{=}0.50$)\\
-          ``O gato subiu na árvore e \textbf{\texttt{pulou}}\ldots''
-        \end{exampleblock}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \resizebox{.8\linewidth}{!}{%
-        \begin{tikzpicture}
-          \begin{axis}[
-            ybar,
-            bar width=0.45cm,
-            ylabel={$p'(x)$ normalizado},
-            xlabel={Token candidato},
-            symbolic x coords={dormiu,pulou,caiu,desceu},
-            xtick=data,
-            x tick label style={font=\small\ttfamily},
-            ymin=0, ymax=0.8,
-            ytick={0,0.1,0.2,0.3,0.4,0.5},
-            width=6.5cm, height=5.2cm,
-            enlarge x limits=0.22,
-            nodes near coords,
-            nodes near coords align={vertical},
-            every node near coord/.append style={font=\scriptsize},
-          ]
-            \addplot[fill=CellGreen, draw=DarkGreen] coordinates {
-              (dormiu,0.00)(pulou,0.50)(caiu,0.33)(desceu,0.17)
-            };
-            \node[above, font=\scriptsize\bfseries, DarkGreen, align=center]
-              at (axis cs:pulou, 0.60) {amostrado\\$\checkmark$};
-          \end{axis}
-        \end{tikzpicture}}
-        \vspace{0.2em}
-        \begin{block}{Garantia de correção}
-          $p'$ concentra massa onde $M_p$ discorda de $M_q$, garantindo distribuição \textbf{idêntica a amostrar de $M_p$}.
-        \end{block}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  \begin{frame}{Decodificação Especulativa: Variantes e Resultados}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Leviathan et al.\ (2023)}:
-        \begin{itemize}
-          \item Testado: T5-XXL (11B) + T5-small (60M) como draft
-          \item Speedup $2$--$3\times$ dependendo da tarefa
-          \item HumanEval (código): maior speedup (tokens repetitivos)
-          \item Sem degradação de qualidade
-        \end{itemize}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \textbf{Variantes modernas}:
-        \begin{itemize}
-          \item \textbf{Self-speculative}: camadas rascunho do próprio modelo
-          \item \textbf{Medusa}: múltiplas cabeças de predição em paralelo
-          \item \textbf{Eagle}: alinha representações de draft e target
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{alertblock}{Requisito}
-          Benefício depende da taxa de aceitação $\alpha$: quanto mais similares os modelos, maior $\alpha$ e maior o speedup.
-        \end{alertblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
-  %======================================================================================
-  % SECTION 8: BENCHMARKS
+  % SECTION 9: BENCHMARKS
   %======================================================================================
   \section{Benchmarks e Avaliação de LLMs}
 
@@ -1885,10 +2199,20 @@
       \item PPL = 1: certeza absoluta; PPL = $|V|$: uniforme sobre o vocabulário
       \item Diretamente ligada à \textit{cross-entropy loss} do treino
     \end{itemize}
-    \vspace{0.5em}
-    \begin{exampleblock}{Intuição}
-      PPL = 20 $\Rightarrow$ o modelo hesita, em média, entre 20 tokens igualmente prováveis a cada passo.
-    \end{exampleblock}
+    \vspace{0.4em}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{exampleblock}{Exemplo numérico (3 tokens)}
+          $P(w_1){=}0.5,\; P(w_2){=}0.25,\; P(w_3){=}0.125$\\[2pt]
+          $\mathrm{PPL} = \exp\!\left(\tfrac{0.69 + 1.39 + 2.08}{3}\right) = e^{1.39} = \textbf{4.0}$
+        \end{exampleblock}
+      \end{column}
+      \begin{column}{0.44\textwidth}
+        \begin{exampleblock}{Intuição}
+          PPL = 20 $\Rightarrow$ o modelo hesita, em média, entre 20 tokens igualmente prováveis a cada passo.
+        \end{exampleblock}
+      \end{column}
+    \end{columns}
   \end{frame}
 
   \begin{frame}{Perplexidade: Por que Não é Suficiente?}
@@ -2152,17 +2476,20 @@
       \toprule
       \textbf{Tópico} & \textbf{Conceito-chave} & \textbf{Inovação / Referência} & \textbf{Modelo exemplo} \\
       \midrule
-      Decoder-only      & Atenção causal, sem encoder   & GPT \cite{radford2018gpt1}        & GPT, Llama \\
-      Leis de escala    & $20N$ tokens; $N^*\!\propto C^{0.5}$ & Chinchilla \cite{hoffmann2022chinchilla} & Llama 3 \\
+      Decoder-only      & Atenção causal, sem encoder; treino paralelo & GPT \cite{radford2018gpt1}        & GPT, Llama \\
       Normalização      & RMSNorm + Pre-Norm            & \cite{ba2016layernorm,zhang2019rmsnorm} & Llama 2/3 \\
+      Decodificação     & Temperature, top-$k$/top-$p$; degeneração & \cite{holtzman2020degeneration}   & --- \\
       MHA $\to$ GQA     & Redução de KV-cache           & \cite{ainslie2023gqa}             & Llama 2 70B \\
       Sliding Window    & Atenção local $\mathcal{O}(nW)$ & \cite{jiang2023mistral}           & Mistral 7B \\
-      MoE               & Top-$k$ routing, especialistas & \cite{shazeer2017moe,jiang2024mixtral} & Mixtral 8×7B \\
+      FlashAttention    & Atenção exata, IO-eficiente   & \cite{dao2022flashattention}      & todos os atuais \\
       Decod.\ especulativa & Draft + verify             & \cite{leviathan2023speculative}   & Llama 3 \\
+      MoE               & Top-$k$ routing, especialistas & \cite{shazeer2017moe,jiang2024mixtral} & Mixtral 8×7B \\
+      Leis de escala    & $20N$ tokens; $N^*\!\propto C^{0.5}$ & Chinchilla \cite{hoffmann2022chinchilla} & Llama 3 \\
       Benchmarks        & ARC, GSM8k, MMLU, HellaSwag   & \cite{clark2018arc,cobbe2021gsm8k,hendrycks2021mmlu} & --- \\
       \bottomrule
     \end{tabular}}
   \end{frame}
+
 
   %======================================================================================
   % REFERÊNCIAS
