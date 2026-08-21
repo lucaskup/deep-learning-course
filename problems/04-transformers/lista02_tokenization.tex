@@ -10,34 +10,54 @@
 
 \begin{enumerate}[I)]
 
-
+% ------------------------------------------------------------------
+% Q1 — Fácil
+% ------------------------------------------------------------------
 \item Quais são os três componentes fundamentais de um sistema de tokenização?
 
 \begin{enumerate}[a)]
     \item Pré-processamento, normalização e lematização.
-    \item Vocabulário (quais tokens existem), segmentação (como o texto é dividido) e
-          mapeamento (tokens para IDs inteiros).
+    \item Vocabulário, segmentação e mapeamento.
     \item Embedding, atenção e decodificação.
     \item Codificação, compressão e indexação.
 \end{enumerate}
 
 % ------------------------------------------------------------------
-% Q2 — Fácil
+% Q2 — Médio
 % ------------------------------------------------------------------
-\item O que descreve o problema de \textbf{fertility} (fertilidade) na tokenização
-      multilíngue?
+\item Em tokenizers com pré-tokenização, como os do GPT-2 e do BERT, nenhum token
+      do vocabulário contém duas palavras (como \texttt{of the}). O que garante
+      essa propriedade?
 
 \begin{enumerate}[a)]
-    \item A incapacidade do tokenizador de lidar com emojis e caracteres especiais.
-    \item O crescimento exponencial do vocabulário ao quebrar palavras de um mesmo idioma em tokens formados por menos caracteres.
-    \item A variação no número de tokens necessários para representar texto semanticamente
-          equivalente em diferentes idiomas: idiomas com alta fertilidade consomem mais
-          tokens, reduzindo a janela de contexto efetiva e aumentando o custo computacional.
-    \item A tendência do BPE de criar tokens muito longos para certos idiomas.
+    \item O espaço possui um token próprio que nunca participa de merges.
+    \item Tokens com espaço interno são descartados na filtragem final do vocabulário.
+    \item A contagem e a aplicação dos merges ocorrem apenas dentro das fronteiras
+          dos pré-tokens.
+    \item O marcador de fim de palavra impede que o último símbolo de uma palavra
+          forme pares.
 \end{enumerate}
 
 % ------------------------------------------------------------------
-% Q3 — Fácil
+% Q3 — Médio
+% ------------------------------------------------------------------
+\item No tokenizer do GPT-2, o espaço não é descartado: ele é embutido no token
+      seguinte (ex.: \texttt{\textvisiblespace world}). Qual é a consequência dessa
+      convenção para uma mesma palavra que aparece ora no início, ora no meio de
+      uma frase?
+
+\begin{enumerate}[a)]
+    \item O tokenizer normaliza os dois casos para o mesmo token, e o espaço é
+          restaurado por regras de detokenização.
+    \item Os dois casos compartilham o mesmo ID, mas recebem positional encodings
+          diferentes.
+    \item O vocabulário dobra de tamanho, pois toda palavra precisa registrar as
+          duas variantes.
+    \item Os dois casos correspondem a tokens com IDs e embeddings distintos.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q4 — Fácil
 % ------------------------------------------------------------------
 \item O algoritmo BPE (Sennrich et al., 2016) constrói o vocabulário em qual direção
       e utiliza qual critério para selecionar os pares a mesclar?
@@ -53,31 +73,28 @@
 \end{enumerate}
 
 % ------------------------------------------------------------------
-% Q4 — Fácil
+% Q5 — Difícil (inferência do BPE)
 % ------------------------------------------------------------------
-\item Qual tokenizador é utilizado pelo BERT e qual é o tamanho aproximado de seu
-      vocabulário?
+\item A tabela de merges do BPE aprendida na aula, a partir do corpus
+      \texttt{low} (×5), \texttt{lower} (×2), \texttt{newest} (×6), \texttt{widest} (×3),
+      é, em ordem:
+      \begin{center}
+      1.\ \texttt{(e,s)} $\rightarrow$ \texttt{es} \quad
+      2.\ \texttt{(es,t)} $\rightarrow$ \texttt{est} \quad
+      3.\ \texttt{(est,\_)} $\rightarrow$ \texttt{est\_} \quad
+      4.\ \texttt{(l,o)} $\rightarrow$ \texttt{lo} \\
+      5.\ \texttt{(lo,w)} $\rightarrow$ \texttt{low} \quad
+      6.\ \texttt{(n,e)} $\rightarrow$ \texttt{ne} \quad
+      7.\ \texttt{(ne,w)} $\rightarrow$ \texttt{new}
+      \end{center}
+      Aplicando esses merges na inferência, como é codificada a palavra \emph{nova}
+      \texttt{slowest} (divisão inicial: \texttt{s~l~o~w~e~s~t~\_})?
 
 \begin{enumerate}[a)]
-    \item Byte-level BPE, com vocabulário de 50.257 tokens.
-    \item SentencePiece Unigram, com vocabulário de 32.000 tokens.
-    \item WordPiece, com vocabulário de aproximadamente 30.522 tokens.
-    \item BPE padrão, com vocabulário de 128.256 tokens.
-\end{enumerate}
-
-% ------------------------------------------------------------------
-% Q5 — Fácil
-% ------------------------------------------------------------------
-\item Por que o SentencePiece (Kudo \& Richardson, 2018) é descrito como
-      \emph{independente de idioma} (language-agnostic)?
-
-\begin{enumerate}[a)]
-    \item Porque suporta apenas o algoritmo BPE, que é universalmente aplicável.
-    \item Porque utiliza um vocabulário fixo de 256 bytes, igual para todos os idiomas.
-    \item Porque trata a entrada como um fluxo bruto de bytes/Unicode sem
-          pré-tokenização por espaços em branco, representando o espaço como
-          um caractere regular (\texttt{\_}).
-    \item Porque aprende um vocabulário separado para cada idioma detectado no corpus.
+    \item \texttt{slow}~\texttt{est\_}
+    \item \texttt{s}~\texttt{low}~\texttt{est\_}
+    \item \texttt{s}~\texttt{lo}~\texttt{w}~\texttt{est\_}
+    \item \texttt{s}~\texttt{low}~\texttt{est}~\texttt{\_}
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -98,60 +115,10 @@
 \end{enumerate}
 
 % ------------------------------------------------------------------
-% Q7 — Médio
+% Q7 — Difícil (cálculo de score WordPiece)
 % ------------------------------------------------------------------
-\item O tokenizador Unigram Language Model (Kudo, 2018) difere do BPE principalmente
-      em qual aspecto do processo de construção do vocabulário?
-
-\begin{enumerate}[a)]
-    \item O Unigram usa merges guiados por frequência de bigramas, enquanto o BPE
-          usa verossimilhança.
-    \item O Unigram é top-down: começa com um vocabulário grande (todos os substrings
-          até certo comprimento) e itera removendo os tokens cuja ausência causa a
-          menor queda na verossimilhança do corpus.
-    \item O Unigram aplica dropout nos merges durante o treinamento, enquanto o BPE
-          usa merges determinísticos.
-    \item O Unigram é restrito a modelos que usam SentencePiece, enquanto o BPE pode
-          ser usado com qualquer framework.
-\end{enumerate}
-
-% ------------------------------------------------------------------
-% Q8 — Médio
-% ------------------------------------------------------------------
-\item O \textbf{BPE Dropout} (Provilkov et al., 2020) e a \textbf{subword
-      regularization} do Unigram (Kudo, 2018) compartilham qual objetivo de
-      treinamento?
-
-\begin{enumerate}[a)]
-    \item Reduzir o tamanho do vocabulário durante o treinamento para diminuir o
-          uso de memória.
-    \item Aumentar a velocidade de tokenização ao pular merges pouco frequentes.
-    \item Servir como \emph{data augmentation}: expor o modelo a múltiplas
-          segmentações válidas de um mesmo texto, tornando-o mais robusto a
-          variações na tokenização.
-    \item Garantir que cada token apareça no mínimo uma vez por batch de treinamento.
-\end{enumerate}
-
-% ------------------------------------------------------------------
-% Q9 — �� Difícil (rastreamento do BPE)
-% ------------------------------------------------------------------
-\item Considere o corpus de treinamento:
-      \texttt{low} (×5), \texttt{lower} (×2), \texttt{newest} (×6), \texttt{widest} (×3).
-      Aplicando o algoritmo BPE a partir de caracteres individuais, quais são os dois
-      primeiros merges realizados (em ordem) e qual é a frequência do par em cada caso?
-
-\begin{enumerate}[a)]
-    \item Merge 1: \texttt{(l,o) → lo} (freq 7); \quad Merge 2: \texttt{(lo,w) → low} (freq 7).
-    \item Merge 1: \texttt{(e,s) → es} (freq 9); \quad Merge 2: \texttt{(es,t) → est} (freq 9).
-    \item Merge 1: \texttt{(s,t) → st} (freq 9); \quad Merge 2: \texttt{(e,s) → es} (freq 9).
-    \item Merge 1: \texttt{(n,e) → ne} (freq 6); \quad Merge 2: \texttt{(ne,w) → new} (freq 6).
-\end{enumerate}
-
-% ------------------------------------------------------------------
-% Q10 — �� Difícil (cálculo de score WordPiece)
-% ------------------------------------------------------------------
-\item Usando o mesmo corpus (\texttt{low}×5, \texttt{lower}×2,
-      \texttt{newest}×6, \texttt{widest}×3), o WordPiece seleciona merges
+\item Considere o corpus de treinamento \texttt{low} (×5), \texttt{lower} (×2),
+      \texttt{newest} (×6), \texttt{widest} (×3). O WordPiece seleciona merges
       maximizando o score:
       \[
         \mathrm{score}(x, y) = \frac{\mathrm{freq}(xy)}{\mathrm{freq}(x) \cdot \mathrm{freq}(y)}.
@@ -161,16 +128,167 @@
 
 \begin{enumerate}[a)]
     \item \texttt{(e,s)}: score $\approx 0.059$; \texttt{(i,d)}: score $\approx 0.333$.
-          WordPiece mescla \texttt{(i,d)} primeiro, pois esse par coocorre quase
-          exclusivamente junto; o BPE teria mesclado \texttt{(e,s)} por ter frequência
-          bruta maior (9 vs 3).
+          O WordPiece mescla \texttt{(i,d)} primeiro; o BPE mesclaria \texttt{(e,s)}.
     \item \texttt{(e,s)}: score $\approx 0.529$; \texttt{(i,d)}: score $\approx 0.111$.
-          WordPiece mescla \texttt{(e,s)} primeiro, concordando com o BPE.
+          O WordPiece mescla \texttt{(e,s)} primeiro; o BPE também mesclaria \texttt{(e,s)}.
     \item \texttt{(e,s)}: score $= 9$; \texttt{(i,d)}: score $= 3$.
-          Ambos os algoritmos sempre concordam na escolha do primeiro merge.
+          O WordPiece mescla \texttt{(e,s)} primeiro; o BPE também mesclaria \texttt{(e,s)}.
     \item \texttt{(e,s)}: score $\approx 0.059$; \texttt{(i,d)}: score $\approx 0.333$.
-          WordPiece mescla \texttt{(e,s)} primeiro porque frequência bruta é o critério
-          de desempate.
+          O WordPiece mescla \texttt{(e,s)} primeiro; o BPE mesclaria \texttt{(i,d)}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q8 — Médio (inferência do WordPiece)
+% ------------------------------------------------------------------
+\item Na inferência, o WordPiece usa longest-match guloso da esquerda para a direita.
+      Com um vocabulário que contém, entre outros, os tokens \texttt{un},
+      \texttt{happy}, \texttt{\#\#happi}, \texttt{\#\#ness} e \texttt{\#\#ly},
+      qual é a codificação da palavra \texttt{unhappiness}?
+
+\begin{enumerate}[a)]
+    \item \texttt{un}~\texttt{happy}~\texttt{\#\#ness}
+    \item \texttt{unhappi}~\texttt{\#\#ness}
+    \item \texttt{un}~\texttt{\#\#happi}~\texttt{\#\#ness}
+    \item \texttt{un}~\texttt{\#\#happy}~\texttt{\#\#ness}
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q9 — Médio
+% ------------------------------------------------------------------
+\item Durante a inferência do WordPiece, nenhuma combinação de tokens do vocabulário
+      consegue cobrir uma palavra da entrada. O que acontece com essa palavra, e o
+      que aconteceria com o byte-level BPE na mesma situação?
+
+\begin{enumerate}[a)]
+    \item No WordPiece, só o trecho não coberto vira \texttt{[UNK]}; no byte-level
+          BPE, o mesmo trecho vira \texttt{<unk>}.
+    \item No WordPiece, a palavra é decomposta em caracteres; no byte-level BPE,
+          em pontos de código Unicode.
+    \item No WordPiece, a palavra é truncada no maior prefixo coberto; no byte-level
+          BPE, o restante é completado com bytes.
+    \item No WordPiece, a palavra inteira vira \texttt{[UNK]}; no byte-level BPE,
+          ela é decomposta até o nível de bytes.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q10 — Médio
+% ------------------------------------------------------------------
+\item O tokenizador Unigram Language Model (Kudo, 2018) difere do BPE principalmente
+      em qual aspecto do processo de construção do vocabulário?
+
+\begin{enumerate}[a)]
+    \item O Unigram usa merges guiados por frequência de bigramas, enquanto o BPE
+          usa verossimilhança.
+    \item O Unigram é top-down: parte de um vocabulário grande e itera removendo os
+          tokens que menos contribuem para a verossimilhança do corpus.
+    \item O Unigram aplica dropout nos merges durante o treinamento, enquanto o BPE
+          usa merges determinísticos.
+    \item O Unigram é restrito a modelos que usam SentencePiece, enquanto o BPE pode
+          ser usado com qualquer framework.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q11 — Médio
+% ------------------------------------------------------------------
+\item O \textbf{BPE Dropout} (Provilkov et al., 2020) e a \textbf{subword
+      regularization} do Unigram (Kudo, 2018) compartilham qual objetivo de
+      treinamento?
+
+\begin{enumerate}[a)]
+    \item Reduzir o tamanho do vocabulário durante o treinamento para diminuir o
+          uso de memória.
+    \item Aumentar a velocidade de tokenização ao pular merges pouco frequentes.
+    \item Servir como \emph{data augmentation}, expondo o modelo a múltiplas
+          segmentações válidas de um mesmo texto durante o treinamento.
+    \item Garantir que cada token apareça no mínimo uma vez por batch de treinamento.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q12 — Fácil
+% ------------------------------------------------------------------
+\item Por que o SentencePiece (Kudo \& Richardson, 2018) é descrito como
+      \emph{independente de idioma} (language-agnostic)?
+
+\begin{enumerate}[a)]
+    \item Porque suporta apenas o algoritmo BPE, aplicável de forma idêntica a
+          qualquer corpus de treinamento.
+    \item Porque utiliza um vocabulário base fixo de 256 bytes, idêntico para
+          todos os sistemas de escrita.
+    \item Porque dispensa a pré-tokenização por espaços em branco, tratando o
+          espaço como um caractere regular do fluxo de entrada.
+    \item Porque aprende um vocabulário separado para cada idioma detectado
+          automaticamente no corpus.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q13 — Médio
+% ------------------------------------------------------------------
+\item Qual alternativa descreve corretamente o papel das bibliotecas SentencePiece
+      e tiktoken no ecossistema de tokenização?
+
+\begin{enumerate}[a)]
+    \item O SentencePiece apenas aplica vocabulários prontos do Google; o tiktoken
+          treina novos vocabulários a partir de qualquer corpus.
+    \item Ambos treinam vocabulários; o SentencePiece é restrito ao Unigram e o
+          tiktoken, ao WordPiece.
+    \item Ambos apenas aplicam vocabulários prontos; a diferença está no formato
+          de serialização da tabela de merges.
+    \item O SentencePiece treina e aplica vocabulários com BPE ou Unigram; o
+          tiktoken apenas aplica vocabulários byte-level BPE prontos.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q14 — Médio
+% ------------------------------------------------------------------
+\item Sobre tokens especiais como \texttt{[CLS]}, \texttt{<|endoftext|>} e
+      \texttt{<|im\_start|>}: qual propriedade os define, e qual risco surge quando
+      texto do usuário que os imita não é escapado?
+
+\begin{enumerate}[a)]
+    \item São atômicos, nunca resultando de merges nem sendo divididos; sem escape,
+          documentos podem injetar marcadores estruturais na conversa.
+    \item São aprendidos como os demais tokens, com IDs reservados no fim do
+          vocabulário; sem escape, o texto é truncado no primeiro marcador.
+    \item São expandidos em sequências de bytes na entrada; sem escape, a
+          detokenização perde os caracteres \texttt{<} e \texttt{>}.
+    \item São ignorados pela camada de embedding; sem escape, o modelo processa o
+          texto normalmente, sem risco prático.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q15 — Médio
+% ------------------------------------------------------------------
+\item Tokens como \texttt{\textvisiblespace SolidGoldMagikarp} faziam o GPT-3
+      responder de forma errática a pedidos simples como ``repita esta palavra''.
+      Qual é a origem desse fenômeno (\emph{glitch tokens})?
+
+\begin{enumerate}[a)]
+    \item O token colidia com um token especial de controle, e o modelo o
+          interpretava como marcador de fim de documento.
+    \item O token continha bytes fora do intervalo UTF-8 válido, corrompendo o
+          mapeamento byte-para-unicode do tokenizer.
+    \item O vocabulário foi aprendido num corpus diferente do usado para treinar o
+          modelo, e o embedding do token quase não recebeu gradiente.
+    \item O token era longo demais e foi truncado em bytes inválidos durante a
+          codificação da entrada.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q16 — Difícil (custo de embeddings)
+% ------------------------------------------------------------------
+\item Um modelo de linguagem tem vocabulário de tamanho $|V| = 50.000$ e dimensão
+      de embedding $d = 1.024$, \emph{sem} weight tying entre a tabela de embedding
+      e a camada de saída (\texttt{lm\_head}). Quantos parâmetros essas duas
+      matrizes somam, e o que muda com weight tying?
+
+\begin{enumerate}[a)]
+    \item Somam 102,4M de parâmetros; com weight tying, a mesma matriz é reutilizada
+          na saída e o total cai para 51,2M.
+    \item Somam 51,2M de parâmetros; com weight tying, o total cai para 25,6M.
+    \item Somam 102,4M de parâmetros; com weight tying, o total não muda, pois
+          apenas os gradientes são compartilhados.
+    \item Somam 51,2M de parâmetros; com weight tying, o total dobra para 102,4M,
+          pois a matriz é duplicada na saída.
 \end{enumerate}
 
 \end{enumerate}
@@ -184,8 +302,8 @@
 \subsection*{I — Resposta: (b)}
 Um sistema de tokenização é definido por três componentes:
 \begin{enumerate}
-  \item \textbf{Vocabulário}: o conjunto de tokens reconhecidos pelo modelo — quais
-        sequências de caracteres são unidades atômicas.
+  \item \textbf{Vocabulário}: o conjunto de tokens reconhecidos pelo modelo, ou seja,
+        quais sequências de caracteres são unidades atômicas.
   \item \textbf{Segmentação}: o algoritmo que divide um texto de entrada em uma sequência
         de tokens do vocabulário.
   \item \textbf{Mapeamento}: a função que converte cada token em um ID inteiro (e vice-versa),
@@ -197,22 +315,34 @@ a eficiência computacional e a equidade multilíngue.
 
 % --- Solução Q2 ---
 \subsection*{II — Resposta: (c)}
-Fertility (fertilidade) mede quantos tokens um tokenizador produz para representar
-texto em um determinado idioma. Idiomas com alta fertilidade requerem mais tokens para
-transmitir a mesma informação semântica que o inglês requer com menos tokens.
-Por exemplo, a frase ``Hello, how are you?'' pode gerar 6 tokens em inglês, mas o
-equivalente em japonês pode exigir 14 ou mais tokens com o mesmo tokenizador.
-Consequências práticas:
-\begin{itemize}
-  \item Mais tokens = mais FLOPs por inferência.
-  \item Janela de contexto efetiva menor para idiomas de alta fertilidade.
-  \item Modelos treinados majoritariamente em inglês têm fertilidade desfavorável para
-        outros idiomas, criando desigualdade de desempenho.
-\end{itemize}
+A pré-tokenização é o ``passo zero'' do pipeline: regras fixas (espaço, pontuação
+ou uma regex) dividem o texto em pré-tokens \emph{antes} de qualquer algoritmo de
+subword. Tanto o treinamento (contagem de pares) quanto a inferência (aplicação dos
+merges) operam \textbf{dentro} dessas fronteiras, então nenhum merge pode unir
+símbolos de palavras diferentes e nenhum token como \texttt{of the} pode surgir.
+Uma consequência prática importante: o corpus de treinamento pode ser reduzido a
+uma tabela de palavras com frequências, exatamente o formato do exemplo recorrente
+da aula. O SentencePiece é a exceção: dispensa essa etapa e trata o espaço como um
+caractere comum do fluxo de entrada.
 % ---
 
 % --- Solução Q3 ---
-\subsection*{III — Resposta: (b)}
+\subsection*{III — Resposta: (d)}
+Embutir o espaço no token seguinte torna a tokenização \textbf{reversível} (o
+espaço não é descartado), mas cria duas entradas de vocabulário para a mesma
+palavra: \texttt{world} (início de frase ou após pontuação) e
+\texttt{\textvisiblespace world} (meio de frase). São tokens com IDs diferentes e,
+portanto, com \textbf{embeddings diferentes}: o modelo precisa aprender por conta
+própria que os dois se referem à mesma palavra. Internamente o GPT-2 grafa o espaço
+embutido como \texttt{\.{G}} (ex.: \texttt{\.{G}world}), um artefato do mapeamento
+byte-para-unicode. As demais alternativas descrevem mecanismos que não existem
+nessa convenção: não há normalização dos dois casos, o ID é distinto (não apenas a
+posição) e o vocabulário não registra ambas as variantes de toda palavra, apenas
+das que aparecem nos dois contextos com frequência suficiente.
+% ---
+
+% --- Solução Q4 ---
+\subsection*{IV — Resposta: (b)}
 O BPE (Byte Pair Encoding) é um algoritmo \textbf{bottom-up} e \textbf{guloso}:
 \begin{enumerate}
   \item Inicia com um vocabulário de símbolos individuais (caracteres ou bytes).
@@ -225,34 +355,30 @@ ordem em que foi aprendida. O BPE foi proposto para tradução automática neura
 Sennrich et al.\ (2016) e tornou-se a base dos tokenizadores da família GPT.
 % ---
 
-% --- Solução Q4 ---
-\subsection*{IV — Resposta: (c)}
-O BERT (Devlin et al., 2019) usa \textbf{WordPiece} com um vocabulário de
-$\approx 30.522$ tokens. O WordPiece foi desenvolvido originalmente para sistemas de
-reconhecimento de voz (Schuster \& Nakajima, 2012) e posteriormente adaptado para
-modelos de linguagem (Wu et al., 2016). Diferencia-se do BPE pelo critério de merge
-(verossimilhança em vez de frequência) e pelo uso do prefixo \texttt{\#\#} para
-marcar continuações de palavras (ex.: ``playing'' → ``play'', ``\#\#ing'').
-% ---
-
 % --- Solução Q5 ---
-\subsection*{V — Resposta: (c)}
-A maioria dos tokenizadores depende de regras de pré-tokenização baseadas em espaços
-em branco e pontuação — regras que funcionam bem para o inglês mas são inadequadas para
-idiomas como japonês, chinês ou tailandês, que não usam espaços para delimitar palavras.
-O SentencePiece elimina essa dependência ao tratar o texto de entrada como um fluxo
-bruto de bytes ou pontos de código Unicode, sem nenhuma segmentação prévia. O espaço
-em branco é substituído pelo símbolo \texttt{\_} e tratado como qualquer outro caractere,
-tornando a tokenização completamente reversível e uniforme em todos os idiomas.
-O SentencePiece serve como \emph{framework}: internamente pode usar BPE ou o modelo
-Unigram como algoritmo de segmentação.
+\subsection*{V — Resposta: (b)}
+Na inferência, os merges são aplicados \textbf{na ordem em que foram aprendidos},
+sempre que o par correspondente estiver presente:
+\begin{enumerate}
+  \item Início: \texttt{s l o w e s t \_}
+  \item Merge 1, \texttt{(e,s)} $\rightarrow$ \texttt{es}: \quad \texttt{s l o w es t \_}
+  \item Merge 2, \texttt{(es,t)} $\rightarrow$ \texttt{est}: \quad \texttt{s l o w est \_}
+  \item Merge 3, \texttt{(est,\_)} $\rightarrow$ \texttt{est\_}: \quad \texttt{s l o w est\_}
+  \item Merge 4, \texttt{(l,o)} $\rightarrow$ \texttt{lo}: \quad \texttt{s lo w est\_}
+  \item Merge 5, \texttt{(lo,w)} $\rightarrow$ \texttt{low}: \quad \texttt{s low est\_}
+  \item Merges 6 e 7 não se aplicam (não há \texttt{(n,e)} nem \texttt{(ne,w)}).
+\end{enumerate}
+Resultado: \texttt{s}~\texttt{low}~\texttt{est\_}, com 3 tokens. Note que
+\texttt{slow} não pode surgir: o par \texttt{(s,low)} nunca foi aprendido como
+merge. Mesmo sem ``slowest'' jamais ter aparecido no corpus, a palavra é composta
+por subwords aprendidos, compartilhados com ``low'', ``newest'' e ``widest''.
 % ---
 
 % --- Solução Q6 ---
 \subsection*{VI — Resposta: (b)}
 O UTF-8 codifica qualquer ponto de código Unicode em uma sequência de 1 a 4 bytes,
 onde cada byte assume um valor no intervalo $[0, 255]$. Ao operar sobre bytes brutos,
-o byte-level BPE começa com exatamente \textbf{256 tokens base} — um para cada valor
+o byte-level BPE começa com exatamente \textbf{256 tokens base}, um para cada valor
 de byte possível. Consequência direta: qualquer texto, em qualquer idioma ou sistema
 de escrita, incluindo emojis e caracteres especiais, pode ser representado sem
 nenhum token desconhecido (\texttt{<unk>}). Os merges do BPE são então aplicados sobre
@@ -264,75 +390,7 @@ a compressão (menos tokens por texto) e a cobertura multilíngue.
 % ---
 
 % --- Solução Q7 ---
-\subsection*{VII — Resposta: (b)}
-Enquanto o BPE é \textbf{bottom-up} (começa pequeno e cresce mesclando), o Unigram
-é \textbf{top-down} (começa grande e encolhe podando):
-\begin{enumerate}
-  \item Inicializa o vocabulário com todos os substrings do corpus até um comprimento
-        máximo (podendo ter centenas de milhares de entradas).
-  \item Define uma distribuição de probabilidade unigrama sobre o vocabulário.
-  \item Para cada token candidato à remoção, calcula a queda na verossimilhança do
-        corpus se ele fosse eliminado.
-  \item Remove os tokens com menor queda (os menos úteis) — tipicamente 10–20\% do
-        vocabulário por iteração.
-  \item Repete até atingir o tamanho de vocabulário desejado.
-\end{enumerate}
-Uma propriedade exclusiva do Unigram é poder gerar \emph{múltiplas} segmentações
-válidas de um mesmo texto com probabilidades associadas, algo explorado pela
-subword regularization como augmentation de dados.
-% ---
-
-% --- Solução Q8 ---
-\subsection*{VIII — Resposta: (c)}
-Ambas as técnicas introduzem \textbf{aleatoriedade controlada} na segmentação durante
-o treinamento:
-\begin{itemize}
-  \item \textbf{BPE Dropout} (Provilkov et al., 2020): durante o treinamento, cada
-        merge do BPE é ignorado com probabilidade $p$ (tipicamente $p = 0.1$).
-        A mesma palavra pode ser tokenizada de maneiras diferentes em diferentes passos,
-        como \texttt{low~est\_}, \texttt{lo~w~est\_} ou \texttt{l~o~w~est\_}.
-  \item \textbf{Subword regularization} (Kudo, 2018): usa o modelo probabilístico do
-        Unigram para amostrar uma segmentação dentre as válidas, em vez de sempre
-        escolher a de maior probabilidade.
-\end{itemize}
-O efeito é equivalente ao dropout nas camadas de rede: força o modelo a ser robusto
-a múltiplas representações de uma mesma sequência, melhorando a generalização —
-especialmente em cenários com dados escassos ou idiomas de alta morfologia.
-% ---
-
-% --- Solução Q9 ---
-\subsection*{IX — Resposta: (b)}
-
-\textbf{Estado inicial} — cada palavra representada como caracteres individuais com
-marcador de fim de palavra (\texttt{\_}):
-\begin{itemize}
-  \item \texttt{l o w \_} (×5), \quad \texttt{l o w e r \_} (×2)
-  \item \texttt{n e w e s t \_} (×6), \quad \texttt{w i d e s t \_} (×3)
-\end{itemize}
-
-\textbf{Frequência dos pares adjacentes relevantes:}
-\begin{itemize}
-  \item \texttt{(e,s)}: aparece em ``newest''(×6) e ``widest''(×3) $\Rightarrow$ freq $= 9$
-  \item \texttt{(s,t)}: aparece em ``newest''(×6) e ``widest''(×3) $\Rightarrow$ freq $= 9$
-  \item \texttt{(l,o)}: aparece em ``low''(×5) e ``lower''(×2) $\Rightarrow$ freq $= 7$
-\end{itemize}
-
-Quando há empate na frequência, os pares costumam ser ordenados lexicograficamente ou
-pela ordem de aparição. O par \texttt{(e,s)} é mesclado antes de \texttt{(s,t)} pois \texttt{e} é anterior a \texttt{s} na ordem lexicográfica.
-
-\textbf{Merge 1}: \texttt{(e,s) → es} (freq 9). Vocabulário passa a incluir \texttt{es}.
-
-\textbf{Estado após merge 1:}
-\begin{itemize}
-  \item \texttt{n e w es t \_} (×6), \quad \texttt{w i d es t \_} (×3)
-\end{itemize}
-
-\textbf{Merge 2}: o par mais frequente agora é \texttt{(es,t)} com freq $= 9$.
-\texttt{(es,t) → est}. Vocabulário passa a incluir \texttt{est}.
-% ---
-
-% --- Solução Q10 ---
-\subsection*{X — Resposta: (a)}
+\subsection*{VII — Resposta: (a)}
 
 \textbf{Frequências individuais dos caracteres} (calculadas somando sobre todas as
 ocorrências no corpus):
@@ -370,12 +428,152 @@ ocorrências no corpus):
 embora \texttt{(e,s)} tenha frequência bruta três vezes maior (9 vs 3).
 
 \textbf{Intuição:} \texttt{i} e \texttt{d} coocorrem quase exclusivamente juntos no
-corpus — toda vez que \texttt{i} aparece, \texttt{d} é o próximo símbolo. O score
+corpus: toda vez que \texttt{i} aparece, \texttt{d} é o próximo símbolo. O score
 captura essa alta informação mútua. Por outro lado, \texttt{e} e \texttt{s} aparecem
 frequentemente de forma \emph{independente} em outros contextos, reduzindo o score
 mesmo com alta frequência de coocorrência absoluta. O BPE ignora essa distinção e
 escolheria \texttt{(e,s)} simplesmente por ter maior contagem.
 % ---
 
-\end{document}
+% --- Solução Q8 ---
+\subsection*{VIII — Resposta: (c)}
+O longest-match guloso varre a palavra da esquerda para a direita, sempre tomando o
+maior token do vocabulário que casa com o início do trecho restante:
+\begin{enumerate}
+  \item Trecho \texttt{unhappiness}: a maior correspondência inicial é \texttt{un}.
+  \item Trecho restante \texttt{happiness}: como não é início de palavra, apenas
+        tokens de continuação (prefixo \texttt{\#\#}) são válidos. A maior
+        correspondência é \texttt{\#\#happi}. Note que \texttt{happy} não serve por
+        duas razões: não tem o prefixo \texttt{\#\#} e não é prefixo do trecho
+        (\texttt{happy} $\neq$ \texttt{happi}$\ldots$).
+  \item Trecho restante \texttt{ness}: maior correspondência \texttt{\#\#ness}.
+\end{enumerate}
+Resultado: \texttt{un}~\texttt{\#\#happi}~\texttt{\#\#ness}. O prefixo \texttt{\#\#}
+indica que o token continua a palavra anterior, permitindo distinguir, por exemplo,
+o \texttt{ness} que inicia uma palavra do \texttt{\#\#ness} que a encerra.
+% ---
 
+% --- Solução Q9 ---
+\subsection*{IX — Resposta: (d)}
+No WordPiece, se nenhuma combinação de tokens do vocabulário cobre a palavra, ela
+\textbf{inteira} é substituída pelo token especial \texttt{[UNK]}, e todo o seu
+conteúdo se perde: o modelo recebe apenas ``havia aqui uma palavra desconhecida''.
+O byte-level BPE, em contraste, nunca produz tokens desconhecidos: qualquer texto é
+representável como sequência de bytes UTF-8, e o pior caso é uma decomposição em
+tokens de 1 byte (sequência mais longa, mas sem perda de informação). O BPE padrão
+em nível de caractere e o Unigram também degradam graciosamente, decompondo até os
+símbolos individuais do vocabulário base, razão pela qual caracteres individuais
+nunca são podados no Unigram.
+% ---
+
+% --- Solução Q10 ---
+\subsection*{X — Resposta: (b)}
+Enquanto o BPE é \textbf{bottom-up} (começa pequeno e cresce mesclando), o Unigram
+é \textbf{top-down} (começa grande e encolhe podando):
+\begin{enumerate}
+  \item Inicializa o vocabulário com todos os substrings do corpus até um comprimento
+        máximo (podendo ter centenas de milhares de entradas).
+  \item Define uma distribuição de probabilidade unigrama sobre o vocabulário.
+  \item Para cada token candidato à remoção, calcula a queda na verossimilhança do
+        corpus se ele fosse eliminado.
+  \item Remove os tokens com menor queda (os menos úteis), tipicamente 10–20\% do
+        vocabulário por iteração.
+  \item Repete até atingir o tamanho de vocabulário desejado.
+\end{enumerate}
+Uma propriedade exclusiva do Unigram é poder gerar \emph{múltiplas} segmentações
+válidas de um mesmo texto com probabilidades associadas, algo explorado pela
+subword regularization como augmentation de dados.
+% ---
+
+% --- Solução Q11 ---
+\subsection*{XI — Resposta: (c)}
+Ambas as técnicas introduzem \textbf{aleatoriedade controlada} na segmentação durante
+o treinamento:
+\begin{itemize}
+  \item \textbf{BPE Dropout} (Provilkov et al., 2020): durante o treinamento, cada
+        merge do BPE é ignorado com probabilidade $p$ (tipicamente $p = 0.1$).
+        A mesma palavra pode ser tokenizada de maneiras diferentes em diferentes passos,
+        como \texttt{low~est\_}, \texttt{lo~w~est\_} ou \texttt{l~o~w~est\_}.
+  \item \textbf{Subword regularization} (Kudo, 2018): usa o modelo probabilístico do
+        Unigram para amostrar uma segmentação dentre as válidas, em vez de sempre
+        escolher a de maior probabilidade.
+\end{itemize}
+O efeito é equivalente ao dropout nas camadas de rede: força o modelo a ser robusto
+a múltiplas representações de uma mesma sequência, melhorando a generalização,
+especialmente em cenários com dados escassos ou idiomas de alta morfologia.
+% ---
+
+% --- Solução Q12 ---
+\subsection*{XII — Resposta: (c)}
+A maioria dos tokenizadores depende de regras de pré-tokenização baseadas em espaços
+em branco e pontuação, regras que funcionam bem para o inglês mas são inadequadas para
+idiomas como japonês, chinês ou tailandês, que não usam espaços para delimitar palavras.
+O SentencePiece elimina essa dependência ao tratar o texto de entrada como um fluxo
+bruto de bytes ou pontos de código Unicode, sem nenhuma segmentação prévia. O espaço
+em branco é substituído pelo símbolo \texttt{\_} e tratado como qualquer outro caractere,
+tornando a tokenização completamente reversível e uniforme em todos os idiomas.
+O SentencePiece serve como \emph{framework}: internamente pode usar BPE ou o modelo
+Unigram como algoritmo de segmentação.
+% ---
+
+% --- Solução Q13 ---
+\subsection*{XIII — Resposta: (d)}
+As duas bibliotecas têm papéis diferentes no ecossistema:
+\begin{itemize}
+  \item \textbf{SentencePiece} (Google, 2018) cobre \textbf{treino e inferência}: o
+        usuário treina seu próprio vocabulário sobre um corpus, escolhendo BPE ou
+        Unigram como algoritmo, com normalização NFKC configurável e
+        \texttt{byte\_fallback} opcional para evitar \texttt{<unk>}. É usado por
+        T5, LLaMA 1/2, Mistral e Gemma.
+  \item \textbf{tiktoken} (OpenAI, 2022) é uma biblioteca de \textbf{inferência
+        apenas}: aplica vocabulários byte-level BPE já prontos
+        (\texttt{cl100k\_base}, \texttt{o200k\_base}, \ldots) com pré-tokenização
+        obrigatória via regex. É usado pelos modelos GPT-3.5/4/4o e pelo LLaMA 3.
+\end{itemize}
+O HuggingFace \texttt{tokenizers} reimplementa ambos os formatos e é o que o
+\texttt{AutoTokenizer} carrega por baixo dos panos.
+% ---
+
+% --- Solução Q14 ---
+\subsection*{XIV — Resposta: (a)}
+Tokens especiais são \textbf{atômicos}: são inseridos diretamente no vocabulário,
+nunca resultam de merges e nunca são divididos pela pré-tokenização. Eles carregam
+\emph{estrutura}, não conteúdo: \texttt{[CLS]} agrega a representação para
+classificação no BERT, \texttt{<|endoftext|>} marca fim de documento no GPT-2, e
+pares como \texttt{<|im\_start|>}/\texttt{<|im\_end|>} delimitam turnos e papéis
+(user, assistant) nos chat templates. Justamente por carregarem estrutura, texto do
+usuário que imita um token especial precisa ser \textbf{escapado}: se a string
+\texttt{<|im\_start|>} de um documento fosse codificada como o token especial, o
+documento injetaria um marcador de turno na conversa (\emph{prompt injection}).
+No tiktoken, por padrão, tokens especiais encontrados no texto do usuário geram
+\textbf{erro} (\texttt{disallowed\_special}), deixando o escape como
+responsabilidade explícita da aplicação.
+% ---
+
+% --- Solução Q15 ---
+\subsection*{XV — Resposta: (c)}
+O vocabulário BPE do GPT-2/3 foi aprendido num corpus \textbf{diferente} do usado
+para treinar o modelo. Strings como \texttt{\textvisiblespace SolidGoldMagikarp}
+(usernames do Reddit) eram frequentes o bastante no corpus do tokenizer para
+ganharem um token próprio, mas foram filtradas do corpus de treinamento do modelo.
+Resultado: o embedding desses tokens quase nunca recebeu gradiente e permaneceu
+próximo da inicialização aleatória. Quando o token aparece num prompt, o modelo
+recebe um vetor essencialmente aleatório e responde de forma errática (palavras
+sem relação, insultos, evasivas). É o caso extremo dos tokens raros subtreinados:
+a lição é que vocabulário e corpus de treinamento precisam estar \textbf{alinhados}.
+Há métodos para detectar esses tokens automaticamente (Land \& Bartolo, 2024).
+% ---
+
+% --- Solução Q16 ---
+\subsection*{XVI — Resposta: (a)}
+Cada matriz tem $|V| \times d = 50.000 \times 1.024 = 51.200.000 \approx 51{,}2$M
+de parâmetros. Sem weight tying, o modelo mantém duas matrizes independentes desse
+tamanho, a tabela de embedding (entrada) e a projeção final \texttt{lm\_head}
+(saída), somando $2 \times 51{,}2\text{M} = 102{,}4$M. Com \textbf{weight tying},
+a mesma matriz é reutilizada nas duas pontas, eliminando uma das cópias: o total
+cai para 51,2M. O GPT-2 usa essa técnica. O custo é relevante sobretudo em modelos
+pequenos: no GPT-2 Small ($|V| = 50.257$, $d = 768$), a tabela de embedding sozinha
+responde por cerca de um terço dos 117M de parâmetros do modelo.
+% ---
+
+\end{document}

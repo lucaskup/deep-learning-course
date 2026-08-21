@@ -132,6 +132,44 @@ Prof. Lucas S. Kupssinskü \hfill Transformers e Modelos Geradores
 \]
 
 %% =============================================================
+%%  Tokenização
+%% =============================================================
+\bloco{Tokenização}
+
+\textbf{Score de merge do WordPiece} (reconstrução popularizada pelo Hugging Face; o BPE, em contraste, mescla o par adjacente de maior $\mathrm{freq}(xy)$):
+\[
+  \mathrm{score}(x, y) = \frac{\mathrm{freq}(xy)}{\mathrm{freq}(x)\cdot\mathrm{freq}(y)}.
+\]
+
+\textbf{Modelo de linguagem unigrama} (segmentação $x = (x_1, \dots, x_n)$; probabilidades iniciais por contagem de substrings, com $N = \sum_{t'} \mathrm{count}(t')$):
+\[
+  P(x) = \prod_{i=1}^{n} P(x_i),
+  \qquad
+  P(t) = \frac{\mathrm{count}(t)}{N}.
+\]
+
+\textbf{Viterbi} (melhor segmentação por programação dinâmica; $\delta(j)$ é o log da melhor segmentação do prefixo com $j$ caracteres, $s_{i:j}$ é o trecho entre as posições $i$ e $j$, $V$ é o vocabulário):
+\[
+  \delta(0) = 0,
+  \qquad
+  \delta(j) = \max_{\substack{i < j \\ s_{i:j}\,\in\,V}} \bigl[\, \delta(i) + \ln P(s_{i:j}) \,\bigr].
+\]
+
+\textbf{Log-likelihood do corpus e critério de poda do Unigram} (a perda $\Delta_t$ mede quanto $\mathcal{L}$ cai ao remover o token $t$ e re-segmentar; podam-se os tokens de menor $\Delta_t$):
+\[
+  \mathcal{L} = \sum_{w \in \text{corpus}} \mathrm{freq}(w)\,\ln P(\text{melhor seg.\ de } w),
+  \qquad
+  \Delta_t = \mathcal{L} - \mathcal{L}_{\text{sem } t}.
+\]
+
+\textbf{Tabela de embedding} (lookup da linha $i$ da matriz $E$; $|V|$ é o tamanho do vocabulário):
+\[
+  \mathbf{e}_i = E[i], \quad E \in \mathbb{R}^{|V| \times d},
+  \qquad
+  \#\text{params}_{\text{embedding}} = |V| \times d.
+\]
+
+%% =============================================================
 %%  Treinamento de LLMs
 %% =============================================================
 \bloco{Treinamento e Inferência de LLMs}
