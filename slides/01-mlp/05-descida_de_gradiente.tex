@@ -52,8 +52,8 @@
               \argmin_{w,b}\,\mathcal{L}(w,b)
             \]
             via varredura por força bruta?
-          \item \href{https://iitm-pod.slides.com/arunprakash_ai/cs6910-lecture-5/fullscreen\#/0/7}{%
-              \textit{\color{blue}\underline{Vamos tentar}} (visualização interativa, IITM CS6910)}
+          \item \href{https://lucaskup.github.io/deep-learning-course/gradient-descent/\#s1}{%
+              \textit{\color{blue}\underline{Vamos tentar}} (demo interativa da disciplina)}
         \end{itemize}
       \end{column}
       \begin{column}{.4\linewidth}
@@ -110,27 +110,23 @@
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item Queremos achar uma atualização $\Delta\thetav$ tal que
-            $\mathcal{L}(\thetav+\eta\Delta\thetav) < \mathcal{L}(\thetav)$.
-          \item $\eta>0$ é a \textit{taxa de aprendizado} (\textit{learning rate}).
-          \item A pergunta é: \alert{qual direção $\Delta\thetav$ escolher?}
+          \item Queremos achar uma atualização $A$ tal que
+            $\mathcal{L}(\thetav+A) < \mathcal{L}(\thetav)$.
+          \item A pergunta é: \alert{qual atualização $A$ escolher?}
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
         \centering
-        \resizebox{\linewidth}{!}{
+        \resizebox{.7\linewidth}{!}{
           \begin{tikzpicture}[>=Latex]
             % theta
             \draw[->,thick] (0,0) -- (0.9,2.4) node[midway,above left] {$\thetav$};
-            % full Δθ from origin
-            \draw[->,thick,red!50!black] (0,0) -- (3.2,0);
-            \node[red!50!black,anchor=north] at (3.2,-0.05) {$\Delta\thetav$};
-            % η Δθ from same origin, shorter, drawn over part of Δθ with a thicker stroke
+            % update A from origin
             \draw[->,very thick,red] (0,0) -- (1.4,0);
-            \node[red,anchor=south] at (0.7,0.05) {$\eta\,\Delta\thetav$};
-            % new theta = theta + η Δθ
+            \node[red,anchor=north] at (0.7,-0.05) {$A$};
+            % new theta = theta + A
             \draw[->,thick] (0,0) -- (2.3,2.4) node[midway,below right=-1pt] {$\thetav_{\text{new}}$};
-            % dashed copy of η Δθ translated to tip of theta, completing the parallelogram
+            % dashed copy of A translated to tip of theta, completing the parallelogram
             \draw[dashed,thick,red] (0.9,2.4) -- (2.3,2.4);
           \end{tikzpicture}
         }
@@ -145,7 +141,7 @@
         \begin{itemize}
           \item Aproxima localmente uma função suave $\mathcal{L}(\thetav)$ por um polinômio em torno de $\thetav_0$.
           \item Quanto mais termos, melhor a aproximação.
-          \item Para $\eta$ pequeno, a primeira ordem domina.
+          \item Para deslocamentos pequenos em torno de $\thetav_0$, a primeira ordem domina.
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
@@ -177,29 +173,56 @@
       \end{column}
     \end{columns}
     \[
-      \mathcal{L}(\thetav)=\mathcal{L}(\thetav_{0})+\nabla\mathcal{L}(\thetav_0)^\top(\thetav-\thetav_0)
-        +\frac{1}{2}(\thetav-\thetav_0)^\top\nabla^{2}\mathcal{L}(\thetav_0)(\thetav-\thetav_0)+\cdots
+      \mathcal{L}(\thetav)=\mathcal{L}(\thetav_{0})+(\thetav-\thetav_0)^\top\nabla\mathcal{L}(\thetav_0)
+        +\frac{1}{2!}(\thetav-\thetav_0)^\top\nabla^{2}\mathcal{L}(\thetav_0)\,(\thetav-\thetav_0)+\cdots
     \]
-    \footnotetext[1]{Visualização interativa:
-      \href{https://iitm-pod.slides.com/arunprakash_ai/cs6910-lecture-5/fullscreen\#/0/18}{IITM CS6910 (Taylor)}.}
+    {\footnotesize\color{gray!50!black}O termo de primeira ordem é um produto escalar, então a ordem não importa: $(\thetav-\thetav_0)^\top\nabla\mathcal{L}(\thetav_0)=\nabla\mathcal{L}(\thetav_0)^\top(\thetav-\thetav_0)$. Muitos livros escrevem com o gradiente transposto.}
+    \footnotetext[1]{Demo interativa da disciplina:
+      \href{https://lucaskup.github.io/deep-learning-course/gradient-descent/\#s2}{lucaskup.github.io/deep-learning-course/gradient-descent}.}
   \end{frame}
 
   %--- Slide: Taylor aplicado à loss ---
   \begin{frame}{Aplicando Taylor à Loss}
-    Considere $\Delta\thetav=u$ para simplificar a notação. Em torno de $\thetav$:
+    Na série de Taylor, expandimos em torno de $\thetav_0=\thetav$ e avaliamos no ponto atualizado $\thetav+A$:
+    {\small
     \[
-      \mathcal{L}(\thetav+\eta u) =
+      \mathcal{L}(\thetav+A) =
         \mathcal{L}(\thetav)
-        + \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav)
-        + \frac{\eta^{2}}{2!}u^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,u
+        + (\thetav+A-\thetav)^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+        + \frac{1}{2!}(\thetav+A-\thetav)^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,(\thetav+A-\thetav)
+        + \cdots
+    \]}
+    \begin{itemize}
+      \item Em todos os termos, $\thetav-\thetav$ se anula: o deslocamento é simplesmente $A$.
+    \end{itemize}
+    \[
+      \mathcal{L}(\thetav+A) =
+        \mathcal{L}(\thetav)
+        + A^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+        + \frac{1}{2!}A^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,A
         + \cdots
     \]
-    \vfill
     \begin{itemize}
-      \item Para $\eta$ suficientemente pequeno, $\eta^{2},\eta^{3},\ldots$ são desprezíveis.
-      \item Ficamos com a aproximação de primeira ordem:
+      \item O termo quadrático em $A$ só é desprezível se o passo for \alert{pequeno}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: passo pequeno via taxa de aprendizado ---
+  \begin{frame}{Aplicando Taylor à Loss}
+    \begin{itemize}
+      \item Ideia: controlar o tamanho do passo com um escalar, atualizando por $\eta A$
+        com $\eta>0$ pequeno, a \textit{taxa de aprendizado} (\textit{learning rate}):
         \[
-          \mathcal{L}(\thetav+\eta u)\approx \mathcal{L}(\thetav) + \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav).
+          \mathcal{L}(\thetav+\eta A) =
+            \mathcal{L}(\thetav)
+            + \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+            + \frac{\eta^{2}}{2!}A^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,A
+            + \cdots
+        \]
+      \item Para $\eta$ suficientemente pequeno, $\eta^{2},\eta^{3},\ldots$ são
+        desprezíveis e ficamos com a aproximação de primeira ordem:
+        \[
+          \mathcal{L}(\thetav+\eta A)\approx \mathcal{L}(\thetav) + \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav).
         \]
     \end{itemize}
   \end{frame}
@@ -208,15 +231,15 @@
   \begin{frame}{Critério de melhoria}
     Queremos que a atualização reduza a loss, ou seja
     \[
-      \mathcal{L}(\thetav+\eta u) - \mathcal{L}(\thetav) < 0.
+      \mathcal{L}(\thetav+\eta A) - \mathcal{L}(\thetav) < 0.
     \]
     Substituindo a aproximação de primeira ordem:
     \[
-      \eta\,u^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0.
+      \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0.
     \]
     \vfill
     \begin{itemize}
-      \item Como $\eta>0$, basta exigir $u^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0$.
+      \item Como $\eta>0$, basta exigir $A^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0$.
       \item Isto é, o produto escalar entre a direção de atualização e o gradiente
         deve ser \alert{negativo}.
     \end{itemize}
@@ -224,20 +247,20 @@
 
   %--- Slide: produto escalar e cosseno (vetores corretos) ---
   \begin{frame}{Quando o produto escalar é negativo?}
-    Seja $\beta$ o ângulo entre $u$ e $\nabla_{\thetav}\mathcal{L}(\thetav)$.
+    Seja $\alpha$ o ângulo entre $A$ e $\nabla_{\thetav}\mathcal{L}(\thetav)$.
     \[
-      u^\top\nabla_{\thetav}\mathcal{L}(\thetav) =
-        \|u\|\,\|\nabla_{\thetav}\mathcal{L}(\thetav)\|\,\cos(\beta).
+      A^\top\nabla_{\thetav}\mathcal{L}(\thetav) =
+        \|A\|\,\|\nabla_{\thetav}\mathcal{L}(\thetav)\|\,\cos(\alpha).
     \]
     \vfill
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item $\|u\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
-          \item Logo, o sinal vem inteiramente de $\cos(\beta)$.
-          \item Negativo para $\beta\in(90^{\circ},180^{\circ})$.
-          \item \alert{``Mais negativo''} para $\beta=180^{\circ}$, ou seja
-            $u=-\nabla_{\thetav}\mathcal{L}$.
+          \item $\|A\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
+          \item Logo, o sinal vem inteiramente de $\cos(\alpha)$.
+          \item Negativo para $\alpha\in(90^{\circ},180^{\circ})$.
+          \item \alert{``Mais negativo''} para $\alpha=180^{\circ}$, ou seja
+            $A=-\nabla_{\thetav}\mathcal{L}$.
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
@@ -247,12 +270,12 @@
             % Gradient pointing right
             \draw[->,thick,blue] (0,0) -- (3,0) node[right] {$\nabla\mathcal{L}$};
             % -gradient pointing exactly opposite (180 degrees)
-            \draw[->,thick,red] (0,0) -- (-3,0) node[left] {$u^{*}=-\nabla\mathcal{L}$};
-            % a generic u making angle beta with gradient
-            \draw[->,thick,Green!70!black] (0,0) -- ({3*cos(135)},{3*sin(135)}) node[above left] {$u$};
-            % arc for beta
+            \draw[->,thick,red] (0,0) -- (-3,0) node[left] {$A^{*}=-\nabla\mathcal{L}$};
+            % a generic A making angle beta with gradient
+            \draw[->,thick,Green!70!black] (0,0) -- ({3*cos(135)},{3*sin(135)}) node[above left] {$A$};
+            % arc for alpha
             \draw[thick] (0.9,0) arc (0:135:0.9);
-            \node[font=\small] at (0.6,0.6) {$\beta$};
+            \node[font=\small] at (0.6,0.6) {$\alpha$};
           \end{tikzpicture}
         }
       \end{column}
@@ -264,11 +287,11 @@
     \begin{block}{Direção ótima}
       A escolha que minimiza o produto escalar é
       \(
-        u = -\nabla_{\thetav}\mathcal{L}(\thetav).
+        A = -\nabla_{\thetav}\mathcal{L}(\thetav).
       \)
     \end{block}
     \vfill
-    Substituindo na atualização:
+    Substituindo na atualização $\thetav_{t+1}=\thetav_{t}+\eta\,A$:
     \[
       \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})}
     \]
@@ -277,6 +300,23 @@
       \item Cada passo move os parâmetros na direção oposta ao gradiente.
       \item $\eta$ controla o tamanho do passo.
       \item Esta é a \textbf{descida de gradiente}\footfullcite{goodfellow2016deep}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: exemplo numérico descida de gradiente ---
+  \begin{frame}{Exemplo numérico: descida de gradiente}
+    \begin{block}{Cenário}
+      \[
+        \eta = 0.1,\qquad \theta_t = \cvec{3}{5},\qquad
+        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2}.
+      \]
+    \end{block}
+    \[
+      \theta_{t+1} = \theta_t - \eta\,\nabla_{\theta}\mathcal{L}(\theta_t)
+      = \cvec{3}{5} - 0.1\,\cvec{1}{2} = \cvec{2.9}{4.8}.
+    \]
+    \begin{itemize}
+      \item O passo é proporcional ao gradiente: a segunda coordenada anda o dobro (0.2 contra 0.1).
     \end{itemize}
   \end{frame}
 
@@ -290,7 +330,7 @@
       \begin{column}{.5\linewidth}
         \begin{itemize}
           \item Modelo linear: $\hat{y}=\theta_0+\theta_1 x$.
-          \item Loss MSE: $\mathcal{L}(\thetav)=(\y-\yhat)^\top(\y-\yhat)$.
+          \item Loss MSE: $\mathcal{L}(\thetav)=\frac{1}{N}(\y-\yhat)^\top(\y-\yhat)$.
           \item A superfície tem um único mínimo.
           \item Qualquer inicialização converge ao mínimo \textbf{global},
             desde que $\eta$ seja suficientemente pequeno.
@@ -308,9 +348,10 @@
     \begin{columns}
       \begin{column}{.5\linewidth}
         Modelo com apenas 2 parâmetros:
+        {\small
         \[
           \hat{y}=\sin(\theta_0+0.06\,\theta_1 x)\,\exp\!\left(-\frac{(\theta_0+0.06\,\theta_1 x)^{2}}{32}\right)
-        \]
+        \]}
         \begin{itemize}
           \item $\theta_0$ controla o deslocamento.
           \item $\theta_1$ controla a frequência.
@@ -327,7 +368,7 @@
               xmin=-15, xmax=15, ymin=-1.1, ymax=1.1,
               axis lines=middle,
               samples=200,
-              legend style={font=\tiny,at={(0.5,1.0)},anchor=south,legend columns=2}
+              legend style={font=\tiny,at={(0.98,0.98)},anchor=north east,legend columns=1}
             ]
               % theta0=0, theta1=25 -> arg = 1.5 x
               \addplot[thick,blue,domain=-15:15] {sin(deg(1.5*x)) * exp(-((1.5*x)^2)/32)};
@@ -343,16 +384,16 @@
   \end{frame}
 
   %--- Slide: Loss landscape do Gabor (figura solo) ---
-  \begin{frame}{Paisagem da loss do modelo de Gabor}
+  \begin{frame}{Paisagem da loss do modelo de Gabor\footfullcite{prince2023understanding}}
     \centering
     \includegraphics[height=0.78\textheight]{slides/img/01-mlp/gd-gabor-loss.png}
   \end{frame}
 
   %--- Slide: trajetória em loss não convexa (figura limpa) ---
-  \begin{frame}{Descida em uma loss não convexa}
+  \begin{frame}{Descida em uma loss não convexa\footfullcite{prince2023understanding}}
     \begin{columns}
       \begin{column}{.55\linewidth}
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-batch-vs-sgd.png}
+        \includegraphics[width=\linewidth,height=0.8\textheight,keepaspectratio]{slides/img/01-mlp/gd-nonconvex-gd.png}
       \end{column}
       \begin{column}{.45\linewidth}
         \begin{itemize}
@@ -416,7 +457,7 @@
   \end{frame}
 
   %--- Slide: SGD vs Batch (figura limpa) ---
-  \begin{frame}{Trajetória: \textit{Batch} vs \textit{Stochastic}}
+  \begin{frame}{Trajetória: \textit{Batch} vs \textit{Stochastic}\footfullcite{prince2023understanding}}
     \centering
     \includegraphics[height=0.66\textheight]{slides/img/01-mlp/gd-batch-vs-sgd.png}
     \begin{itemize}
@@ -426,7 +467,7 @@
   \end{frame}
 
   %--- Slide: amostragem de mini-batches (figura limpa) ---
-  \begin{frame}{Mini-batches em uma paisagem real}
+  \begin{frame}{Mini-batches em uma paisagem real\footfullcite{prince2023understanding}}
     \begin{columns}
       \begin{column}{.55\linewidth}
         \centering
@@ -453,23 +494,6 @@
       \item É computacionalmente leve (uma instância por passo).
       \item Empiricamente, soluções obtidas com SGD generalizam melhor.
       \item Não converge a um ponto fixo (passos sempre flutuam ao redor do mínimo).
-    \end{itemize}
-  \end{frame}
-
-  %--- Slide: exemplo numérico SGD ---
-  \begin{frame}{Exemplo numérico: descida de gradiente}
-    \begin{block}{Cenário}
-      \[
-        \eta = 0.1,\qquad \theta_t = \cvec{3}{5},\qquad
-        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2}.
-      \]
-    \end{block}
-    \[
-      \theta_{t+1} = \theta_t - \eta\,\nabla_{\theta}\mathcal{L}(\theta_t)
-      = \cvec{3}{5} - 0.1\,\cvec{1}{2} = \cvec{2.9}{4.8}.
-    \]
-    \begin{itemize}
-      \item O passo é proporcional ao gradiente: a segunda coordenada anda o dobro (0.2 contra 0.1).
     \end{itemize}
   \end{frame}
 
@@ -563,7 +587,7 @@
     \begin{columns}
       \begin{column}{.55\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-nesterov.png}
+        \includegraphics[width=\linewidth,height=0.78\textheight,keepaspectratio]{slides/img/01-mlp/gd-nesterov.png}
       \end{column}
       \begin{column}{.45\linewidth}
         \begin{itemize}
@@ -660,13 +684,14 @@
       \]
     \end{block}
     \begin{itemize}
-      \item Cada parâmetro tem sua própria taxa de aprendizado efetiva, baseada em
-        $G_{t}$, a soma acumulada dos gradientes ao quadrado.
-      \item Parâmetros com gradientes consistentemente grandes recebem passos menores;
-        parâmetros raros recebem passos maiores.
+      \item Cada parâmetro tem sua própria taxa efetiva, baseada em $G_{t}$, a soma
+        acumulada dos gradientes ao quadrado.
+      \item Gradientes consistentemente grandes recebem passos menores; parâmetros
+        raros recebem passos maiores.
     \end{itemize}
     \begin{alertblock}{Limitação}
-      $G_{t}$ é monotonamente crescente, logo $\dfrac{\eta}{\sqrt{G_{t}}+\epsilon}$ decai sempre. Após muitas iterações, a taxa efetiva tende a zero e o aprendizado para.
+      $G_{t}$ é monotonamente crescente, logo $\eta/(\sqrt{G_{t}}+\epsilon)$ decai sempre:
+      a taxa efetiva tende a zero e o aprendizado para.
     \end{alertblock}
   \end{frame}
 
@@ -724,7 +749,7 @@
       \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
     \]
     \begin{itemize}
-      \item Mesmo passo do AdaGrad neste instante; a diferença (média móvel contra soma acumulada) aparece ao longo de várias iterações.
+      \item Neste cenário o passo coincide com o da normalização simples. A diferença para o AdaGrad (média móvel contra soma acumulada) aparece ao longo das iterações.
     \end{itemize}
   \end{frame}
 
@@ -752,6 +777,8 @@
       \item $m$ acompanha o primeiro momento (média) do gradiente, $v$ acompanha o segundo
         momento (média do gradiente ao quadrado).
     \end{itemize}
+    \vspace{0.4em}
+    {\footnotesize\color{gray!50!black}Atenção à notação: aqui $v$ é a média móvel do gradiente ao quadrado, não a velocidade do \textit{momentum}.}
   \end{frame}
 
   %--- Slide: Adam correção de viés ---
@@ -775,7 +802,7 @@
   \begin{frame}{Exemplo numérico: Adam (primeiro passo)}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\ \beta_1=0.9,\ \beta_2=0.999,\ \theta_t=\cvec{3}{5},\ \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\ m_0=v_0=0.
+        \eta=0.1,\ \beta_1=0.9,\ \beta_2=0.999,\ \theta_0=\cvec{3}{5},\ \nabla_{\theta}\mathcal{L}(\theta_0)=\cvec{1}{2},\ m_0=v_0=0.
       \]
     \end{block}
     \[
@@ -865,7 +892,7 @@
 
   %--- Slide: valores singulares (conceito) ---
   \begin{frame}{Valores singulares: quanto a matriz estica cada direção}
-    Uma matriz $A$ leva todos os vetores de norma 1 em uma \alert{elipse}.
+    Uma matriz $M$ leva todos os vetores de norma 1 em uma \alert{elipse}.
     \vfill
     \centering
     \begin{tikzpicture}[scale=0.72]
@@ -875,7 +902,7 @@
         \draw[very thick,NavyBlue] (0,0) circle (1);
         \node[below] at (0,-1.8) {\small vetores de norma 1};
       \end{scope}
-      \draw[->,very thick] (-1.6,0) -- node[above]{$A$} (0.4,0);
+      \draw[->,very thick] (-1.6,0) -- node[above]{$M$} (0.4,0);
       \begin{scope}[shift={(3.6,0)}]
         \draw[gray!40,->] (-2.3,0)--(2.3,0);
         \draw[gray!40,->] (0,-1.5)--(0,1.5);
