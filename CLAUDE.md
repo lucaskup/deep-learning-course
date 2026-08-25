@@ -73,7 +73,7 @@ Notes: `Open(file, ReadOnly, Untitled, WithWindow)` with `WithWindow=$false` kee
 
 - The compile loop in `latex-ci.yml` finds candidates with `find … -name '*.tex' | xargs grep -l '\documentclass'`, then **excludes** `slides/deprecated/`, `slides/teste.tex`, `slides/testetikz.tex`, and any `*_gabarito.tex`. New scratch files matching those patterns won't be built; new top-level `.tex` files anywhere else will.
 - Lint step parses every `build/*.log` for undefined references, undefined citations, and overfull hboxes. These are advisory (`::warning`) only, they never fail the build. Only a non-zero `latexmk` exit fails CI.
-- Deploy to `gh-pages` happens only on `release: published` (not on push). Compiled PDFs deploy from `deploy/` (slides flat, problems grouped by module subdir, exams flat, gabaritos excluded). Pushes and PRs only compile/validate; markdown-only changes (`**.md`) trigger nothing.
+- Deploy to `gh-pages` happens on `release: published` or on manual `workflow_dispatch` (Actions tab / `gh workflow run latex-ci.yml`), never on plain push. Compiled PDFs deploy from `deploy/` (slides flat, problems grouped by module subdir, exams flat, gabaritos excluded). Pushes and PRs only compile/validate; markdown-only changes (`**.md`) trigger nothing.
 
 ## Document architecture
 
