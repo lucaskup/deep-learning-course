@@ -26,10 +26,12 @@ on:
       - 'latexmkrc'
       - '.github/workflows/latex-ci.yml'
       - '!**.md'
-  # Publishing to gh-pages happens only when a GitHub release is published;
+  # Publishing to gh-pages happens when a GitHub release is published or when
+  # the workflow is manually dispatched (Actions tab / `gh workflow run`);
   # pushes and PRs just compile to validate the sources.
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   compile-problems:
@@ -370,7 +372,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload gh-pages staging content
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: gh-pages-content
@@ -380,7 +382,7 @@ jobs:
   deploy:
     needs: compile-problems
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
 
