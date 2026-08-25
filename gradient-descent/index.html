@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Descida de Gradiente: taxa de aprendizado em função não convexa, zigue-zague em vales alongados, momentum e a comparação entre batch, mini-batch e SGD." />
+  <meta name="description" content="Demonstrações interativas de Descida de Gradiente: por que força bruta não escala, aproximação de Taylor, taxa de aprendizado em função não convexa, zigue-zague em vales alongados, momentum e a comparação entre batch, mini-batch e SGD." />
   <title>Descida de Gradiente — Demo Interativa</title>
   <script>
     (function () {
@@ -22,9 +22,11 @@
     <span class="nav-brand">Deep Learning</span>
     <ul class="nav-links">
       <li><a href="../index.html">← Voltar ao curso</a></li>
-      <li><a href="#s1">Taxa η</a></li>
-      <li><a href="#s2">Momentum</a></li>
-      <li><a href="#s3">Mini-batch</a></li>
+      <li><a href="#s1">Força bruta</a></li>
+      <li><a href="#s2">Taylor</a></li>
+      <li><a href="#s3">Taxa η</a></li>
+      <li><a href="#s4">Momentum</a></li>
+      <li><a href="#s5">Mini-batch</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -34,7 +36,8 @@
       <h1 class="course-title">Descida de <span>Gradiente</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de descida de gradiente</p>
       <p class="course-desc">
-        Três visualizações que acompanham os slides: o efeito da taxa de aprendizado
+        Cinco visualizações que acompanham os slides: por que a varredura por força
+        bruta não escala, a aproximação local da série de Taylor, o efeito da taxa de aprendizado
         <span class="formula">η</span> na regra
         <span class="formula">θ<sub>t+1</sub> = θ<sub>t</sub> − η·∇ℒ(θ<sub>t</sub>)</span>,
         o zigue-zague em vales alongados e como o momentum o amortece,
@@ -46,10 +49,105 @@
     </div>
   </header>
 
-  <!-- ════════ Seção 1: Taxa de aprendizado em 1D ════════ -->
+  <!-- ════════ Seção 1: Força bruta ════════ -->
   <section id="s1" class="demo-section">
     <div class="container">
-      <h2 class="section-title">1 · Taxa de aprendizado em 1D</h2>
+      <h2 class="section-title">1 · Por que não força bruta?</h2>
+      <p class="demo-text">
+        Uma única unidade sigmoide <span class="formula">f(x) = 1/(1+e<sup>−(wx+b)</sup>)</span>
+        com 2 parâmetros e loss de erro quadrático médio, como no exemplo dos slides.
+        Com apenas 2 parâmetros dá para varrer uma grade: com
+        <span class="formula">k</span> valores em cada eixo, avaliamos
+        <span class="formula">k²</span> pontos e ficamos com o melhor. A superfície colorida
+        é a loss verdadeira <span class="formula">L(w, b)</span>; os pontos brancos são a grade
+        avaliada e o círculo rosa é o melhor ponto encontrado.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">k = <span id="s1-k-val">5</span>
+            <input type="range" id="s1-k" min="2" max="40" value="5" step="1" />
+          </label>
+          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar dados</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Superfície L(w, b), grade avaliada e melhor ponto (clique num ponto da grade para inspecioná-lo)</p>
+            <canvas id="s1-surface"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Dados (x, y) e a sigmoide do melhor ponto da grade (tracejado: mínimo real)</p>
+            <canvas id="s1-data"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com <span class="formula">k</span> pequeno a grade passa longe do mínimo; para
+          chegar perto é preciso aumentar <span class="formula">k</span>, e o custo cresce
+          <span class="formula">k²</span>. O problema é a dimensão: para um MLP modesto com
+          <span class="formula">P = 1000</span> parâmetros seriam
+          <span class="formula">k<sup>1000</sup> = <span id="s1-extrap">10<sup>699</sup></span></span>
+          avaliações. Inviável: por isso precisamos de um método guiado pela estrutura
+          local da função.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: Série de Taylor ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Série de Taylor: aproximação local</h2>
+      <p class="demo-text">
+        A dedução da descida de gradiente usa a série de Taylor em torno de
+        <span class="formula">θ<sub>0</sub></span>:
+        <span class="formula">f(θ) = f(θ<sub>0</sub>) + (θ−θ<sub>0</sub>)·f′(θ<sub>0</sub>) +
+        (θ−θ<sub>0</sub>)²·f″(θ<sub>0</sub>)/2! + ⋯</span>.
+        Abaixo, a mesma função não convexa da seção 3 com a aproximação de grau
+        <span class="formula">n</span> escolhido no slider.
+        Arraste o ponto <span class="formula">θ<sub>0</sub></span> e encolha a janela
+        <span class="formula">r</span>: o painel da direita dá zoom em
+        <span class="formula">[θ<sub>0</sub>−r, θ<sub>0</sub>+r]</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">grau n = <span id="s2-deg-val">1</span>
+            <input type="range" id="s2-deg" min="0" max="4" value="1" step="1" />
+          </label>
+          <label class="slider-label">r = <span id="s2-r-val">1.00</span>
+            <input type="range" id="s2-r" min="0" max="100" value="85" step="1" />
+          </label>
+          <span class="readout" id="s2-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">f(θ) e a aproximação de Taylor de grau n em θ<sub>0</sub> (arraste o ponto; a faixa clara é a janela de zoom)</p>
+            <canvas id="s2-fn"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Zoom na janela [θ<sub>0</sub>−r, θ<sub>0</sub>+r]</p>
+            <canvas id="s2-zoom"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Aumente o grau e veja a aproximação abraçar a função; como
+          <span class="formula">f</span> é um polinômio de grau 4, com
+          <span class="formula">n = 4</span> a série é exata. Agora fixe o grau e encolha
+          <span class="formula">r</span>: o erro máximo na janela cai com
+          <span class="formula">r<sup>n+1</sup></span> (com <span class="formula">n = 1</span>,
+          cai com <span class="formula">r²</span>). Para passos pequenos, a primeira ordem
+          domina, e é exatamente isso que justifica usar <span class="formula">η</span>
+          pequeno na dedução: os termos com <span class="formula">η², η³, …</span> ficam
+          desprezíveis e sobra
+          <span class="formula">ℒ(θ+ηA) ≈ ℒ(θ) + η·A<sup>⊤</sup>∇ℒ(θ)</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: Taxa de aprendizado em 1D ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Taxa de aprendizado em 1D</h2>
       <p class="demo-text">
         A regra vista em aula é
         <span class="formula">θ<sub>k+1</sub> = θ<sub>k</sub> − η·f′(θ<sub>k</sub>)</span>:
@@ -62,22 +160,22 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">η = <span id="s1-eta-val">0.100</span>
-            <input type="range" id="s1-eta" min="0" max="100" value="65" step="1" />
+          <label class="slider-label">η = <span id="s3-eta-val">0.100</span>
+            <input type="range" id="s3-eta" min="0" max="100" value="65" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-step" type="button">⏭ Um passo</button>
-          <button class="btn-ctl primary" id="s1-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
-          <span class="readout" id="s1-readout"></span>
+          <button class="btn-ctl" id="s3-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s3-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide">
             <p class="canvas-caption">f(θ), tangente no ponto atual e trajetória (arraste a bola para mudar θ<sub>0</sub>)</p>
-            <canvas id="s1-fn"></canvas>
+            <canvas id="s3-fn"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">f(θ<sub>k</sub>) por iteração k</p>
-            <canvas id="s1-loss"></canvas>
+            <canvas id="s3-loss"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -93,10 +191,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 2: Superfície 2D e momentum ════════ -->
-  <section id="s2" class="demo-section">
+  <!-- ════════ Seção 4: Superfície 2D e momentum ════════ -->
+  <section id="s4" class="demo-section">
     <div class="container">
-      <h2 class="section-title">2 · Superfície 2D e momentum</h2>
+      <h2 class="section-title">4 · Superfície 2D e momentum</h2>
       <p class="demo-text">
         Em paisagens anisotrópicas (vales alongados) o gradiente aponta quase perpendicular
         ao fundo do vale: com <span class="formula">η</span> fixo, o GD zigzagueia na direção
@@ -110,30 +208,30 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">c = <span id="s2-c-val">20</span>
-            <input type="range" id="s2-c" min="1" max="50" value="20" step="1" />
+          <label class="slider-label">c = <span id="s4-c-val">20</span>
+            <input type="range" id="s4-c" min="1" max="50" value="20" step="1" />
           </label>
-          <label class="slider-label">η = <span id="s2-eta-val">0.090</span>
-            <input type="range" id="s2-eta" min="0.005" max="0.2" value="0.09" step="0.005" />
+          <label class="slider-label">η = <span id="s4-eta-val">0.090</span>
+            <input type="range" id="s4-eta" min="0.005" max="0.2" value="0.09" step="0.005" />
           </label>
-          <label class="slider-label">β = <span id="s2-beta-val">0.90</span>
-            <input type="range" id="s2-beta" min="0" max="0.99" value="0.9" step="0.01" />
+          <label class="slider-label">β = <span id="s4-beta-val">0.90</span>
+            <input type="range" id="s4-beta" min="0" max="0.99" value="0.9" step="0.01" />
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s2-step" type="button">⏭ Passo</button>
-          <button class="btn-ctl primary" id="s2-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
-          <span class="readout" id="s2-readout"></span>
+          <button class="btn-ctl" id="s4-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl primary" id="s4-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
             <p class="canvas-caption">Superfície ℒ(θ<sub>1</sub>, θ<sub>2</sub>) com bandas de nível (clique ou arraste para escolher θ<sub>0</sub>)</p>
-            <canvas id="s2-surface"></canvas>
+            <canvas id="s4-surface"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">ℒ por iteração, escala log: GD (ciano) vs momentum (laranja)</p>
-            <canvas id="s2-loss"></canvas>
+            <canvas id="s4-loss"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -147,10 +245,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 3: Batch, mini-batch e SGD ════════ -->
-  <section id="s3" class="demo-section">
+  <!-- ════════ Seção 5: Batch, mini-batch e SGD ════════ -->
+  <section id="s5" class="demo-section">
     <div class="container">
-      <h2 class="section-title">3 · Batch, mini-batch e SGD</h2>
+      <h2 class="section-title">5 · Batch, mini-batch e SGD</h2>
       <p class="demo-text">
         Numa regressão linear <span class="formula">ŷ = wx + b</span> com
         <span class="formula">N = 60</span> pontos, a loss é a média dos erros quadráticos
@@ -166,31 +264,31 @@
       <div class="panel">
         <div class="controls">
           <div class="tabs" role="tablist">
-            <button class="tab active" id="s3-tab-batch" type="button">Batch completo</button>
-            <button class="tab" id="s3-tab-mini" type="button">Mini-batch</button>
-            <button class="tab" id="s3-tab-sgd" type="button">Estocástico (1 exemplo)</button>
+            <button class="tab active" id="s5-tab-batch" type="button">Batch completo</button>
+            <button class="tab" id="s5-tab-mini" type="button">Mini-batch</button>
+            <button class="tab" id="s5-tab-sgd" type="button">Estocástico (1 exemplo)</button>
           </div>
-          <label class="slider-label disabled" id="s3-bs-wrap">m = <span id="s3-bs-val">8</span>
-            <input type="range" id="s3-bs" min="2" max="32" value="8" step="1" disabled />
+          <label class="slider-label disabled" id="s5-bs-wrap">m = <span id="s5-bs-val">8</span>
+            <input type="range" id="s5-bs" min="2" max="32" value="8" step="1" disabled />
           </label>
-          <label class="slider-label">η = <span id="s3-eta-val">0.050</span>
-            <input type="range" id="s3-eta" min="0.005" max="0.3" value="0.05" step="0.005" />
+          <label class="slider-label">η = <span id="s5-eta-val">0.050</span>
+            <input type="range" id="s5-eta" min="0.005" max="0.3" value="0.05" step="0.005" />
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s3-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s3-resample" type="button">🎲 Reamostrar dados</button>
-          <span class="readout" id="s3-readout"></span>
+          <button class="btn-ctl primary" id="s5-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s5-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s5-resample" type="button">🎲 Reamostrar dados</button>
+          <span class="readout" id="s5-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
             <p class="canvas-caption">Superfície L(w, b); o × verde é o mínimo de batch completo (clique para mudar o início)</p>
-            <canvas id="s3-surface"></canvas>
+            <canvas id="s5-surface"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">Dados e a reta ajustada ŷ = wx + b (tracejado: ajuste de batch completo)</p>
-            <canvas id="s3-data"></canvas>
+            <canvas id="s5-data"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -210,9 +308,11 @@
 
   <script defer src="../shared/js/utils.js"></script>
   <script defer src="../shared/js/plot.js"></script>
-  <script defer src="js/section1-learning-rate.js"></script>
-  <script defer src="js/section2-momentum.js"></script>
-  <script defer src="js/section3-batches.js"></script>
+  <script defer src="js/section1-brute-force.js"></script>
+  <script defer src="js/section2-taylor.js"></script>
+  <script defer src="js/section3-learning-rate.js"></script>
+  <script defer src="js/section4-momentum.js"></script>
+  <script defer src="js/section5-batches.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>
