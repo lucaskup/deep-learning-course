@@ -1,4 +1,4 @@
-/* Seção 4: vale alongado ℒ(θ₁, θ₂) = ½(θ₁² + c·θ₂²), zigue-zague do GD
+/* Seção 6: vale alongado ℒ(θ₁, θ₂) = ½(θ₁² + c·θ₂²), zigue-zague do GD
    e o efeito do momentum (convenção dos slides: v ← βv + (1−β)∇ℒ). */
 (function () {
   'use strict';
@@ -11,9 +11,9 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvSurf = $('s4-surface'), cvLoss = $('s4-loss');
-    const slC = $('s4-c'), slEta = $('s4-eta'), slBeta = $('s4-beta');
-    const btnStep = $('s4-step'), btnRun = $('s4-run'), btnReset = $('s4-reset');
+    const cvSurf = $('s6-surface'), cvLoss = $('s6-loss');
+    const slC = $('s6-c'), slEta = $('s6-eta'), slBeta = $('s6-beta');
+    const btnStep = $('s6-step'), btnRun = $('s6-run'), btnReset = $('s6-reset');
 
     let c = +slC.value, eta = +slEta.value, beta = +slBeta.value;
     let start = [-1.9, 1.5];
@@ -129,7 +129,7 @@
     function updateReadout() {
       const a = lossGD[lossGD.length - 1], b = lossMo[lossMo.length - 1];
       const num = (v) => (isFinite(v) ? v.toExponential(1) : '∞');
-      $('s4-readout').textContent =
+      $('s6-readout').textContent =
         'k = ' + (gd.length - 1) + ' · ℒ GD = ' + num(a) + ' · ℒ momentum = ' + num(b);
     }
 
@@ -187,19 +187,19 @@
 
     slC.addEventListener('input', () => {
       c = +slC.value;
-      $('s4-c-val').textContent = c;
+      $('s6-c-val').textContent = c;
       resetTraj();
       redraw();
     });
     slEta.addEventListener('input', () => {
       eta = +slEta.value;
-      $('s4-eta-val').textContent = eta.toFixed(3);
+      $('s6-eta-val').textContent = eta.toFixed(3);
       resetTraj();
       redraw();
     });
     slBeta.addEventListener('input', () => {
       beta = +slBeta.value;
-      $('s4-beta-val').textContent = beta.toFixed(2);
+      $('s6-beta-val').textContent = beta.toFixed(2);
       resetTraj();
       redraw();
     });
@@ -211,5 +211,5 @@
     P.observeResize(cvLoss, redraw);
   }
 
-  DL.sections.push({ name: 's4-momentum', init });
+  DL.sections.push({ name: 's6-momentum', init });
 })();
