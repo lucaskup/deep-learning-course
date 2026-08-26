@@ -141,9 +141,9 @@
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item Aproxima localmente uma função suave $\mathcal{L}(\thetav)$ por um polinômio em torno de $\thetav_0$.
+          \item Aproxima localmente uma função suave $\mathcal{L}(\theta)$ por um polinômio em torno de $\theta_0$.
           \item Quanto mais termos, melhor a aproximação.
-          \item Para deslocamentos pequenos em torno de $\thetav_0$, a primeira ordem domina.
+          \item Para deslocamentos pequenos em torno de $\theta_0$, a primeira ordem domina.
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
@@ -152,7 +152,7 @@
           \begin{tikzpicture}
             \begin{axis}[
               width=7cm, height=5cm,
-              xlabel={$\thetav$}, ylabel={$\mathcal{L}(\thetav)$},
+              xlabel={$\theta$}, ylabel={$\mathcal{L}(\theta)$},
               axis lines=middle, xtick=\empty, ytick=\empty,
               ymin=0, ymax=2.6,
               domain=-1.5:1.5, samples=120,
@@ -168,17 +168,20 @@
               \addplot[thick,Green] {1 + 0.6*x + 0.18*x*x};
               \addlegendentry{grau 2}
               \node[fill=blue,circle,inner sep=1.5pt] at (axis cs:0,1) {};
-              \node[anchor=north,font=\tiny] at (axis cs:0,0.95) {$\thetav_0$};
+              \node[anchor=north,font=\tiny] at (axis cs:0,0.95) {$\theta_0$};
             \end{axis}
           \end{tikzpicture}
         }
       \end{column}
     \end{columns}
+    Para $\theta$ escalar:
     \[
-      \mathcal{L}(\thetav)=\mathcal{L}(\thetav_{0})+(\thetav-\thetav_0)^\top\nabla\mathcal{L}(\thetav_0)
-        +\frac{1}{2!}(\thetav-\thetav_0)^\top\nabla^{2}\mathcal{L}(\thetav_0)\,(\thetav-\thetav_0)+\cdots
+      \mathcal{L}(\theta)=\mathcal{L}(\theta_{0})
+        +\frac{\mathcal{L}'(\theta_0)}{1!}(\theta-\theta_0)^{1}
+        +\frac{\mathcal{L}''(\theta_0)}{2!}(\theta-\theta_0)^{2}
+        +\frac{\mathcal{L}'''(\theta_0)}{3!}(\theta-\theta_0)^{3}+\cdots
     \]
-    {\footnotesize\color{gray!50!black}O termo de primeira ordem é um produto escalar, então a ordem não importa: $(\thetav-\thetav_0)^\top\nabla\mathcal{L}(\thetav_0)=\nabla\mathcal{L}(\thetav_0)^\top(\thetav-\thetav_0)$. Muitos livros escrevem com o gradiente transposto.}
+    {\footnotesize\color{gray!50!black}Para $\thetav$ vetorial não há potências: o termo de grau 1 vira o produto escalar $(\thetav-\thetav_0)^{\top}\nabla\mathcal{L}(\thetav_0)$ e o de grau 2 usa a Hessiana, $\frac{1}{2!}(\thetav-\thetav_0)^{\top}\nabla^{2}\mathcal{L}(\thetav_0)\,(\thetav-\thetav_0)$. É essa forma que usaremos a seguir.}
     \footnotetext[1]{Demo interativa da disciplina:
       \href{https://lucaskup.github.io/deep-learning-course/gradient-descent/\#s2}{lucaskup.github.io/deep-learning-course/gradient-descent}.}
   \end{frame}
@@ -1201,12 +1204,31 @@
     \end{alertblock}
   \end{frame}
 
+  %--- Slide: forma fechada da ortogonalização 2x2 ---
+  \begin{frame}{Ortogonalização em forma fechada para matrizes $2\times 2$}
+    Quando $\det M>0$, a matriz ortogonal mais próxima de $M$ é uma \alert{rotação}:
+    \[
+      R(\phi)=\begin{bmatrix}\cos\phi&-\sin\phi\\ \sin\phi&\cos\phi\end{bmatrix}.
+    \]
+    Minimizar a distância $\|M-R(\phi)\|_{F}^{2}$ equivale a maximizar o produto interno
+    \[
+      \langle M,\,R(\phi)\rangle
+      =\underbrace{(a+d)}_{p}\cos\phi+\underbrace{(c-b)}_{q}\sin\phi,
+      \qquad M=\begin{bmatrix}a&b\\c&d\end{bmatrix},
+    \]
+    e o máximo ocorre quando $(\cos\phi,\,\sin\phi)$ aponta na direção do vetor $(p,\,q)$:
+    \[
+      O=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}.
+    \]
+    {\footnotesize\color{gray!50!black}É o $UV^{\top}$ da derivação anterior, calculado sem SVD. Se $\det M<0$, a ortogonal mais próxima é uma reflexão e a forma muda; em dimensões maiores não há fórmula tão simples, e é aí que entra o Newton-Schulz.}
+  \end{frame}
+
   %--- Slide: exemplo numérico Muon (parte 3) ---
   \begin{frame}{Exemplo numérico: Muon (ortogonalização e atualização)}
-    Passo 3, ortogonalização de $M_{t+1}=\begin{bmatrix}a&b\\c&d\end{bmatrix}$ por forma fechada (requer $\det M_{t+1}>0$):
+    Passo 3, ortogonalização de $M_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ pela forma fechada:
     \[
-      \det M_{t+1}=3\cdot 3-(-1)\cdot 7=16,\qquad
-      p=a+d=6,\qquad q=c-b=8,\qquad \sqrt{p^{2}+q^{2}}=10,
+      \det M_{t+1}=3\cdot 3-(-1)\cdot 7=16>0,\quad
+      p=3+3=6,\quad q=7-(-1)=8,\quad \sqrt{p^{2}+q^{2}}=10,
     \]
     \[
       O_{t+1}=\frac{1}{10}\begin{bmatrix}6&-8\\8&6\end{bmatrix}=\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}.
@@ -1223,48 +1245,109 @@
     \end{itemize}
   \end{frame}
 
-  %--- Slide: intuição Muon ---
-  \begin{frame}{Intuição: por que ortogonalizar ajuda?}
-    \begin{columns}
-      \begin{column}{.55\linewidth}
-        \begin{itemize}
-          \item Gradiente típico: poucas direções com magnitude muito alta, muitas direções
-            com magnitude pequena.
-          \item Adam normaliza \textit{por parâmetro} (entrada da matriz), mas não trata o
-            problema de \textit{rank} efetivo.
-          \item Muon normaliza \textit{por direção singular}: todas as direções recebem
-            magnitude semelhante.
-          \item Resultado: melhor uso da capacidade de cada passo, especialmente em redes
-            largas.
-        \end{itemize}
-      \end{column}
-      \begin{column}{.45\linewidth}
+  %--- Slide: Adam e Muon no mesmo cenário (passo do Adam) ---
+  \begin{frame}{Comparando as atualizações de Adam e Muon}
+    \begin{block}{Cenário: mesmo primeiro momento para os dois otimizadores}
+      \[
+        \epsilon\approx 0,\quad
+        \widetilde{m}_{t+1}=M_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix},\quad
+        \widetilde{v}_{t+1}=\begin{bmatrix}1&4\\36&49\end{bmatrix}.
+      \]
+    \end{block}
+    O Adam normaliza entrada por entrada (aqui $\widetilde{v}=\widetilde{m}^{2}$, um histórico de gradientes estável). A direção da sua atualização é
+    \[
+      D_{\text{Adam}}=\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}}
+      =\begin{bmatrix}1/1&-2/2\\6/6&-7/7\end{bmatrix}
+      =\begin{bmatrix}1&-1\\1&-1\end{bmatrix}.
+    \]
+    \begin{itemize}
+      \item Com histórico estável, o passo do Adam vira o \alert{sinal} do momentum: toda entrada anda com a mesma magnitude, no sentido que seu próprio sinal indica.
+      \item As colunas da matriz de atualização são paralelas: o passo tem \textit{rank} 1.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam e Muon no mesmo cenário (passo do Muon e comparação) ---
+  \begin{frame}{Comparando as atualizações de Adam e Muon}
+    Com a forma fechada da ortogonalização ($\det M_{t+1}=-7+12=5>0$):
+    \[
+      D_{\text{Muon}}=O_{t+1}=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}
+      =\frac{1}{10}\begin{bmatrix}-6&-8\\8&-6\end{bmatrix}
+      =\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}.
+    \]
+    \vfill
+    \begin{columns}[T]
+      \begin{column}{.5\linewidth}
         \centering
-        \resizebox{\linewidth}{!}{
-          \begin{tikzpicture}
-            \begin{axis}[
-              width=7cm,height=4.5cm,
-              ybar, bar width=8pt,
-              ymin=0, ymax=1.05,
-              xlabel={direção singular $i$},
-              ylabel={$\sigma_{i}$},
-              xtick=\empty,
-              ytick=\empty,
-              legend style={font=\tiny,at={(0.5,-0.25)},anchor=north,legend columns=2}
-            ]
-              \addplot+[fill=red!60,draw=red!60!black] coordinates {
-                (1,1.0)(2,0.55)(3,0.30)(4,0.18)(5,0.10)(6,0.06)(7,0.04)(8,0.03)
-              };
-              \addlegendentry{gradiente bruto}
-              \addplot+[fill=Green!60,draw=Green!60!black] coordinates {
-                (1,1.0)(2,1.0)(3,1.0)(4,1.0)(5,1.0)(6,1.0)(7,1.0)(8,1.0)
-              };
-              \addlegendentry{após ortogonalização}
-            \end{axis}
-          \end{tikzpicture}
-        }
+        \begin{tikzpicture}[>=Latex,scale=0.72]
+          \draw[gray!40,->] (-1.7,0)--(1.7,0);
+          \draw[gray!40,->] (0,-1.7)--(0,1.7);
+          \draw[gray!50,dashed] (0,0) circle (1);
+          \draw[->,very thick,BrickRed] (0,0) -- (1,1) node[above right,inner sep=1pt] {\footnotesize $(1,\,1)$};
+          \draw[->,very thick,NavyBlue] (0,0) -- (-1,-1) node[below left,inner sep=1pt] {\footnotesize $(-1,\,-1)$};
+          \node[below] at (0,-1.85) {\small colunas de $D_{\text{Adam}}$: paralelas (\textit{rank} 1)};
+        \end{tikzpicture}
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \centering
+        \begin{tikzpicture}[>=Latex,scale=0.72]
+          \draw[gray!40,->] (-1.7,0)--(1.7,0);
+          \draw[gray!40,->] (0,-1.7)--(0,1.7);
+          \draw[gray!50,dashed] (0,0) circle (1);
+          \draw[->,very thick,BrickRed] (0,0) -- (-0.6,0.8) node[above left,inner sep=1pt] {\footnotesize $(-0.6,\,0.8)$};
+          \draw[->,very thick,NavyBlue] (0,0) -- (-0.8,-0.6) node[below left,inner sep=1pt] {\footnotesize $(-0.8,\,-0.6)$};
+          \node[below] at (0,-1.85) {\small colunas de $D_{\text{Muon}}$: ortonormais};
+        \end{tikzpicture}
       \end{column}
     \end{columns}
+    \vfill
+    \begin{itemize}
+      \item A coluna 1 (em vermelho) \alert{troca de lado}: sua entrada de cima vale $+1$ no Adam, que segue o sinal do momentum, e $-0.6$ no Muon, que decide olhando a matriz inteira.
+      \item Tratando cada matriz como um vetor de 4 entradas, o ângulo entre as duas atualizações é $\alpha\approx 56^{\circ}$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: Adam e Muon, visão das elipses ---
+  \begin{frame}{Comparando as atualizações: a visão das direções singulares}
+    A elipse imagem do círculo unitário e as direções singulares com comprimento $\sigma$:
+    \vfill
+    \centering
+    \begin{tikzpicture}[>=Latex,scale=1.65]
+      \begin{scope}[shift={(-2.9,0)}]
+        \draw[gray!40,->] (-1.35,0)--(1.35,0);
+        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!60] (0.625,0.04)--(0.625,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {5};
+        \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {10};
+        \draw[very thick,BrickRed,rotate=76.7] (0,0) ellipse (1.184 and 0.066);
+        \draw[->,thick,BrickRed] (0,0) -- (76.7:1.184) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
+        \draw[thick,BrickRed] (0,0) -- (-13.3:0.066);
+        \node[font=\scriptsize,BrickRed] at (-13.3:0.38) {$\sigma_2$};
+        \node[below] at (0,-1.42) {\small $M_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix}$};
+      \end{scope}
+      \begin{scope}
+        \draw[gray!40,->] (-1.35,0)--(1.35,0);
+        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!60] (0.4167,0.04)--(0.4167,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {1};
+        \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {3};
+        \draw[gray!50,dashed] (0,0) circle (0.4167);
+        \draw[<->,very thick,BrickRed] (225:0.8333) -- (45:0.8333);
+        \node[font=\scriptsize,BrickRed,above,inner sep=3pt] at (45:0.8333) {$\sigma_1$};
+        \node[font=\scriptsize,BrickRed] at (-45:0.55) {$\sigma_2=0$};
+        \node[below] at (0,-1.42) {\small $D_{\text{Adam}}=\begin{bmatrix}1&-1\\1&-1\end{bmatrix}$};
+      \end{scope}
+      \begin{scope}[shift={(2.9,0)}]
+        \draw[gray!40,->] (-1.35,0)--(1.35,0);
+        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!60] (0.4167,0.04)--(0.4167,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {1};
+        \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {3};
+        \draw[very thick,NavyBlue] (0,0) circle (0.4167);
+        \draw[->,thick,NavyBlue] (0,0) -- (76.7:0.4167) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
+        \draw[->,thick,NavyBlue] (0,0) -- (-13.3:0.4167) node[above right,inner sep=1pt] {\scriptsize $\sigma_2$};
+        \node[below] at (0,-1.42) {\small $D_{\text{Muon}}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}$};
+      \end{scope}
+    \end{tikzpicture}
+    \vfill
+    \raggedright
+    {\footnotesize\color{gray!50!black}Adam e Muon compartilham a mesma escala; o painel do momentum tem escala própria. O círculo tracejado é o círculo unitário.}
   \end{frame}
 
   %--- Slide: resultados Muon ---
