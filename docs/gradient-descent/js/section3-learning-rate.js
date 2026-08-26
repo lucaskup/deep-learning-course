@@ -1,4 +1,4 @@
-/* Seção 1: taxa de aprendizado η em uma função 1D não convexa.
+/* Seção 3: taxa de aprendizado η em uma função 1D não convexa.
    f(θ) = (θ⁴ − 3θ² + θ)/4 tem mínimo global em θ ≈ −1.30 e local em θ ≈ 1.13. */
 (function () {
   'use strict';
@@ -15,9 +15,9 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvFn = $('s1-fn'), cvLoss = $('s1-loss');
-    const slEta = $('s1-eta');
-    const btnStep = $('s1-step'), btnRun = $('s1-run'), btnReset = $('s1-reset');
+    const cvFn = $('s3-fn'), cvLoss = $('s3-loss');
+    const slEta = $('s3-eta');
+    const btnStep = $('s3-step'), btnRun = $('s3-run'), btnReset = $('s3-reset');
 
     /* Slider em escala log: η ∈ [0.001, 1.2] */
     const sliderToEta = (v) => 0.001 * Math.pow(1200, v / 100);
@@ -139,7 +139,7 @@
     function updateReadout() {
       const xc = last(), k = hist.length - 1;
       const num = (v) => (isFinite(v) ? v.toFixed(3) : '∞');
-      $('s1-readout').textContent =
+      $('s3-readout').textContent =
         'k = ' + k + ' · θ = ' + num(xc) + ' · f(θ) = ' + num(f(xc)) +
         (diverged ? ' · divergiu' : '');
     }
@@ -202,15 +202,15 @@
     });
     slEta.addEventListener('input', () => {
       eta = sliderToEta(+slEta.value);
-      $('s1-eta-val').textContent = eta.toFixed(3);
+      $('s3-eta-val').textContent = eta.toFixed(3);
     });
 
-    $('s1-eta-val').textContent = eta.toFixed(3);
+    $('s3-eta-val').textContent = eta.toFixed(3);
     redraw();
     P.onRedraw(redraw);
     P.observeResize(cvFn, redraw);
     P.observeResize(cvLoss, redraw);
   }
 
-  DL.sections.push({ name: 's1-learning-rate', init });
+  DL.sections.push({ name: 's3-learning-rate', init });
 })();

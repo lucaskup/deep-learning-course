@@ -1,4 +1,4 @@
-/* Seção 3: batch completo vs mini-batch vs SGD numa regressão linear ŷ = wx + b.
+/* Seção 7: batch completo vs mini-batch vs SGD numa regressão linear ŷ = wx + b.
    L(w, b) = média dos erros quadráticos; instâncias amostradas sem reposição (épocas). */
 (function () {
   'use strict';
@@ -11,11 +11,11 @@
     const U = DL.utils, P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvSurf = $('s3-surface'), cvData = $('s3-data');
-    const tabBatch = $('s3-tab-batch'), tabMini = $('s3-tab-mini'), tabSgd = $('s3-tab-sgd');
-    const slBs = $('s3-bs'), slEta = $('s3-eta');
-    const bsWrap = $('s3-bs-wrap');
-    const btnRun = $('s3-run'), btnReset = $('s3-reset'), btnResample = $('s3-resample');
+    const cvSurf = $('s7-surface'), cvData = $('s7-data');
+    const tabBatch = $('s7-tab-batch'), tabMini = $('s7-tab-mini'), tabSgd = $('s7-tab-sgd');
+    const slBs = $('s7-bs'), slEta = $('s7-eta');
+    const bsWrap = $('s7-bs-wrap');
+    const btnRun = $('s7-run'), btnReset = $('s7-reset'), btnResample = $('s7-resample');
 
     let seed = 7;
     let xs, ys;
@@ -202,7 +202,7 @@
       const cur = traj[traj.length - 1];
       const num = (v) => (isFinite(v) ? v.toFixed(2) : '∞');
       const lcur = L(cur[0], cur[1]);
-      $('s3-readout').textContent =
+      $('s7-readout').textContent =
         'k = ' + kCount + ' · w = ' + num(cur[0]) + ' · b = ' + num(cur[1]) +
         ' · L = ' + (isFinite(lcur) ? lcur.toFixed(3) : '∞') +
         (diverged ? ' · divergiu' : '');
@@ -285,11 +285,11 @@
 
     slBs.addEventListener('input', () => {
       m = +slBs.value;
-      $('s3-bs-val').textContent = m;
+      $('s7-bs-val').textContent = m;
     });
     slEta.addEventListener('input', () => {
       eta = +slEta.value;
-      $('s3-eta-val').textContent = eta.toFixed(3);
+      $('s7-eta-val').textContent = eta.toFixed(3);
     });
 
     genData();
@@ -299,5 +299,5 @@
     P.observeResize(cvData, redraw);
   }
 
-  DL.sections.push({ name: 's3-batches', init });
+  DL.sections.push({ name: 's7-batches', init });
 })();
