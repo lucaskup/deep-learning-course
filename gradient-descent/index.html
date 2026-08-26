@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Descida de Gradiente: por que força bruta não escala, aproximação de Taylor, taxa de aprendizado em função não convexa, zigue-zague em vales alongados, momentum e a comparação entre batch, mini-batch e SGD." />
+  <meta name="description" content="Demonstrações interativas de Descida de Gradiente: por que força bruta não escala, aproximação de Taylor, taxa de aprendizado em função não convexa, o modelo de Gabor ajustado aos dados e sua paisagem de loss, zigue-zague em vales alongados, momentum e a comparação entre batch, mini-batch e SGD." />
   <title>Descida de Gradiente — Demo Interativa</title>
   <script>
     (function () {
@@ -25,8 +25,10 @@
       <li><a href="#s1">Força bruta</a></li>
       <li><a href="#s2">Taylor</a></li>
       <li><a href="#s3">Taxa η</a></li>
-      <li><a href="#s4">Momentum</a></li>
-      <li><a href="#s5">Mini-batch</a></li>
+      <li><a href="#s4">Gabor</a></li>
+      <li><a href="#s5">Paisagem</a></li>
+      <li><a href="#s6">Momentum</a></li>
+      <li><a href="#s7">Mini-batch</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -36,10 +38,11 @@
       <h1 class="course-title">Descida de <span>Gradiente</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de descida de gradiente</p>
       <p class="course-desc">
-        Cinco visualizações que acompanham os slides: por que a varredura por força
+        Sete visualizações que acompanham os slides: por que a varredura por força
         bruta não escala, a aproximação local da série de Taylor, o efeito da taxa de aprendizado
         <span class="formula">η</span> na regra
         <span class="formula">θ<sub>t+1</sub> = θ<sub>t</sub> − η·∇ℒ(θ<sub>t</sub>)</span>,
+        o modelo de Gabor ajustado aos dados e sua paisagem de loss não convexa,
         o zigue-zague em vales alongados e como o momentum o amortece,
         e a diferença entre batch completo, mini-batch e SGD numa regressão linear.
         Notação dos slides: <span class="formula">η</span>,
@@ -154,7 +157,7 @@
         cada passo anda na direção oposta à derivada (a tangente laranja mostra essa inclinação)
         e <span class="formula">η</span> controla o tamanho do passo.
         A função abaixo não é convexa: tem um mínimo local e um mínimo global,
-        como o modelo de Gabor dos slides. Arraste a bola para escolher o ponto inicial
+        como o modelo de Gabor dos slides (explorado de verdade nas seções 4 e 5). Arraste a bola para escolher o ponto inicial
         <span class="formula">θ<sub>0</sub></span> e experimente diferentes valores de
         <span class="formula">η</span>.
       </p>
@@ -191,10 +194,104 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 4: Superfície 2D e momentum ════════ -->
+  <!-- ════════ Seção 4: Modelo de Gabor, ajuste manual ════════ -->
   <section id="s4" class="demo-section">
     <div class="container">
-      <h2 class="section-title">4 · Superfície 2D e momentum</h2>
+      <h2 class="section-title">4 · O modelo de Gabor: ajuste manual</h2>
+      <p class="demo-text">
+        O modelo não convexo dos slides tem só 2 parâmetros:
+        <span class="formula">ŷ = sin(θ<sub>0</sub> + 0.06·θ<sub>1</sub>x) ·
+        exp(−(θ<sub>0</sub> + 0.06·θ<sub>1</sub>x)² / 32)</span>.
+        <span class="formula">θ<sub>0</sub></span> desloca a onda e
+        <span class="formula">θ<sub>1</sub></span> controla a frequência.
+        Os pontos abaixo foram gerados por um Gabor com ruído, como na figura da aula.
+        Antes de qualquer descida de gradiente, tente ajustar a curva
+        <em>na mão</em> movendo os dois sliders e observando a loss
+        <span class="formula">L(θ<sub>0</sub>, θ<sub>1</sub>) = (1/N)·Σ(ŷ<sup>(i)</sup> − y<sup>(i)</sup>)²</span>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">θ<sub>0</sub> = <span id="s4-t0-val">-4.00</span>
+            <input type="range" id="s4-t0" min="-10" max="10" value="-4" step="0.05" />
+          </label>
+          <label class="slider-label">θ<sub>1</sub> = <span id="s4-t1-val">18.00</span>
+            <input type="range" id="s4-t1" min="2.5" max="22.5" value="18" step="0.05" />
+          </label>
+          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s4-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Dados (x, y) e a curva do modelo para os (θ<sub>0</sub>, θ<sub>1</sub>) atuais</p>
+            <canvas id="s4-data"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Corte da loss: L em função de θ<sub>1</sub>, com θ<sub>0</sub> fixo no slider (tracejado: mínimo global)</p>
+            <canvas id="s4-slice"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Mesmo com apenas 2 parâmetros o ajuste já é não trivial: mexer em
+          <span class="formula">θ<sub>1</sub></span> muda a frequência da onda inteira, e a
+          loss sobe e desce várias vezes no caminho. O corte à direita mostra isso:
+          para um <span class="formula">θ<sub>0</sub></span> fixo há vários vales, e só um
+          deles encosta na linha tracejada do mínimo global. Consegue deixar
+          <span class="formula">L</span> abaixo de 0.09? A próxima seção mostra a
+          paisagem completa que você acabou de explorar às cegas.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 5: Paisagem da loss do Gabor e descida ════════ -->
+  <section id="s5" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">5 · Paisagem da loss do Gabor e descida</h2>
+      <p class="demo-text">
+        A superfície <span class="formula">L(θ<sub>0</sub>, θ<sub>1</sub>)</span> do ajuste
+        da seção 4, a mesma paisagem não convexa da figura dos slides: vários mínimos
+        locais e um único mínimo global. Clique ou arraste na superfície para escolher a
+        inicialização <span class="formula">θ<sub>0</sub></span> e rode a descida de
+        gradiente. O painel da direita mostra, a cada passo, a curva correspondente ao
+        <span class="formula">θ</span> atual sobre os dados.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">η = <span id="s5-eta-val">2.0</span>
+            <input type="range" id="s5-eta" min="0.1" max="10" value="2" step="0.1" />
+          </label>
+          <button class="btn-ctl" id="s5-step" type="button">⏭ Um passo</button>
+          <button class="btn-ctl primary" id="s5-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s5-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s5-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box square">
+            <p class="canvas-caption">Paisagem L(θ<sub>0</sub>, θ<sub>1</sub>) e trajetória da descida (clique ou arraste para escolher o início)</p>
+            <canvas id="s5-surface"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Dados e a curva do θ atual (tracejado: melhor ajuste)</p>
+            <canvas id="s5-data"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Partindo do vale certo (tente perto do topo, em
+          <span class="formula">θ<sub>0</sub> ≈ 0, θ<sub>1</sub> ≈ 22</span>) a descida
+          desliza até o mínimo global. Partindo de vales rasos ela fica presa num mínimo
+          local ruim ou deriva lentamente para fora da janela: a curva ajustada continua
+          longe dos dados mesmo com o gradiente quase nulo. É o que a aula resume como
+          "a descida de gradiente só encontra o fundo do vale onde começa", e em redes
+          profundas a paisagem nunca é convexa.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 6: Superfície 2D e momentum ════════ -->
+  <section id="s6" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">6 · Superfície 2D e momentum</h2>
       <p class="demo-text">
         Em paisagens anisotrópicas (vales alongados) o gradiente aponta quase perpendicular
         ao fundo do vale: com <span class="formula">η</span> fixo, o GD zigzagueia na direção
@@ -208,30 +305,30 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">c = <span id="s4-c-val">20</span>
-            <input type="range" id="s4-c" min="1" max="50" value="20" step="1" />
+          <label class="slider-label">c = <span id="s6-c-val">20</span>
+            <input type="range" id="s6-c" min="1" max="50" value="20" step="1" />
           </label>
-          <label class="slider-label">η = <span id="s4-eta-val">0.090</span>
-            <input type="range" id="s4-eta" min="0.005" max="0.2" value="0.09" step="0.005" />
+          <label class="slider-label">η = <span id="s6-eta-val">0.090</span>
+            <input type="range" id="s6-eta" min="0.005" max="0.2" value="0.09" step="0.005" />
           </label>
-          <label class="slider-label">β = <span id="s4-beta-val">0.90</span>
-            <input type="range" id="s4-beta" min="0" max="0.99" value="0.9" step="0.01" />
+          <label class="slider-label">β = <span id="s6-beta-val">0.90</span>
+            <input type="range" id="s6-beta" min="0" max="0.99" value="0.9" step="0.01" />
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s4-step" type="button">⏭ Passo</button>
-          <button class="btn-ctl primary" id="s4-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
-          <span class="readout" id="s4-readout"></span>
+          <button class="btn-ctl" id="s6-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl primary" id="s6-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s6-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s6-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
             <p class="canvas-caption">Superfície ℒ(θ<sub>1</sub>, θ<sub>2</sub>) com bandas de nível (clique ou arraste para escolher θ<sub>0</sub>)</p>
-            <canvas id="s4-surface"></canvas>
+            <canvas id="s6-surface"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">ℒ por iteração, escala log: GD (ciano) vs momentum (laranja)</p>
-            <canvas id="s4-loss"></canvas>
+            <canvas id="s6-loss"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -245,10 +342,10 @@
     </div>
   </section>
 
-  <!-- ════════ Seção 5: Batch, mini-batch e SGD ════════ -->
-  <section id="s5" class="demo-section">
+  <!-- ════════ Seção 7: Batch, mini-batch e SGD ════════ -->
+  <section id="s7" class="demo-section">
     <div class="container">
-      <h2 class="section-title">5 · Batch, mini-batch e SGD</h2>
+      <h2 class="section-title">7 · Batch, mini-batch e SGD</h2>
       <p class="demo-text">
         Numa regressão linear <span class="formula">ŷ = wx + b</span> com
         <span class="formula">N = 60</span> pontos, a loss é a média dos erros quadráticos
@@ -264,31 +361,31 @@
       <div class="panel">
         <div class="controls">
           <div class="tabs" role="tablist">
-            <button class="tab active" id="s5-tab-batch" type="button">Batch completo</button>
-            <button class="tab" id="s5-tab-mini" type="button">Mini-batch</button>
-            <button class="tab" id="s5-tab-sgd" type="button">Estocástico (1 exemplo)</button>
+            <button class="tab active" id="s7-tab-batch" type="button">Batch completo</button>
+            <button class="tab" id="s7-tab-mini" type="button">Mini-batch</button>
+            <button class="tab" id="s7-tab-sgd" type="button">Estocástico (1 exemplo)</button>
           </div>
-          <label class="slider-label disabled" id="s5-bs-wrap">m = <span id="s5-bs-val">8</span>
-            <input type="range" id="s5-bs" min="2" max="32" value="8" step="1" disabled />
+          <label class="slider-label disabled" id="s7-bs-wrap">m = <span id="s7-bs-val">8</span>
+            <input type="range" id="s7-bs" min="2" max="32" value="8" step="1" disabled />
           </label>
-          <label class="slider-label">η = <span id="s5-eta-val">0.050</span>
-            <input type="range" id="s5-eta" min="0.005" max="0.3" value="0.05" step="0.005" />
+          <label class="slider-label">η = <span id="s7-eta-val">0.050</span>
+            <input type="range" id="s7-eta" min="0.005" max="0.3" value="0.05" step="0.005" />
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s5-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s5-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s5-resample" type="button">🎲 Reamostrar dados</button>
-          <span class="readout" id="s5-readout"></span>
+          <button class="btn-ctl primary" id="s7-run" type="button">▶ Rodar</button>
+          <button class="btn-ctl" id="s7-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s7-resample" type="button">🎲 Reamostrar dados</button>
+          <span class="readout" id="s7-readout"></span>
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
             <p class="canvas-caption">Superfície L(w, b); o × verde é o mínimo de batch completo (clique para mudar o início)</p>
-            <canvas id="s5-surface"></canvas>
+            <canvas id="s7-surface"></canvas>
           </div>
           <div class="canvas-box">
             <p class="canvas-caption">Dados e a reta ajustada ŷ = wx + b (tracejado: ajuste de batch completo)</p>
-            <canvas id="s5-data"></canvas>
+            <canvas id="s7-data"></canvas>
           </div>
         </div>
         <p class="demo-text small">
@@ -311,8 +408,10 @@
   <script defer src="js/section1-brute-force.js"></script>
   <script defer src="js/section2-taylor.js"></script>
   <script defer src="js/section3-learning-rate.js"></script>
-  <script defer src="js/section4-momentum.js"></script>
-  <script defer src="js/section5-batches.js"></script>
+  <script defer src="js/section4-gabor-fit.js"></script>
+  <script defer src="js/section5-gabor-landscape.js"></script>
+  <script defer src="js/section6-momentum.js"></script>
+  <script defer src="js/section7-batches.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>
