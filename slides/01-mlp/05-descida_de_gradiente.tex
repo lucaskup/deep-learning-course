@@ -114,6 +114,8 @@
             $\mathcal{L}(\thetav+A) < \mathcal{L}(\thetav)$.
           \item A pergunta é: \alert{qual atualização $A$ escolher?}
         \end{itemize}
+        \vspace{.5em}
+        {\footnotesize\color{gray!50!black}Aqui $\thetav\in\mathbb{R}^{n}$ é o vetor com todos os $n$ parâmetros do modelo empilhados: cada matriz de pesos e cada vetor de viés entram vetorizados nesse único vetor coluna.}
       \end{column}
       \begin{column}{.45\linewidth}
         \centering
@@ -341,6 +343,74 @@
         \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-convex-4panel.png}
       \end{column}
     \end{columns}
+  \end{frame}
+
+  %--- Slide: efeito da taxa de aprendizado (muito pequena, adequada, muito grande) ---
+  \begin{frame}{O efeito da taxa de aprendizado}
+    Mesmo no caso convexo, a escolha de $\eta$ importa. Exemplo com
+    $\mathcal{L}(\theta)=\theta^{2}$, $\theta_{0}=2$ e atualização
+    $\theta_{t+1}=\theta_{t}-\eta\,2\theta_{t}$:
+    \vfill
+    \begin{columns}[T]
+      \begin{column}{.32\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=5cm, height=4.2cm,
+              title={\small $\eta=0.02$},
+              xmin=-3, xmax=3, ymin=0, ymax=4.8,
+              xtick=\empty, ytick=\empty,
+              axis lines=middle, xlabel={$\theta$}, ylabel={$\mathcal{L}$},
+              samples=100]
+              \addplot[thick,blue,domain=-2.15:2.15] {x^2};
+              \addplot[red,mark=*,mark size=1.2pt,thick] coordinates
+                {(2,4)(1.92,3.6864)(1.8432,3.3974)(1.7695,3.1311)(1.6987,2.8856)
+                 (1.6307,2.6592)(1.5655,2.4508)(1.5029,2.2587)(1.4428,2.0817)};
+            \end{axis}
+          \end{tikzpicture}}
+        {\small Muito pequena: quase não sai do lugar.}
+      \end{column}
+      \begin{column}{.32\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=5cm, height=4.2cm,
+              title={\small $\eta=0.3$},
+              xmin=-3, xmax=3, ymin=0, ymax=4.8,
+              xtick=\empty, ytick=\empty,
+              axis lines=middle, xlabel={$\theta$}, ylabel={$\mathcal{L}$},
+              samples=100]
+              \addplot[thick,blue,domain=-2.15:2.15] {x^2};
+              \addplot[red,mark=*,mark size=1.2pt,thick] coordinates
+                {(2,4)(0.8,0.64)(0.32,0.1024)(0.128,0.0164)(0.0512,0.0026)};
+            \end{axis}
+          \end{tikzpicture}}
+        {\small Adequada: converge em poucos passos.}
+      \end{column}
+      \begin{column}{.32\linewidth}
+        \centering
+        \resizebox{\linewidth}{!}{%
+          \begin{tikzpicture}
+            \begin{axis}[
+              width=5cm, height=4.2cm,
+              title={\small $\eta=1.1$},
+              xmin=-4.6, xmax=4.6, ymin=0, ymax=19,
+              xtick=\empty, ytick=\empty,
+              axis lines=middle, xlabel={$\theta$}, ylabel={$\mathcal{L}$},
+              samples=120]
+              \addplot[thick,blue,domain=-4.3:4.3] {x^2};
+              \addplot[red,mark=*,mark size=1.2pt,thick] coordinates
+                {(2,4)(-2.4,5.76)(2.88,8.2944)(-3.456,11.9439)(4.1472,17.1993)};
+            \end{axis}
+          \end{tikzpicture}}
+        {\small Muito grande: salta o mínimo e \alert{diverge}.}
+      \end{column}
+    \end{columns}
+    \vfill
+    {\footnotesize\color{gray!50!black}É o mesmo $\eta$ da dedução via Taylor: a
+    aproximação de primeira ordem só vale para passos pequenos.}
   \end{frame}
 
   %--- Slide: Gabor (descrição + plot da função em pgfplots) ---
@@ -875,7 +945,7 @@
   \end{frame}
 
   %======================================================================
-  \subsection{Muon: a próxima geração}
+  \subsection{Muon: usando ortogonalização de matrizes}
   %======================================================================
 
   %--- Slide: motivação Muon ---
@@ -891,8 +961,8 @@
   \end{frame}
 
   %--- Slide: valores singulares (conceito) ---
-  \begin{frame}{Valores singulares: quanto a matriz estica cada direção}
-    Uma matriz $M$ leva todos os vetores de norma 1 em uma \alert{elipse}.
+  \begin{frame}{Valores singulares: os fatores de esticamento da matriz}
+    Uma matriz $M$ transforma o círculo unitário, o conjunto dos vetores de norma 1, em uma \alert{elipse}.
     \vfill
     \centering
     \begin{tikzpicture}[scale=0.72]
@@ -916,7 +986,7 @@
     \raggedright
     \begin{itemize}
       \item Os \textbf{valores singulares} $\sigma_1\ge\sigma_2$ são os comprimentos dos semieixos.
-      \item $\sigma$ grande significa direção muito amplificada; $\sigma$ pequeno, direção quase apagada.
+      \item Vetores ao longo da direção de $\sigma$ grande saem muito amplificados; ao longo da de $\sigma$ pequeno, quase apagados.
     \end{itemize}
   \end{frame}
 
@@ -947,7 +1017,7 @@
     \vfill
     \raggedright
     \begin{itemize}
-      \item Uma matriz ortogonal preserva comprimentos e ângulos: leva o círculo nele mesmo.
+      \item Uma matriz ortogonal preserva comprimentos e ângulos: o círculo unitário continua um círculo unitário.
       \item \textbf{Ortogonalizar} $M$ é trocá-la pela matriz ortogonal mais próxima, mantendo as direções singulares e igualando todos os $\sigma$ a 1.
     \end{itemize}
   \end{frame}
@@ -957,13 +1027,81 @@
     \begin{itemize}
       \item As matrizes de gradientes em redes neurais costumam ter \textit{rank efetivo}
         baixo, ou seja, são dominadas por poucas direções singulares.
-      \item Isso desperdiça capacidade do passo: direções pequenas mas úteis recebem
-        magnitude desprezível.
+      \item O passo fica mal aproveitado: direções com $\sigma$ pequeno, mesmo quando úteis
+        para o aprendizado, quase não contribuem para a atualização.
       \item Muon substitui a matriz de atualização pela \alert{matriz ortogonal mais próxima},
         redistribuindo a magnitude entre todas as direções singulares.
       \item Geometricamente, o passo do Muon é a \textit{steepest descent} sob a norma
-        espectral, não sob a norma de Frobenius.
+        espectral, enquanto o SGD é a \textit{steepest descent} sob a norma de Frobenius.
     \end{itemize}
+  \end{frame}
+
+  %--- Slide: steepest descent depende da norma (formulação) ---
+  \begin{frame}{\textit{Steepest descent}: o passo mais íngreme depende da norma}
+    Qual atualização $\Delta W$ mais reduz a loss, dado um tamanho máximo de passo?
+    Com $G=\nabla_{W}L$, a aproximação linear da loss é
+    \[
+      L(W+\Delta W)\;\approx\;L(W)+\langle G,\,\Delta W\rangle,
+      \qquad
+      \langle G,\,\Delta W\rangle=\textstyle\sum_{ij}G_{ij}\,\Delta W_{ij}.
+    \]
+    O passo mais íngreme minimiza essa aproximação com o tamanho do passo limitado:
+    \[
+      \Delta W^{*}=\operatorname*{arg\,min}_{\|\Delta W\|\le \eta}\;\langle G,\,\Delta W\rangle.
+    \]
+    \begin{itemize}
+      \item A restrição é essencial: na aproximação linear, sem limite de tamanho o valor
+        desceria sem fim.
+      \item A solução depende de \alert{qual norma} mede o tamanho do passo. Vamos resolver
+        o problema para duas normas: a de \textbf{Frobenius} e a \textbf{espectral}.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: solução sob Frobenius ---
+  \begin{frame}{Solução sob a norma de Frobenius: o gradiente}
+    A norma de Frobenius trata a matriz como um vetor longo:
+    $\|\Delta W\|_{F}=\sqrt{\sum_{ij}\Delta W_{ij}^{2}}$.
+    Pela desigualdade de Cauchy--Schwarz,
+    \[
+      \langle G,\,\Delta W\rangle \;\ge\; -\,\|G\|_{F}\,\|\Delta W\|_{F} \;\ge\; -\,\eta\,\|G\|_{F}.
+    \]
+    A igualdade acontece quando $\Delta W$ aponta no sentido oposto a $G$ e usa todo o
+    tamanho permitido:
+    \[
+      \Delta W^{*}=-\,\eta\,\frac{G}{\|G\|_{F}}.
+    \]
+    \begin{itemize}
+      \item O passo mais íngreme sob Frobenius é o \alert{gradiente} (normalizado): a descida
+        de gradiente usual mede o tamanho do passo entrada por entrada, sem olhar a
+        estrutura da matriz.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: solução sob a norma espectral ---
+  \begin{frame}{Solução sob a norma espectral: a ortogonalização}
+    A SVD escreve $G$ como uma soma de matrizes de \textit{rank} 1: cada parcela pega a
+    direção singular de entrada $v_{i}$, leva na direção de saída $u_{i}$ e estica por $\sigma_{i}$:
+    \[
+      G=\sum_{i}\sigma_{i}\,u_{i}v_{i}^{\top}
+      \qquad\Longrightarrow\qquad
+      \langle G,\,\Delta W\rangle=\sum_{i}\sigma_{i}\,\big(u_{i}^{\top}\Delta W\,v_{i}\big).
+    \]
+    A norma espectral é o maior fator de esticamento: se $\|\Delta W\|_{2}=\sigma_{1}(\Delta W)\le\eta$,
+    nenhum vetor unitário é esticado além de $\eta$. Cada parcela então obedece
+    $u_{i}^{\top}\Delta W\,v_{i}\ge-\eta$, logo
+    \[
+      \langle G,\,\Delta W\rangle\;\ge\;-\,\eta\sum_{i}\sigma_{i}.
+    \]
+    A igualdade exige $\Delta W\,v_{i}=-\eta\,u_{i}$ em \alert{todas} as direções singulares
+    ao mesmo tempo:
+    \[
+      \Delta W^{*}=-\,\eta\sum_{i}u_{i}v_{i}^{\top}=-\,\eta\,UV^{\top},
+    \]
+    uma matriz ortogonal escalada por $\eta$, exatamente a \alert{ortogonalização} de $G$.
+    \vfill
+    {\footnotesize\color{gray!50!black}Supomos todos os $\sigma_{i}>0$; $U$ e $V$ empilham os
+    $u_{i}$ e $v_{i}$ como colunas; usamos $\langle u_{i}v_{i}^{\top},\,\Delta W\rangle
+    =u_{i}^{\top}\Delta W\,v_{i}$ e $\|u_{i}\|=\|v_{i}\|=1$.}
   \end{frame}
 
   %--- Slide: pseudocódigo Muon ---
@@ -977,15 +1115,17 @@
       \end{algorithmic}
     \end{block}
     \begin{itemize}
-      \item Newton-Schulz é uma iteração de polinômios matriciais que aproxima a parte
-        ortogonal de $\widehat{M}$ sem calcular SVD. Com 5 passos, roda eficientemente
-        em \textit{tensor cores} de GPU.
+      \item Newton-Schulz aproxima a parte ortogonal de $\widehat{M}$ com polinômios
+        matriciais, sem calcular SVD; com 5 passos, roda bem em \textit{tensor cores} de GPU.
       \item A normalização da linha 2 existe só para trazer os valores singulares à região
         de convergência do Newton-Schulz: a matriz ortogonal mais próxima não muda com a escala.
+      \item Quem é ortogonalizado é o momentum $M_{t+1}$, não o gradiente instantâneo:
+        na derivação do passo mais íngreme, $M_{t+1}$ assume o papel de $G$.
     \end{itemize}
-    {\footnotesize\color{gray!50!black}Na implementação de referência, a normalização ocorre
-    dentro do \texttt{NewtonSchulz5}, o momentum usa a variante de Nesterov e o passo é
-    reescalado por $\sqrt{\max(m,n)}$ para casar a magnitude com a do AdamW.}
+    {\footnotesize\color{gray!50!black}Na implementação de referência, a normalização fica
+    dentro do \texttt{NewtonSchulz5} e o momentum é Nesterov; o passo de uma matriz $m\times n$
+    é reescalado por $\sqrt{\max(1,\,m/n)}$, e o Moonlight usa $0.2\sqrt{\max(m,n)}$ para
+    casar com o AdamW.}
   \end{frame}
 
   %--- Slide: exemplo numérico Muon (parte 1) ---
@@ -1010,7 +1150,7 @@
       \widehat{M}_{t+1}\approx\begin{bmatrix}0.36&-0.12\\0.85&0.36\end{bmatrix}.
     \]
     \begin{itemize}
-      \item Falta o passo 3, a ortogonalização. Antes dele, vejamos o que $M_{t+1}$ faz com cada direção.
+      \item Falta o passo 3, a ortogonalização. Antes dele, vejamos quanto $M_{t+1}$ estica cada direção singular.
     \end{itemize}
   \end{frame}
 
@@ -1040,7 +1180,7 @@
       \sigma_1=8,\quad \sigma_2=2.
     \]
     \begin{itemize}
-      \item Uma direção é amplificada 4 vezes mais que a outra: é a assimetria que o Muon vai corrigir.
+      \item Vetores em uma direção singular saem amplificados 4 vezes mais que na outra: é essa assimetria que o Muon vai corrigir.
     \end{itemize}
   \end{frame}
 
@@ -1077,7 +1217,7 @@
       =\begin{bmatrix}2.94&5.08\\1.92&3.94\end{bmatrix}.
     \]
     \begin{itemize}
-      \item Os valores singulares passaram de $(8,\,2)$ para $(1,\,1)$: toda direção com igual magnitude.
+      \item Os valores singulares passaram de $(8,\,2)$ para $(1,\,1)$: a atualização estica todas as direções singulares igualmente.
       \item Aplicamos a forma fechada a $M_{t+1}$, não a $\widehat{M}_{t+1}$: as duas têm a mesma
         ortogonal mais próxima. A normalização do passo 2 só importa para a convergência do Newton-Schulz.
     \end{itemize}
