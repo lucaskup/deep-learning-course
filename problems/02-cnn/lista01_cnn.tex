@@ -33,21 +33,21 @@
     \item Por que usualmente omitimos o número de canais em uma convolução 2D?
     \item Considerando uma convolução 2D 3x3 que conecta dois mapas de ativação com tamanho 224x224 com $C_1$ e $C_2$ canais respectivamente. Como você poderia inicializar os pesos dessa camada usando a inicialização He?
 
-    \item Dada a matriz de input abaixo, e uma rede com 2 camadas convolucionais, calcule a saída da rede com as configurações a seguir. Para a primeira camada convolucional: Padding = 0, Stride = 1; Kernel = $K_1$; Ativação linear na saída. Para a segunda camada convolucional: Padding = 1; Stride = 1; Kernel = $K_2$; Ativação ReLU na saída. Considere \textit{dillation} = 0.
+    \item Dada a matriz de input abaixo, e uma rede com 2 camadas convolucionais, calcule a saída da rede com as configurações a seguir. Para a primeira camada convolucional: Padding = 0, Stride = 1; Kernel = $\mathbf{\Theta}_1$; Ativação linear na saída. Para a segunda camada convolucional: Padding = 1; Stride = 1; Kernel = $\mathbf{\Theta}_2$; Ativação ReLU na saída. Considere \textit{dillation} = 0.
 
-    $$I = \begin{bmatrix}
+    $$\mathbf{X} = \begin{bmatrix}
     7 & 8 & 9 \\
     6 & 5 & 4 \\
     1 & 2 & 3
     \end{bmatrix}
     \qquad
-    K_1 = \begin{bmatrix}
+    \mathbf{\Theta}_1 = \begin{bmatrix}
     1 & 0 & -1 \\
     1 & 0 & -1 \\
     1 & 0 & -1
     \end{bmatrix}
     \qquad
-    K_2 = \begin{bmatrix}
+    \mathbf{\Theta}_2 = \begin{bmatrix}
     1 & 1 & 1 \\
     0 & 0 & 0 \\
     -1 & -1 & -1
@@ -79,7 +79,7 @@
 \end{enumerate}
 
 
-    \item Dada uma imagem de entrada de $32\times32$ pixels, e duas camadas convolucionais, qual o campo receptivo na imagem original que é representado por um único pixel na saída final? Considere: Kernel para as duas camadas ($K_1 = K_2$) tem tamanho $5\times5$; Stride = 1; Dillation = 2.
+    \item Dada uma imagem de entrada de $32\times32$ pixels, e duas camadas convolucionais, qual o campo receptivo na imagem original que é representado por um único pixel na saída final? Considere: Kernel para as duas camadas ($\mathbf{\Theta}_1 = \mathbf{\Theta}_2$) tem tamanho $5\times5$; Stride = 1; Dillation = 2.
 
 \end{enumerate}
 
@@ -117,19 +117,19 @@
 \item Resolução Input 3x3 % resolução questão 8 VIII
     Matrizes Iniciais
     $$
-    I = \begin{bmatrix}
+    \mathbf{X} = \begin{bmatrix}
     7 & 8 & 9 \\
     6 & 5 & 4 \\
     1 & 2 & 3
     \end{bmatrix}
     \qquad
-    K_1 = \begin{bmatrix}
+    \mathbf{\Theta}_1 = \begin{bmatrix}
     1 & 0 & -1 \\
     1 & 0 & -1 \\
     1 & 0 & -1
     \end{bmatrix}
     \qquad
-    K_2 = \begin{bmatrix}
+    \mathbf{\Theta}_2 = \begin{bmatrix}
     1 & 1 & 1 \\
     0 & 0 & 0 \\
     -1 & -1 & -1
@@ -139,31 +139,31 @@
     Camada 1 (Conv1)
     Input $3\times3$, Kernel $3\times3$, $p=0$, $s=1 \implies$ Saída $1\times1$.
     $$
-    C_1 = \sum(I \cdot K_1) + B_1 \quad (B_1 = 0)
+    \mathbf{C}_1 = \sum(\mathbf{X} \cdot \mathbf{\Theta}_1) + B_1 \quad (B_1 = 0)
     $$
     $$
-    C_1 = (7\cdot1 + 8\cdot0 + 9\cdot-1) + (6\cdot1 + 5\cdot0 + 4\cdot-1) + (1\cdot1 + 2\cdot0 + 3\cdot-1)
+    \mathbf{C}_1 = (7\cdot1 + 8\cdot0 + 9\cdot-1) + (6\cdot1 + 5\cdot0 + 4\cdot-1) + (1\cdot1 + 2\cdot0 + 3\cdot-1)
     $$
     $$
-    C_1 = (-2) + (2) + (-2) = -2
+    \mathbf{C}_1 = (-2) + (2) + (-2) = -2
     $$
     $$
-    C_1 = \begin{bmatrix} -2 \end{bmatrix}
+    \mathbf{C}_1 = \begin{bmatrix} -2 \end{bmatrix}
     $$
 
     Camada 2 (Conv2)
     Input $1\times1$, Kernel $3\times3$, $p=1$, $s=1 \implies$ Saída $1\times1$.
-    Primeiro, aplicamos padding na saída de $C_1$:
+    Primeiro, aplicamos padding na saída de $\mathbf{C}_1$:
     $$
-    C_{1, padded} = \begin{bmatrix}
+    \mathbf{C}_{1, padded} = \begin{bmatrix}
     0 & 0 & 0 \\
     0 & -2 & 0 \\
     0 & 0 & 0
     \end{bmatrix}
     $$
-    Em seguida, aplicamos $K_2$, $B_2=1$ e ReLU:
+    Em seguida, aplicamos $\mathbf{\Theta}_2$, $B_2=1$ e ReLU:
     $$
-    \text{Soma Conv} = \sum(C_{1, padded} \cdot K_2) = (-2 \cdot 0) = 0
+    \text{Soma Conv} = \sum(\mathbf{C}_{1, padded} \cdot \mathbf{\Theta}_2) = (-2 \cdot 0) = 0
     $$
     $$
     \text{Pré ativação} = \text{Soma Conv} + B_2 = 0 + 1 = 1

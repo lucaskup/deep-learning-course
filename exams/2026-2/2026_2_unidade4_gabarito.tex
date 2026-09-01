@@ -1,0 +1,222 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 4}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+e & c & d & b & g & e & f & f & b & d \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+Primeiro as três projeções (uma linha por \textit{token}):
+\[
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q = \begin{bmatrix} -1 & 0 \\ 2 & 1 \\ 1 & 2 \end{bmatrix},
+\qquad
+\mathbf{K} = \mathbf{X}\mathbf{W}_K = \begin{bmatrix} 0 & 1 \\ 1 & -1 \\ 2 & 1 \end{bmatrix},
+\qquad
+\mathbf{V} = \mathbf{X}\mathbf{W}_V = \begin{bmatrix} 1 & -2 \\ 0 & 4 \\ 3 & 2 \end{bmatrix}.
+\]
+Para o segundo \textit{token}, $\mathbf{q}_2 = [2,\,1]$, e os \textit{scores} contra cada \textit{key} são:
+\[
+\mathbf{q}_2 \cdot \mathbf{k}_1 = 1, \qquad \mathbf{q}_2 \cdot \mathbf{k}_2 = 1, \qquad \mathbf{q}_2 \cdot \mathbf{k}_3 = 5.
+\]
+A máscara causal elimina o terceiro \textit{score} ($-\infty$). Os dois restantes são iguais, e a divisão por $\sqrt{d_k} = \sqrt{2}$ preserva a igualdade, logo a \textit{softmax} devolve pesos $[\,0.5,\;0.5,\;0\,]$. A representação contextualizada do segundo \textit{token} é:
+\[
+\mathbf{o}_2 = 0.5 \cdot [1,\,-2] + 0.5 \cdot [0,\,4] = [\,0.5,\;1\,].
+\]
+\textbf{(a)} é $\mathbf{v}_1$: assume que o \textit{token} atende apenas ao primeiro da sequência.
+\textbf{(b)} é $\mathbf{v}_3$, o resultado aproximado de \emph{esquecer a máscara causal}: sem ela o \textit{score} $\mathbf{q}_2 \cdot \mathbf{k}_3 = 5$ domina a \textit{softmax} e a saída fica $\approx [2.7,\,1.9]$, praticamente $\mathbf{v}_3$.
+\textbf{(c)} é $\mathbf{v}_2$: assume que o \textit{token} atende apenas a si mesmo.
+\textbf{(d)} soma $\mathbf{v}_1 + \mathbf{v}_2$ sem aplicar os pesos $0.5$ da \textit{softmax}.
+\textbf{(f)} devolve a própria \textit{query} $\mathbf{q}_2$, confundindo a projeção com a saída da atenção.
+\textbf{(g)} pondera as linhas de $\mathbf{K}$ em vez das de $\mathbf{V}$ ($0.5\,\mathbf{k}_1 + 0.5\,\mathbf{k}_2 = [0.5,\,0]$); coincide com a média de $\mathbf{x}_1$ e $\mathbf{x}_2$, o erro de dispensar a projeção $\mathbf{W}_V$.
+\textbf{(h)} desloca as linhas de $\mathbf{V}$ em uma posição ($0.5\,\mathbf{v}_2 + 0.5\,\mathbf{v}_3 = [1.5,\,3]$).
+
+\subsection*{Questão 2 \textemdash{} Resposta: (c)}
+As conexões residuais mantêm um caminho direto da entrada à saída de cada bloco: o gradiente flui por esse caminho sem atravessar as matrizes do sub-bloco, o que evita a degradação do sinal ao empilhar $N$ blocos. É a mesma motivação das ResNets; sem \textit{skip connections}, o \textit{transformer} não treinaria em profundidade.\\
+\textbf{(a)} o resíduo não remove nenhum parâmetro; a soma é uma operação sem pesos adicionada em paralelo aos sub-blocos.
+\textbf{(b)} a não linearidade vem da \textit{softmax} da atenção e da ativação da FFN, não da soma residual.
+\textbf{(d)} a informação posicional propaga-se pelas próprias representações; o resíduo não substitui o \textit{positional encoding}.
+\textbf{(e)} descreve \textit{stochastic depth}, técnica distinta; o resíduo do \textit{transformer} é determinístico.
+\textbf{(f)} a causalidade é responsabilidade da máscara na atenção, não das conexões residuais.
+\textbf{(g)} a soma residual exige dimensões iguais e não altera o comprimento da sequência.
+\textbf{(h)} o fator $1/\sqrt{d}$ continua presente em todas as camadas; o resíduo não interage com os \textit{scores}.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} a FFN aplica as mesmas matrizes $\mathbf{W}_1, \mathbf{W}_2$ a cada posição, de forma independente; o número de parâmetros depende de $d$ e $d_{ff}$, nunca do comprimento da sequência.
+
+\textbf{II é correta:} é exatamente a divisão de trabalho do bloco; a atenção mistura informação entre posições e a FFN processa cada posição isoladamente.
+
+\textbf{III é incorreta:} a asserção inverte o ponto central do MoE. O \textit{router} seleciona apenas os top-$k$ especialistas para cada \textit{token} ($k \ll N_E$; no Mixtral 8$\times$7B, $2$ de $8$), e somente esses processam a entrada. Por isso o número total de parâmetros cresce com $N_E$ enquanto o compute por \textit{token} fica próximo ao de $k$ FFNs pequenas: é exatamente o desacoplamento entre parâmetros e compute que motiva a arquitetura.
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)/(b)} excluem uma asserção correta.
+\textbf{(c)/(e)/(f)/(g)} incluem a asserção III, que descreve ativação densa de todos os especialistas em vez do \textit{routing} esparso top-$k$.
+\textbf{(h)} contradiz I e II.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (b)}
+Na inferência, os \textit{merges} são aplicados na ordem aprendida, sempre que o par estiver presente:
+\begin{enumerate}
+  \item Início: \texttt{t a r t \_}
+  \item \textit{Merge} 1, \texttt{(a,r)} $\rightarrow$ \texttt{ar}: \quad \texttt{t ar t \_}
+  \item \textit{Merges} 2 e 3 não se aplicam: não há \texttt{(c,ar)} nem \texttt{(car,\_)} na palavra.
+  \item \textit{Merge} 4, \texttt{(t,\_)} $\rightarrow$ \texttt{t\_}: \quad \texttt{t ar t\_}
+  \item \textit{Merge} 5 não se aplica: não há \texttt{(car,t\_)}.
+\end{enumerate}
+Resultado: \texttt{t}~\texttt{ar}~\texttt{t\_}, com 3 \textit{tokens}. Mesmo sem \texttt{tart} ter aparecido no corpus, a palavra é composta por \textit{subwords} aprendidos: \texttt{ar} é compartilhado com \texttt{car}, \texttt{cart} e \texttt{art}, e \texttt{t\_} com \texttt{cart} e \texttt{art}.\\
+\textbf{(a)} aplica o \textit{merge} 1 mas esquece o \textit{merge} 4, que está disponível no final da palavra.
+\textbf{(c)} usa um \textit{merge} \texttt{(t,ar)} que nunca foi aprendido; \texttt{tar} não está no vocabulário.
+\textbf{(d)} usa um \textit{merge} \texttt{(ar,t\_)} inexistente; \texttt{art\_} nunca virou \textit{token} único no treinamento.
+\textbf{(e)} não aplica nenhum \textit{merge}, ignorando a tabela aprendida.
+\textbf{(f)} trata a palavra inteira como um \textit{token}, mas \texttt{tart\_} não está no vocabulário.
+\textbf{(g)} usa um \textit{merge} \texttt{(t,a)} que nunca foi aprendido; o par aprendido foi \texttt{(a,r)}.
+\textbf{(h)} combina o \texttt{tar} inexistente com a omissão do \textit{merge} 4.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (g)}
+Associação correta: 1-(iii); 2-(iv); 3-(ii); 4-(v); 5-(i).
+
+\textbf{MHA $\to$ (iii):} é a formulação original do \textit{transformer}; cada uma das $H$ cabeças tem projeções $\mathbf{K}$ e $\mathbf{V}$ próprias, e o KV-cache guarda $H$ pares por \textit{token}, o que domina a memória de inferência em contextos longos.
+
+\textbf{MQA $\to$ (iv):} todas as cabeças de \textit{query} consultam um único par $\mathbf{K}$/$\mathbf{V}$ compartilhado, encolhendo o KV-cache por um fator $H$ (PaLM, Falcon), ao custo de possível perda de qualidade.
+
+\textbf{GQA $\to$ (ii):} interpola entre os dois anteriores; as cabeças são divididas em $G$ grupos com um par $\mathbf{K}$/$\mathbf{V}$ por grupo, e os extremos recuperam MQA ($G = 1$) e MHA ($G = H$). Obtém qualidade próxima da MHA com cache reduzido (Llama 2 70B, Llama 3, Mistral).
+
+\textbf{Sliding Window $\to$ (v):} restringe a atenção aos $w$ \textit{tokens} mais recentes, baixando o custo por camada de $\mathcal{O}(n^2)$ para $\mathcal{O}(n \cdot w)$; o alcance efetivo cresce com a profundidade, pois cada camada propaga informação de mais $w$ posições (Mistral).
+
+\textbf{FlashAttention $\to$ (i):} ao contrário dos anteriores, não altera a atenção computada, apenas sua implementação; ataca a movimentação de memória na GPU com \textit{tiling} na SRAM e \textit{softmax} online, sem materializar a matriz $n \times n$ na HBM.
+
+Cada alternativa incorreta troca um par de mecanismos confundíveis: \textbf{(a)} troca MQA e GQA (compartilhamento total vs.\ por grupos); \textbf{(b)} troca MHA e MQA; \textbf{(c)} troca Sliding Window e FlashAttention, o erro mais tentador, pois ambos visam eficiência, mas só o primeiro altera o resultado da atenção; \textbf{(d)} troca MHA e GQA; \textbf{(e)} troca MQA e Sliding Window; \textbf{(f)} troca MHA e FlashAttention; \textbf{(h)} contém múltiplas trocas.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (e)}
+A verificação percorre as posições em ordem, aceitando $\tilde{x}_t$ quando $u_t \le \min\bigl(1, p(\tilde{x}_t)/q(\tilde{x}_t)\bigr)$:
+
+\textbf{Posição 1} (\texttt{jogo}): $p/q = 0.60/0.50 = 1.2$, logo o limiar é $\min(1, 1.2) = 1$ e o \textit{token} é aceito com probabilidade $1$, qualquer que seja $u_1$. O valor alto $u_1 = 0.84$ não rejeita nada: quando $p \ge q$ o \textit{token} é sempre aceito.
+
+\textbf{Posição 2} (\texttt{de}): $p/q = 0.36/0.70 \approx 0.51$. Como $u_2 = 0.42 \le 0.51$, o \textit{token} é aceito, mesmo com $p < q$. Ter $p < q$ reduz a probabilidade de aceitação, mas não implica rejeição.
+
+\textbf{Posição 3} (\texttt{ontem}): $p/q = 0.15/0.60 = 0.25$. Como $u_3 = 0.78 > 0.25$, \texttt{ontem} é \textbf{rejeitado}, e o restante do rascunho (não há mais posições) seria descartado.
+
+A reamostragem usa $p'(x) \propto \max\bigl(0,\, p(x) - q(x)\bigr)$ na posição 3:
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textit{token} & $p$ & $q$ & $p - q$ & $p'$ (norm.) \\\hline
+\texttt{ontem}  & 0.15 & 0.60 & $-0.45$ & $0$ \\\hline
+\texttt{virada} & 0.40 & 0.25 & $+0.15$ & $0.15/0.46 \approx 0.33$ \\\hline
+\texttt{hoje}   & 0.36 & 0.05 & $+0.31$ & $0.31/0.46 \approx 0.67$ \\\hline
+\texttt{novo}   & 0.09 & 0.10 & $-0.01$ & $0$ \\\hline
+\end{tabular}
+\end{center}
+O mais provável na reamostragem é \texttt{hoje}, e não \texttt{virada}, que é o argmax de $p$: a subtração de $q$ penaliza os \textit{tokens} que o \textit{draft} já cobria bem e concentra massa onde o \textit{target} discorda do \textit{draft}, e $q(\texttt{virada}) = 0.25$ é bem maior que $q(\texttt{hoje}) = 0.05$. É esse ajuste que garante saída idêntica em distribuição à do \textit{target}.\\
+\textbf{(a)} exige que as três posições sejam aceitas, mas $u_3 = 0.78$ excede o limiar $0.25$ da posição 3.
+\textbf{(b)} compara $u_1$ diretamente com $p(\texttt{jogo}) = 0.60$; o critério usa a razão $p/q$, que na posição 1 vale $1.2$ e aceita sempre.
+\textbf{(c)} trata $p < q$ como rejeição automática; na posição 2 o sorteio $u_2 = 0.42$ fica abaixo do limiar $0.51$ e \texttt{de} é aceito.
+\textbf{(d)} reamostra do argmax de $p$, ignorando a subtração de $q$; $p'(\texttt{virada}) \approx 0.33 < 0.67$.
+\textbf{(f)} \texttt{ontem} tem $p - q = -0.45$, logo $p'(\texttt{ontem}) = 0$; o \textit{token} rejeitado nunca é reamostrado quando $p < q$.
+\textbf{(g)} \texttt{novo} também zera em $p'$, pois $p - q = -0.01 \le 0$.
+\textbf{(h)} a rejeição interrompe a verificação na primeira posição rejeitada; não há rejeições independentes por posição, e \texttt{de} nem chega a ser rejeitado.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (f)}
+\textbf{I é correta:} é o esquema \textit{shift-by-one} do pré-treinamento; cada posição $t$ prediz o \textit{token} $t{+}1$, e a perda de todas as posições é computada em um único passe \textit{forward}.
+
+\textbf{II é incorreta:} a máscara causal é essencial justamente \emph{no treinamento} paralelo. Sem ela, a posição $t$ atenderia ao próprio alvo (o \textit{token} $t{+}1$, visível na sequência) e o modelo aprenderia a copiá-lo: a perda cairia artificialmente, mas a geração autorregressiva, em que o futuro não existe, seria incoerente. Na inferência a máscara é redundante por construção, pois os \textit{tokens} futuros ainda não foram gerados.
+
+\textbf{III é correta:} a recorrência é sequencial por definição; $h_t$ depende de $h_{t-1}$, impedindo o cômputo simultâneo das posições. Esse contraste de paralelismo, com o mesmo objetivo simples aplicável a texto bruto, é apontado na aula como a razão de o \textit{decoder-only} ter vencido as RNNs.
+
+Logo, apenas I e III estão corretas.\\
+\textbf{(a)/(c)} excluem uma asserção correta.
+\textbf{(d)/(e)/(g)} incluem a asserção II, que inverte o papel da máscara entre treino e inferência.
+\textbf{(b)} inclui II e exclui as duas corretas.
+\textbf{(h)} contradiz I e III.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (f)}
+\textbf{Primeira etapa:} com $B = 2$, o \textit{beam search} mantém as duas hipóteses de maior probabilidade, \texttt{azul} ($0.5$) e \texttt{cinza} ($0.3$), e \textbf{poda} \texttt{limpo} ($0.2$), que nunca mais é expandido.
+
+\textbf{Segunda etapa:} as duas hipóteses sobreviventes são expandidas e comparadas pela \textbf{probabilidade conjunta} (produto das condicionais):
+\begin{gather*}
+P(\texttt{azul hoje}) = 0.5 \times 0.4 = 0.20,
+\qquad
+P(\texttt{azul agora}) = 0.5 \times 0.3 = 0.15,\\
+P(\texttt{cinza escuro}) = 0.3 \times 0.8 = 0.24,
+\qquad
+P(\texttt{cinza claro}) = 0.3 \times 0.1 = 0.03.
+\end{gather*}
+O beam retorna \texttt{cinza escuro} ($0.24$). A decodificação \textit{greedy} maximiza cada passo isoladamente: escolhe \texttt{azul} ($0.5$) na primeira etapa e trava nessa hipótese, terminando em \texttt{azul hoje} com conjunta menor ($0.20$). É exatamente o caso em que o beam encontra uma sequência de maior probabilidade total que o \textit{greedy} perde.
+
+Observação: o ramo podado renderia $P(\texttt{limpo e}) = 0.2 \times 0.95 = 0.19 < 0.24$, então aqui a poda não mudou o resultado; com outros números, poderia mudar, pois o \textit{beam search} é uma heurística, não uma busca exata.\\
+\textbf{(a)} \textit{greedy} e beam não coincidem aqui; o \textit{greedy} nunca reavalia a escolha da primeira etapa.
+\textbf{(b)} soma as probabilidades das etapas; a conjunta é o produto das condicionais (soma apenas em log). Além disso, \texttt{limpo} é podado na primeira etapa e não chega a ser expandido.
+\textbf{(c)} comparar apenas a primeira etapa é o comportamento do \textit{greedy}, não do beam.
+\textbf{(d)} escolhe o maior fator condicional isolado ($0.95$); a comparação usa a conjunta, e \texttt{limpo} nem sobrevive à poda da primeira etapa ($0.2$ é a terceira maior probabilidade com $B = 2$).
+\textbf{(e)} o \textit{greedy} não escolhe \texttt{cinza escuro}: na primeira etapa \texttt{cinza} ($0.3$) perde para \texttt{azul} ($0.5$).
+\textbf{(g)} inverte as definições dos dois métodos.
+\textbf{(h)} as conjuntas são diferentes ($0.24 \neq 0.20$); não há desempate.
+
+\subsection*{Questão 9 \textemdash{} Resposta: (b)}
+É a \textbf{degeneração} descrita por Holtzman et al.\ (2020): em geração aberta, maximizar a probabilidade (beam search ou \textit{greedy}) produz loops, pois cada repetição aumenta a probabilidade da própria repetição, e texto genérico, pois texto humano alterna \textit{tokens} esperados e surpreendentes em vez de ser o texto mais provável. A perda de treino normal e o bom desempenho em respostas factuais curtas descartam defeito de treinamento: o problema está na estratégia de decodificação. A mitigação é a amostragem truncada (top-$k$ ou top-$p$), que corta a cauda da distribuição e amostra do restante.\\
+\textbf{(a)} esquecimento catastrófico degradaria também as respostas factuais, o que não é observado.
+\textbf{(c)} sem máscara causal o modelo teria treinado ``trapaceando'' e a perda de treino seria anormalmente baixa, com geração incoerente geral, não loops fluentes.
+\textbf{(d)} o KV-cache apenas evita recomputar $\mathbf{K}$ e $\mathbf{V}$; com ou sem cache a saída é idêntica.
+\textbf{(e)} aumentar $B$ aproxima ainda mais a busca do máximo global de probabilidade, agravando a degeneração.
+\textbf{(f)} beam search é determinístico e não usa temperatura; além disso, $T \to 0$ aproxima o \textit{greedy}, que sofre do mesmo problema.
+\textbf{(g)} o \textit{tokenizer} não cria \textit{tokens} de frases inteiras (a pré-tokenização impede \textit{merges} entre palavras), e a repetição ocorre na decodificação.
+\textbf{(h)} não há indício de \textit{overfitting}, e \textit{dropout} em inferência não é a correção padrão para degeneração de decodificação.
+
+\subsection*{Questão 10 \textemdash{} Resposta: (d)}
+Cada matriz tem $|V| \times d_\text{model} = 32\,000 \times 2\,048 = 65\,536\,000 \approx 65{,}5$ milhões de parâmetros. Sem \textit{weight tying}, tabela de \textit{embedding} e LM \textit{head} são independentes:
+\[
+2 \times 65\,536\,000 = 131\,072\,000 \approx 131{,}1 \text{ milhões}.
+\]
+Com \textit{weight tying}, $\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$ reutiliza a mesma matriz nas duas pontas (os formatos $|V| \times d$ e $d \times |V|$ são compatíveis via transposição), eliminando uma das cópias: o total cai para $65{,}5$ milhões, sem nenhuma perda de expressividade por construção.\\
+\textbf{(a)} parte de um total que já ignora uma das matrizes e inventa um compartilhamento de metade das linhas.
+\textbf{(b)} com \textit{weight tying} existe uma única matriz; não são duas matrizes com gradientes somados.
+\textbf{(c)} inverte o efeito; o compartilhamento reduz o total, não o dobra.
+\textbf{(e)} o total está correto, mas a matriz compartilhada continua tendo uma linha por \textit{token} do vocabulário; nenhum \textit{token} deixa de ser gerável.
+\textbf{(f)} o enunciado define as matrizes sem viés, e o total de $262{,}1$ milhões duplica as duas matrizes.
+\textbf{(g)} o compartilhamento é da matriz inteira, não apenas das linhas de \textit{tokens} frequentes.
+\textbf{(h)} usa $|V| + d_\text{model}$ em vez do produto $|V| \times d_\text{model}$.
+
+\color{black}
+
+\end{document}

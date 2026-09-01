@@ -77,14 +77,14 @@ Nome: \rule{12cm}{0.4pt}
 \end{enumerate}
 
 %% ---------- Q2: OBJ-D architectural-purpose recall — batch norm in residual blocks ----------
-\item (1.2) Em redes residuais, a soma $h = x + f(x)$ tende a aumentar a variância das ativações ao longo da profundidade. Qual o principal objetivo de inserir \textit{batch normalization} dentro dos blocos residuais?
+\item (1.2) Em redes residuais, a soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ tende a aumentar a variância das ativações ao longo da profundidade. Qual o principal objetivo de inserir \textit{batch normalization} dentro dos blocos residuais?
 \begin{enumerate}[a)]
     \item Reduzir o número de parâmetros treináveis do bloco, já que os parâmetros $\gamma$ e $\beta$ substituem os pesos das convoluções internas do bloco.
-    \item Substituir a conexão de atalho (\textit{skip connection}), tornando a soma $h = x + f(x)$ desnecessária e reduzindo o número de caminhos de gradiente da rede.
+    \item Substituir a conexão de atalho (\textit{skip connection}), tornando a soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ desnecessária e reduzindo o número de caminhos de gradiente da rede.
     \item Normalizar a distribuição das ativações dentro do bloco, controlando o crescimento da variância introduzido pela soma e mantendo o treino estável em grande profundidade.
-    \item Atuar como a única não-linearidade do bloco, dispensando funções de ativação como a ReLU entre as convoluções que compõem $f(x)$.
+    \item Atuar como a única não-linearidade do bloco, dispensando funções de ativação como a ReLU entre as convoluções que compõem $f(\mathbf{x})$.
     \item Aumentar o campo receptivo das unidades do bloco sem acrescentar parâmetros, de forma análoga ao efeito de uma convolução dilatada.
-    \item Garantir matematicamente que cada bloco aprenda exatamente o mapeamento identidade $f(x) = 0$, independentemente dos dados de treino.
+    \item Garantir matematicamente que cada bloco aprenda exatamente o mapeamento identidade $f(\mathbf{x}) = 0$, independentemente dos dados de treino.
     \item Eliminar a necessidade de inicialização cuidadosa dos pesos, pois fixa a variância dos pesos em $2/n_{\text{in}}$ como na inicialização de He.
     \item Servir de regularizador que memoriza as estatísticas do conjunto de teste para acelerar a convergência durante a inferência.
 \end{enumerate}
@@ -105,11 +105,11 @@ Nome: \rule{12cm}{0.4pt}
 %% ---------- Q4: OBJ-B I/II/III analysis — LSTM/GRU gates ----------
 \item (1.2) Sobre as asserções abaixo a respeito de células LSTM:
 
-\textbf{I.} Na LSTM, a atualização da memória $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ combina a memória anterior (modulada pelo \textit{forget gate}) com o novo candidato (modulado pelo \textit{input gate}); o caminho de $c_{t-1}$ para $c_t$ é predominantemente aditivo, o que ajuda a preservar o gradiente ao longo do tempo.
+\textbf{I.} Na LSTM, a atualização da memória $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ combina a memória anterior (modulada pelo \textit{forget gate}) com o novo candidato (modulado pelo \textit{input gate}); o caminho de $\mathbf{c}_{t-1}$ para $\mathbf{c}_t$ é predominantemente aditivo, o que ajuda a preservar o gradiente ao longo do tempo.
 
-\textbf{II.} Na LSTM, o \textit{forget gate} $f_t$ e o \textit{input gate} $i_t$ são sempre acoplados pela restrição $i_t = 1 - f_t$, de modo que a fração esquecida da memória anterior é exatamente a fração escrita pelo novo candidato.
+\textbf{II.} Na LSTM, o \textit{forget gate} $\mathbf{f}_t$ e o \textit{input gate} $\mathbf{i}_t$ são sempre acoplados pela restrição $\mathbf{i}_t = 1 - \mathbf{f}_t$, de modo que a fração esquecida da memória anterior é exatamente a fração escrita pelo novo candidato.
 
-\textbf{III.} O estado oculto da LSTM é obtido como $h_t = o_t \odot \tanh(c_t)$; portanto o \textit{output gate} $o_t$ controla qual parte da memória é exposta como saída no passo $t$.
+\textbf{III.} O estado oculto da LSTM é obtido como $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$; portanto o \textit{output gate} $\mathbf{o}_t$ controla qual parte da memória é exposta como saída no passo $t$.
 
 \begin{enumerate}[a)]
     \item Apenas I está correta.
@@ -193,7 +193,7 @@ Nome: \rule{12cm}{0.4pt}
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
-    \item ( )\,V \quad ( )\,F \quad Na derivada da saída de um bloco residual em relação à sua entrada surge um termo identidade $I$; esse termo cria um caminho direto para o gradiente, o que ajuda a mitigar o desaparecimento do gradiente em redes profundas.\\[0.2em]
+    \item ( )\,V \quad ( )\,F \quad Na derivada da saída de um bloco residual em relação à sua entrada surge um termo identidade $\mathbf{I}$; esse termo cria um caminho direto para o gradiente, o que ajuda a mitigar o desaparecimento do gradiente em redes profundas.\\[0.2em]
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
@@ -205,7 +205,7 @@ Nome: \rule{12cm}{0.4pt}
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
-    \item ( )\,V \quad ( )\,F \quad Na LSTM, quando o \textit{forget gate} $f_t \to 1$ e o \textit{input gate} $i_t \to 0$, a atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ reduz-se a $c_{t-1}$, ou seja, a memória anterior é mantida praticamente inalterada.\\[0.2em]
+    \item ( )\,V \quad ( )\,F \quad Na LSTM, quando o \textit{forget gate} $\mathbf{f}_t \to 1$ e o \textit{input gate} $\mathbf{i}_t \to 0$, a atualização $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ reduz-se a $\mathbf{c}_{t-1}$, ou seja, a memória anterior é mantida praticamente inalterada.\\[0.2em]
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 \end{enumerate}

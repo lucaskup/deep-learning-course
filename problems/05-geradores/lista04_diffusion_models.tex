@@ -1,13 +1,14 @@
 \documentclass{dlproblemset}
 \usepackage{emoji}
 \usepackage{booktabs}
+\newcommand{\thetav}{\boldsymbol{\theta}}
 
 \title{Diffusion Models}
 \subtitle{Lista de Exercícios}
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação dos slides: $\beta_t$ para o \textit{noise schedule}, $\alpha_t = \prod_{s=1}^{t}(1 - \beta_s)$ para o produto acumulado, $z_t$ para o estado em $t$, $\epsilon$ para o ruído gaussiano e $g_t[z_t,\theta_t]$ para a rede que estima o ruído. Questões marcadas com \emoji{skull-and-crossbones} são consideradas difíceis.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação dos slides: $\beta_t$ para o \textit{noise schedule}, $\alpha_t = \prod_{s=1}^{t}(1 - \beta_s)$ para o produto acumulado, $\mathbf{z}_t$ para o estado em $t$, $\boldsymbol{\epsilon}$ para o ruído gaussiano e $g_t[\mathbf{z}_t,\thetav_t]$ para a rede que estima o ruído. Questões marcadas com \emoji{skull-and-crossbones} são consideradas difíceis.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -16,7 +17,7 @@
 % ------------------------------------------------------------------
 % Q1 — Easy (kernel sampling: signal vs. noise coefficients)
 % ------------------------------------------------------------------
-\item Considere o kernel de difusão $z_t = \sqrt{\alpha_t}\, x + \sqrt{1 - \alpha_t}\, \epsilon$, com $\epsilon \sim \mathcal{N}(0, \mathbf{I})$. Dado $\alpha_t = 0.64$, $x = 2$ e $\epsilon = 0.5$, qual é o valor amostrado de $z_t$?
+\item Considere o kernel de difusão $\mathbf{z}_t = \sqrt{\alpha_t}\, \mathbf{x} + \sqrt{1 - \alpha_t}\, \boldsymbol{\epsilon}$, com $\boldsymbol{\epsilon} \sim \mathcal{N}(0, \mathbf{I})$. Dado $\alpha_t = 0.64$, $\mathbf{x} = 2$ e $\boldsymbol{\epsilon} = 0.5$, qual é o valor amostrado de $\mathbf{z}_t$?
 \begin{enumerate}[(a)]
     \item $1.90$.
     \item $1.60$.
@@ -40,24 +41,24 @@
 % ------------------------------------------------------------------
 % Q3 — Medium (variance of q(z_t | x))
 % ------------------------------------------------------------------
-\item No processo de difusão, $q(z_t \mid x) = \mathcal{N}_{z_t}[\mu,\, \Sigma]$. Para $\alpha_t = 0.49$ e $x = 4$, quais são, respectivamente, a média $\mu$ e a variância $\Sigma$ (esta última como múltiplo de $\mathbf{I}$)?
+\item No processo de difusão, $q(\mathbf{z}_t \mid \mathbf{x}) = \mathcal{N}_{\mathbf{z}_t}[\boldsymbol{\mu},\, \boldsymbol{\Sigma}]$. Para $\alpha_t = 0.49$ e $\mathbf{x} = 4$, quais são, respectivamente, a média $\boldsymbol{\mu}$ e a variância $\boldsymbol{\Sigma}$ (esta última como múltiplo de $\mathbf{I}$)?
 \begin{enumerate}[(a)]
-    \item $\mu = 2.80$ e $\Sigma = 0.51\,\mathbf{I}$.
-    \item $\mu = 1.96$ e $\Sigma = 0.49\,\mathbf{I}$.
-    \item $\mu = 2.80$ e $\Sigma = 0.71\,\mathbf{I}$.
-    \item $\mu = 2.04$ e $\Sigma = 0.51\,\mathbf{I}$.
+    \item $\boldsymbol{\mu} = 2.80$ e $\boldsymbol{\Sigma} = 0.51\,\mathbf{I}$.
+    \item $\boldsymbol{\mu} = 1.96$ e $\boldsymbol{\Sigma} = 0.49\,\mathbf{I}$.
+    \item $\boldsymbol{\mu} = 2.80$ e $\boldsymbol{\Sigma} = 0.71\,\mathbf{I}$.
+    \item $\boldsymbol{\mu} = 2.04$ e $\boldsymbol{\Sigma} = 0.51\,\mathbf{I}$.
 \end{enumerate}
 % R: a
 
 % ------------------------------------------------------------------
 % Q4 — Medium (objective after reparametrization: epsilon prediction)
 % ------------------------------------------------------------------
-\item Após a reparametrização que faz a rede $g_t[z_t,\theta_t]$ predizer o ruído, a função de custo do modelo difusor (excluindo o termo de reconstrução) assume qual forma?
+\item Após a reparametrização que faz a rede $g_t[\mathbf{z}_t,\thetav_t]$ predizer o ruído, a função de custo do modelo difusor (excluindo o termo de reconstrução) assume qual forma?
 \begin{enumerate}[(a)]
-    \item $\sum_{i,t} \big|g_t[z_t,\theta_t] - x^{(i)}\big|^{2}$.
-    \item $\sum_{i,t} \big|g_t[z_t,\theta_t] - z_{t-1}\big|^{2}$.
-    \item $\sum_{i,t} \big|g_t[z_t,\theta_t] - \epsilon_t\big|^{2}$.
-    \item $\sum_{i,t} -\log g_t[z_t,\theta_t]\,\epsilon_t$.
+    \item $\sum_{i,t} \big|g_t[\mathbf{z}_t,\thetav_t] - \mathbf{x}^{(i)}\big|^{2}$.
+    \item $\sum_{i,t} \big|g_t[\mathbf{z}_t,\thetav_t] - \mathbf{z}_{t-1}\big|^{2}$.
+    \item $\sum_{i,t} \big|g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}_t\big|^{2}$.
+    \item $\sum_{i,t} -\log g_t[\mathbf{z}_t,\thetav_t]\,\boldsymbol{\epsilon}_t$.
 \end{enumerate}
 % R: c
 
@@ -66,10 +67,10 @@
 % ------------------------------------------------------------------
 \item Sobre o processo de difusão (\textit{forward}) definido nos slides, qual afirmação é correta?
 \begin{enumerate}[(a)]
-    \item A transição $q(z_t \mid z_{t-1})$ depende explicitamente de $x$ e de todos os estados anteriores.
-    \item A cadeia é markoviana, com $q(z_t \mid z_{t-1}, x) = q(z_t \mid z_{t-1})$, e a variância da transição é $\beta_t\,\mathbf{I}$.
-    \item A transição é determinística e a aleatoriedade entra somente em $z_T \sim \mathcal{N}(0,\mathbf{I})$.
-    \item A média de $q(z_t \mid z_{t-1})$ é $\sqrt{\alpha_t}\, z_{t-1}$, com variância $(1 - \alpha_t)\,\mathbf{I}$.
+    \item A transição $q(\mathbf{z}_t \mid \mathbf{z}_{t-1})$ depende explicitamente de $\mathbf{x}$ e de todos os estados anteriores.
+    \item A cadeia é markoviana, com $q(\mathbf{z}_t \mid \mathbf{z}_{t-1}, \mathbf{x}) = q(\mathbf{z}_t \mid \mathbf{z}_{t-1})$, e a variância da transição é $\beta_t\,\mathbf{I}$.
+    \item A transição é determinística e a aleatoriedade entra somente em $\mathbf{z}_T \sim \mathcal{N}(0,\mathbf{I})$.
+    \item A média de $q(\mathbf{z}_t \mid \mathbf{z}_{t-1})$ é $\sqrt{\alpha_t}\, \mathbf{z}_{t-1}$, com variância $(1 - \alpha_t)\,\mathbf{I}$.
 \end{enumerate}
 % R: b
 
@@ -88,11 +89,11 @@
 % ------------------------------------------------------------------
 % Q7 — Medium (why predict noise, not image)
 % ------------------------------------------------------------------
-\item Nos slides, a rede $g_t$ é treinada para predizer o ruído $\epsilon$ adicionado, e não $x$ ou $z_{t-1}$ diretamente. Qual a justificativa apresentada para essa escolha?
+\item Nos slides, a rede $g_t$ é treinada para predizer o ruído $\boldsymbol{\epsilon}$ adicionado, e não $\mathbf{x}$ ou $\mathbf{z}_{t-1}$ diretamente. Qual a justificativa apresentada para essa escolha?
 \begin{enumerate}[(a)]
     \item Predizer o ruído evita o uso de \textit{skip connections} na U-Net.
     \item Predizer o ruído elimina a necessidade de \textit{noise schedule} no \textit{forward process}.
-    \item Predizer o ruído é uma observação empírica: na prática produz melhores resultados que predizer $x$ diretamente.
+    \item Predizer o ruído é uma observação empírica: na prática produz melhores resultados que predizer $\mathbf{x}$ diretamente.
     \item Predizer o ruído torna a \textit{loss} numericamente equivalente a uma entropia cruzada.
 \end{enumerate}
 % R: c
@@ -100,12 +101,12 @@
 % ------------------------------------------------------------------
 % Q8 — Medium (q(z_{t-1} | z_t, x) closed-form mean coefficient)
 % ------------------------------------------------------------------
-\item A distribuição condicional $q(z_{t-1} \mid z_t, x)$, derivada no curso, é uma gaussiana cuja média é uma combinação linear de $z_t$ e $x$. Para $\beta_t = 0.2$, $\alpha_{t-1} = 0.9$ e $\alpha_t = 0.72$, qual é, respectivamente, o coeficiente de $z_t$ e o coeficiente de $x$ na média?
+\item A distribuição condicional $q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})$, derivada no curso, é uma gaussiana cuja média é uma combinação linear de $\mathbf{z}_t$ e $\mathbf{x}$. Para $\beta_t = 0.2$, $\alpha_{t-1} = 0.9$ e $\alpha_t = 0.72$, qual é, respectivamente, o coeficiente de $\mathbf{z}_t$ e o coeficiente de $\mathbf{x}$ na média?
 \begin{enumerate}[(a)]
-    \item Coef. $z_t \approx 0.319$; coef. $x \approx 0.678$.
-    \item Coef. $z_t \approx 0.894$; coef. $x \approx 0.200$.
-    \item Coef. $z_t \approx 0.357$; coef. $x \approx 0.678$.
-    \item Coef. $z_t \approx 0.849$; coef. $x \approx 0.300$.
+    \item Coef. $\mathbf{z}_t \approx 0.319$; coef. $\mathbf{x} \approx 0.678$.
+    \item Coef. $\mathbf{z}_t \approx 0.894$; coef. $\mathbf{x} \approx 0.200$.
+    \item Coef. $\mathbf{z}_t \approx 0.357$; coef. $\mathbf{x} \approx 0.678$.
+    \item Coef. $\mathbf{z}_t \approx 0.849$; coef. $\mathbf{x} \approx 0.300$.
 \end{enumerate}
 % R: a
 
@@ -152,14 +153,14 @@
 \subsection*{Resoluções - Objetivas}
 \color{blue}
 \begin{enumerate}[I)]
-    \item $z_t = \sqrt{0.64}\cdot 2 + \sqrt{0.36}\cdot 0.5 = 0.8\cdot 2 + 0.6\cdot 0.5 = 1.60 + 0.30 = 1.90$. A (b) corresponde a trocar os papéis dos coeficientes, $\sqrt{1 - \alpha_t}\cdot x + \sqrt{\alpha_t}\cdot \epsilon = 0.6\cdot 2 + 0.8\cdot 0.5 = 1.60$. A (c) corresponde a usar $\alpha_t$ e $1 - \alpha_t$ sem aplicar as raízes, $0.64\cdot 2 + 0.36\cdot 0.5 = 1.46$. A (d) corresponde a aplicar $\sqrt{\alpha_t}$ no sinal, mas esquecer de escalar o ruído, $0.8\cdot 2 + 0.5 = 2.10$.
+    \item $\mathbf{z}_t = \sqrt{0.64}\cdot 2 + \sqrt{0.36}\cdot 0.5 = 0.8\cdot 2 + 0.6\cdot 0.5 = 1.60 + 0.30 = 1.90$. A (b) corresponde a trocar os papéis dos coeficientes, $\sqrt{1 - \alpha_t}\cdot \mathbf{x} + \sqrt{\alpha_t}\cdot \boldsymbol{\epsilon} = 0.6\cdot 2 + 0.8\cdot 0.5 = 1.60$. A (c) corresponde a usar $\alpha_t$ e $1 - \alpha_t$ sem aplicar as raízes, $0.64\cdot 2 + 0.36\cdot 0.5 = 1.46$. A (d) corresponde a aplicar $\sqrt{\alpha_t}$ no sinal, mas esquecer de escalar o ruído, $0.8\cdot 2 + 0.5 = 2.10$.
     \item $\alpha_3 = (1 - 0.05)(1 - 0.10)(1 - 0.20) = 0.95 \cdot 0.90 \cdot 0.80 = 0.684$. A (b) corresponde a somar os $\beta_t$ em vez de aplicar o produto $\prod (1 - \beta_s)$. A (c) corresponde a $1 - \sum \beta_t$. A (d) corresponde ao produto direto $\prod \beta_t$.
-    \item Como $q(z_t \mid x) = \mathcal{N}[\sqrt{\alpha_t}\,x,\,(1 - \alpha_t)\,\mathbf{I}]$, temos $\mu = \sqrt{0.49}\cdot 4 = 0.7\cdot 4 = 2.80$ e $\Sigma = (1 - 0.49)\,\mathbf{I} = 0.51\,\mathbf{I}$. A (b) usa $\alpha_t$ em vez de $\sqrt{\alpha_t}$ na média. A (c) confunde a variância com o desvio padrão $\sqrt{1 - \alpha_t} \approx 0.71$. A (d) usa $(1 - \alpha_t)\,x = 0.51 \cdot 4 = 2.04$ na média, trocando o papel de $\alpha_t$ com o de $1 - \alpha_t$, embora acerte a variância.
-    \item Substituindo a reparametrização da rede no termo quadrático da \textit{loss}, todos os termos em $z_t$ e $x$ se cancelam, restando $|g_t[z_t,\theta_t] - \epsilon_t|^{2}$, conforme caixa final no slide ``Reparametrizando a rede, Loss final''. A (a) ignora a reparametrização. A (b) corresponde ao alvo da formulação anterior. A (d) tem forma de log-verossimilhança e não corresponde a um MSE.
-    \item Pela definição $q(z_t \mid z_{t-1}) = \mathcal{N}[\sqrt{1 - \beta_t}\,z_{t-1},\, \beta_t\,\mathbf{I}]$, vale a propriedade de Markov com variância $\beta_t\,\mathbf{I}$. A (a) viola a propriedade de Markov. A (c) descreve um processo determinístico, o que não é o caso. A (d) confunde a média da transição passo a passo (que usa $\sqrt{1 - \beta_t}$) com a do kernel acumulado (que usa $\sqrt{\alpha_t}$).
+    \item Como $q(\mathbf{z}_t \mid \mathbf{x}) = \mathcal{N}[\sqrt{\alpha_t}\,\mathbf{x},\,(1 - \alpha_t)\,\mathbf{I}]$, temos $\boldsymbol{\mu} = \sqrt{0.49}\cdot 4 = 0.7\cdot 4 = 2.80$ e $\boldsymbol{\Sigma} = (1 - 0.49)\,\mathbf{I} = 0.51\,\mathbf{I}$. A (b) usa $\alpha_t$ em vez de $\sqrt{\alpha_t}$ na média. A (c) confunde a variância com o desvio padrão $\sqrt{1 - \alpha_t} \approx 0.71$. A (d) usa $(1 - \alpha_t)\,\mathbf{x} = 0.51 \cdot 4 = 2.04$ na média, trocando o papel de $\alpha_t$ com o de $1 - \alpha_t$, embora acerte a variância.
+    \item Substituindo a reparametrização da rede no termo quadrático da \textit{loss}, todos os termos em $\mathbf{z}_t$ e $\mathbf{x}$ se cancelam, restando $|g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}_t|^{2}$, conforme caixa final no slide ``Reparametrizando a rede, Loss final''. A (a) ignora a reparametrização. A (b) corresponde ao alvo da formulação anterior. A (d) tem forma de log-verossimilhança e não corresponde a um MSE.
+    \item Pela definição $q(\mathbf{z}_t \mid \mathbf{z}_{t-1}) = \mathcal{N}[\sqrt{1 - \beta_t}\,\mathbf{z}_{t-1},\, \beta_t\,\mathbf{I}]$, vale a propriedade de Markov com variância $\beta_t\,\mathbf{I}$. A (a) viola a propriedade de Markov. A (c) descreve um processo determinístico, o que não é o caso. A (d) confunde a média da transição passo a passo (que usa $\sqrt{1 - \beta_t}$) com a do kernel acumulado (que usa $\sqrt{\alpha_t}$).
     \item Calculando $\mathrm{SNR}(t) = \alpha_t / (1 - \alpha_t)$: $\mathrm{SNR}(1) = 0.900/0.100 = 9.00$; $\mathrm{SNR}(2) = 0.720/0.280 \approx 2.57$; $\mathrm{SNR}(3) = 0.504/0.496 \approx 1.016$; $\mathrm{SNR}(4) = 0.302/0.698 \approx 0.433$. O cruzamento de $\mathrm{SNR} = 1$ acontece em $t = 3$ (onde $\sqrt{\alpha_t} \approx \sqrt{1 - \alpha_t}$). A (a) antecipa o cruzamento: em $t = 2$ o $\mathrm{SNR}$ ainda vale $\approx 2.57$, bem acima de $1$. A (c) já passou do cruzamento, com $\mathrm{SNR} \approx 0.43$. A (d) corresponde ao início, onde o sinal domina ($\mathrm{SNR} = 9$).
-    \item No slide ``Porém\ldots\ um detalhe empírico'' fica explícito: a escolha de predizer $\epsilon$ é uma observação empírica de que treinar a rede para estimar o ruído produz melhores resultados que estimar $x$ diretamente. As alternativas (a), (b) e (d) descrevem consequências falsas dessa reparametrização.
-    \item Pelo slide ``Distribuição condicional, Produto de gaussianas'', a média é $\tfrac{(1 - \alpha_{t-1})\sqrt{1 - \beta_t}}{1 - \alpha_t}\, z_t + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1 - \alpha_t}\, x$. Substituindo os valores dados, o coeficiente de $z_t$ é $\tfrac{(1 - 0.9)\sqrt{1 - 0.2}}{1 - 0.72} = \tfrac{0.1\cdot 0.8944}{0.28} \approx 0.319$, e o coeficiente de $x$ é $\tfrac{\sqrt{0.9}\cdot 0.2}{0.28} = \tfrac{0.9487\cdot 0.2}{0.28} \approx 0.678$. A (b) confunde o coeficiente de $z_t$ com $\sqrt{1 - \beta_t}$ e o de $x$ com $\beta_t$ puro (esquece a normalização por $1 - \alpha_t$). A (c) inflaciona o coeficiente de $z_t$ ao usar $1 - \beta_t$ no lugar de $\sqrt{1 - \beta_t}$. A (d) confunde com a média de $q(z_{t-1} \mid x)$ derivada do kernel direto, sem a correção bayesiana introduzida pela condição em $z_t$.
+    \item No slide ``Porém\ldots\ um detalhe empírico'' fica explícito: a escolha de predizer $\boldsymbol{\epsilon}$ é uma observação empírica de que treinar a rede para estimar o ruído produz melhores resultados que estimar $\mathbf{x}$ diretamente. As alternativas (a), (b) e (d) descrevem consequências falsas dessa reparametrização.
+    \item Pelo slide ``Distribuição condicional, Produto de gaussianas'', a média é $\tfrac{(1 - \alpha_{t-1})\sqrt{1 - \beta_t}}{1 - \alpha_t}\, \mathbf{z}_t + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1 - \alpha_t}\, \mathbf{x}$. Substituindo os valores dados, o coeficiente de $\mathbf{z}_t$ é $\tfrac{(1 - 0.9)\sqrt{1 - 0.2}}{1 - 0.72} = \tfrac{0.1\cdot 0.8944}{0.28} \approx 0.319$, e o coeficiente de $\mathbf{x}$ é $\tfrac{\sqrt{0.9}\cdot 0.2}{0.28} = \tfrac{0.9487\cdot 0.2}{0.28} \approx 0.678$. A (b) confunde o coeficiente de $\mathbf{z}_t$ com $\sqrt{1 - \beta_t}$ e o de $\mathbf{x}$ com $\beta_t$ puro (esquece a normalização por $1 - \alpha_t$). A (c) inflaciona o coeficiente de $\mathbf{z}_t$ ao usar $1 - \beta_t$ no lugar de $\sqrt{1 - \beta_t}$. A (d) confunde com a média de $q(\mathbf{z}_{t-1} \mid \mathbf{x})$ derivada do kernel direto, sem a correção bayesiana introduzida pela condição em $\mathbf{z}_t$.
     \item Pelo slide ``Onde modelos difusores ficam no trilema'', modelos difusores ocupam o canto qualidade $+$ cobertura, com amostragem tipicamente lenta ($T \approx 1000$ passos pela U-Net). A (b) confunde com GANs. A (c) confunde com modelos autoregressivos rápidos de baixa fidelidade. A (d) descreveria um modelo ideal que ainda não existe.
     \item No slide ``\textit{Latent Diffusion Models}'', a motivação central é o custo computacional, o latente é $\sim 64\times 64$ contra $1024\times 1024$ em pixels. A (a) é falsa: \textit{Latent Diffusion} é compatível com \textit{classifier-free guidance}. A (c) é falsa: a \textit{loss} continua não convexa. A (d) é falsa: a U-Net continua sendo a arquitetura padrão para o estimador de ruído no espaço latente.
 \end{enumerate}
@@ -174,18 +175,18 @@
 % ------------------------------------------------------------------
 % D1 — Medium (numerical: forward sample at t=2)
 % ------------------------------------------------------------------
-\item Seja o \textit{noise schedule} $\boldsymbol{\beta} = (0.1,\, 0.3)$ com $T = 2$ e $x = 1$.
+\item Seja o \textit{noise schedule} $\boldsymbol{\beta} = (0.1,\, 0.3)$ com $T = 2$ e $\mathbf{x} = 1$.
 \begin{enumerate}[(a)]
     \item Calcule $\alpha_1$ e $\alpha_2$.
-    \item Usando o kernel de difusão, escreva $q(z_2 \mid x)$ explicitamente (média e variância).
-    \item Para $\epsilon = -1.0$, calcule o valor amostrado de $z_2$ via kernel.
-    \item Compare $z_2$ com a média da distribuição $q(z_2 \mid x)$. Em uma frase, interprete o resultado.
+    \item Usando o kernel de difusão, escreva $q(\mathbf{z}_2 \mid \mathbf{x})$ explicitamente (média e variância).
+    \item Para $\boldsymbol{\epsilon} = -1.0$, calcule o valor amostrado de $\mathbf{z}_2$ via kernel.
+    \item Compare $\mathbf{z}_2$ com a média da distribuição $q(\mathbf{z}_2 \mid \mathbf{x})$. Em uma frase, interprete o resultado.
 \end{enumerate}
 
 % ------------------------------------------------------------------
 % D2 — Hard (derivation of kernel for T=2)
 % ------------------------------------------------------------------
-\item \emoji{skull-and-crossbones} Partindo das definições passo a passo $z_1 = \sqrt{1 - \beta_1}\,x + \sqrt{\beta_1}\,\epsilon_1$ e $z_2 = \sqrt{1 - \beta_2}\,z_1 + \sqrt{\beta_2}\,\epsilon_2$, com $\epsilon_1, \epsilon_2 \sim \mathcal{N}(0,\mathbf{I})$ independentes, mostre algebricamente que existe um único ruído $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ tal que $z_2 = \sqrt{\alpha_2}\,x + \sqrt{1 - \alpha_2}\,\epsilon$, onde $\alpha_2 = (1 - \beta_1)(1 - \beta_2)$. Indique claramente onde a propriedade ``soma de gaussianas independentes'' é usada.
+\item \emoji{skull-and-crossbones} Partindo das definições passo a passo $\mathbf{z}_1 = \sqrt{1 - \beta_1}\,\mathbf{x} + \sqrt{\beta_1}\,\boldsymbol{\epsilon}_1$ e $\mathbf{z}_2 = \sqrt{1 - \beta_2}\,\mathbf{z}_1 + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2$, com $\boldsymbol{\epsilon}_1, \boldsymbol{\epsilon}_2 \sim \mathcal{N}(0,\mathbf{I})$ independentes, mostre algebricamente que existe um único ruído $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$ tal que $\mathbf{z}_2 = \sqrt{\alpha_2}\,\mathbf{x} + \sqrt{1 - \alpha_2}\,\boldsymbol{\epsilon}$, onde $\alpha_2 = (1 - \beta_1)(1 - \beta_2)$. Indique claramente onde a propriedade ``soma de gaussianas independentes'' é usada.
 
 % ------------------------------------------------------------------
 % D3 — Medium (compare diffusion vs VAE vs GAN)
@@ -195,7 +196,7 @@
 % ------------------------------------------------------------------
 % D4 — Hard (classifier-free guidance reasoning)
 % ------------------------------------------------------------------
-\item \emoji{skull-and-crossbones} Em \textit{classifier-free guidance}, treina-se uma única rede que pode operar em modo condicional, isto é, $g_t[z_t, c]$, ou incondicional, $g_t[z_t, \varnothing]$. Na amostragem, define-se um estimador guiado $\tilde{g}_t = (1 + w)\, g_t[z_t, c] - w\, g_t[z_t, \varnothing]$, com $w \geq 0$.
+\item \emoji{skull-and-crossbones} Em \textit{classifier-free guidance}, treina-se uma única rede que pode operar em modo condicional, isto é, $g_t[\mathbf{z}_t, c]$, ou incondicional, $g_t[\mathbf{z}_t, \varnothing]$. Na amostragem, define-se um estimador guiado $\tilde{g}_t = (1 + w)\, g_t[\mathbf{z}_t, c] - w\, g_t[\mathbf{z}_t, \varnothing]$, com $w \geq 0$.
 \begin{enumerate}[(a)]
     \item Explique como o treinamento incondicional é obtido a partir do mesmo modelo (sem treinar duas redes separadas).
     \item Para $w = 0$, qual amostrador é recuperado? E para $w \to \infty$ (ou valores muito grandes), qual o efeito esperado nas amostras geradas?
@@ -209,29 +210,29 @@
 \begin{enumerate}[I)]
     \item \textbf{(a)} $\alpha_1 = 1 - 0.1 = 0.9$; $\alpha_2 = (1 - 0.1)(1 - 0.3) = 0.9 \cdot 0.7 = 0.63$.
 
-    \textbf{(b)} Pelo kernel, $q(z_2 \mid x) = \mathcal{N}_{z_2}[\sqrt{\alpha_2}\, x,\, (1 - \alpha_2)\,\mathbf{I}] = \mathcal{N}_{z_2}[\sqrt{0.63}\cdot 1,\, 0.37\,\mathbf{I}] \approx \mathcal{N}_{z_2}[0.794,\, 0.37\,\mathbf{I}]$.
+    \textbf{(b)} Pelo kernel, $q(\mathbf{z}_2 \mid \mathbf{x}) = \mathcal{N}_{\mathbf{z}_2}[\sqrt{\alpha_2}\, \mathbf{x},\, (1 - \alpha_2)\,\mathbf{I}] = \mathcal{N}_{\mathbf{z}_2}[\sqrt{0.63}\cdot 1,\, 0.37\,\mathbf{I}] \approx \mathcal{N}_{\mathbf{z}_2}[0.794,\, 0.37\,\mathbf{I}]$.
 
-    \textbf{(c)} $z_2 = \sqrt{0.63}\cdot 1 + \sqrt{0.37}\cdot (-1.0) \approx 0.794 + 0.608\cdot (-1.0) \approx 0.794 - 0.608 \approx 0.186$.
+    \textbf{(c)} $\mathbf{z}_2 = \sqrt{0.63}\cdot 1 + \sqrt{0.37}\cdot (-1.0) \approx 0.794 + 0.608\cdot (-1.0) \approx 0.794 - 0.608 \approx 0.186$.
 
-    \textbf{(d)} O valor amostrado $z_2 \approx 0.186$ está abaixo da média $\approx 0.794$ por aproximadamente um desvio-padrão ($\sqrt{0.37} \approx 0.608$), o que reflete a contribuição de um ruído $\epsilon = -1.0$ no kernel. Em uma população grande de amostras com o mesmo $x$, a média empírica de $z_2$ convergiria para $0.794$.
+    \textbf{(d)} O valor amostrado $\mathbf{z}_2 \approx 0.186$ está abaixo da média $\approx 0.794$ por aproximadamente um desvio-padrão ($\sqrt{0.37} \approx 0.608$), o que reflete a contribuição de um ruído $\boldsymbol{\epsilon} = -1.0$ no kernel. Em uma população grande de amostras com o mesmo $\mathbf{x}$, a média empírica de $\mathbf{z}_2$ convergiria para $0.794$.
 
-    \item Partindo de $z_2 = \sqrt{1 - \beta_2}\,z_1 + \sqrt{\beta_2}\,\epsilon_2$ e substituindo $z_1$:
+    \item Partindo de $\mathbf{z}_2 = \sqrt{1 - \beta_2}\,\mathbf{z}_1 + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2$ e substituindo $\mathbf{z}_1$:
     \[
-      z_2 = \sqrt{1 - \beta_2}\!\left(\sqrt{1 - \beta_1}\,x + \sqrt{\beta_1}\,\epsilon_1\right) + \sqrt{\beta_2}\,\epsilon_2.
+      \mathbf{z}_2 = \sqrt{1 - \beta_2}\!\left(\sqrt{1 - \beta_1}\,\mathbf{x} + \sqrt{\beta_1}\,\boldsymbol{\epsilon}_1\right) + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2.
     \]
     Distribuindo,
     \[
-      z_2 = \sqrt{(1 - \beta_1)(1 - \beta_2)}\,x + \sqrt{(1 - \beta_2)\beta_1}\,\epsilon_1 + \sqrt{\beta_2}\,\epsilon_2.
+      \mathbf{z}_2 = \sqrt{(1 - \beta_1)(1 - \beta_2)}\,\mathbf{x} + \sqrt{(1 - \beta_2)\beta_1}\,\boldsymbol{\epsilon}_1 + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2.
     \]
-    Como $\epsilon_1$ e $\epsilon_2$ são gaussianas independentes de média zero e variância $1$, a soma $\sqrt{(1 - \beta_2)\beta_1}\,\epsilon_1 + \sqrt{\beta_2}\,\epsilon_2$ é uma gaussiana de média zero e variância
+    Como $\boldsymbol{\epsilon}_1$ e $\boldsymbol{\epsilon}_2$ são gaussianas independentes de média zero e variância $1$, a soma $\sqrt{(1 - \beta_2)\beta_1}\,\boldsymbol{\epsilon}_1 + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2$ é uma gaussiana de média zero e variância
     \[
       (1 - \beta_2)\beta_1 + \beta_2 = \beta_1 + \beta_2 - \beta_1\beta_2 = 1 - (1 - \beta_1)(1 - \beta_2) = 1 - \alpha_2.
     \]
-    Portanto existe um único $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ tal que $\sqrt{(1 - \beta_2)\beta_1}\,\epsilon_1 + \sqrt{\beta_2}\,\epsilon_2 = \sqrt{1 - \alpha_2}\,\epsilon$, e segue
+    Portanto existe um único $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$ tal que $\sqrt{(1 - \beta_2)\beta_1}\,\boldsymbol{\epsilon}_1 + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2 = \sqrt{1 - \alpha_2}\,\boldsymbol{\epsilon}$, e segue
     \[
-      z_2 = \sqrt{\alpha_2}\,x + \sqrt{1 - \alpha_2}\,\epsilon, \qquad \alpha_2 = (1 - \beta_1)(1 - \beta_2). \qed
+      \mathbf{z}_2 = \sqrt{\alpha_2}\,\mathbf{x} + \sqrt{1 - \alpha_2}\,\boldsymbol{\epsilon}, \qquad \alpha_2 = (1 - \beta_1)(1 - \beta_2). \qed
     \]
-    A propriedade ``soma de gaussianas independentes é gaussiana com variâncias somadas'' é usada exatamente no passo onde combinamos $\epsilon_1$ e $\epsilon_2$ em um único $\epsilon$.
+    A propriedade ``soma de gaussianas independentes é gaussiana com variâncias somadas'' é usada exatamente no passo onde combinamos $\boldsymbol{\epsilon}_1$ e $\boldsymbol{\epsilon}_2$ em um único $\boldsymbol{\epsilon}$.
 
     \item \textbf{Tabela comparativa:}
     \begin{center}
@@ -250,9 +251,9 @@
 
     \item \textbf{(a)} Durante o treinamento, com probabilidade $p$ (tipicamente $p \approx 0.1$) o vetor de condicionamento $c$ é substituído por um \textit{token} ou \textit{embedding} especial $\varnothing$, ``descondicionando'' o exemplo. A mesma rede aprende a operar tanto em modo condicional quanto incondicional, sem necessidade de treinar uma segunda rede separada.
 
-    \textbf{(b)} Para $w = 0$, $\tilde{g}_t = g_t[z_t, c]$, ou seja, o amostrador condicional puro. Para $w \to \infty$, o estimador guiado afasta-se cada vez mais da estimativa incondicional na direção da estimativa condicional, exagerando os traços da condição $c$. Na prática isso aumenta a aderência à condição (e.g., \textit{prompt} de texto) ao preço de menor diversidade e, em valores muito altos, artefatos visuais.
+    \textbf{(b)} Para $w = 0$, $\tilde{g}_t = g_t[\mathbf{z}_t, c]$, ou seja, o amostrador condicional puro. Para $w \to \infty$, o estimador guiado afasta-se cada vez mais da estimativa incondicional na direção da estimativa condicional, exagerando os traços da condição $c$. Na prática isso aumenta a aderência à condição (e.g., \textit{prompt} de texto) ao preço de menor diversidade e, em valores muito altos, artefatos visuais.
 
-    \textbf{(c)} O estimador guiado equivale, na perspectiva de \textit{score matching}, a amostrar de uma distribuição proporcional a $p(z_t \mid c)\, [p(z_t \mid c)/p(z_t)]^{w}$, que reforça a razão de verossimilhança da condição. Valores intermediários de $w$ amplificam essa razão sem destruir o suporte da distribuição original, produzindo amostras mais alinhadas com $c$ sem precisar de um classificador externo treinado separadamente.
+    \textbf{(c)} O estimador guiado equivale, na perspectiva de \textit{score matching}, a amostrar de uma distribuição proporcional a $p(\mathbf{z}_t \mid c)\, [p(\mathbf{z}_t \mid c)/p(\mathbf{z}_t)]^{w}$, que reforça a razão de verossimilhança da condição. Valores intermediários de $w$ amplificam essa razão sem destruir o suporte da distribuição original, produzindo amostras mais alinhadas com $c$ sem precisar de um classificador externo treinado separadamente.
 \end{enumerate}
 \color{black}
 

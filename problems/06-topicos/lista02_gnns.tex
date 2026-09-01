@@ -5,7 +5,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $G = (V, E)$ para o grafo, $A$ para a \textit{adjacency matrix}, $X$ para os atributos de nó, $\mathcal{N}(v)$ para a vizinhança de $v$, $h^{(k)}_v$ para o embedding de $v$ na camada $k$, $\tilde A = A + I$ e $\tilde D = \mathrm{diag}(\tilde A \mathbf{1})$ para a normalização do GCN, e $\alpha_{vu}$ para os coeficientes de atenção do GAT. Em valores numéricos use a vírgula como separador decimal.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $G = (V, E)$ para o grafo, $\mathbf{A}$ para a \textit{adjacency matrix}, $\mathbf{X}$ para os atributos de nó, $\mathcal{N}(v)$ para a vizinhança de $v$, $\mathbf{h}^{(k)}_v$ para o embedding de $v$ na camada $k$, $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ e $\tilde{\mathbf{D}} = \mathrm{diag}(\tilde{\mathbf{A}} \mathbf{1})$ para a normalização do GCN, e $\alpha_{vu}$ para os coeficientes de atenção do GAT. Em valores numéricos use a vírgula como separador decimal.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -33,7 +33,7 @@
     \[
         \frac{1}{|\mathcal{N}(v) \cup \{v\}|}\sum_{u \in \mathcal{N}(v) \cup \{v\}} h^{(0)}_u,
     \]
-    com atributos escalares iniciais $h^{(0)} = (1,\, 2,\, 3,\, 4)^\top$. Qual é o valor agregado para o nó $2$?
+    com atributos escalares iniciais $\mathbf{h}^{(0)} = (1,\, 2,\, 3,\, 4)^\top$. Qual é o valor agregado para o nó $2$?
     \begin{enumerate}[(a)]
         \item $2{,}5$
         \item $3{,}0$
@@ -42,11 +42,11 @@
         %a
     \end{enumerate}
 
-    \item Na forma matricial do GCN, $H^{(k)} = \sigma(\tilde D^{-1/2} \tilde A \tilde D^{-1/2} H^{(k-1)} W^{(k)})$, o fator $\tilde D^{-1/2} \tilde A \tilde D^{-1/2}$ é calculado uma única vez e reaproveitado a cada camada e a cada época. Qual característica do problema justifica esse reaproveitamento?
+    \item Na forma matricial do GCN, $\mathbf{H}^{(k)} = \sigma(\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)})$, o fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ é calculado uma única vez e reaproveitado a cada camada e a cada época. Qual característica do problema justifica esse reaproveitamento?
     \begin{enumerate}[(a)]
         \item Esse fator não contém parâmetros aprendíveis e depende somente da estrutura fixa do grafo.
         \item Esse fator é recalculado por \textit{backpropagation} mas converge nas primeiras épocas.
-        \item Esse fator depende de $W^{(k)}$, que permanece congelado durante todo o treino.
+        \item Esse fator depende de $\mathbf{W}^{(k)}$, que permanece congelado durante todo o treino.
         \item Esse fator muda a cada camada porque incorpora a não-linearidade $\sigma$.
         %a
     \end{enumerate}
@@ -71,7 +71,7 @@
 
     \item Um modelo treinado em um conjunto de grafos de moléculas precisa ser aplicado a moléculas inéditas no momento do teste. Entre GCN na forma matricial e GraphSAGE com \textit{neighbor sampling}, qual escolha é mais adequada e por qual razão estrutural?
     \begin{enumerate}[(a)]
-        \item GCN, pois a matriz $\tilde D^{-1/2} \tilde A \tilde D^{-1/2}$ generaliza diretamente para grafos não vistos.
+        \item GCN, pois a matriz $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ generaliza diretamente para grafos não vistos.
         \item GraphSAGE, pois aprende uma função de agregação aplicável a vizinhanças de qualquer grafo.
         \item GCN, pois o reaproveitamento do fator de propagação reduz o custo em grafos novos.
         \item GraphSAGE, pois a amostragem de vizinhos elimina a necessidade de atributos de nó.
@@ -120,11 +120,11 @@
 
 \begin{enumerate}[I)]
 
-    \item (\textbf{Propagação do GCN à mão}) Considere o caminho $G$ com $V = \{1,2,3\}$ e arestas $E = \{(1,2),(2,3)\}$, atributos escalares iniciais $h^{(0)} = (2,\, 4,\, 6)^\top$, $W^{(1)} = 1$ e $\sigma = \mathrm{Id}$.
+    \item (\textbf{Propagação do GCN à mão}) Considere o caminho $G$ com $V = \{1,2,3\}$ e arestas $E = \{(1,2),(2,3)\}$, atributos escalares iniciais $\mathbf{h}^{(0)} = (2,\, 4,\, 6)^\top$, $W^{(1)} = 1$ e $\sigma = \mathrm{Id}$.
     \begin{enumerate}[(a)]
-        \item Escreva $\tilde A = A + I$ e o vetor de graus $\tilde d$ no grafo com auto-laços.
-        \item Calcule a matriz normalizada $\hat A = \tilde D^{-1/2} \tilde A \tilde D^{-1/2}$, entrada a entrada.
-        \item Calcule $h^{(1)} = \hat A\, h^{(0)}$ e interprete por que o valor do nó central difere dos valores das pontas.
+        \item Escreva $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ e o vetor de graus $\tilde{\mathbf{d}}$ no grafo com auto-laços.
+        \item Calcule a matriz normalizada $\hat{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$, entrada a entrada.
+        \item Calcule $\mathbf{h}^{(1)} = \hat{\mathbf{A}}\, \mathbf{h}^{(0)}$ e interprete por que o valor do nó central difere dos valores das pontas.
     \end{enumerate}
 
     \item (\textbf{Tarefas e \textit{readout}}) Para cada uma das três tarefas canônicas em grafos, descreva o que se prevê e qual estratégia de \textit{readout} é adequada.
@@ -137,7 +137,7 @@
     \item \emoji{skull-and-crossbones} (\textbf{Soma, média e expressividade}) Considere um nó $v$ com dois vizinhos e um nó $v'$ com um único vizinho, todos os vizinhos carregando o mesmo atributo escalar $a$. Os \textit{multisets} de vizinhos são $\{\!\!\{a, a\}\!\!\}$ para $v$ e $\{\!\!\{a\}\!\!\}$ para $v'$.
     \begin{enumerate}[(a)]
         \item Calcule o resultado de agregar por média e por soma em cada caso e indique qual operação distingue $v$ de $v'$.
-        \item Explique por que essa propriedade é descrita como injetividade sobre \textit{multisets} e relacione-a à camada do GIN, $h^{(k)}_v = \mathrm{MLP}^{(k)}((1 + \epsilon^{(k)}) h^{(k-1)}_v + \sum_{u \in \mathcal{N}(v)} h^{(k-1)}_u)$.
+        \item Explique por que essa propriedade é descrita como injetividade sobre \textit{multisets} e relacione-a à camada do GIN, $\mathbf{h}^{(k)}_v = \mathrm{MLP}^{(k)}((1 + \epsilon^{(k)}) \mathbf{h}^{(k-1)}_v + \sum_{u \in \mathcal{N}(v)} \mathbf{h}^{(k-1)}_u)$.
         \item Dê um exemplo de tarefa em que essa distinção entre vizinhanças importa na prática e justifique.
     \end{enumerate}
 
@@ -156,13 +156,13 @@
 
 \paragraph{Múltipla Escolha.}
 \begin{enumerate}[I)]
-    \item \textbf{(a)} Contando as arestas incidentes a cada nó: o nó $1$ aparece só em $(1,2)$, logo $d_1 = 1$; o nó $2$ aparece em $(1,2),(2,3),(2,4)$, logo $d_2 = 3$; o nó $3$ aparece em $(2,3),(3,4)$, logo $d_3 = 2$; o nó $4$ aparece em $(2,4),(3,4)$, logo $d_4 = 2$. O vetor $(2,4,3,3)$ corresponde aos graus no grafo com auto-laços $\tilde A = A + I$, não ao grafo original. As outras opções não batem com a lista de arestas.
+    \item \textbf{(a)} Contando as arestas incidentes a cada nó: o nó $1$ aparece só em $(1,2)$, logo $d_1 = 1$; o nó $2$ aparece em $(1,2),(2,3),(2,4)$, logo $d_2 = 3$; o nó $3$ aparece em $(2,3),(3,4)$, logo $d_3 = 2$; o nó $4$ aparece em $(2,4),(3,4)$, logo $d_4 = 2$. O vetor $(2,4,3,3)$ corresponde aos graus no grafo com auto-laços $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$, não ao grafo original. As outras opções não batem com a lista de arestas.
 
     \item \textbf{(b)} A equivariância à permutação exige que reordenar os vizinhos não altere o resultado da agregação, ou seja, que $\mathrm{AGG}$ seja invariante à ordem de seus argumentos (soma, média, máximo e atenção satisfazem isso). Linearidade não é necessária nem suficiente. Depender do grau ou ser injetiva sobre vetores individuais são propriedades distintas que não garantem invariância à ordem.
 
     \item \textbf{(a)} A vizinhança de $2$ é $\{1,3,4\}$, então $\mathcal{N}(2) \cup \{2\} = \{1,2,3,4\}$ com os quatro valores $(1,2,3,4)$. A média é $(1+2+3+4)/4 = 10/4 = 2{,}5$. A opção $3{,}0$ ignora o próprio nó na contagem, $4{,}5$ usa apenas alguns vizinhos e $2{,}0$ não corresponde a nenhuma agregação coerente.
 
-    \item \textbf{(a)} O fator $\tilde D^{-1/2} \tilde A \tilde D^{-1/2}$ depende apenas de $\tilde A$ e $\tilde D$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não é produzido por \textit{backpropagation}, não depende de $W^{(k)}$ e não incorpora $\sigma$, que é aplicada fora dele.
+    \item \textbf{(a)} O fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ depende apenas de $\tilde{\mathbf{A}}$ e $\tilde{\mathbf{D}}$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não é produzido por \textit{backpropagation}, não depende de $\mathbf{W}^{(k)}$ e não incorpora $\sigma$, que é aplicada fora dele.
 
     \item \textbf{(b)} Com auto-laços, os graus são $\tilde d_2 = 4$ e $\tilde d_3 = 3$, então o peso é $1/\sqrt{4 \cdot 3} = 1/\sqrt{12} \approx 0{,}29$. O valor $0{,}41 = 1/\sqrt{6}$ usaria graus $2$ e $3$, $0{,}50$ ignoraria a normalização cruzada e $0{,}33$ corresponderia a uma média simples por grau.
 
@@ -172,7 +172,7 @@
 
     \item \textbf{(c)} A $\mathrm{softmax}$ dos \textit{scores} $(2{,}0,\, 1{,}0,\, 1{,}5)$ dá $\exp(2{,}0) \approx 7{,}39$, $\exp(1{,}0) \approx 2{,}72$ e $\exp(1{,}5) \approx 4{,}48$, com soma $\approx 14{,}59$. Então $\alpha_{v,u_1} \approx 7{,}39/14{,}59 \approx 0{,}51$. Os valores $0{,}33$, $0{,}19$ e $0{,}67$ correspondem a outras normalizações ou aos demais coeficientes.
 
-    \item \textbf{(a)} No GCN o peso de cada vizinho é $1/\sqrt{\tilde d_v \tilde d_u}$, fixado pelos graus e idêntico para qualquer tarefa. No GAT o coeficiente $\alpha_{vu}$ é obtido de $e_{vu} = \mathrm{LeakyReLU}(\mathbf{a}^\top [W h_v \Vert W h_u])$, ou seja, depende do conteúdo dos embeddings e se ajusta à tarefa. As demais opções trocam os papéis ou descrevem ambos como fixos.
+    \item \textbf{(a)} No GCN o peso de cada vizinho é $1/\sqrt{\tilde d_v \tilde d_u}$, fixado pelos graus e idêntico para qualquer tarefa. No GAT o coeficiente $\alpha_{vu}$ é obtido de $e_{vu} = \mathrm{LeakyReLU}(\mathbf{a}^\top [\mathbf{W} \mathbf{h}_v \Vert \mathbf{W} \mathbf{h}_u])$, ou seja, depende do conteúdo dos embeddings e se ajusta à tarefa. As demais opções trocam os papéis ou descrevem ambos como fixos.
 
     \item \textbf{(b)} Empilhar muitas camadas em um grafo de diâmetro pequeno leva ao \textit{oversmoothing}: após poucas camadas cada nó já vê quase todo o grafo e os embeddings convergem para vetores quase idênticos, perdendo poder discriminativo. \textit{Skip connections} atacam isso preservando a informação da camada anterior em cada passo. As outras opções diagnosticam fenômenos que não explicam a queda observada com mais camadas.
 
@@ -185,14 +185,14 @@
     \begin{enumerate}[(a)]
         \item Para o caminho $1$, $2$, $3$, a matriz de adjacência é
         \[
-            A = \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix},
+            \mathbf{A} = \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix},
             \qquad
-            \tilde A = A + I = \begin{bmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{bmatrix}.
+            \tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I} = \begin{bmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{bmatrix}.
         \]
-        Os graus com auto-laços são as somas das linhas: $\tilde d = (2,\, 3,\, 2)$.
-        \item Cada entrada é $\hat A_{ij} = \tilde A_{ij}/\sqrt{\tilde d_i \tilde d_j}$. Com $\tilde d = (2,3,2)$:
+        Os graus com auto-laços são as somas das linhas: $\tilde{\mathbf{d}} = (2,\, 3,\, 2)$.
+        \item Cada entrada é $\hat A_{ij} = \tilde A_{ij}/\sqrt{\tilde d_i \tilde d_j}$. Com $\tilde{\mathbf{d}} = (2,3,2)$:
         \[
-            \hat A = \begin{bmatrix}
+            \hat{\mathbf{A}} = \begin{bmatrix}
                 1/2 & 1/\sqrt{6} & 0 \\
                 1/\sqrt{6} & 1/3 & 1/\sqrt{6} \\
                 0 & 1/\sqrt{6} & 1/2
@@ -203,20 +203,20 @@
                 0 & 0{,}41 & 0{,}50
             \end{bmatrix}.
         \]
-        \item Aplicando a $h^{(0)} = (2,4,6)^\top$:
+        \item Aplicando a $\mathbf{h}^{(0)} = (2,4,6)^\top$:
         \begin{align*}
             h^{(1)}_1 &\approx 0{,}50 \cdot 2 + 0{,}41 \cdot 4 = 2{,}63, \\
             h^{(1)}_2 &\approx 0{,}41 \cdot 2 + 0{,}33 \cdot 4 + 0{,}41 \cdot 6 = 4{,}60, \\
             h^{(1)}_3 &\approx 0{,}41 \cdot 4 + 0{,}50 \cdot 6 = 4{,}63,
         \end{align*}
-        ou seja, $h^{(1)} \approx (2{,}63,\, 4{,}60,\, 4{,}63)^\top$. O nó central $2$ recebe contribuições dos três valores ($1$, $3$ e ele próprio), com peso menor sobre si mesmo por ter grau maior, enquanto as pontas $1$ e $3$ agregam apenas dois valores com peso $0{,}50$ sobre si, o que explica a diferença entre o valor central e os das pontas.
+        ou seja, $\mathbf{h}^{(1)} \approx (2{,}63,\, 4{,}60,\, 4{,}63)^\top$. O nó central $2$ recebe contribuições dos três valores ($1$, $3$ e ele próprio), com peso menor sobre si mesmo por ter grau maior, enquanto as pontas $1$ e $3$ agregam apenas dois valores com peso $0{,}50$ sobre si, o que explica a diferença entre o valor central e os das pontas.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
-        \item \textit{Node classification}: prevê-se o rótulo de cada nó (por exemplo, a subárea de um artigo em uma rede de citações). O \textit{readout} usa diretamente o embedding $h_v$ do nó, passado por um classificador.
-        \item \textit{Link prediction}: prevê-se se uma aresta $(u,v)$ existe ou existirá (por exemplo, recomendar um item a um usuário). O \textit{readout} combina os embeddings $h_u$ e $h_v$, por concatenação, produto interno ou um MLP sobre o par, para produzir um \textit{score} de existência.
-        \item \textit{Graph classification}: prevê-se um rótulo do grafo inteiro (por exemplo, se uma molécula é tóxica). O \textit{readout} agrega todos os $h_v$ por \textit{pooling} (soma, média, máximo ou atenção) para obter $h_G$. Esse \textit{pooling} precisa ser invariante à permutação porque o grafo não tem ordem canônica de nós: reordenar os nós não pode mudar a predição sobre o grafo.
+        \item \textit{Node classification}: prevê-se o rótulo de cada nó (por exemplo, a subárea de um artigo em uma rede de citações). O \textit{readout} usa diretamente o embedding $\mathbf{h}_v$ do nó, passado por um classificador.
+        \item \textit{Link prediction}: prevê-se se uma aresta $(u,v)$ existe ou existirá (por exemplo, recomendar um item a um usuário). O \textit{readout} combina os embeddings $\mathbf{h}_u$ e $\mathbf{h}_v$, por concatenação, produto interno ou um MLP sobre o par, para produzir um \textit{score} de existência.
+        \item \textit{Graph classification}: prevê-se um rótulo do grafo inteiro (por exemplo, se uma molécula é tóxica). O \textit{readout} agrega todos os $\mathbf{h}_v$ por \textit{pooling} (soma, média, máximo ou atenção) para obter $\mathbf{h}_G$. Esse \textit{pooling} precisa ser invariante à permutação porque o grafo não tem ordem canônica de nós: reordenar os nós não pode mudar a predição sobre o grafo.
     \end{enumerate}
 
     \item
@@ -229,7 +229,7 @@
     \item
     \begin{enumerate}[(a)]
         \item Cada camada faz o nó agregar informação de mais um salto, então após $K$ camadas o embedding de $v$ reúne informação a até $K$-hops. Em um grafo de diâmetro pequeno, depois de poucas camadas todos os nós já enxergam praticamente o grafo inteiro e suas representações passam a misturar as mesmas mensagens repetidamente, convergindo para embeddings quase idênticos. Esse é o \textit{oversmoothing}: os nós deixam de ser distinguíveis e a acurácia cai.
-        \item Duas mitigações vistas em aula: (i) \textit{skip connections} no estilo $h^{(k)}_v = h^{(k-1)}_v + \mathrm{GNN}^{(k)}(\ldots)$, que preservam a informação da camada anterior e impedem que o embedding seja totalmente substituído pela média dos vizinhos; (ii) \textit{Jumping Knowledge} (JK-Net), que concatena ou faz \textit{max-pool} das ativações de todas as camadas no final, recuperando representações menos suavizadas das camadas iniciais. (Outras respostas válidas: \textit{DropEdge}, normalizações como \textit{PairNorm}, ou atenção global de Graph Transformers.)
+        \item Duas mitigações vistas em aula: (i) \textit{skip connections} no estilo $\mathbf{h}^{(k)}_v = \mathbf{h}^{(k-1)}_v + \mathrm{GNN}^{(k)}(\ldots)$, que preservam a informação da camada anterior e impedem que o embedding seja totalmente substituído pela média dos vizinhos; (ii) \textit{Jumping Knowledge} (JK-Net), que concatena ou faz \textit{max-pool} das ativações de todas as camadas no final, recuperando representações menos suavizadas das camadas iniciais. (Outras respostas válidas: \textit{DropEdge}, normalizações como \textit{PairNorm}, ou atenção global de Graph Transformers.)
         \item Aumentar a profundidade amplia o \textit{receptive field}, mas, passado o diâmetro do grafo, esse ganho vem acompanhado de \textit{oversmoothing}, que reduz a diversidade dos embeddings. Manter embeddings diversos favorece camadas rasas, que por sua vez limitam o \textit{receptive field}. Como aumentar a profundidade simultaneamente eleva o \textit{receptive field} e derruba a diversidade, não há como maximizar os três ao mesmo tempo: é preciso escolher um ponto de equilíbrio, em geral poucas camadas combinadas com mitigações.
     \end{enumerate}
 \end{enumerate}

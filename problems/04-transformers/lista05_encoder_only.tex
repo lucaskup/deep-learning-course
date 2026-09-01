@@ -58,17 +58,17 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
       $H = 12$ cabeças de atenção com $d_k = d/H = 64$ por cabeça.
       Em uma única camada de \textit{self-attention}, as projeções são:
       \[
-        W^Q,\; W^K,\; W^V \in \mathbb{R}^{d \times (H \cdot d_k)},
+        \mathbf{W}^Q,\; \mathbf{W}^K,\; \mathbf{W}^V \in \mathbb{R}^{d \times (H \cdot d_k)},
         \qquad
-        W^O \in \mathbb{R}^{(H \cdot d_k) \times d}.
+        \mathbf{W}^O \in \mathbb{R}^{(H \cdot d_k) \times d}.
       \]
       Ignorando vieses, quantos parâmetros treináveis existem nessas
       \textbf{quatro} matrizes em uma única camada?
 
 \begin{enumerate}[a)]
-    \item $589\,824$: apenas $W^Q$.
-    \item $1\,769\,472$: $W^Q, W^K, W^V$ sem a projeção de saída $W^O$.
-    \item $2\,359\,296$: as quatro matrizes $W^Q, W^K, W^V, W^O$.
+    \item $589\,824$: apenas $\mathbf{W}^Q$.
+    \item $1\,769\,472$: $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ sem a projeção de saída $\mathbf{W}^O$.
+    \item $2\,359\,296$: as quatro matrizes $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V, \mathbf{W}^O$.
     \item $4\,718\,592$: dupla contagem ao considerar dimensões de
           entrada e saída separadamente para cada projeção.
 \end{enumerate}
@@ -103,11 +103,11 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 % ------------------------------------------------------------------
 % Q4 — Médio (BERT: segment embeddings e tarefas par-de-sentença)
 % ------------------------------------------------------------------
-\item A representação de entrada do BERT é $\mathbf{x}_i = E_{\text{token}}(w_i)
-      + E_{\text{segmento}}(s_i) + E_{\text{posição}}(i)$, onde
-      $E_{\text{segmento}}$ assume o valor $E_A$ para tokens da primeira
-      sentença e $E_B$ para tokens da segunda. Um pesquisador remove
-      o componente $E_{\text{segmento}}$ para simplificar o modelo.
+\item A representação de entrada do BERT é $\mathbf{x}_i = \mathbf{e}_{\text{token}}(w_i)
+      + \mathbf{e}_{\text{segmento}}(s_i) + \mathbf{e}_{\text{posição}}(i)$, onde
+      $\mathbf{e}_{\text{segmento}}$ assume o valor $\mathbf{e}_A$ para tokens da primeira
+      sentença e $\mathbf{e}_B$ para tokens da segunda. Um pesquisador remove
+      o componente $\mathbf{e}_{\text{segmento}}$ para simplificar o modelo.
       Em qual das seguintes tarefas essa remoção causaria a
       \textbf{maior degradação} de desempenho?
 
@@ -270,13 +270,13 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
 \item \emoji{skull-and-crossbones} Considere três \textit{embeddings}
       (já normalizados) e a \textit{triplet loss} com margem $\alpha = 0.5$:
       \[
-        f(x) = [1.0,\;0.0], \quad
-        f(x^+) = [0.6,\;0.8], \quad
-        f(x^-) = [-0.6,\;0.8],
+        \mathbf{f}(x) = [1.0,\;0.0], \quad
+        \mathbf{f}(x^+) = [0.6,\;0.8], \quad
+        \mathbf{f}(x^-) = [-0.6,\;0.8],
       \]
       \[
         \mathcal{L}_{\text{triplet}} = \max\!\bigl(0,\;
-          \|f(x)-f(x^+)\|_2^2 - \|f(x)-f(x^-)\|_2^2 + \alpha\bigr).
+          \|\mathbf{f}(x)-\mathbf{f}(x^+)\|_2^2 - \|\mathbf{f}(x)-\mathbf{f}(x^-)\|_2^2 + \alpha\bigr).
       \]
       Qual é o valor de $\mathcal{L}_{\text{triplet}}$?
 
@@ -344,8 +344,8 @@ $768 \times 768 = 589\,824$, e no total:
 \[
   4 \times 589\,824 = 2\,359\,296.
 \]
-A opção~(a) conta apenas $W^Q$.
-A opção~(b) omite a projeção de saída $W^O$, que transforma a concatenação das
+A opção~(a) conta apenas $\mathbf{W}^Q$.
+A opção~(b) omite a projeção de saída $\mathbf{W}^O$, que transforma a concatenação das
 cabeças de volta à dimensão $d$ e é tão grande quanto as demais.
 A opção~(d) duplica o resultado correto (erro de dupla contagem).
 
@@ -367,12 +367,12 @@ embedding} é somada antes de qualquer mascaramento.
 % --- Solução Q4 ---
 \subsection*{IV — Resposta: (c)}
 No formato SQuAD, a entrada é \texttt{[CLS] pergunta [SEP] contexto [SEP]}, com
-os tokens da pergunta recebendo $E_A$ e os do contexto recebendo $E_B$. Sem
+os tokens da pergunta recebendo $\mathbf{e}_A$ e os do contexto recebendo $\mathbf{e}_B$. Sem
 \textit{segment embeddings}, o modelo \textbf{não distingue} quais tokens são a
 pergunta e quais são o contexto, degradando drasticamente a tarefa de
 identificação de \textit{spans}.
 As tarefas (a), (b) e (d) operam em uma única sentença, portanto todos os tokens
-compartilhariam $E_A$: a remoção de $E_{\text{segmento}}$ não altera
+compartilhariam $\mathbf{e}_A$: a remoção de $\mathbf{e}_{\text{segmento}}$ não altera
 o comportamento nessas tarefas.
 
 % --- Solução Q5 ---
@@ -446,8 +446,8 @@ Na perda InfoNCE, para cada âncora $x_i$ o positivo $x_i^+$ deve ser identifica
 entre todos os $x_j^+$ do \textit{batch}:
 \[
   \mathcal{L}_{\text{NCE}} = -\frac{1}{N}\sum_{i=1}^{N} \log
-    \frac{e^{\text{sim}(f(x_i),\,f(x_i^+))/\tau}}
-         {\sum_{j=1}^{N} e^{\text{sim}(f(x_i),\,f(x_j^+))/\tau}}.
+    \frac{e^{\text{sim}(\mathbf{f}(x_i),\,\mathbf{f}(x_i^+))/\tau}}
+         {\sum_{j=1}^{N} e^{\text{sim}(\mathbf{f}(x_i),\,\mathbf{f}(x_j^+))/\tau}}.
 \]
 Com $N = 1\,024$, cada âncora compete com $1\,023$ negativos simultâneos, gerando
 gradiente mais rico e discriminativo. Empiricamente, o desempenho escala com
@@ -463,10 +463,10 @@ A opção~(d) erra: mais negativos melhoram a qualidade, não apenas a eficiênc
 \subsection*{X — Resposta: (a)}
 \textbf{Cálculo das distâncias quadráticas:}
 \begin{align*}
-  \|f(x) - f(x^+)\|_2^2
+  \|\mathbf{f}(x) - \mathbf{f}(x^+)\|_2^2
     &= (1.0 - 0.6)^2 + (0.0 - 0.8)^2
      = 0.16 + 0.64 = 0.80, \\
-  \|f(x) - f(x^-)\|_2^2
+  \|\mathbf{f}(x) - \mathbf{f}(x^-)\|_2^2
     &= (1.0 - (-0.6))^2 + (0.0 - 0.8)^2
      = 2.56 + 0.64 = 3.20.
 \end{align*}

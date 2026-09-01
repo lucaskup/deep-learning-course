@@ -298,7 +298,7 @@
   %--- Slide: InfoNCE formal ---
   \begin{frame}{A Perda \textit{InfoNCE}\footfullcite{oord2018infonce}}
     Em um \textit{batch} de $N$ pares $\{(\mathbf{u}_i, \mathbf{v}_i)\}_{i=1}^{N}$ (já normalizados),
-    formamos $S \in \mathbb{R}^{N\times N}$ com $S_{ij}=\mathbf{u}_i^{\top}\mathbf{v}_j$. Aqui $\tau>0$ é a \textit{temperatura} (próximo slide): controle de ``afiamento'' da \textit{softmax}.
+    formamos $\mathbf{S} \in \mathbb{R}^{N\times N}$ com $S_{ij}=\mathbf{u}_i^{\top}\mathbf{v}_j$. Aqui $\tau>0$ é a \textit{temperatura} (próximo slide): controle de ``afiamento'' da \textit{softmax}.
 
     \begin{block}{Loss simétrica de CLIP}
       \small
@@ -379,11 +379,11 @@
 
     \vspace{0.3em}
     \[
-      S = \begin{pmatrix} \mathbf{0.80} & 0.36 \\ 0.00 & \mathbf{0.96} \end{pmatrix}
+      \mathbf{S} = \begin{pmatrix} \mathbf{0.80} & 0.36 \\ 0.00 & \mathbf{0.96} \end{pmatrix}
     \]
-    Diagonal $=$ pares positivos; fora da diagonal $=$ negativos. Note que $S$ \textbf{não é simétrica}.
+    Diagonal $=$ pares positivos; fora da diagonal $=$ negativos. Note que $\mathbf{S}$ \textbf{não é simétrica}.
     \note{
-      Aponte: a diagonal está alta. Como $S$ não é simétrica, as duas direções
+      Aponte: a diagonal está alta. Como $\mathbf{S}$ não é simétrica, as duas direções
       (softmax por linha vs por coluna) darão perdas diferentes, motivando a loss
       simétrica do próximo slide.
     }
@@ -391,13 +391,13 @@
 
   %--- Slide: Worked example II — InfoNCE ---
   \begin{frame}{Exemplo Trabalhado II: \textit{InfoNCE} com $\tau$ Diferente}
-    Aplicamos \textit{softmax} linha a linha em $S/\tau$. A perda usa a probabilidade do par correto (a \textbf{diagonal}):
+    Aplicamos \textit{softmax} linha a linha em $\mathbf{S}/\tau$. A perda usa a probabilidade do par correto (a \textbf{diagonal}):
     \vspace{0.2em}
     \centering
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{@{}c|cc|cc|c@{}}
       \toprule
-      $\tau$ & $S/\tau$ linha 1 & $\mathrm{softmax}$ & $S/\tau$ linha 2 & $\mathrm{softmax}$ & $\mathcal{L}_{i\to t}$ \\
+      $\tau$ & $\mathbf{S}/\tau$ linha 1 & $\mathrm{softmax}$ & $\mathbf{S}/\tau$ linha 2 & $\mathrm{softmax}$ & $\mathcal{L}_{i\to t}$ \\
       \midrule
       $1.0$  & $(0.80,\, 0.36)$ & $(0.608,\, 0.392)$ & $(0.00,\, 0.96)$ & $(0.277,\, 0.723)$ & $\mathbf{0.411}$ \\
       $0.1$  & $(8.0,\, 3.6)$   & $(0.988,\, 0.012)$ & $(0.0,\, 9.6)$  & $(\approx 0,\, \approx 1)$ & $\mathbf{0.006}$ \\
@@ -422,7 +422,7 @@
     (e vice-versa). Total:
     \[
       \underbrace{N}_{\text{positivos}} \;+\; \underbrace{N(N{-}1)}_{\text{negativos}}
-      = N^2 \text{ comparações na matriz } S
+      = N^2 \text{ comparações na matriz } \mathbf{S}
     \]
 
     \vspace{0.3em}
@@ -478,7 +478,7 @@
       \node[draw=black, fill=PastelYellow, rounded corners=3pt,
             minimum width=2.0cm, minimum height=1.6cm, align=center, font=\small,
             right=0.4cm of ui, yshift=-1.5cm] (S)
-            {$S = U V^{\top}$ \\ $N \times N$};
+            {$\mathbf{S} = \mathbf{U} \mathbf{V}^{\top}$ \\ $N \times N$};
 
       \draw[arr, ClipGreen, thick] (ui) -- (S);
       \draw[arr, ClipGreen, thick] (vj) -- (S);
@@ -560,10 +560,10 @@
 
     Projetamos linearmente para a \textbf{mesma dimensão} $d_e$ e normalizamos:
     \[
-      \mathbf{u}_i = \frac{W_i\, \mathbf{h}_i^{\text{img}}}{\|W_i\, \mathbf{h}_i^{\text{img}}\|},\quad
-      \mathbf{v}_t = \frac{W_t\, \mathbf{h}_t^{\text{txt}}}{\|W_t\, \mathbf{h}_t^{\text{txt}}\|}
+      \mathbf{u}_i = \frac{\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}}{\|\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}\|},\quad
+      \mathbf{v}_t = \frac{\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}}{\|\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}\|}
     \]
-    com $W_i \in \mathbb{R}^{d_e \times d_v}$ e $W_t \in \mathbb{R}^{d_e \times d_t}$.
+    com $\mathbf{W}_i \in \mathbb{R}^{d_e \times d_v}$ e $\mathbf{W}_t \in \mathbb{R}^{d_e \times d_t}$.
 
     \vspace{0.4em}
     \begin{block}{Por que a normalização?}
@@ -579,7 +579,7 @@
         \begin{itemize}
           \item Entrada: batch de $N$ imagens e $N$ textos correspondentes
           \item Saída: \textbf{escalar} $\mathcal{L}_{\text{CLIP}}$
-          \item As duas \textit{cross-entropies} compartilham a mesma matriz $S$
+          \item As duas \textit{cross-entropies} compartilham a mesma matriz $\mathbf{S}$
         \end{itemize}
       \end{column}
       \begin{column}{0.50\textwidth}
@@ -587,12 +587,12 @@
           \Require batch $\{(\mathrm{img}_i, \mathrm{txt}_i)\}_{i=1}^{N}$, $\tau$
           \State $\mathbf{H}^{\text{img}} \gets \texttt{ImageEncoder}(\mathrm{img})$
           \State $\mathbf{H}^{\text{txt}} \gets \texttt{TextEncoder}(\mathrm{txt})$
-          \State $U \gets \texttt{normalize}(W_i\, \mathbf{H}^{\text{img}})$
-          \State $V \gets \texttt{normalize}(W_t\, \mathbf{H}^{\text{txt}})$
-          \State $S \gets U\, V^{\top} / \tau$
+          \State $\mathbf{U} \gets \texttt{normalize}(\mathbf{W}_i\, \mathbf{H}^{\text{img}})$
+          \State $\mathbf{V} \gets \texttt{normalize}(\mathbf{W}_t\, \mathbf{H}^{\text{txt}})$
+          \State $\mathbf{S} \gets \mathbf{U}\, \mathbf{V}^{\top} / \tau$
           \State $\mathbf{y} \gets [0, 1, \ldots, N{-}1]$
-          \State $\mathcal{L}_1 \gets \texttt{CE}(S, \mathbf{y})$
-          \State $\mathcal{L}_2 \gets \texttt{CE}(S^{\top}, \mathbf{y})$
+          \State $\mathcal{L}_1 \gets \texttt{CE}(\mathbf{S}, \mathbf{y})$
+          \State $\mathcal{L}_2 \gets \texttt{CE}(\mathbf{S}^{\top}, \mathbf{y})$
           \State \Return $(\mathcal{L}_1 + \mathcal{L}_2)/2$
         \end{algorithmic}
       \end{column}
@@ -605,7 +605,7 @@
     \resizebox{0.95\linewidth}{!}{%
     \begin{tabular}{@{}lrrrr@{}}
       \toprule
-      Variante & Params (enc. imagem) & FLOPs/imagem & Memória de $S$ ($N{=}32{\rm k}$) & Hardware (paper)\\
+      Variante & Params (enc. imagem) & FLOPs/imagem & Memória de $\mathbf{S}$ ($N{=}32{\rm k}$) & Hardware (paper)\\
       \midrule
       ResNet-50      & $\sim$38M & 4.1 GFLOPs & $\sim$4 GB (fp32) & --- \\
       ResNet-50x64   & $\sim$420M & 165 GFLOPs   & $\sim$4 GB        & 592 V100 / 18 dias \\
@@ -616,10 +616,10 @@
 
     \vspace{0.5em}
     \begin{itemize}\setlength{\itemsep}{0pt}
-      \item Memória de $S$ cresce \textbf{quadraticamente} com $N$
+      \item Memória de $\mathbf{S}$ cresce \textbf{quadraticamente} com $N$
       \item Truques: \textit{gradient checkpointing}, \textit{mixed precision}, \textit{shard} de embeddings
-      \item \textbf{Compute dominado pelos \textit{encoders}}: $\sim N \cdot \text{GFLOPs/imagem}$ contra $\sim N^2 d_e$ FLOPs do produto $U V^{\top}$ que forma $S$ (ordens de magnitude de diferença)
-      \item \textbf{Memória dominada pelas ativações dos \textit{encoders}} quando $S$ é distribuído via \textit{sharded embeddings}; sem \textit{shard}, $S$ ($\sim 4$ GB) seria competitivo
+      \item \textbf{Compute dominado pelos \textit{encoders}}: $\sim N \cdot \text{GFLOPs/imagem}$ contra $\sim N^2 d_e$ FLOPs do produto $\mathbf{U} \mathbf{V}^{\top}$ que forma $\mathbf{S}$ (ordens de magnitude de diferença)
+      \item \textbf{Memória dominada pelas ativações dos \textit{encoders}} quando $\mathbf{S}$ é distribuído via \textit{sharded embeddings}; sem \textit{shard}, $\mathbf{S}$ ($\sim 4$ GB) seria competitivo
     \end{itemize}
   \end{frame}
 
@@ -701,10 +701,10 @@
   %--- Slide: Truques de escala ---
   \begin{frame}{Truques para Escalar o \textit{Batch}}
     \begin{itemize}
-      \item \textbf{\textit{Sharded embeddings}}: distribuir $U$ e $V$ entre GPUs; cada GPU calcula sua fatia de $S$
+      \item \textbf{\textit{Sharded embeddings}}: distribuir $\mathbf{U}$ e $\mathbf{V}$ entre GPUs; cada GPU calcula sua fatia de $\mathbf{S}$
       \item \textbf{\textit{Gradient checkpointing}} nos \textit{encoders} pesados (ViT-L)
       \item \textbf{\textit{Mixed precision}} reduz memória dos forward passes pela metade
-      \item \textbf{\textit{Local contrastive}}: cada GPU vê o batch global de $V$ via \textit{all-gather}, calcula sua linha de $S$ e devolve gradientes
+      \item \textbf{\textit{Local contrastive}}: cada GPU vê o batch global de $\mathbf{V}$ via \textit{all-gather}, calcula sua linha de $\mathbf{S}$ e devolve gradientes
     \end{itemize}
 
     \vspace{0.4em}
@@ -883,7 +883,7 @@
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{block}{Cabeçalho linear}
-          Congelar CLIP, treinar uma camada $W \in \mathbb{R}^{K \times d_e}$
+          Congelar CLIP, treinar uma camada $\mathbf{W} \in \mathbb{R}^{K \times d_e}$
           sobre os \textit{embeddings}.\\ \footnotesize
           \textit{Linear probe} clássico, baixíssimo custo.
         \end{block}
@@ -894,7 +894,7 @@
       \end{column}
       \begin{column}{0.48\textwidth}
         \begin{block}{LoRA sobre os \textit{encoders}}
-          Adicionar matrizes de baixa ordem $W + \Delta = W + B A$ nos
+          Adicionar matrizes de baixa ordem $\mathbf{W} + \Delta = \mathbf{W} + \mathbf{B} \mathbf{A}$ nos
           \textit{transformers} de imagem e texto.\\
           \footnotesize Apenas $0.1$--$1\%$ dos parâmetros treinados.
         \end{block}
@@ -935,9 +935,9 @@
         \vspace{0.3em}
         \begin{enumerate}
           \item Imagem $\to$ $\mathbf{u} = f_{\text{img}}(\mathbf{x})$
-          \item Mapeamento $M: \mathbb{R}^{d_e} \to \mathbb{R}^{L \times d_{\text{LM}}}$ (\textit{prefix})
+          \item Mapeamento $\mathbf{M}: \mathbb{R}^{d_e} \to \mathbb{R}^{L \times d_{\text{LM}}}$ (\textit{prefix})
           \item GPT-2 gera tokens condicionado nesse prefixo
-          \item Treinar $M$ (e opcionalmente fazer fine-tuning do GPT-2)
+          \item Treinar $\mathbf{M}$ (e opcionalmente fazer fine-tuning do GPT-2)
         \end{enumerate}
       \end{column}
       \begin{column}{0.42\textwidth}
@@ -952,7 +952,7 @@
           \node[draw=ClipBlue, line width=0.6pt, inner sep=0pt] (img)
             {\includegraphics[width=2.4cm,height=1.5cm,keepaspectratio]{slides/img/06-topicos/eiffel.jpg}};
           \node[b, below=0.3cm of img] (u)   {$\mathbf{u}$};
-          \node[o, below=0.3cm of u]   (m)   {$M(\mathbf{u})$ \\ prefixo};
+          \node[o, below=0.3cm of u]   (m)   {$\mathbf{M}(\mathbf{u})$ \\ prefixo};
           \node[o, below=0.3cm of m]   (lm)  {GPT-2 \\ ``Eiffel Tower in Paris''};
           \draw[arr] (img) -- (u);
           \draw[arr] (u)   -- (m);

@@ -117,13 +117,13 @@
   \end{frame}
 
   \begin{frame}{Máscara Causal: Exemplo Numérico}
-    Sequência de 3 tokens; scores $S = \dfrac{QK^\top}{\sqrt{d_k}}$, máscara $M$ somada antes do softmax (por linha):
+    Sequência de 3 tokens; scores $\mathbf{S} = \dfrac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}$, máscara $\mathbf{M}$ somada antes do softmax (por linha):
     \vspace{0.4em}
     \begin{center}
     \resizebox{0.94\linewidth}{!}{%
-      $\underbrace{\begin{bmatrix} 2 & 1 & 3 \\ 0 & 2 & 1 \\ 1 & 0 & 2 \end{bmatrix}}_{S}
+      $\underbrace{\begin{bmatrix} 2 & 1 & 3 \\ 0 & 2 & 1 \\ 1 & 0 & 2 \end{bmatrix}}_{\mathbf{S}}
       \;+\;
-      \underbrace{\begin{bmatrix} 0 & \textcolor{DarkRed}{-\infty} & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & 0 \end{bmatrix}}_{M}
+      \underbrace{\begin{bmatrix} 0 & \textcolor{DarkRed}{-\infty} & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & \textcolor{DarkRed}{-\infty} \\ 0 & 0 & 0 \end{bmatrix}}_{\mathbf{M}}
       \;=\;
       \begin{bmatrix} 2 & \textcolor{DarkRed}{-\infty} & \textcolor{DarkRed}{-\infty} \\ 0 & 2 & \textcolor{DarkRed}{-\infty} \\ 1 & 0 & 2 \end{bmatrix}
       \;\xrightarrow{\;\text{softmax}\;}\;
@@ -206,26 +206,26 @@
   \begin{frame}{LM Head: do Vetor aos Logits}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        Após os $N$ blocos, cada posição $t$ carrega um vetor $h_t \in \mathbb{R}^{d_\text{model}}$.\\[0.4em]
+        Após os $N$ blocos, cada posição $t$ carrega um vetor $\mathbf{h}_t \in \mathbb{R}^{d_\text{model}}$.\\[0.4em]
         \begin{block}{Projeção no vocabulário}
-          $z = h_t\, W_\text{LM}, \qquad W_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}$
+          $\mathbf{z} = \mathbf{h}_t\, \mathbf{W}_\text{LM}, \qquad \mathbf{W}_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}$
         \end{block}
         \vspace{0.3em}
-        Cada logit é um \textbf{produto interno}, $z_v = h_t \cdot w_v$, onde $w_v$ é a coluna de $W_\text{LM}$ associada ao token $v$: mede o alinhamento entre o estado atual e cada token do vocabulário.
+        Cada logit é um \textbf{produto interno}, $z_v = \mathbf{h}_t \cdot \mathbf{w}_v$, onde $\mathbf{w}_v$ é a coluna de $\mathbf{W}_\text{LM}$ associada ao token $v$: mede o alinhamento entre o estado atual e cada token do vocabulário.
         \vspace{0.3em}
         \begin{itemize}
-          \item \textbf{Weight tying}: muitos modelos reutilizam a matriz de embedding ($W_\text{LM} = E^\top$)
+          \item \textbf{Weight tying}: muitos modelos reutilizam a matriz de embedding ($\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$)
         \end{itemize}
       \end{column}
       \begin{column}{0.44\textwidth}
         \footnotesize\textbf{Exemplo}: $d_\text{model}=3$, $|V|=5$, uma coluna por token:\\[0.5em]
         \resizebox{\linewidth}{!}{$
-          \underbrace{\begin{bmatrix}1.0 & 0.5 & -0.5\end{bmatrix}}_{h_t}
+          \underbrace{\begin{bmatrix}1.0 & 0.5 & -0.5\end{bmatrix}}_{\mathbf{h}_t}
           \underbrace{\begin{bmatrix}
             2.0 & 1.5 & 0.8 & 0.3 & -0.3\\
             1.6 & 1.0 & 0.2 & 0.6 & 0.0\\
             -0.4 & -0.2 & -0.2 & 0.2 & 0.4
-          \end{bmatrix}}_{W_\text{LM}}
+          \end{bmatrix}}_{\mathbf{W}_\text{LM}}
         $}\\[0.6em]
         \resizebox{0.88\linewidth}{!}{$
           =\;
@@ -235,7 +235,7 @@
             \overset{\scriptstyle\texttt{rua}}{1.0} &
             \overset{\scriptstyle\texttt{rainha}}{0.5} &
             \overset{\scriptstyle\texttt{rei}}{-0.5}
-          \end{bmatrix}}_{z}
+          \end{bmatrix}}_{\mathbf{z}}
         $}
         \vspace{0.5em}
         \begin{exampleblock}{\footnotesize Cálculo de $z_{\texttt{rolha}}$ (primeira coluna)}
@@ -250,11 +250,11 @@
       \begin{column}{0.52\textwidth}
         O softmax converte os logits em uma distribuição de probabilidade sobre o vocabulário:
         \begin{block}{Da pontuação à probabilidade}
-          $P(v \mid x_{\le t}) = \text{softmax}(z)_v = \dfrac{e^{z_v}}{\sum_{u \in V} e^{z_u}}$
+          $P(v \mid x_{\le t}) = \text{softmax}(\mathbf{z})_v = \dfrac{e^{z_v}}{\sum_{u \in V} e^{z_u}}$
         \end{block}
         \vspace{0.3em}
         \begin{itemize}
-          \item $z$: \textbf{logits}, um score por token do vocabulário
+          \item $\mathbf{z}$: \textbf{logits}, um score por token do vocabulário
           \item A exponenciação amplia as diferenças entre scores; a soma normaliza o total para 1
         \end{itemize}
       \end{column}
@@ -417,10 +417,10 @@
         \begin{enumerate}
           \item \textbf{Normalização} (Pre-Norm)
           \item \textbf{Masked Self-Attention}
-          \item Conexão residual: $x \mathrel{+}= \text{Attn}(\cdot)$
+          \item Conexão residual: $\mathbf{x} \mathrel{+}= \text{Attn}(\cdot)$
           \item \textbf{Normalização}
           \item \textbf{Feed-Forward} (MLP)
-          \item Conexão residual: $x \mathrel{+}= \text{FFN}(\cdot)$
+          \item Conexão residual: $\mathbf{x} \mathrel{+}= \text{FFN}(\cdot)$
         \end{enumerate}
         \vspace{0.3em}
         \textbf{Sem} cross-attention. Toda informação está nas $n$ posições anteriores da sequência.
@@ -441,7 +441,7 @@
 
   \begin{frame}{FFN Padrão: Exemplo Numérico (ReLU)}
     \begin{center}
-      $\text{FFN}(x) = \text{ReLU}(x W_1)\, W_2 = \max(0,\, x W_1)\, W_2$
+      $\text{FFN}(\mathbf{x}) = \text{ReLU}(\mathbf{x} \mathbf{W}_1)\, \mathbf{W}_2 = \max(0,\, \mathbf{x} \mathbf{W}_1)\, \mathbf{W}_2$
     \end{center}
     \begin{columns}[T]
       % ── LEFT: single-path computation flow ──────────────────────────────
@@ -458,11 +458,11 @@
           arr/.style={->, >=Stealth, thick},
           ann/.style={font=\scriptsize, gray},
         ]
-          \node[vec] (x)    at (0, 5.2) {$x \in \mathbb{R}^{d_\mathrm{model}}$};
-          \node[lin] (w1)   at (0, 3.9) {$x W_1$};
-          \node[act] (relu) at (0, 2.6) {$\mathrm{ReLU}(x W_1)$};
-          \node[lin] (w2)   at (0, 1.3) {$(\cdots)\,W_2$};
-          \node[vec] (y)    at (0, 0.0) {$y \in \mathbb{R}^{d_\mathrm{model}}$};
+          \node[vec] (x)    at (0, 5.2) {$\mathbf{x} \in \mathbb{R}^{d_\mathrm{model}}$};
+          \node[lin] (w1)   at (0, 3.9) {$\mathbf{x} \mathbf{W}_1$};
+          \node[act] (relu) at (0, 2.6) {$\mathrm{ReLU}(\mathbf{x} \mathbf{W}_1)$};
+          \node[lin] (w2)   at (0, 1.3) {$(\cdots)\,\mathbf{W}_2$};
+          \node[vec] (y)    at (0, 0.0) {$\mathbf{y} \in \mathbb{R}^{d_\mathrm{model}}$};
 
           \draw[arr] (x)    -- (w1);
           \draw[arr] (w1)   -- (relu);
@@ -482,14 +482,14 @@
         \scriptsize$d_\mathrm{model}=3,\quad d_{ff}=4\times3=12$\\[0.5em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellBlue}{$x = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
-        \colorbox{CellYellow}{$xW_1 = [\,2.0,\;{-1.0},\;0.5,\;\ldots\,]$\scriptsize\textit{ (dim 12)}}\\[0.35em]
-        \colorbox{CellRed}{$\mathrm{ReLU}(xW_1) = [\,2.0,\;\mathbf{0.0},\;0.5,\;\ldots\,]$}\\[0.3em]
+        \colorbox{CellBlue}{$\mathbf{x} = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
+        \colorbox{CellYellow}{$\mathbf{x}\mathbf{W}_1 = [\,2.0,\;{-1.0},\;0.5,\;\ldots\,]$\scriptsize\textit{ (dim 12)}}\\[0.35em]
+        \colorbox{CellRed}{$\mathrm{ReLU}(\mathbf{x}\mathbf{W}_1) = [\,2.0,\;\mathbf{0.0},\;0.5,\;\ldots\,]$}\\[0.3em]
         }%
         \textcolor{red!70!black}{\tiny$\Rightarrow$ ReLU \textbf{zera} o valor negativo $-1.0$!}\\[0.5em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellYellow}{$[\,\cdots\,]W_2\;\approx\;y = [\,0.9,\;{-0.1},\;0.3\,]$}
+        \colorbox{CellYellow}{$[\,\cdots\,]\mathbf{W}_2\;\approx\;\mathbf{y} = [\,0.9,\;{-0.1},\;0.3\,]$}
         }
       \end{column}
     \end{columns}
@@ -500,15 +500,15 @@
       \begin{column}{0.50\textwidth}
         FFN clássica usa \textbf{ReLU}:
         \begin{block}{ReLU-FFN (Vaswani 2017)}
-          $\text{FFN}(x) = \max(0,\, xW_1)\,W_2$
+          $\text{FFN}(\mathbf{x}) = \max(0,\, \mathbf{x}\mathbf{W}_1)\,\mathbf{W}_2$
         \end{block}
         \vspace{0.4em}
         Llama 2/3, PaLM, Mistral usam \textbf{SwiGLU} \cite{shazeer2020swiglu}:
         \begin{block}{SwiGLU-FFN}
-          $\text{FFN}(x) = \bigl(\text{SiLU}(xW_1) \odot xW_3\bigr)\,W_2$
+          $\text{FFN}(\mathbf{x}) = \bigl(\text{SiLU}(\mathbf{x}\mathbf{W}_1) \odot \mathbf{x}\mathbf{W}_3\bigr)\,\mathbf{W}_2$
         \end{block}
         onde $\text{SiLU}(z) = z \cdot \sigma(z)$ (\textit{Swish}).\\[0.3em]
-        O \textbf{portão} $xW_3$ filtra dinamicamente a informação.
+        O \textbf{portão} $\mathbf{x}\mathbf{W}_3$ filtra dinamicamente a informação.
       \end{column}
       \begin{column}{0.46\textwidth}
         \begin{exampleblock}{Por que $\tfrac{8}{3}\,d_\text{model}$?}
@@ -556,24 +556,24 @@
         ]
           % ── NODES ──────────────────────────────────────────────────────
           % Input token representation
-          \node[vec]  (x)    at (1.6, 6.2) {$x \in \mathbb{R}^{d_\mathrm{model}}$};
+          \node[vec]  (x)    at (1.6, 6.2) {$\mathbf{x} \in \mathbb{R}^{d_\mathrm{model}}$};
 
           % Left branch: compute path via W1 (will be activated)
-          \node[lin]  (w1)   at (0.0, 4.9) {$x W_1$};
+          \node[lin]  (w1)   at (0.0, 4.9) {$\mathbf{x} \mathbf{W}_1$};
           % Right branch: gate path via W3 — no activation
-          \node[gate] (w3)   at (3.2, 4.9) {$x W_3$\;\textit{(portão)}};
+          \node[gate] (w3)   at (3.2, 4.9) {$\mathbf{x} \mathbf{W}_3$\;\textit{(portão)}};
 
           % SiLU activation applied only to the compute path
-          \node[act]  (silu) at (0.0, 3.6) {$\mathrm{SiLU}(x W_1)$};
+          \node[act]  (silu) at (0.0, 3.6) {$\mathrm{SiLU}(\mathbf{x} \mathbf{W}_1)$};
 
           % Element-wise product: gating = compute ⊙ gate
           \node[mul]  (mul)  at (1.6, 2.4) {$\odot$};
 
           % Final linear projection back to d_model
-          \node[lin]  (w2)   at (1.6, 1.2) {$(\cdots)\,W_2$};
+          \node[lin]  (w2)   at (1.6, 1.2) {$(\cdots)\,\mathbf{W}_2$};
 
           % Output token representation
-          \node[vec]  (y)    at (1.6, 0.0) {$y \in \mathbb{R}^{d_\mathrm{model}}$};
+          \node[vec]  (y)    at (1.6, 0.0) {$\mathbf{y} \in \mathbb{R}^{d_\mathrm{model}}$};
 
           % ── ARROWS ─────────────────────────────────────────────────────
           % x splits into two parallel branches
@@ -608,10 +608,10 @@
         \scriptsize$d_\mathrm{model}=3,\quad d_{ff}=\tfrac{8}{3}\!\times\!3=8$\\[0.5em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellBlue}{$x = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
-        \colorbox{CellYellow}{$xW_1 = [\,2.0,\;{-1.0},\;0.5,\;1.2,\;\ldots\,]$}\\[0.15em]
-        \colorbox{CellRed}{$\mathrm{SiLU}(xW_1) \approx [\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$}\\[0.45em]
-        \colorbox{CellGreen}{$xW_3 = [\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\;\textit{(portão)}}\\[0.6em]
+        \colorbox{CellBlue}{$\mathbf{x} = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
+        \colorbox{CellYellow}{$\mathbf{x}\mathbf{W}_1 = [\,2.0,\;{-1.0},\;0.5,\;1.2,\;\ldots\,]$}\\[0.15em]
+        \colorbox{CellRed}{$\mathrm{SiLU}(\mathbf{x}\mathbf{W}_1) \approx [\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$}\\[0.45em]
+        \colorbox{CellGreen}{$\mathbf{x}\mathbf{W}_3 = [\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\;\textit{(portão)}}\\[0.6em]
         }%
 
         \colorbox{PastelOrange}{%
@@ -625,7 +625,7 @@
         }\\[0.6em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellYellow}{$[\,\cdots\,]W_2\;\approx\;y = [\,0.7,\;{-0.2},\;0.4\,]$}
+        \colorbox{CellYellow}{$[\,\cdots\,]\mathbf{W}_2\;\approx\;\mathbf{y} = [\,0.7,\;{-0.2},\;0.4\,]$}
         }
       \end{column}
     \end{columns}
@@ -721,7 +721,7 @@
   \begin{frame}{Layer Norm, RMS Norm e Batch Norm: Exemplo Numérico}
     Lote de 2 tokens, cada um com $d=4$ \textit{features}:
     \begin{center}
-      $X=\begin{bmatrix}1&3&5&7\\9&7&5&3\end{bmatrix}$\qquad
+      $\mathbf{X}=\begin{bmatrix}1&3&5&7\\9&7&5&3\end{bmatrix}$\qquad
       {\small\textcolor{DarkBlue}{$\rightarrow$ LN/RMS: por linha (token)}\quad\textcolor{DarkRed}{$\downarrow$ BN: por coluna (feature)}}
     \end{center}
     \begin{columns}[T]
@@ -757,14 +757,14 @@
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{block}{Post-Norm (Vaswani 2017)}
-          $x \leftarrow \text{LN}(x + \text{SubLayer}(x))$\\[0.3em]
+          $\mathbf{x} \leftarrow \text{LN}(\mathbf{x} + \text{SubLayer}(\mathbf{x}))$\\[0.3em]
           Normalização \textbf{depois} da operação.\\
           \textcolor{DarkRed}{$\to$ gradientes instáveis com $N$ grande; requer \textit{warm-up} lento.}
         \end{block}
       \end{column}
       \begin{column}{0.48\textwidth}
         \begin{block}{Pre-Norm (GPT-2 em diante)}
-          $x \leftarrow x + \text{SubLayer}(\text{LN}(x))$\\[0.3em]
+          $\mathbf{x} \leftarrow \mathbf{x} + \text{SubLayer}(\text{LN}(\mathbf{x}))$\\[0.3em]
           Normalização \textbf{antes} da operação.\\
           \textcolor{DarkGreen}{$\to$ treino mais estável; gradientes fluem melhor pela conexão residual.}
         \end{block}
@@ -1071,7 +1071,7 @@
   \begin{frame}{Decodificação Guiada: Máscara sobre os Logits em $q_1$}
     \small O DFA define o conjunto válido $V_{q_1} = \{\texttt{*},\ \textit{identificadores}\}$; a máscara soma $-\infty$ ao logit dos demais antes do softmax:
     \[
-      P(v \mid x_{\le t}) = \text{softmax}\bigl(z + M_{q_1}\bigr)_v,
+      P(v \mid x_{\le t}) = \text{softmax}\bigl(\mathbf{z} + \mathbf{M}_{q_1}\bigr)_v,
       \qquad
       M_{q_1}[v] = 0 \text{ se } v \in V_{q_1},\ {-\infty} \text{ caso contrário}
     \]
@@ -1113,13 +1113,13 @@
         \textbf{Algoritmo}:
         \begin{enumerate}
           \item \textbf{Draft model} pequeno gera $\gamma$ tokens
-          \item \textbf{Target model} verifica \textit{em paralelo}
+          \item \textbf{Target model} verifica $\gamma$ tokens \textit{em paralelo}
           \item No primeiro rejeitado: re-amostra o token e \textbf{descarta o restante} do rascunho
-          \item Todos aceitos: amostra um token extra do passe do alvo, ganhando $\gamma + 1$ tokens
+          \item Caso todos sejam aceitos: amostra um token extra do \textit{forward} do target ($\gamma + 1$ tokens)
         \end{enumerate}
       \end{column}
       \begin{column}{0.44\textwidth}
-        \begin{block}{Propriedade chave}
+        \begin{block}{Propriedade}
           Saída \textbf{idêntica em distribuição} ao modelo alvo, sem perda de qualidade por construção.
         \end{block}
         \vspace{0.3em}
@@ -1131,7 +1131,7 @@
     \end{columns}
   \end{frame}
 
-  \begin{frame}{Algoritmo Especulativo: Critério de Aceitação}
+  \begin{frame}{Decodificação Especulativa: Critério de Aceitação}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         Draft model $M_q$, target model $M_p$:\\[0.4em]
@@ -1166,7 +1166,7 @@
 
   \begin{frame}{Decodificação Especulativa: Exemplo Passo a Passo}
     \textbf{Contexto:} completar \enquote{O gato subiu na \_\_\_} com $\gamma=3$.\\[0.3em]
-    Draft $M_q$ propõe: \texttt{árvore}, \texttt{e}, \texttt{dormiu}, verificados em \textbf{um único passe} de $M_p$.\\[0.4em]
+    Draft $M_q$ propõe: \texttt{árvore}, \texttt{e}, \texttt{dormiu}, verificados em \textbf{um único passe} do Target $M_p$.\\[0.4em]
     \begin{columns}[T]
       \begin{column}{0.58\textwidth}
       \resizebox{\linewidth}{!}{
@@ -1183,13 +1183,13 @@
       \begin{column}{0.38\textwidth}
         \begin{exampleblock}{Cenário A (todos aceitos)}
           3 aceitos + 1 extra de $M_p$:\\
-          4 tokens em 1 passe.\\
-          Sem especulação: 4 passes.
+          4 tokens em 1 passe ($M_p$).\\
+          Sem especulação: 4 passes ($M_p$).
         \end{exampleblock}
         \vspace{0.3em}
         \begin{alertblock}{Cenário B (\texttt{e} rejeitado)}
           Re-amostra \texttt{e} de $p'\!\propto\!\max(0,p{-}q)$ e descarta \texttt{dormiu};\\
-          \texttt{árvore} + token corrigido, ainda 1 passe.
+          \texttt{árvore} + token corrigido, ainda 1 passe ($M_p$).
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -1307,32 +1307,6 @@
     \end{columns}
   \end{frame}
 
-  \begin{frame}{Decodificação Especulativa: Variantes e Resultados}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Leviathan et al.\ (2023)}:
-        \begin{itemize}
-          \item Testado: T5-XXL (11B) + T5-small (60M) como draft
-          \item Speedup $2$--$3\times$ dependendo da tarefa
-          \item HumanEval (código): maior speedup (tokens repetitivos)
-          \item Sem degradação de qualidade
-        \end{itemize}
-      \end{column}
-      \begin{column}{0.46\textwidth}
-        \textbf{Variantes modernas}:
-        \begin{itemize}
-          \item \textbf{Self-speculative}: camadas rascunho do próprio modelo
-          \item \textbf{Medusa}: múltiplas cabeças de predição em paralelo
-          \item \textbf{Eagle}: alinha representações de draft e target
-        \end{itemize}
-        \vspace{0.3em}
-        \begin{alertblock}{Requisito}
-          Benefício depende da taxa de aceitação $\alpha$: quanto mais similares os modelos, maior $\alpha$ e maior o speedup.
-        \end{alertblock}
-      \end{column}
-    \end{columns}
-  \end{frame}
-
 
   %======================================================================================
   % SECTION 6: INFERÊNCIA EFICIENTE
@@ -1346,10 +1320,10 @@
         \vspace{0.3em}
         \begin{enumerate}
           \item \textbf{Prefill}: alimenta o \textit{prompt} inteiro de uma vez\\
-                $\to$ computa e \textit{armazena} K, V de cada token
+                $\to$ computa e \textit{armazena} $\mathbf{K}$, $\mathbf{V}$ de cada token
           \item \textbf{Decode passo 1}: prediz próximo token\\
-                $\to$ computa K, V \textit{só} do token novo\\
-                $\to$ reutiliza K, V dos tokens anteriores do cache
+                $\to$ computa $\mathbf{K}$, $\mathbf{V}$ \textit{só} do token novo\\
+                $\to$ reutiliza $\mathbf{K}$, $\mathbf{V}$ dos tokens anteriores do cache
           \item \textbf{Decode passo 2, 3, \ldots}: idem\\
                 $\to$ cache cresce a cada passo gerado
         \end{enumerate}
@@ -1357,12 +1331,12 @@
       \begin{column}{0.46\textwidth}
         \begin{block}{Sem cache (naïve)}
           Para o $n$-ésimo token:\\
-          Recalcula K, V de todos os $n$ tokens\\
+          Recalcula $\mathbf{K}$, $\mathbf{V}$ de todos os $n$ tokens\\
           Custo total: $\mathcal{O}(n^2 d)$
         \end{block}
         \vspace{0.3em}
         \begin{block}{Com cache}
-          Computa K, V apenas do token novo\\
+          Computa $\mathbf{K}$, $\mathbf{V}$ apenas do token novo\\
           Concatena com o cache existente\\
           Custo por token: $\mathcal{O}(n d)$
         \end{block}
@@ -1375,7 +1349,7 @@
   % ── KV-Cache step-by-step TikZ visualisation ──────────────────────────────
 
   \begin{frame}{KV-Cache: Visualização}{Prefill}
-    \small Exemplo: \textit{``O rato roeu a rolha''}, todos os K,V do prompt são computados de uma vez.\\[0.3em]
+    \small Exemplo: \textit{``O rato roeu a rolha''}, todos os $\mathbf{K},\mathbf{V}$ do prompt são computados de uma vez.\\[0.3em]
     \begin{center}
     \begin{tikzpicture}[
       tok/.style={draw, rounded corners, minimum width=1.6cm, minimum height=0.52cm,
@@ -1391,18 +1365,18 @@
       \node[font=\scriptsize, DarkBlue, above=0.05cm of t2] {\textbf{Prompt} (3 tokens)};
 
       % ── K row (being computed = CellYellow) ───────────────────────────
-      \node[kv, fill=CellYellow] (k1) at (0.8, 2.45) {$K_1$};
-      \node[kv, fill=CellYellow] (k2) at (2.9, 2.45) {$K_2$};
-      \node[kv, fill=CellYellow] (k3) at (5.0, 2.45) {$K_3$};
+      \node[kv, fill=CellYellow] (k1) at (0.8, 2.45) {$\mathbf{k}_1$};
+      \node[kv, fill=CellYellow] (k2) at (2.9, 2.45) {$\mathbf{k}_2$};
+      \node[kv, fill=CellYellow] (k3) at (5.0, 2.45) {$\mathbf{k}_3$};
 
       % ── V row (being computed = CellYellow) ───────────────────────────
-      \node[kv, fill=CellYellow] (v1) at (0.8, 1.75) {$V_1$};
-      \node[kv, fill=CellYellow] (v2) at (2.9, 1.75) {$V_2$};
-      \node[kv, fill=CellYellow] (v3) at (5.0, 1.75) {$V_3$};
+      \node[kv, fill=CellYellow] (v1) at (0.8, 1.75) {$\mathbf{v}_1$};
+      \node[kv, fill=CellYellow] (v2) at (2.9, 1.75) {$\mathbf{v}_2$};
+      \node[kv, fill=CellYellow] (v3) at (5.0, 1.75) {$\mathbf{v}_3$};
 
       % Row labels
-      \node[font=\scriptsize, gray, left=0.08cm of k1] {$K$:};
-      \node[font=\scriptsize, gray, left=0.08cm of v1] {$V$:};
+      \node[font=\scriptsize, gray, left=0.08cm of k1] {$\mathbf{K}$:};
+      \node[font=\scriptsize, gray, left=0.08cm of v1] {$\mathbf{V}$:};
 
       % ── Arrows: each token computes its K ─────────────────────────────
       \draw[arr] (t1.south) -- (k1.north);
@@ -1422,7 +1396,7 @@
   \end{frame}
 
   \begin{frame}{KV-Cache: Visualização}{Decode (Passo 1)}
-    \small Gerando \texttt{"a"}: apenas $K_4,V_4$ são computados; $K_1,K_2,K_3$ vêm do cache.\\[0.3em]
+    \small Gerando \texttt{"a"}: apenas $\mathbf{k}_4,\mathbf{v}_4$ são computados; $\mathbf{k}_1,\mathbf{k}_2,\mathbf{k}_3$ vêm do cache.\\[0.3em]
     \begin{center}
     \begin{tikzpicture}[
       tok/.style={draw, rounded corners, minimum width=1.6cm, minimum height=0.52cm,
@@ -1441,20 +1415,20 @@
 
 
       % ── Cached K,V (CellGreen) ────────────────────────────────────────
-      \node[kv, fill=CellGreen] (k1) at (0.8, 2.45) {$K_1$};
-      \node[kv, fill=CellGreen] (k2) at (2.9, 2.45) {$K_2$};
-      \node[kv, fill=CellGreen] (k3) at (5.0, 2.45) {$K_3$};
-      \node[kv, fill=CellGreen] (v1) at (0.8, 1.75) {$V_1$};
-      \node[kv, fill=CellGreen] (v2) at (2.9, 1.75) {$V_2$};
-      \node[kv, fill=CellGreen] (v3) at (5.0, 1.75) {$V_3$};
+      \node[kv, fill=CellGreen] (k1) at (0.8, 2.45) {$\mathbf{k}_1$};
+      \node[kv, fill=CellGreen] (k2) at (2.9, 2.45) {$\mathbf{k}_2$};
+      \node[kv, fill=CellGreen] (k3) at (5.0, 2.45) {$\mathbf{k}_3$};
+      \node[kv, fill=CellGreen] (v1) at (0.8, 1.75) {$\mathbf{v}_1$};
+      \node[kv, fill=CellGreen] (v2) at (2.9, 1.75) {$\mathbf{v}_2$};
+      \node[kv, fill=CellGreen] (v3) at (5.0, 1.75) {$\mathbf{v}_3$};
 
       % ── New K,V being computed (CellYellow) ───────────────────────────
-      \node[kv, fill=CellYellow] (k4) at (7.1, 2.45) {$K_4$};
-      \node[kv, fill=CellYellow] (v4) at (7.1, 1.75) {$V_4$};
+      \node[kv, fill=CellYellow] (k4) at (7.1, 2.45) {$\mathbf{k}_4$};
+      \node[kv, fill=CellYellow] (v4) at (7.1, 1.75) {$\mathbf{v}_4$};
 
       % Row labels
-      \node[font=\scriptsize, gray, left=0.08cm of k1] {$K$:};
-      \node[font=\scriptsize, gray, left=0.08cm of v1] {$V$:};
+      \node[font=\scriptsize, gray, left=0.08cm of k1] {$\mathbf{K}$:};
+      \node[font=\scriptsize, gray, left=0.08cm of v1] {$\mathbf{V}$:};
 
       % ── Arrow: new token computes its K ───────────────────────────────
       \draw[arr] (t4.south) -- (k4.north);
@@ -1466,7 +1440,7 @@
       % ── Attention: Q₄ reads all cached K ─────────────────────────────
       \draw[darr] (7.1, 0.92) -- (0.8, 0.92);
       \node[font=\scriptsize, DarkBlue, below=0.08cm] at (3.95, 0.92)
-        {$Q_4$ consulta $K_1, K_2, K_3, K_4$ (atenção causal)};
+        {$\mathbf{q}_4$ consulta $\mathbf{k}_1, \mathbf{k}_2, \mathbf{k}_3, \mathbf{k}_4$ (atenção causal)};
 
     \end{tikzpicture}
     \end{center}
@@ -1474,7 +1448,7 @@
   \end{frame}
 
   \begin{frame}{KV-Cache: Visualização}{Decode (Passo 2)}
-    \small Gerando \texttt{"rolha"}: apenas $K_5,V_5$ são computados; cache cresce para 4 entradas.\\[0.3em]
+    \small Gerando \texttt{"rolha"}: apenas $\mathbf{k}_5,\mathbf{v}_5$ são computados; cache cresce para 4 entradas.\\[0.3em]
     \begin{center}
     \begin{tikzpicture}[
       tok/.style={draw, rounded corners, minimum width=1.6cm, minimum height=0.52cm,
@@ -1494,23 +1468,23 @@
 
 
       % ── Cached K,V (CellGreen) ────────────────────────────────────────
-      \node[kv, fill=CellGreen] (k1) at (0.8, 2.45) {$K_1$};
-      \node[kv, fill=CellGreen] (k2) at (2.9, 2.45) {$K_2$};
-      \node[kv, fill=CellGreen] (k3) at (5.0, 2.45) {$K_3$};
-      \node[kv, fill=CellGreen] (k4) at (7.1, 2.45) {$K_4$};
-      \node[kv, fill=CellGreen] (v1) at (0.8, 1.75) {$V_1$};
-      \node[kv, fill=CellGreen] (v2) at (2.9, 1.75) {$V_2$};
-      \node[kv, fill=CellGreen] (v3) at (5.0, 1.75) {$V_3$};
-      \node[kv, fill=CellGreen] (v4) at (7.1, 1.75) {$V_4$};
+      \node[kv, fill=CellGreen] (k1) at (0.8, 2.45) {$\mathbf{k}_1$};
+      \node[kv, fill=CellGreen] (k2) at (2.9, 2.45) {$\mathbf{k}_2$};
+      \node[kv, fill=CellGreen] (k3) at (5.0, 2.45) {$\mathbf{k}_3$};
+      \node[kv, fill=CellGreen] (k4) at (7.1, 2.45) {$\mathbf{k}_4$};
+      \node[kv, fill=CellGreen] (v1) at (0.8, 1.75) {$\mathbf{v}_1$};
+      \node[kv, fill=CellGreen] (v2) at (2.9, 1.75) {$\mathbf{v}_2$};
+      \node[kv, fill=CellGreen] (v3) at (5.0, 1.75) {$\mathbf{v}_3$};
+      \node[kv, fill=CellGreen] (v4) at (7.1, 1.75) {$\mathbf{v}_4$};
 
       % ── New K,V being computed (CellYellow) ───────────────────────────
-      \node[kv, fill=CellYellow] (k5) at (9.2, 2.45) {$K_5$};
-      \node[kv, fill=CellYellow] (v5) at (9.2, 1.75) {$V_5$};
+      \node[kv, fill=CellYellow] (k5) at (9.2, 2.45) {$\mathbf{k}_5$};
+      \node[kv, fill=CellYellow] (v5) at (9.2, 1.75) {$\mathbf{v}_5$};
 
 
       % Row labels
-      \node[font=\scriptsize, gray, left=0.08cm of k1] {$K$:};
-      \node[font=\scriptsize, gray, left=0.08cm of v1] {$V$:};
+      \node[font=\scriptsize, gray, left=0.08cm of k1] {$\mathbf{K}$:};
+      \node[font=\scriptsize, gray, left=0.08cm of v1] {$\mathbf{V}$:};
 
       % ── Arrow: new token computes its K ───────────────────────────────
       \draw[arr] (t5.south) -- (k5.north);
@@ -1522,7 +1496,7 @@
       % ── Attention: Q₅ reads all cached K ─────────────────────────────
       \draw[darr] (9.2, 0.92) -- (0.8, 0.92);
       \node[font=\scriptsize, DarkBlue, below=0.08cm] at (5.0, 0.92)
-        {$Q_5$ consulta $K_1, \ldots, K_5$, cache cresce a cada token gerado};
+        {$\mathbf{q}_5$ consulta $\mathbf{k}_1, \ldots, \mathbf{k}_5$, cache cresce a cada token gerado};
 
     \end{tikzpicture}
     \end{center}
@@ -1534,7 +1508,7 @@
       \begin{column}{0.52\textwidth}
         Com $H$ cabeças, $d_k = d_\text{model}/H$:
         \begin{itemize}
-          \item $H$ projeções de Q, K, V independentes
+          \item $H$ projeções de $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ independentes
           \item $H$ pares de matrizes KV em cache por camada
           \item Custo de KV-cache por token: $2 \cdot H \cdot d_k \cdot L$
         \end{itemize}
@@ -1553,7 +1527,7 @@
           node distance=0.4cm
         ]
           \foreach \i/\l in {1/1,2/2,3/3,4/H} {
-            \node[head] (h\i) at (\i*1.3, 0) {Q\textsubscript{\l}\\K\textsubscript{\l}\\V\textsubscript{\l}};
+            \node[head] (h\i) at (\i*1.3, 0) {$\mathbf{Q}_{\l}$\\$\mathbf{K}_{\l}$\\$\mathbf{V}_{\l}$};
           }
           \node[font=\small] at (4*1.3+0.9, 0) {\ldots};
           \node[font=\small] at (2.6, -1.1) {KV-cache: $H$ pares por camada};
@@ -1567,11 +1541,11 @@
   \begin{frame}{Multi-Query Attention (MQA)\footnotemark[1]}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        Reduza K e V para \textbf{uma única cabeça} compartilhada; mantenha $H$ cabeças de Q.
+        Reduza $\mathbf{K}$ e $\mathbf{V}$ para \textbf{uma única cabeça} compartilhada; mantenha $H$ cabeças de $\mathbf{Q}$.
         \[
-          \text{head}_h = \text{Attn}(QW_h^Q,\; K W^K,\; V W^V)
+          \text{head}_h = \text{Attn}(\mathbf{Q}\mathbf{W}_h^Q,\; \mathbf{K} \mathbf{W}^K,\; \mathbf{V} \mathbf{W}^V)
         \]
-        \textbf{Redução de cache:} $H\times \to 1\times$ nos tensores K, V.\\[0.3em]
+        \textbf{Redução de cache:} $H\times \to 1\times$ nos tensores $\mathbf{K}$, $\mathbf{V}$.\\[0.3em]
         Cache por token: $2 \cdot d_k \cdot L$ (independente de $H$).
       \end{column}
       \begin{column}{0.44\textwidth}
@@ -1584,14 +1558,14 @@
           arrow/.style={->, >=Stealth, thick}
         ]
           \foreach \i in {1,2,3,4} {
-            \node[qhead] (q\i) at (\i*0.95, 1.5) {Q\textsubscript{\i}};
+            \node[qhead] (q\i) at (\i*0.95, 1.5) {$\mathbf{Q}_{\i}$};
           }
-          \node[kvhead] (kv) at (2.375, 0) {K\,V};
+          \node[kvhead] (kv) at (2.375, 0) {$\mathbf{K}\,\mathbf{V}$};
           \foreach \i in {1,2,3,4} {
             \draw[arrow] (kv) -- (q\i);
           }
-          \node[right=0.2cm of q4, font=\footnotesize] {$H$ cabeças Q};
-          \node[below=0.12cm of kv, font=\footnotesize] {1 par K,V};
+          \node[right=0.2cm of q4, font=\footnotesize] {$H$ cabeças $\mathbf{Q}$};
+          \node[below=0.12cm of kv, font=\footnotesize] {1 par $\mathbf{K}$,$\mathbf{V}$};
         \end{tikzpicture}}
         \begin{itemize}
           \item KV-cache $H\times$ menor
@@ -1607,7 +1581,7 @@
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         Um intermediário entre MHA e MQA.\\[0.4em]
-        Divida as $H$ cabeças de Q em $G$ grupos. Cada grupo compartilha um par K,V.
+        Divida as $H$ cabeças de $\mathbf{Q}$ em $G$ grupos. Cada grupo compartilha um par $\mathbf{K}$,$\mathbf{V}$.
         \[
           G = 1 \;\Rightarrow\; \text{MQA}
           \qquad
@@ -1624,14 +1598,14 @@
                          rounded corners, font=\small, align=center},
           arrow/.style={->, >=Stealth, thick}
         ]
-          \node[qhead] (q1) at (0.5,1.6) {Q\textsubscript{1}};
-          \node[qhead] (q2) at (1.3,1.6) {Q\textsubscript{2}};
-          \node[kvhead] (kva) at (0.9,0) {K\textsubscript{a}V\textsubscript{a}};
+          \node[qhead] (q1) at (0.5,1.6) {$\mathbf{Q}_1$};
+          \node[qhead] (q2) at (1.3,1.6) {$\mathbf{Q}_2$};
+          \node[kvhead] (kva) at (0.9,0) {$\mathbf{K}_a\mathbf{V}_a$};
           \draw[arrow] (kva)--(q1); \draw[arrow] (kva)--(q2);
 
-          \node[qhead] (q3) at (2.8,1.6) {Q\textsubscript{3}};
-          \node[qhead] (q4) at (3.6,1.6) {Q\textsubscript{4}};
-          \node[kvhead] (kvb) at (3.2,0) {K\textsubscript{b}V\textsubscript{b}};
+          \node[qhead] (q3) at (2.8,1.6) {$\mathbf{Q}_3$};
+          \node[qhead] (q4) at (3.6,1.6) {$\mathbf{Q}_4$};
+          \node[kvhead] (kvb) at (3.2,0) {$\mathbf{K}_b\mathbf{V}_b$};
           \draw[arrow] (kvb)--(q3); \draw[arrow] (kvb)--(q4);
 
           \node[font=\footnotesize, below=0.08cm of kva] {grupo 1};
@@ -1652,10 +1626,10 @@
     \resizebox{0.92\linewidth}{!}{%
     \begin{tabular}{lcccl}
       \toprule
-      \textbf{Variante} & \textbf{Pares K,V} & \textbf{Cache KV} & \textbf{Qualidade} & \textbf{Exemplos} \\
+      \textbf{Variante} & \textbf{Pares $\mathbf{K}$,$\mathbf{V}$} & \textbf{Cache KV} & \textbf{Qualidade} & \textbf{Exemplos} \\
       \midrule
-      MHA & $H$            & $H \cdot d_k$ & Referência         & GPT-2, GPT-3, BERT \\
-      MQA & $1$            & $d_k$         & $\downarrow$ levemente & PaLM, Falcon \\
+      MHA & $H$            & $H \cdot d_k$ & Ótima         & GPT-2, GPT-3, BERT \\
+      MQA & $1$            & $d_k$         & $\downarrow$  & PaLM, Falcon \\
       GQA & $G$ ($1<G<H$) & $G \cdot d_k$ & $\approx$ MHA     & Llama 2 70B, Llama 3, Mistral \\
       \bottomrule
     \end{tabular}}
@@ -1664,7 +1638,7 @@
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
         \begin{exampleblock}{GQA na prática}
-          Llama 2 70B: $H=64$ cabeças Q, $G=8$ grupos KV.\\
+          Llama 2 70B: $H=64$ cabeças $\mathbf{Q}$, $G=8$ grupos $\mathbf{K}$,$\mathbf{V}$.\\
           Cache $8\times$ menor que MHA com qualidade semelhante.
         \end{exampleblock}
       \end{column}
@@ -1682,7 +1656,7 @@
         \textbf{Custo da atenção padrão} \cite{vaswani2017attention}:
         \begin{itemize}
           \item Memória: $\mathcal{O}(n^2)$, matriz de scores
-          \item Compute: $\mathcal{O}(n^2 d)$, produto $QK^\top$
+          \item Compute: $\mathcal{O}(n^2 d)$, produto $\mathbf{Q}\mathbf{K}^\top$
         \end{itemize}
         \vspace{0.3em}
         Com $n=32\,768$ tokens e $H=32$ cabeças:\\
@@ -1724,18 +1698,18 @@
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         \textbf{Motivação}: em sequências longas, a maioria das informações úteis está \textbf{próxima} do token atual.\\[0.4em]
-        Cada posição $i$ atende apenas às $W$ posições anteriores:
+        Cada posição $i$ atende apenas às $w$ posições anteriores:
         \[
-          \text{Attn}(i) \leftarrow \text{tokens em } [i-W,\; i]
+          \text{Attn}(i) \leftarrow \text{tokens em } [i-w,\; i]
         \]
-        Custo: $\mathcal{O}(n \cdot W)$ em vez de $\mathcal{O}(n^2)$.\\[0.3em]
-        Campo receptivo em $L$ camadas: $L \cdot W$.\\
+        Custo: $\mathcal{O}(n \cdot w)$ em vez de $\mathcal{O}(n^2)$.\\[0.3em]
+        Campo receptivo em $L$ camadas: $L \cdot w$.\\
         {\footnotesize Informação distante propaga-se por composição: camada $l$ agrega o que camada $l{-}1$ já resumiu da janela anterior.}
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{block}{Configuração Mistral 7B}
           \begin{itemize}
-            \item Janela local: $W = 4096$
+            \item Janela local: $w = 4096$
             \item 32 camadas
             \item Campo receptivo: $32 \times 4096 = 131\text{K}$
             \item Contexto declarado: 32K tokens
@@ -1754,10 +1728,10 @@
         \begin{itemize}
           \item GPUs computam rápido, mas ler e escrever na memória principal (HBM) é lento
           \item A implementação padrão \textbf{materializa} a matriz $n \times n$ de scores na HBM
-          \item FlashAttention computa a atenção \textbf{por blocos} na SRAM (cache rápido), com \textit{online softmax}, sem nunca materializar a matriz completa
+          \item FlashAttention computa a atenção \textbf{por blocos} na SRAM (cache rápido), com \textit{softmax online}, sem nunca materializar a matriz completa
         \end{itemize}
         \vspace{0.2em}
-        {\scriptsize \textit{Online softmax}: acumula o softmax bloco a bloco, guardando apenas o máximo e a soma parciais dos scores, corrigidos a cada novo bloco.}
+        {\scriptsize \textit{Softmax online}: acumula o softmax bloco a bloco, guardando apenas o máximo e a soma parciais dos scores, corrigidos a cada novo bloco.}
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{block}{Propriedades}
@@ -1765,7 +1739,7 @@
             \item \textbf{Exata}: mesmo resultado numérico, sem aproximação
             \item Memória extra $\mathcal{O}(n)$ em vez de $\mathcal{O}(n^2)$
             \item Speedup de $2$--$4\times$ no treino
-            \item FlashAttention-2 \cite{dao2023flashattention2}: padrão de fato atual
+            \item FlashAttention-2 \cite{dao2023flashattention2}: padrão 
           \end{itemize}
         \end{block}
         \vspace{0.3em}
@@ -1786,7 +1760,7 @@
       MHA (padrão) & $\mathcal{O}(n^2 d)$ & $H \cdot d_k$ & Limitado    & Referência           & GPT-2/3 \\
       MQA          & $\mathcal{O}(n^2 d)$ & $d_k$         & Moderado    & $\downarrow$ levemente & PaLM, Falcon \\
       GQA          & $\mathcal{O}(n^2 d)$ & $G \cdot d_k$ & Moderado    & $\approx$ MHA        & Llama 2 70B, Llama 3, Mistral \\
-      SWA          & $\mathcal{O}(n W d)$ & $W \cdot d_k$ & Alto        & Boa (local)          & Mistral \\
+      SWA          & $\mathcal{O}(n w d)$ & $w \cdot d_k$ & Alto        & Boa (local)          & Mistral \\
       \bottomrule
     \end{tabular}}
     \end{center}
@@ -1811,8 +1785,8 @@
         \end{itemize}
         \vspace{0.4em}
         \textbf{Ideia da Mistura de Especialistas (MoE)}:\\
-        Substitua a FFN densa por $E$ redes menores (\textit{especialistas}).\\
-        Cada token ativa apenas $k$ especialistas ($k \ll E$).
+        Substitua a FFN densa por $N_E$ redes menores (\textit{especialistas}).\\
+        Cada token ativa apenas $k$ especialistas ($k \ll N_E$).
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{exampleblock}{Exemplo: Mixtral 8×7B}
@@ -1822,7 +1796,10 @@
           $\to$ compute $\approx$ 12.9B por token
         \end{exampleblock}
         \vspace{0.3em}
-        Origem: \textbf{Sparsely-Gated MoE} \cite{shazeer2017moe} (2017), revivido em LLMs a partir de 2022.
+        {\footnotesize
+        Ideia original: \textit{mixtures of experts} \cite{jacobs1991moe}.\\
+        Variante esparsa: \textbf{Sparsely-Gated MoE} \cite{shazeer2017moe}.\\
+        Retomada em Transformers: GShard \cite{lepikhin2021gshard} e Switch Transformer \cite{fedus2022switch}.\par}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1840,13 +1817,13 @@
           arrow/.style={->, >=Stealth, thick},
           node distance=0.5cm
         ]
-          \node[router] (r) {Router $G(x)$};
+          \node[router] (r) {Router $G(\mathbf{x})$};
           \node[expert, above left=0.9cm and 0.2cm of r] (e1) {FFN$_1$};
           \node[expert, above=0.9cm of r]               (e2) {FFN$_2$};
           \node[expert, above right=0.9cm and 0.2cm of r] (e3) {FFN$_3$};
           \node[sum, above=2.7cm of r] (s) {$\sum$};
           \node[above=0.3cm of s, font=\small] (out) {saída};
-          \node[below=0.5cm of r, font=\small] (inp) {entrada $x$};
+          \node[below=0.5cm of r, font=\small] (inp) {entrada $\mathbf{x}$};
 
           \draw[arrow] (inp) -- (r);
           \draw[arrow] (r) -- (e1);
@@ -1863,11 +1840,11 @@
         \begin{enumerate}
           \item Router calcula scores para cada especialista
           \item Seleciona top-$k$ especialistas
-          \item Processa $x$ nos $k$ especialistas
+          \item Processa $\mathbf{x}$ nos $k$ especialistas
           \item Combina saídas ponderadas pelos scores
         \end{enumerate}
         \vspace{0.4em}
-        \begin{block}{Nota importante}
+        \begin{block}{Nota}
           As camadas de \textbf{atenção} permanecem densas.\\
           Somente a FFN vira MoE.
         \end{block}
@@ -1878,20 +1855,20 @@
   \begin{frame}{Top-$k$ Routing: Mecanismo de Gating}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        Dado token $x \in \mathbb{R}^d$ e pesos $W_g \in \mathbb{R}^{d \times E}$:
+        Dado token $\mathbf{x} \in \mathbb{R}^d$ e pesos $\mathbf{W}_g \in \mathbb{R}^{d \times N_E}$:
         \[
-          g(x) = \text{softmax}\!\left(\text{TopK}\!\left(x W_g,\; k\right)\right)
+          \mathbf{g}(\mathbf{x}) = \text{softmax}\!\left(\text{TopK}\!\left(\mathbf{x} \mathbf{W}_g,\; k\right)\right)
         \]
         onde $\text{TopK}$ mantém os $k$ maiores scores e zera o resto.\\[0.4em]
         Saída:
         \[
-          y = \sum_{i \in \text{Top-}k} g_i(x)\; \text{FFN}_i(x)
+          \mathbf{y} = \sum_{i \in \text{Top-}k} g_i(\mathbf{x})\; \text{FFN}_i(\mathbf{x})
         \]
       \end{column}
       \begin{column}{0.44\textwidth}
       \scriptsize
         \begin{itemize}
-          \item Mixtral usa $k=2$, $E=8$
+          \item Mixtral usa $k=2$, $N_E=8$
           \item $\sim$25\% dos parâmetros ativos por token
           \item Backward: apenas pelos $k$ especialistas ativos
         \end{itemize}
@@ -1906,23 +1883,23 @@
   \end{frame}
 
   \begin{frame}{Top-$k$ Routing: Exemplo Numérico}
-    Token $x$, $E=4$ especialistas, $k=2$:
+    Token $\mathbf{x}$, $N_E=4$ especialistas, $k=2$:
     \vspace{0.3em}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellYellow}{$s = x W_g = [\,1.2,\;\mathbf{3.1},\;0.4,\;\mathbf{2.6}\,]$}\\[0.45em]
-        \colorbox{CellBlue}{$\text{TopK}(s, 2) = [\,-\infty,\;3.1,\;-\infty,\;2.6\,]$}\\[0.45em]
-        \colorbox{CellGreen}{$g = \text{softmax} = [\,0,\;\mathbf{0.62},\;0,\;\mathbf{0.38}\,]$}\\[0.45em]
+        \colorbox{CellYellow}{$\mathbf{s} = \mathbf{x} \mathbf{W}_g = [\,1.2,\;\mathbf{3.1},\;0.4,\;\mathbf{2.6}\,]$}\\[0.45em]
+        \colorbox{CellBlue}{$\text{TopK}(\mathbf{s}, 2) = [\,-\infty,\;3.1,\;-\infty,\;2.6\,]$}\\[0.45em]
+        \colorbox{CellGreen}{$\mathbf{g} = \text{softmax} = [\,0,\;\mathbf{0.62},\;0,\;\mathbf{0.38}\,]$}\\[0.45em]
         }%
         {\footnotesize $g_2 = \dfrac{e^{3.1}}{e^{3.1}+e^{2.6}} = \dfrac{22.2}{35.7} = 0.62$}\\[0.5em]
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{PastelOrange}{$y = 0.62\,\text{FFN}_2(x) + 0.38\,\text{FFN}_4(x)$}
+        \colorbox{PastelOrange}{$\mathbf{y} = 0.62\,\text{FFN}_2(\mathbf{x}) + 0.38\,\text{FFN}_4(\mathbf{x})$}
         }
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{exampleblock}{O que foi economizado}
-          $\text{FFN}_1$ e $\text{FFN}_3$ \textbf{nem são computadas} para este token: com $E=4$ e $k=2$, metade do compute da camada é evitado.
+          $\text{FFN}_1$ e $\text{FFN}_3$ \textbf{nem são computadas} para este token: com $N_E=4$ e $k=2$, metade do compute da camada é evitado.
         \end{exampleblock}
         \vspace{0.3em}
         \begin{itemize}
@@ -1938,9 +1915,11 @@
       \begin{column}{0.50\textwidth}
         \textbf{Perda auxiliar de balanceamento}:
         \[
-          \mathcal{L}_\text{aux} = \alpha \cdot E \cdot \sum_{i=1}^E f_i \cdot P_i
+          \mathcal{L}_\text{aux} = \alpha \cdot N_E \cdot \sum_{i=1}^{N_E} f_i \cdot P_i
         \]
-        onde $f_i$ = fração de tokens roteados ao especialista $i$,\\
+        onde: $N_E$ = número de especialistas,\\
+        $\alpha$ = hiperparâmetro que pondera a perda auxiliar na perda total,\\
+        $f_i$ = fração de tokens roteados ao especialista $i$,\\
         $P_i$ = score médio do router para o especialista $i$.\\[0.3em]
         Minimizar $\mathcal{L}_\text{aux}$ encoraja distribuição uniforme.
       \end{column}
@@ -1951,9 +1930,12 @@
           \item \textbf{Comunicação}: especialistas distribuídos em GPUs diferentes (\textit{model parallelism})
           \item \textbf{Capacidade máxima}: tokens descartados se um especialista ficar sobrecarregado
         \end{itemize}
-        \vspace{0.2em}
+        \vspace{-0.1em}
         \begin{exampleblock}{Mixtral}
-          Usa $\alpha=0.01$, roteamento token a token.
+          \begin{itemize}
+            \item Perda auxiliar com $\alpha=0.01$
+            \item Roteamento token a token: top-$k$ escolhido por token e por camada
+          \end{itemize}
         \end{exampleblock}
       \end{column}
     \end{columns}
@@ -1966,7 +1948,7 @@
         Arquitetura:
         \begin{itemize}
           \item 32 camadas transformer
-          \item Cada FFN $\to$ 8 especialistas de 14336 neurônios
+          \item Cada FFN $\to$ 8 especialistas com $d_\text{ff} = 14336$ ($\approx$176M parâmetros cada)
           \item Top-2 routing por token
           \item GQA ($G=8$), RMSNorm, SWA
           \item Contexto: 32\,768 tokens
@@ -2480,7 +2462,7 @@
       Normalização      & RMSNorm + Pre-Norm            & \cite{ba2016layernorm,zhang2019rmsnorm} & Llama 2/3 \\
       Decodificação     & Temperature, top-$k$/top-$p$; degeneração & \cite{holtzman2020degeneration}   & --- \\
       MHA $\to$ GQA     & Redução de KV-cache           & \cite{ainslie2023gqa}             & Llama 2 70B \\
-      Sliding Window    & Atenção local $\mathcal{O}(nW)$ & \cite{jiang2023mistral}           & Mistral 7B \\
+      Sliding Window    & Atenção local $\mathcal{O}(nw)$ & \cite{jiang2023mistral}           & Mistral 7B \\
       FlashAttention    & Atenção exata, IO-eficiente   & \cite{dao2022flashattention}      & todos os atuais \\
       Decod.\ especulativa & Draft + verify             & \cite{leviathan2023speculative}   & Llama 3 \\
       MoE               & Top-$k$ routing, especialistas & \cite{shazeer2017moe,jiang2024mixtral} & Mixtral 8×7B \\

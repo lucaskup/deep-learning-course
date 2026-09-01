@@ -72,22 +72,22 @@
             \item Tanto as CNNs quanto os MLPs vistos até aqui processam sequencialmente cada uma das suas camadas.
         \end{itemize}
         \begin{align*}
-            h_1 &= f_1[x,\theta_1] \\
-            h_2 &= f_2[h_1,\theta_2] \\
-            h_3 &= f_3[h_2,\theta_3] \\
+            \mathbf{h}_1 &= f_1[\mathbf{x},\thetav_1] \\
+            \mathbf{h}_2 &= f_2[\mathbf{h}_1,\thetav_2] \\
+            \mathbf{h}_3 &= f_3[\mathbf{h}_2,\thetav_3] \\
             &\;\;\vdots \\
-            h_n &= f_n[h_{n-1},\theta_n]
+            \mathbf{h}_n &= f_n[\mathbf{h}_{n-1},\thetav_n]
         \end{align*}
     \end{column}
     \begin{column}{.5\linewidth}
         \centering
         \begin{tikzpicture}[every node/.style={font=\small}, node distance=0.6cm]
-            \node (x) at (0,0) {$x$};
+            \node (x) at (0,0) {$\mathbf{x}$};
             \node[draw, fill=PastelGreen, minimum size=24pt, right=of x] (f1) {$f_1$};
             \node[draw, fill=PastelGreen, minimum size=24pt, right=of f1] (f2) {$f_2$};
             \node[draw, fill=PastelGreen, minimum size=24pt, right=of f2] (f3) {$f_3$};
             \node[draw, fill=PastelGreen, minimum size=24pt, right=of f3] (f4) {$f_4$};
-            \node[right=of f4] (y) {$y$};
+            \node[right=of f4] (y) {$\mathbf{y}$};
             \draw[->, thick] (x) -- (f1);
             \draw[->, thick] (f1) -- (f2);
             \draw[->, thick] (f2) -- (f3);
@@ -103,18 +103,18 @@
     \item Uma forma alternativa de pensar é escrever a mesma expressão como uma \textbf{composição de funções}:
 \end{itemize}
 \begin{align*}
-    h_1 &= f_1[x,\theta_1] \\
-    h_n &= f_n[\dots f_3[f_2[f_1[x,\theta_1],\theta_2],\theta_3],\theta_n]
+    \mathbf{h}_1 &= f_1[\mathbf{x},\thetav_1] \\
+    \mathbf{h}_n &= f_n[\dots f_3[f_2[f_1[\mathbf{x},\thetav_1],\thetav_2],\thetav_3],\thetav_n]
 \end{align*}
 \vspace{0.5em}
 \begin{center}
 \begin{tikzpicture}[every node/.style={font=\small}, node distance=0.6cm]
-    \node (x) at (0,0) {$x$};
+    \node (x) at (0,0) {$\mathbf{x}$};
     \node[draw, fill=PastelGreen, minimum size=24pt, right=of x] (f1) {$f_1$};
     \node[draw, fill=PastelGreen, minimum size=24pt, right=of f1] (f2) {$f_2$};
     \node[draw, fill=PastelGreen, minimum size=24pt, right=of f2] (f3) {$f_3$};
     \node[draw, fill=PastelGreen, minimum size=24pt, right=of f3] (f4) {$f_4$};
-    \node[right=of f4] (y) {$y$};
+    \node[right=of f4] (y) {$\mathbf{y}$};
     \draw[->, thick] (x) -- (f1);
     \draw[->, thick] (f1) -- (f2);
     \draw[->, thick] (f2) -- (f3);
@@ -165,7 +165,7 @@
 \end{equation*}
 \begin{itemize}
     \item Uma mudança em $f_1$ altera todas as funções subsequentes.
-    \item Em redes muito profundas, $\partial y / \partial x$ se torna extremamente errático em relação à entrada.
+    \item Em redes muito profundas, $\partial \mathbf{y} / \partial \mathbf{x}$ se torna extremamente errático em relação à entrada.
     \item Quanto mais camadas, menos correlacionado o gradiente fica entre passos próximos.
 \end{itemize}
 \end{frame}
@@ -181,16 +181,16 @@
 \begin{columns}
     \begin{column}{.45\linewidth}
         \begin{align*}
-            h_1 &= x + f_1[x,\theta_1] \\
-            h_2 &= h_1 + f_2[h_1,\theta_2] \\
-            h_3 &= h_2 + f_3[h_2,\theta_3] \\
-            h_4 &= h_3 + f_4[h_3,\theta_4]
+            \mathbf{h}_1 &= \mathbf{x} + f_1[\mathbf{x},\thetav_1] \\
+            \mathbf{h}_2 &= \mathbf{h}_1 + f_2[\mathbf{h}_1,\thetav_2] \\
+            \mathbf{h}_3 &= \mathbf{h}_2 + f_3[\mathbf{h}_2,\thetav_3] \\
+            \mathbf{h}_4 &= \mathbf{h}_3 + f_4[\mathbf{h}_3,\thetav_4]
         \end{align*}
     \end{column}
     \begin{column}{.55\linewidth}
         \centering
         \begin{tikzpicture}[every node/.style={font=\footnotesize}]
-            \node (x) at (0,0) {$x$};
+            \node (x) at (0,0) {$\mathbf{x}$};
             \node[draw, fill=PastelGreen, minimum size=18pt] (f1) at (0.9,0) {$f_1$};
             \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s1) at (1.7,0) {$+$};
             \node[draw, fill=PastelGreen, minimum size=18pt] (f2) at (2.6,0) {$f_2$};
@@ -199,7 +199,7 @@
             \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s3) at (5.1,0) {$+$};
             \node[draw, fill=PastelGreen, minimum size=18pt] (f4) at (6.0,0) {$f_4$};
             \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s4) at (6.8,0) {$+$};
-            \node (y) at (7.5,0) {$y$};
+            \node (y) at (7.5,0) {$\mathbf{y}$};
             \draw[->, thick] (x) -- (f1);
             \draw[->, thick] (f1) -- (s1);
             \draw[->, thick] (s1) -- (f2);
@@ -218,7 +218,7 @@
 \end{columns}
 \vspace{0.6em}
 \begin{itemize}
-    \item \textbf{Por que ``residual''?} O bloco aprende só o \textbf{resíduo} $f(x){=}H(x){-}x$ (a correção a aplicar sobre $x$). Se a transformação ideal for a identidade, basta $f{\to}0$, fácil de aprender, o que resolve o paradoxo da degradação.
+    \item \textbf{Por que ``residual''?} O bloco aprende só o \textbf{resíduo} $f(\mathbf{x}){=}H(\mathbf{x}){-}\mathbf{x}$ (a correção a aplicar sobre $\mathbf{x}$). Se a transformação ideal for a identidade, basta $f{\to}0$, fácil de aprender, o que resolve o paradoxo da degradação.
     \item Cada bloco $f_i$ com sua conexão residual é um \textit{residual block}; a saída precisa ter o mesmo tamanho da entrada.
 \end{itemize}
 \end{frame}
@@ -228,10 +228,10 @@
     \item Abrindo as expressões anteriores temos:
 \end{itemize}
 \begin{align*}
-    y = \;& x + f_1[x] \\
-        & + f_2\bigl[\,x + f_1[x]\,\bigr] \\
-        & + f_3\bigl[\,x + f_1[x] + f_2[x + f_1[x]]\,\bigr] \\
-        & + f_4\bigl[\,x + f_1[x] + f_2[x + f_1[x]] + f_3[x + f_1[x] + f_2[x + f_1[x]]]\,\bigr]
+    \mathbf{y} = \;& \mathbf{x} + f_1[\mathbf{x}] \\
+        & + f_2\bigl[\,\mathbf{x} + f_1[\mathbf{x}]\,\bigr] \\
+        & + f_3\bigl[\,\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]]\,\bigr] \\
+        & + f_4\bigl[\,\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]] + f_3[\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]]]\,\bigr]
 \end{align*}
 \begin{itemize}
     \item Observe que a saída é uma soma de várias contribuições, cada uma percorrendo um \textbf{caminho} diferente da entrada até a saída.
@@ -253,11 +253,11 @@
 \end{itemize}
 \begin{equation*}
 \small
-    \frac{\partial y}{\partial f_1} = I + \frac{\partial f_2}{\partial f_1} + \left(\frac{\partial f_3}{\partial f_1} + \frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right) + \left(\frac{\partial f_4}{\partial f_1} + \frac{\partial f_4}{\partial f_2}\frac{\partial f_2}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right)
+    \frac{\partial \mathbf{y}}{\partial f_1} = \mathbf{I} + \frac{\partial f_2}{\partial f_1} + \left(\frac{\partial f_3}{\partial f_1} + \frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right) + \left(\frac{\partial f_4}{\partial f_1} + \frac{\partial f_4}{\partial f_2}\frac{\partial f_2}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_1} + \frac{\partial f_4}{\partial f_3}\frac{\partial f_3}{\partial f_2}\frac{\partial f_2}{\partial f_1}\right)
 \end{equation*}
 \begin{itemize}
-    \item Intuição: a derivada de $x + f(x)$ é $1 + f'(x)$; o \textbf{``1''} (o termo $I$) é um \textbf{piso} que impede o gradiente de zerar.
-    \item O termo $I$ garante um caminho de gradiente que \textbf{não passa} por nenhum produto de derivadas.
+    \item Intuição: a derivada de $x + f(x)$ é $1 + f'(x)$; o \textbf{``1''} (o termo $\mathbf{I}$) é um \textbf{piso} que impede o gradiente de zerar.
+    \item O termo $\mathbf{I}$ garante um caminho de gradiente que \textbf{não passa} por nenhum produto de derivadas.
     \begin{itemize}
         \item Mesmo que algumas derivadas se aproximem de zero, o gradiente não desaparece completamente.
     \end{itemize}
@@ -271,7 +271,7 @@
 
 \begin{frame}{Bloco Residual}
 \begin{itemize}
-    \item Até aqui parece que $f_i[x]$ poderia ser uma camada qualquer.
+    \item Até aqui parece que $f_i[\mathbf{x}]$ poderia ser uma camada qualquer.
     \begin{itemize}
         \item Tecnicamente é verdade, mas na prática algumas escolhas funcionam melhor.
     \end{itemize}

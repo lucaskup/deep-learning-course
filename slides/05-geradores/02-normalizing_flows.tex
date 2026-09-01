@@ -42,14 +42,14 @@
       \item O objetivo de um \textbf{modelo gerador} é aprender uma
       \textcolor{FlowRed}{\textbf{distribuição de probabilidade}} sobre
       uma variável aleatória $\mathbf{X}$ usando um conjunto de dados
-      observados $\{x^{(i)}\}_{i=1}^{N}$.
-      \item A densidade $p_{X}(x)$ é parametrizada por $\thetav$.
+      observados $\{\mathbf{x}^{(i)}\}_{i=1}^{N}$.
+      \item A densidade $p_{X}(\mathbf{x})$ é parametrizada por $\thetav$.
       \item Dois usos fundamentais de um modelo gerador:
       \begin{itemize}
         \item \textcolor{AccentBlue}{\textbf{Amostrar}}: obter novos
         exemplos a partir do modelo.
         \item \textcolor{AccentBlue}{\textbf{Avaliar}}: calcular
-        $p_{X}(x)$ para uma instância dada.
+        $p_{X}(\mathbf{x})$ para uma instância dada.
       \end{itemize}
     \end{itemize}
     \begin{block}{Observação}
@@ -92,7 +92,7 @@
       \item \textit{Normalizing Flows} são modelos geradores
       probabilísticos que permitem \textbf{tanto
       \textcolor{FlowRed}{amostrar} quanto
-      \textcolor{FlowRed}{avaliar}} $p_{X}(x)$.
+      \textcolor{FlowRed}{avaliar}} $p_{X}(\mathbf{x})$.
       \item Consistem em \textcolor{AccentBlue}{\textbf{transformar}}
       uma distribuição tratável base (e.g. $z \sim \mathcal{N}(0,1)$)
       em uma outra distribuição usando \textbf{funções inversíveis}.
@@ -221,10 +221,10 @@
     }
     \vspace{0.4em}
     \begin{itemize}
-      \item \textit{Forward} $f$: leva os dados $p(x)$ para a base $p(z)$
+      \item \textit{Forward} $f$: leva os dados $p(\mathbf{x})$ para a base $p(\mathbf{z})$
       (avaliação via mudança de variável).
-      \item \textit{Inverse} $f^{-1}$: faz o caminho oposto, de $p(z)$ para
-      $p(x)$ (amostragem).
+      \item \textit{Inverse} $f^{-1}$: faz o caminho oposto, de $p(\mathbf{z})$ para
+      $p(\mathbf{x})$ (amostragem).
     \end{itemize}
     \note{
       A rede aprende os parâmetros de $f$ tais que, quando empurramos
@@ -491,7 +491,7 @@
     \vspace{0.3em}
     \[
       \hat{\thetav} = \argmax_{\thetav}
-      \left[\prod_{i=1}^{N} P\!\left(x^{(i)} \mid \thetav\right)\right]
+      \left[\prod_{i=1}^{N} P\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]
     \]
     \vspace{0.2em}
     \begin{itemize}
@@ -507,10 +507,10 @@
     \vspace{0.3em}
     \begin{align*}
       \hat{\thetav}
-      &= \argmax_{\thetav}\left[\prod_{i} P(x^{(i)}\mid\thetav)\right]
+      &= \argmax_{\thetav}\left[\prod_{i} P(\mathbf{x}^{(i)}\mid\thetav)\right]
       \\[0.2em]
       &\visible<2->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N} -\log P\!\left(x^{(i)} \mid \thetav\right)\right]}
+        \left[\sum_{i=1}^{N} -\log P\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]}
     \end{align*}
     \vspace{0.3em}
     \only<1>{\emph{Produtos de muitas probabilidades pequenas sofrem
@@ -520,11 +520,11 @@
       \begin{block}{Mudança de variável do \textit{flow}}
       \vspace{-0.5em}
         \[
-          p_X(x) = p_Z(z)\left|\det \tfrac{\partial f(x,\thetav)}{\partial x}\right|,
-          \quad z = f(x,\thetav)
+          p_X(\mathbf{x}) = p_Z(\mathbf{z})\left|\det \tfrac{\partial f(\mathbf{x},\thetav)}{\partial \mathbf{x}}\right|,
+          \quad \mathbf{z} = f(\mathbf{x},\thetav)
         \]
       \end{block}
-      \emph{Vamos substituir $P(x^{(i)}\mid \thetav)$ na expressão
+      \emph{Vamos substituir $P(\mathbf{x}^{(i)}\mid \thetav)$ na expressão
       acima.}
     }
     \note{
@@ -541,20 +541,20 @@
     \begin{align*}
       \hat{\thetav}
       &\visible<1->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N} -\log\!\left(P(z^{(i)})\left|\det \tfrac{\partial f(x^{(i)},\thetav)}{\partial x^{(i)}}\right|\right)\right]} \\[0.2em]
+        \left[\sum_{i=1}^{N} -\log\!\left(P(\mathbf{z}^{(i)})\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right|\right)\right]} \\[0.2em]
       &\visible<2->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N}\!\left[-\log\!\left|\det \tfrac{\partial f(x^{(i)},\thetav)}{\partial x^{(i)}}\right| - \log P(z^{(i)})\right]\right]}
+        \left[\sum_{i=1}^{N}\!\left[-\log\!\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right| - \log P(\mathbf{z}^{(i)})\right]\right]}
     \end{align*}
     \vspace{0.3em}
     \visible<2->{
       \begin{alertblock}{Dois termos, dois papéis}
         \begin{itemize}
-          \item \textcolor{EncRed}{$-\log\left|\det \tfrac{\partial f}{\partial x}\right|$}: depende de
+          \item \textcolor{EncRed}{$-\log\left|\det \tfrac{\partial f}{\partial \mathbf{x}}\right|$}: depende de
           $\thetav$ via a rede. Mede a deformação local de volume
           induzida pelo \textit{flow}.
-          \item \textcolor{DecBlue}{$-\log P(z)$}: a distribuição base é
+          \item \textcolor{DecBlue}{$-\log P(\mathbf{z})$}: a distribuição base é
           fixa (gaussiana), com densidade em forma fechada. $\thetav$
-          entra apenas através de $z = f(x,\thetav)$.
+          entra apenas através de $\mathbf{z} = f(\mathbf{x},\thetav)$.
         \end{itemize}
       \end{alertblock}
     }
@@ -629,8 +629,8 @@
           plot ({\x+9},{0.85*exp(-(\x+0.5)^2/0.18)+0.85*exp(-(\x-0.5)^2/0.18)});
         \draw[domain=-1.3:1.3, samples=80, DecBlue, thick]
           plot ({\x+12},{0.8*exp(-(\x+0.8)^2/0.12)+0.8*exp(-(\x)^2/0.12)+0.8*exp(-(\x-0.8)^2/0.12)});
-        \node[font=\scriptsize] at (0,1.35)  {base $p(z)$};
-        \node[font=\scriptsize] at (12,1.35) {$p(x)$};
+        \node[font=\scriptsize] at (0,1.35)  {base $p(\mathbf{z})$};
+        \node[font=\scriptsize] at (12,1.35) {$p(\mathbf{x})$};
         % --- caminho direto (cinza) e inverso (verde) ---
         \draw[fwd] (-1.0,2.6) -- (13.0,2.6)
           node[midway, above, font=\small] {$f^{-1} = f_{1}^{-1}\circ f_{2}^{-1}\circ f_{3}^{-1}\circ f_{4}^{-1}$};
@@ -648,9 +648,9 @@
     \vspace{0.3em}
     \begin{itemize}
       \item Normalização ($f = f_{4} \circ f_{3} \circ f_{2} \circ f_{1}$):
-      leva os dados $p(x)$ à base $p(z)$ (verde).
+      leva os dados $p(\mathbf{x})$ à base $p(\mathbf{z})$ (verde).
       \item Geração ($f^{-1} = f_{1}^{-1} \circ f_{2}^{-1} \circ f_{3}^{-1} \circ f_{4}^{-1}$):
-      o caminho inverso, da base $p(z)$ aos dados $p(x)$ (cinza).
+      o caminho inverso, da base $p(\mathbf{z})$ aos dados $p(\mathbf{x})$ (cinza).
     \end{itemize}
   \end{frame}
 
@@ -660,12 +660,12 @@
     é o \textbf{produto dos determinantes}:
     \vspace{0.3em}
     \[
-      \left|\frac{\partial f[z,\thetav]}{\partial z}\right|
+      \left|\frac{\partial f[\mathbf{z},\thetav]}{\partial \mathbf{z}}\right|
       = \left|\frac{\partial f_{k}[f_{k-1},\thetav_k]}{\partial f_{k-1}}\right|
       \cdot
       \left|\frac{\partial f_{k-1}[f_{k-2},\thetav_{k-1}]}{\partial f_{k-2}}\right|
       \cdots
-      \left|\frac{\partial f_{1}[z,\thetav_1]}{\partial z}\right|
+      \left|\frac{\partial f_{1}[\mathbf{z},\thetav_1]}{\partial \mathbf{z}}\right|
     \]
     \vspace{0.3em}
     \begin{itemize}
@@ -682,9 +682,9 @@
     se a matriz admitir inversa:
     \vspace{0.3em}
     \[
-      f(\mathbf{x}) = \bm{\theta}\mathbf{x} + \mathbf{b}
+      f(\mathbf{x}) = \mathbf{\Theta}\mathbf{x} + \mathbf{b}
       \qquad
-      f^{-1}(\mathbf{z}) = \bm{\theta}^{-1}(\mathbf{z} - \mathbf{b})
+      f^{-1}(\mathbf{z}) = \mathbf{\Theta}^{-1}(\mathbf{z} - \mathbf{b})
     \]
     \vspace{0.3em}
     \begin{alertblock}{Problemas}
@@ -699,7 +699,7 @@
 
   %--- Slide: linear flow table ---
   \begin{frame}{\textit{Linear Flow} -- Custo por estrutura}
-    Impondo estrutura na matriz $\bm{\theta}$, reduzimos drasticamente o custo
+    Impondo estrutura na matriz $\mathbf{\Theta}$, reduzimos drasticamente o custo
     de inverter e de calcular o determinante. \emph{Diagonal} é barata mas muito
     restritiva; \textcolor{EncRed}{\emph{LU factorized}} e
     \textcolor{EncRed}{\emph{$1{\times}1$ convolution}} (Glow) são os melhores
@@ -745,7 +745,7 @@
     \[
       f(\mathbf{x}) = \begin{bmatrix}
         \mathbf{x}^{A} \\
-        \hat{f}\!\left(\mathbf{x}^{B} \mid \theta(\mathbf{x}^{A})\right)
+        \hat{f}\!\left(\mathbf{x}^{B} \mid \thetav(\mathbf{x}^{A})\right)
       \end{bmatrix}
     \]
     \vspace{0.2em}
@@ -772,7 +772,7 @@
         \node[font=\scriptsize] at (3,3.55) {$\mathbf{x}^{A}$};
         \node[font=\scriptsize] at (3,0.05) {$\mathbf{x}^{B}$};
         % caixas
-        \node[box] (cn) at (6,2.05) {Coupling\\Network $\theta(\mathbf{x}^{A})$};
+        \node[box] (cn) at (6,2.05) {Coupling\\Network $\thetav(\mathbf{x}^{A})$};
         \node[box] (ct) at (6,0.50) {Coupling\\Transform};
         % saida
         \node[acell] (f1) at (9.6,2.70) {}; \node[acell] (f2) at (9.6,2.10) {};
@@ -791,7 +791,7 @@
         % B -> transform
         \draw[fwd] (b1.east) -- (ct.west); \draw[fwd] (b2.east) -- (ct.west);
         % network -> transform
-        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$s,\,t$};
+        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
         % transform -> saida
         \draw[fwd] (ct.east) -- (f3.west); \draw[fwd] (ct.east) -- (f4.west);
         \node[font=\scriptsize, black!60] at (8.0,1.95) {Concat.};
@@ -809,7 +809,7 @@
     \[
       f^{-1}(\mathbf{z}) = \begin{bmatrix}
         \mathbf{z}^{A} \\
-        \hat{f}^{-1}\!\left(\mathbf{z}^{B} \mid \theta(\mathbf{z}^{A})\right)
+        \hat{f}^{-1}\!\left(\mathbf{z}^{B} \mid \thetav(\mathbf{z}^{A})\right)
       \end{bmatrix}
     \]
     \vspace{0.2em}
@@ -836,7 +836,7 @@
         \node[font=\scriptsize] at (3,3.55) {$\mathbf{z}^{A}$};
         \node[font=\scriptsize] at (3,0.05) {$\mathbf{z}^{B}$};
         % caixas
-        \node[box] (cn) at (6,2.05) {Coupling\\Network $\theta(\mathbf{z}^{A})$};
+        \node[box] (cn) at (6,2.05) {Coupling\\Network $\thetav(\mathbf{z}^{A})$};
         \node[box] (ct) at (6,0.50) {Inverse\\Transform};
         % saida
         \node[acell] (f1) at (9.6,2.70) {}; \node[acell] (f2) at (9.6,2.10) {};
@@ -855,7 +855,7 @@
         % B -> inverse transform
         \draw[inv] (b1.east) -- (ct.west); \draw[inv] (b2.east) -- (ct.west);
         % network -> transform
-        \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$s,\,t$};
+        \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
         % transform -> saida
         \draw[inv] (ct.east) -- (f3.west); \draw[inv] (ct.east) -- (f4.west);
         \node[font=\scriptsize, black!60] at (8.0,1.95) {Concat.};
@@ -914,7 +914,7 @@
         \draw[cpy] (p2.east) .. controls (6.9,3.00) .. (f2.west);
         \draw[fwd] (p3.east) -- (ct.west);
         \draw[fwd] (p4.east) -- (ct.west);
-        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$s,\,t$};
+        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
         \draw[fwd] (ct.east) -- (f3.west);
         \draw[fwd] (ct.east) -- (f4.west);
       \end{tikzpicture}%
@@ -1001,7 +1001,7 @@
     \vspace{0.3em}
     \[
       \left|\det Df\right| =
-      \left|\det \tfrac{\partial \hat{f}(\mathbf{x}^{B} \mid \theta(\mathbf{x}^{A}))}{\partial \mathbf{x}^{B}}\right|
+      \left|\det \tfrac{\partial \hat{f}(\mathbf{x}^{B} \mid \thetav(\mathbf{x}^{A}))}{\partial \mathbf{x}^{B}}\right|
     \]
     \vspace{0.3em}
     \begin{itemize}
@@ -1030,7 +1030,7 @@
     \end{block}
     \vspace{0.3em}
     \begin{itemize}
-      \item A \emph{coupling network} $\theta(\mathbf{x}^{A})$ produz
+      \item A \emph{coupling network} $\thetav(\mathbf{x}^{A})$ produz
       \textbf{dois vetores}: $\mathbf{s}$ (log-escala) e $\mathbf{t}$
       (translação).
       \item $\exp(\cdot)$ garante escala positiva e permite expressar
@@ -1069,7 +1069,7 @@
     \footnotesize Vetor de \emph{features} 4D $\mathbf{x}=(1,2,3,4)$. O
     \textit{split} separa $\mathbf{x}^{A}=(1,2)$, que é \textbf{copiado}, de
     $\mathbf{x}^{B}=(3,4)$, que é \textbf{transformado}. A coupling network
-    devolve $s=(0.3,\,-0.2)$ e $t=(-0.5,\,0.5)$.
+    devolve $\mathbf{s}=(0.3,\,-0.2)$ e $\mathbf{t}=(-0.5,\,0.5)$.
     \vspace{0.2em}
     \begin{center}
       \resizebox{!}{0.50\textheight}{%
@@ -1097,7 +1097,7 @@
           \node[font=\scriptsize] at (3.0,3.55) {$\mathbf{x}^{A}$};
           \node[font=\scriptsize] at (3.0,0.02) {$\mathbf{x}^{B}$};
           % --- caixas ---
-          \node[box] (cn) at (6.0,2.05) {Coupling\\Network $\theta(\mathbf{x}^{A})$};
+          \node[box] (cn) at (6.0,2.05) {Coupling\\Network $\thetav(\mathbf{x}^{A})$};
           \node[box] (ct) at (6.0,0.50) {Coupling\\Transform};
           % --- saida f(x) ---
           \node[acell] (f1) at (9.7,2.70) {$1$};
@@ -1121,7 +1121,7 @@
           \draw[fwd] (b1.east) -- (ct.west);
           \draw[fwd] (b2.east) -- (ct.west);
           % --- network -> transform ---
-          \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$s,\,t$};
+          \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
           % --- transform -> saida B ---
           \draw[fwd] (ct.east) -- (f3.west);
           \draw[fwd] (ct.east) -- (f4.west);
@@ -1142,7 +1142,7 @@
   \begin{frame}{Exemplo Numérico: \textit{Inverse} (2/2)}
     \footnotesize A inversa parte de $f(\mathbf{x})=(1,2,3.55,3.77)$. Como
     $\mathbf{x}^{A}=\mathbf{y}^{A}$ já está disponível, a coupling network é
-    \emph{reavaliada} (nunca invertida) para recuperar $s,t$ e desfazer a
+    \emph{reavaliada} (nunca invertida) para recuperar $\mathbf{s},\mathbf{t}$ e desfazer a
     transformação em $\mathbf{x}^{B}$.
     \vspace{0.2em}
     \begin{center}
@@ -1171,7 +1171,7 @@
           \node[font=\scriptsize] at (3.2,3.55) {$\mathbf{y}^{A}$};
           \node[font=\scriptsize] at (3.2,0.02) {$\mathbf{y}^{B}$};
           % --- caixas ---
-          \node[box] (cn) at (6.2,2.05) {Coupling\\Network $\theta(\mathbf{y}^{A})$};
+          \node[box] (cn) at (6.2,2.05) {Coupling\\Network $\thetav(\mathbf{y}^{A})$};
           \node[box] (ct) at (6.2,0.50) {Inverse\\Transform};
           % --- saida x ---
           \node[acell] (f1) at (9.9,2.70) {$1$};
@@ -1195,7 +1195,7 @@
           \draw[inv] (b1.east) -- (ct.west);
           \draw[inv] (b2.east) -- (ct.west);
           % --- network -> transform ---
-          \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$s,\,t$};
+          \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
           % --- transform -> saida B ---
           \draw[inv] (ct.east) -- (f3.west);
           \draw[inv] (ct.east) -- (f4.west);
@@ -1223,7 +1223,7 @@
       \lstinputlisting[style=vscode-light]{slides/code/05_affine_coupling.py}%
     }\\
     \vspace{0.3em}
-    \tiny \textbf{Ideias-chave:} split em $A/B$; rede prediz $(s,t)$ a partir
+    \tiny \textbf{Ideias-chave:} split em $A/B$; rede prediz $(\mathbf{s},\mathbf{t})$ a partir
     de $A$; $\tanh$ em $s$ estabiliza; \texttt{log\_det} acumulado é a soma dos $s$.
   \end{frame}
 
@@ -1338,7 +1338,7 @@
     probabilidade} $p_t(\mathbf{x})$, $t \in [0,1]$, ligando a base aos dados:
     \vspace{0.1em}
     \[
-      p_0 = \mathcal{N}(\mathbf{0}, \mathbf{I}) \;\;(\text{ruído}),
+      p_0 = \mathcal{N}(0, \mathbf{I}) \;\;(\text{ruído}),
       \qquad
       p_1 = p_{\text{dados}}.
     \]
@@ -1473,7 +1473,7 @@
           \footnotesize
           \begin{enumerate}
             \item amostre
-            $\mathbf{x}_0 \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$,
+            $\mathbf{x}_0 \sim \mathcal{N}(0, \mathbf{I})$,
             $\mathbf{x}_1 \sim p_{\text{dados}}$,
             $t \sim \mathcal{U}[0,1]$;
             \item compute
@@ -1490,7 +1490,7 @@
           \footnotesize
           \begin{enumerate}
             \item $\mathbf{x} \leftarrow \mathbf{x}_0 \sim
-            \mathcal{N}(\mathbf{0}, \mathbf{I})$;
+            \mathcal{N}(0, \mathbf{I})$;
             \item para $k = 0, 1, \dots, K-1$:
             \[
               \mathbf{x} \leftarrow \mathbf{x} + \tfrac{1}{K}\,
@@ -1541,9 +1541,9 @@
         \begin{block}{Onde a densidade tratável importa}
           \begin{itemize}
             \item \textbf{Detecção de anomalias}: dados anômalos têm
-            $\log p_X(x)$ baixo (indústria, segurança de redes).
+            $\log p_X(\mathbf{x})$ baixo (indústria, segurança de redes).
             \item \textbf{Inferência variacional}: substituem
-            $q(z\mid x)$ do VAE por uma distribuição expressiva.
+            $q(\mathbf{z}\mid \mathbf{x})$ do VAE por uma distribuição expressiva.
             \item \textbf{Física e química}: \textit{Boltzmann
             Generators} amostram conformações moleculares em equilíbrio.
           \end{itemize}

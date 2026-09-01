@@ -670,14 +670,14 @@
   %--- Slide: MLE ---
   \begin{frame}{Estimador de máxima verossimilhança}
     \[
-      \hat\thetav = \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \;\big|\; f(x^{(i)};\thetav)\right)
+      \hat\thetav = \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \;\big|\; f(\mathbf{x}^{(i)};\thetav)\right)
     \]
     \vfill
     \begin{itemize}
       \item Maximiza a probabilidade conjunta dos rótulos observados, dada a entrada.
       \item Hipóteses implícitas:
         \begin{itemize}
-          \item As amostras $(x^{(i)}, y^{(i)})$ são \textbf{identicamente distribuídas}.
+          \item As amostras $(\mathbf{x}^{(i)}, y^{(i)})$ são \textbf{identicamente distribuídas}.
           \item São \textbf{independentes} entre si (justifica o produto).
         \end{itemize}
       \item Em uma frase: \textit{i.i.d.}
@@ -705,9 +705,9 @@
   \begin{frame}{Log-verossimilhança}
     \begin{align*}
       \hat\thetav
-        &= \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right) \\
-        &= \argmax_{\thetav}\;\log\!\left[\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)\right] \\
-        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)
+        &= \argmax_{\thetav}\;\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(\mathbf{x}^{(i)};\thetav)\right) \\
+        &= \argmax_{\thetav}\;\log\!\left[\prod_{i=1}^{N}\Pr\!\left(y^{(i)} \mid f(\mathbf{x}^{(i)};\thetav)\right)\right] \\
+        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(\mathbf{x}^{(i)};\thetav)\right)
     \end{align*}
   \end{frame}
 
@@ -715,8 +715,8 @@
   \begin{frame}{Convenção: minimizar a \textit{Negative Log-Likelihood}}
     \begin{align*}
       \hat\thetav
-        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right) \\
-        &= \argmin_{\thetav}\;\left[-\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(x^{(i)};\thetav)\right)\right] \\
+        &= \argmax_{\thetav}\;\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(\mathbf{x}^{(i)};\thetav)\right) \\
+        &= \argmin_{\thetav}\;\left[-\sum_{i=1}^{N}\log\Pr\!\left(y^{(i)} \mid f(\mathbf{x}^{(i)};\thetav)\right)\right] \\
         &= \argmin_{\thetav}\;\mathcal{L}(\thetav)
     \end{align*}
     \vfill
@@ -777,9 +777,9 @@
   \begin{frame}{Passo 3: substituir na NLL e simplificar}
     \begin{align*}
       \mathcal{L}(\thetav)
-        &= -\sum_{i=1}^{N}\log\!\left[\frac{1}{\sqrt{2\pi\sigma^{2}}}\,\exp\!\left(-\frac{(y^{(i)}-f(x^{(i)};\thetav))^{2}}{2\sigma^{2}}\right)\right] \\
-        &= -\sum_{i=1}^{N}\log\!\left(\frac{1}{\sqrt{2\pi\sigma^{2}}}\right) + \sum_{i=1}^{N}\frac{(y^{(i)}-f(x^{(i)};\thetav))^{2}}{2\sigma^{2}} \\
-        &\propto \sum_{i=1}^{N}\big(y^{(i)}-f(x^{(i)};\thetav)\big)^{2}
+        &= -\sum_{i=1}^{N}\log\!\left[\frac{1}{\sqrt{2\pi\sigma^{2}}}\,\exp\!\left(-\frac{(y^{(i)}-f(\mathbf{x}^{(i)};\thetav))^{2}}{2\sigma^{2}}\right)\right] \\
+        &= -\sum_{i=1}^{N}\log\!\left(\frac{1}{\sqrt{2\pi\sigma^{2}}}\right) + \sum_{i=1}^{N}\frac{(y^{(i)}-f(\mathbf{x}^{(i)};\thetav))^{2}}{2\sigma^{2}} \\
+        &\propto \sum_{i=1}^{N}\big(y^{(i)}-f(\mathbf{x}^{(i)};\thetav)\big)^{2}
     \end{align*}
     \begin{itemize}
       \item O primeiro termo não depende de $\thetav$; a divisão por $2\sigma^{2}$ é constante.
@@ -790,7 +790,7 @@
   %--- Slide: resultado MSE ---
   \begin{frame}{Resultado: erro quadrático médio}
     \[
-      \boxed{\hat\thetav = \argmin_{\thetav}\;\sum_{i=1}^{N}\big(y^{(i)}-f(x^{(i)};\thetav)\big)^{2}}
+      \boxed{\hat\thetav = \argmin_{\thetav}\;\sum_{i=1}^{N}\big(y^{(i)}-f(\mathbf{x}^{(i)};\thetav)\big)^{2}}
     \]
     \begin{itemize}
       \item Esta é a \textbf{$L_2$ loss} (também chamada de MSE quando dividida por $N$).
@@ -810,7 +810,7 @@
       \begin{column}{.5\linewidth}
         \centering
         \includegraphics[width=.9\linewidth,height=0.62\textheight,keepaspectratio]{slides/img/01-mlp/al-mse-gaussians.png}\\
-        \footnotesize $-\sum_i \log\Pr(y_i\mid f(x_i;\thetav),\sigma^{2})$.
+        \footnotesize $-\sum_i \log\Pr(y_i\mid f(\mathbf{x}_i;\thetav),\sigma^{2})$.
       \end{column}
     \end{columns}
   \end{frame}
@@ -826,8 +826,8 @@
     \begin{align*}
       \mathcal{L}(\thetav)
         &= -\sum_{i=1}^{N}\log\!\left[\frac{1}{2b}\,
-           \exp\!\left(-\frac{|y^{(i)}-f(x^{(i)};\thetav)|}{b}\right)\right]
-         \propto \sum_{i=1}^{N}\big|y^{(i)}-f(x^{(i)};\thetav)\big|
+           \exp\!\left(-\frac{|y^{(i)}-f(\mathbf{x}^{(i)};\thetav)|}{b}\right)\right]
+         \propto \sum_{i=1}^{N}\big|y^{(i)}-f(\mathbf{x}^{(i)};\thetav)\big|
     \end{align*}
     \begin{itemize}
       \item O resultado é a \textbf{$L_1$ loss} (MAE): penaliza desvios linearmente,
@@ -875,10 +875,10 @@
   \begin{frame}{Passo 3: NLL e simplificação}
     \begin{align*}
       \mathcal{L}(\thetav)
-        &= -\sum_{i=1}^{N}\log\!\left[\big(1-\sigma(f(x^{(i)};\thetav))\big)^{1-y^{(i)}}\,
-                                       \big(\sigma(f(x^{(i)};\thetav))\big)^{y^{(i)}}\right] \\
-        &= \sum_{i=1}^{N}\Big[-\big(1-y^{(i)}\big)\log\!\big(1-\sigma(f(x^{(i)};\thetav))\big)
-                              -y^{(i)}\log\!\big(\sigma(f(x^{(i)};\thetav))\big)\Big]
+        &= -\sum_{i=1}^{N}\log\!\left[\big(1-\sigma(f(\mathbf{x}^{(i)};\thetav))\big)^{1-y^{(i)}}\,
+                                       \big(\sigma(f(\mathbf{x}^{(i)};\thetav))\big)^{y^{(i)}}\right] \\
+        &= \sum_{i=1}^{N}\Big[-\big(1-y^{(i)}\big)\log\!\big(1-\sigma(f(\mathbf{x}^{(i)};\thetav))\big)
+                              -y^{(i)}\log\!\big(\sigma(f(\mathbf{x}^{(i)};\thetav))\big)\Big]
     \end{align*}
     \begin{block}{Resultado: Entropia Cruzada Binária (BCE)}
       \[
@@ -894,7 +894,7 @@
       \begin{column}{.33\linewidth}
         \centering
         \includegraphics[width=\linewidth]{slides/img/01-mlp/al-piecewise-linear.png}\\
-        \footnotesize $f(x;\thetav)$
+        \footnotesize $f(\mathbf{x};\thetav)$
       \end{column}
       \begin{column}{.33\linewidth}
         \centering
@@ -978,7 +978,7 @@
     Para $y\in\{1,2,\ldots,K\}$ (exclusivo), a generalização da Bernoulli é a
     \textbf{categórica}:
     \[
-      \Pr(y\mid \boldsymbol\lambda) = \prod_{k=1}^{K}\lambda_{k}^{[y=k]}
+      \Pr(y\mid \bm{\lambda}) = \prod_{k=1}^{K}\lambda_{k}^{[y=k]}
         \quad\text{com}\quad
         \sum_{k=1}^{K}\lambda_{k} = 1,\;\lambda_{k}\ge 0.
     \]
@@ -990,14 +990,14 @@
   \end{frame}
 
   %--- Slide: rede prediz lambda via softmax ---
-  \begin{frame}{Passo 2: rede prediz $\boldsymbol\lambda$ via softmax}
+  \begin{frame}{Passo 2: rede prediz $\bm{\lambda}$ via softmax}
     \begin{itemize}
       \item Saída crua da rede: $\mathbf{z} = f(\mathbf{x};\thetav)\in\mathbb{R}^{K}$ (logits).
       \item Aplicamos softmax para obter probabilidades:
         \[
           \lambda_{k} = \mathrm{softmax}(\mathbf{z})_k = \frac{e^{z_k}}{\sum_{j=1}^{K}e^{z_j}}.
         \]
-      \item Por construção, $\boldsymbol\lambda$ é um vetor de probabilidades válido.
+      \item Por construção, $\bm{\lambda}$ é um vetor de probabilidades válido.
     \end{itemize}
   \end{frame}
 

@@ -65,7 +65,7 @@
       Pontos importantes para a aula:
       \begin{itemize}
         \item GANs são modelos \emph{implícitos} de distribuição: não
-        calculamos $P(x)$, apenas sabemos amostrar dela.
+        calculamos $P(\mathbf{x})$, apenas sabemos amostrar dela.
         \item A ideia central é transformar um problema de modelagem
         densa em um problema de classificação, algo que redes neurais
         resolvem bem.
@@ -120,24 +120,24 @@
   %--- Slide: Princípios - processo gerativo ---
   \begin{frame}{\textit{GANs} -- Princípios}
     \textbf{Objetivo:} gerar novas instâncias
-    $\{x^{(j)*}\}$ que sigam a mesma distribuição dos dados de treino
-    $\{x^{(i)}\}$.
+    $\{\mathbf{x}^{(j)*}\}$ que sigam a mesma distribuição dos dados de treino
+    $\{\mathbf{x}^{(i)}\}$.
     \vspace{0.5em}
     \begin{block}{Processo de geração de uma nova instância}
       \begin{enumerate}
         \item Amostrar uma \textbf{variável latente}
-        $z^{(j)}$ de uma distribuição simples (normal, uniforme, \ldots).
-        \item Usar $z^{(j)}$ como entrada para uma rede neural:
+        $\mathbf{z}^{(j)}$ de uma distribuição simples (normal, uniforme, \ldots).
+        \item Usar $\mathbf{z}^{(j)}$ como entrada para uma rede neural:
         \[
-          x^{(j)*} = g\!\left[z^{(j)}, \thetav\right]
+          \mathbf{x}^{(j)*} = g\!\left[\mathbf{z}^{(j)}, \thetav\right]
         \]
         onde $\thetav$ são os parâmetros do gerador aprendidos durante o
         treino.
       \end{enumerate}
     \end{block}
     \note{
-      O latente $z$ é tipicamente de baixa dimensionalidade (p.~ex.\ 100
-      dimensões) enquanto $x$ pode ser uma imagem de milhares de pixels.
+      O latente $\mathbf{z}$ é tipicamente de baixa dimensionalidade (p.~ex.\ 100
+      dimensões) enquanto $\mathbf{x}$ pode ser uma imagem de milhares de pixels.
       O gerador realiza um \emph{upsampling} semântico.
     }
   \end{frame}
@@ -149,7 +149,7 @@
       forem \textbf{indistinguíveis} das instâncias do conjunto de
       dados.
       \item Introduzimos então uma segunda rede
-      $f\!\left[\cdot,\phi\right]$ que tenta \textbf{classificar} suas
+      $f\!\left[\cdot,\bm{\phi}\right]$ que tenta \textbf{classificar} suas
       entradas como reais ou geradas.
       \begin{itemize}
         \item Se o discriminador consegue classificar bem, ele pode
@@ -227,13 +227,13 @@
     $y=0$, e minimizamos a entropia cruzada:
     \vspace{0.4em}
     \[
-      \hat{\phi} = \argmin_{\phi} \Bigg[ \sum_i
-        -\!\left(1 - y^{(i)}\right)\ln\!\left[1 - \sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]
-        - y^{(i)} \ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right] \Bigg]
+      \hat{\bm{\phi}} = \argmin_{\bm{\phi}} \Bigg[ \sum_i
+        -\!\left(1 - y^{(i)}\right)\ln\!\left[1 - \sigma\!\left(f\!\left[\mathbf{x}^{(i)},\bm{\phi}\right]\right)\right]
+        - y^{(i)} \ln\!\left[\sigma\!\left(f\!\left[\mathbf{x}^{(i)},\bm{\phi}\right]\right)\right] \Bigg]
     \]
     \vspace{0.2em}
     \begin{itemize}
-      \item $\sigma(\cdot)$ é a sigmóide que mapeia o logit $f[\cdot,\phi]$
+      \item $\sigma(\cdot)$ é a sigmóide que mapeia o logit $f[\cdot,\bm{\phi}]$
       para probabilidade de ``real''.
       \item A primeira parcela penaliza rotular geradas como reais; a
       segunda penaliza rotular reais como geradas.
@@ -246,18 +246,18 @@
     ($y^{(j)}=0$), reescrevemos a loss em duas somas distintas:
     \vspace{0.3em}
     \[
-      \hat{\phi} = \argmin_{\phi} \Bigg[ \sum_{j}
-        \!\!\left(-\ln\!\left[1 - \sigma\!\left(f\!\left[\textcolor{GenRed}{x^{(j)*}},\phi\right]\right)\right]\right)
+      \hat{\bm{\phi}} = \argmin_{\bm{\phi}} \Bigg[ \sum_{j}
+        \!\!\left(-\ln\!\left[1 - \sigma\!\left(f\!\left[\textcolor{GenRed}{\mathbf{x}^{(j)*}},\bm{\phi}\right]\right)\right]\right)
         - \sum_{i}
-        \!\!\left(\ln\!\left[\sigma\!\left(f\!\left[\textcolor{DiscBlue}{x^{(i)}},\phi\right]\right)\right]\right) \Bigg]
+        \!\!\left(\ln\!\left[\sigma\!\left(f\!\left[\textcolor{DiscBlue}{\mathbf{x}^{(i)}},\bm{\phi}\right]\right)\right]\right) \Bigg]
     \]
     \vspace{0.2em}
     \begin{itemize}
       \item $j$ indexa instâncias \textcolor{GenRed}{geradas}
-      ($x^{(j)*}$), $i$ indexa instâncias
-      \textcolor{DiscBlue}{reais} ($x^{(i)}$).
+      ($\mathbf{x}^{(j)*}$), $i$ indexa instâncias
+      \textcolor{DiscBlue}{reais} ($\mathbf{x}^{(i)}$).
       \item O gerador entra apenas no primeiro somatório, por meio das
-      amostras $x^{(j)*} = g[z^{(j)},\thetav]$.
+      amostras $\mathbf{x}^{(j)*} = g[\mathbf{z}^{(j)},\thetav]$.
     \end{itemize}
   \end{frame}
 
@@ -267,12 +267,12 @@
     gerador}, obtemos a formulação adversarial conjunta:
     \vspace{0.3em}
     \[
-      \hat{\phi},\hat{\thetav} =
-      \argmin_{\phi}\, \argmax_{\thetav}
+      \hat{\bm{\phi}},\hat{\thetav} =
+      \argmin_{\bm{\phi}}\, \argmax_{\thetav}
       \Bigg[ \sum_{j}\!\!
-        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]\right)
+        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\bm{\phi}\right]\right)\right]\right)
         - \sum_{i}\!\!
-        \left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]\right) \Bigg]
+        \left(\ln\!\left[\sigma\!\left(f\!\left[\mathbf{x}^{(i)},\bm{\phi}\right]\right)\right]\right) \Bigg]
     \]
     \vspace{0.3em}
     \begin{block}{\textit{MinMax Loss}}
@@ -283,7 +283,7 @@
     \note{
       Observação prática: ao invés de ``maximizar'' a loss do
       discriminador, o gerador normalmente minimiza
-      $-\ln \sigma(f[g(z),\phi])$ (\emph{non-saturating loss}),
+      $-\ln \sigma(f[g(\mathbf{z}),\bm{\phi}])$ (\emph{non-saturating loss}),
       que tem gradiente melhor quando o discriminador está vencendo o
       jogo.
     }
@@ -293,12 +293,12 @@
   \begin{frame}{\textit{MinMax Loss} -- Papéis de gerador e discriminador}
     \vspace{-0.3em}
     \[
-      \hat{\phi},\hat{\thetav} =
-      \argmin_{\phi}\, \argmax_{\thetav}
+      \hat{\bm{\phi}},\hat{\thetav} =
+      \argmin_{\bm{\phi}}\, \argmax_{\thetav}
       \Bigg[\underbrace{ \sum_{j}
-        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[\textcolor{GenRed}{g[z^{(j)},\thetav]},\phi\right]\right)\right]\right)}_{\textcolor{GenRed}{\text{Gerador + Discriminador}}}
+        \left(-\ln\!\left[1-\sigma\!\left(f\!\left[\textcolor{GenRed}{g[\mathbf{z}^{(j)},\thetav]},\bm{\phi}\right]\right)\right]\right)}_{\textcolor{GenRed}{\text{Gerador + Discriminador}}}
         \underbrace{- \sum_{i}
-        \left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\phi\right]\right)\right]\right)}_{\textcolor{DiscBlue}{\text{Discriminador}}} \Bigg]
+        \left(\ln\!\left[\sigma\!\left(f\!\left[\mathbf{x}^{(i)},\bm{\phi}\right]\right)\right]\right)}_{\textcolor{DiscBlue}{\text{Discriminador}}} \Bigg]
     \]
     \vspace{0.5em}
     \begin{itemize}
@@ -315,18 +315,18 @@
     Na prática, treinamos as redes alternadamente, cada uma otimizando
     sua própria loss:
     \vspace{0.8em}
-    \begin{block}{Loss do discriminador (minimizar em \textcolor{DiscBlue}{$\phi$})}
+    \begin{block}{Loss do discriminador (minimizar em \textcolor{DiscBlue}{$\bm{\phi}$})}
       \[
-        L[\textcolor{DiscBlue}{\phi}] = \sum_{j}
-          \!\left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\textcolor{DiscBlue}{\phi}\right]\right)\right]\right)
+        L[\textcolor{DiscBlue}{\bm{\phi}}] = \sum_{j}
+          \!\left(-\ln\!\left[1-\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\textcolor{DiscBlue}{\bm{\phi}}\right]\right)\right]\right)
           - \sum_{i}
-          \!\left(\ln\!\left[\sigma\!\left(f\!\left[x^{(i)},\textcolor{DiscBlue}{\phi}\right]\right)\right]\right)
+          \!\left(\ln\!\left[\sigma\!\left(f\!\left[\mathbf{x}^{(i)},\textcolor{DiscBlue}{\bm{\phi}}\right]\right)\right]\right)
       \]
     \end{block}
     \begin{block}{Loss do gerador (minimizar em \textcolor{GenRed}{$\thetav$})}
       \[
         L[\textcolor{GenRed}{\thetav}] = \sum_{j}
-          \!\left(\ln\!\left[1-\sigma\!\left(f\!\left[g[z^{(j)},\textcolor{GenRed}{\thetav}],\phi\right]\right)\right]\right)
+          \!\left(\ln\!\left[1-\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\textcolor{GenRed}{\thetav}],\bm{\phi}\right]\right)\right]\right)
       \]
     \end{block}
   \end{frame}
@@ -336,14 +336,14 @@
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
         No início do treino o discriminador vence facilmente:
-        $\sigma(f[g(z),\phi]) \approx 0$. A loss $\ln[1-\sigma(\cdot)]$
+        $\sigma(f[g(\mathbf{z}),\bm{\phi}]) \approx 0$. A loss $\ln[1-\sigma(\cdot)]$
         fica quase plana em $0$, e o gradiente que chega ao gerador é
         \emph{minúsculo}.
         \vspace{0.3em}
         \begin{block}{Substituição usada na prática}
           \[
             L_{\text{NS}}[\thetav] = \sum_{j}
-              \!\left(-\ln\!\left[\sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]\right)
+              \!\left(-\ln\!\left[\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\bm{\phi}\right]\right)\right]\right)
           \]
         \end{block}
         \footnotesize
@@ -364,7 +364,7 @@
               width=6.2cm, height=5.2cm,
               axis lines=left,
               xmin=-6, xmax=6, ymin=0, ymax=1.05,
-              xlabel={$d = f[g(z),\phi]$},
+              xlabel={$d = f[g(\mathbf{z}),\bm{\phi}]$},
               ylabel={$|\partial L/\partial d|$},
               ytick={0,0.5,1},
               xtick={-6,-3,0,3,6},
@@ -402,16 +402,16 @@
     \vspace{0.3em}
     \begin{algorithmic}[1]
       \Require dataset real, número de passos do discriminador $k$,
-               taxas de aprendizado $\eta_\phi$, $\eta_\theta$,
+               taxas de aprendizado $\eta_{\bm{\phi}}$, $\eta_{\thetav}$,
                tamanho de batch $m$
       \While{$\thetav$ não convergiu}
         \For{$t = 1, \ldots, k$}
-          \State Amostre minibatch de reais $\{x^{(i)}\}_{i=1}^{m}$
-          \State Amostre ruído $\{z^{(j)}\}_{j=1}^{m}$
-          \State $\phi \leftarrow \phi - \eta_\phi \nabla_\phi L[\phi]$
+          \State Amostre minibatch de reais $\{\mathbf{x}^{(i)}\}_{i=1}^{m}$
+          \State Amostre ruído $\{\mathbf{z}^{(j)}\}_{j=1}^{m}$
+          \State $\bm{\phi} \leftarrow \bm{\phi} - \eta_{\bm{\phi}} \nabla_{\bm{\phi}} L[\bm{\phi}]$
         \EndFor
-        \State Amostre novo ruído $\{z^{(j)}\}_{j=1}^{m}$
-        \State $\thetav \leftarrow \thetav - \eta_\theta \nabla_\theta L[\thetav]$
+        \State Amostre novo ruído $\{\mathbf{z}^{(j)}\}_{j=1}^{m}$
+        \State $\thetav \leftarrow \thetav - \eta_{\thetav} \nabla_{\thetav} L[\thetav]$
       \EndWhile
     \end{algorithmic}
     \vspace{0.3em}
@@ -458,7 +458,7 @@
       entrada de D (estabiliza o treino sem distorcer a saída).
       \item \textbf{Ativações}: ReLU em todas as camadas de G (Tanh na
       saída); LeakyReLU em todas as camadas de D.
-      \item Vetor latente $z \in \mathbb{R}^{100}$, normal padrão.
+      \item Vetor latente $\mathbf{z} \in \mathbb{R}^{100}$, normal padrão.
     \end{itemize}
     \begin{block}{Por que importa}
       Antes da DCGAN, treinar GAN convolucional era considerado quase
@@ -525,14 +525,14 @@
     cada somatório} pelo número de instâncias (geradas $J$ ou reais $I$):
     \vspace{0.4em}
     \[
-      L[\phi] = \sum_{j}
-        \!\!\left(\ln\!\left[1-\sigma\!\left(f[x^{(j)*},\phi]\right)\right]\right)
-        + \sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[x^{(i)},\phi]\right)\right]\right)
+      L[\bm{\phi}] = \sum_{j}
+        \!\!\left(\ln\!\left[1-\sigma\!\left(f[\mathbf{x}^{(j)*},\bm{\phi}]\right)\right]\right)
+        + \sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[\mathbf{x}^{(i)},\bm{\phi}]\right)\right]\right)
     \]
     \[
-      L[\phi] \approx \tfrac{1}{J}\sum_{j}
-        \!\!\left(\ln\!\left[1-\sigma\!\left(f[x^{(j)*},\phi]\right)\right]\right)
-        + \tfrac{1}{I}\sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[x^{(i)},\phi]\right)\right]\right)
+      L[\bm{\phi}] \approx \tfrac{1}{J}\sum_{j}
+        \!\!\left(\ln\!\left[1-\sigma\!\left(f[\mathbf{x}^{(j)*},\bm{\phi}]\right)\right]\right)
+        + \tfrac{1}{I}\sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[\mathbf{x}^{(i)},\bm{\phi}]\right)\right]\right)
     \]
     \vspace{0.3em}
     Isso não altera o \emph{mínimo} (multiplicar por constante não
@@ -545,13 +545,13 @@
     \textbf{esperança} sobre a distribuição correspondente:
     \vspace{0.4em}
     \[
-      L[\phi] = \mathbb{E}_{x^{*}}\!\left[\ln\!\left[1-\sigma(f[x^{*},\phi])\right]\right]
-      + \mathbb{E}_{x}\!\left[\ln\!\left[\sigma(f[x,\phi])\right]\right]
+      L[\bm{\phi}] = \mathbb{E}_{\mathbf{x}^{*}}\!\left[\ln\!\left[1-\sigma(f[\mathbf{x}^{*},\bm{\phi}])\right]\right]
+      + \mathbb{E}_{\mathbf{x}}\!\left[\ln\!\left[\sigma(f[\mathbf{x},\bm{\phi}])\right]\right]
     \]
     \begin{itemize}
-      \item $\mathbb{E}_{x^*}$: esperança sobre a distribuição gerada
-      $P(x^*)$.
-      \item $\mathbb{E}_{x}$: esperança sobre a distribuição real $P(x)$.
+      \item $\mathbb{E}_{\mathbf{x}^*}$: esperança sobre a distribuição gerada
+      $P(\mathbf{x}^*)$.
+      \item $\mathbb{E}_{\mathbf{x}}$: esperança sobre a distribuição real $P(\mathbf{x})$.
       \item Essa reescrita muda o ponto de vista: deixamos de falar de
       amostras e passamos a falar de distribuições.
     \end{itemize}
@@ -563,12 +563,12 @@
     integrais}:
     \vspace{0.4em}
     \[
-      L[\phi] = \int P(x^*) \ln\!\left[1-\sigma(f[x^{*},\phi])\right] dx^{*}
-      + \int P(x) \ln\!\left[\sigma(f[x,\phi])\right] dx
+      L[\bm{\phi}] = \int P(\mathbf{x}^*) \ln\!\left[1-\sigma(f[\mathbf{x}^{*},\bm{\phi}])\right] d\mathbf{x}^{*}
+      + \int P(\mathbf{x}) \ln\!\left[\sigma(f[\mathbf{x},\bm{\phi}])\right] d\mathbf{x}
     \]
     \vspace{0.3em}
     \begin{itemize}
-      \item Os integrandos dependem do discriminador $\sigma(f[\cdot,\phi])$.
+      \item Os integrandos dependem do discriminador $\sigma(f[\cdot,\bm{\phi}])$.
       \item Vamos substituir o discriminador pela expressão \emph{ótima}
       (que minimiza essa loss).
     \end{itemize}
@@ -576,27 +576,27 @@
 
   %--- Slide: Optimal discriminator ---
   \begin{frame}{Análise da Loss -- Discriminador ótimo}
-    A saída $\sigma\!\left[f[\tilde{x},\phi]\right]$ é a probabilidade
+    A saída $\sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]$ é a probabilidade
     que o discriminador atribui ao rótulo \emph{real} dada uma amostra
-    $\tilde{x}$. Por \textbf{regra de Bayes}:
+    $\tilde{\mathbf{x}}$. Por \textbf{regra de Bayes}:
     \[
-      \sigma\!\left[f[\tilde{x},\phi]\right]
-      = P(\text{real}\mid \tilde{x})
-      = \frac{P(\tilde{x}\mid \text{real})\,P(\text{real})}
-             {P(\tilde{x}\mid \text{real})\,P(\text{real})
-              + P(\tilde{x}\mid \text{gen})\,P(\text{gen})}
+      \sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]
+      = P(\text{real}\mid \tilde{\mathbf{x}})
+      = \frac{P(\tilde{\mathbf{x}}\mid \text{real})\,P(\text{real})}
+             {P(\tilde{\mathbf{x}}\mid \text{real})\,P(\text{real})
+              + P(\tilde{\mathbf{x}}\mid \text{gen})\,P(\text{gen})}
     \]
     Assumindo $I = J$, ou seja $P(\text{real}) = P(\text{gen}) = \tfrac{1}{2}$,
     os \emph{priors} se cancelam:
     \[
-      \sigma\!\left[f[\tilde{x},\phi]\right]
-      = \frac{P(\tilde{x}\mid \text{real})}
-             {P(\tilde{x}\mid \text{real}) + P(\tilde{x}\mid \text{gen})}
-      = \frac{P(x)}{P(x)+P(x^{*})}
+      \sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]
+      = \frac{P(\tilde{\mathbf{x}}\mid \text{real})}
+             {P(\tilde{\mathbf{x}}\mid \text{real}) + P(\tilde{\mathbf{x}}\mid \text{gen})}
+      = \frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}
     \]
     \footnotesize
     \begin{itemize}
-      \item $P(x)$ é a densidade dos dados reais em $\tilde{x}$, $P(x^{*})$
+      \item $P(\mathbf{x})$ é a densidade dos dados reais em $\tilde{\mathbf{x}}$, $P(\mathbf{x}^{*})$
       é a densidade gerada no mesmo ponto.
       \item Em palavras: a probabilidade ideal de ser real é a fração da
       densidade total naquele ponto que vem do conjunto real.
@@ -611,18 +611,18 @@
 
   %--- Slide: Substituting ---
   \begin{frame}{Análise da Loss -- Substituindo o discriminador ótimo}
-    Substituindo $\sigma(f[x,\phi]) = \frac{P(x)}{P(x)+P(x^*)}$ na loss:
+    Substituindo $\sigma(f[\mathbf{x},\bm{\phi}]) = \frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^*)}$ na loss:
     \vspace{0.2em}
     \[
-      L[\phi] = \int P(x^{*}) \ln\!\left[\frac{P(x^{*})}{P(x)+P(x^{*})}\right] dx^{*}
-      + \int P(x)\ln\!\left[\frac{P(x)}{P(x)+P(x^{*})}\right] dx
+      L[\bm{\phi}] = \int P(\mathbf{x}^{*}) \ln\!\left[\frac{P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}^{*}
+      + \int P(\mathbf{x})\ln\!\left[\frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}
     \]
     \vspace{0.3em}
     Os dois termos dentro dos logaritmos viraram \textbf{razões de
     densidades}, que é exatamente a forma de uma divergência KL.
     \note{
       Note que o primeiro termo começou como $\ln[1-\sigma]$. Como
-      $1 - \tfrac{P(x)}{P(x)+P(x^*)} = \tfrac{P(x^*)}{P(x)+P(x^*)}$,
+      $1 - \tfrac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^*)} = \tfrac{P(\mathbf{x}^*)}{P(\mathbf{x})+P(\mathbf{x}^*)}$,
       chegamos à forma acima.
     }
   \end{frame}
@@ -633,13 +633,13 @@
     do logaritmo (não altera o $\argmin$):
     \vspace{0.2em}
     \[
-      L[\phi] = \int P(x^{*}) \ln\!\left[\frac{2P(x^{*})}{P(x)+P(x^{*})}\right] dx^{*}
-      + \int P(x)\ln\!\left[\frac{2P(x)}{P(x)+P(x^{*})}\right] dx - 2\ln 2
+      L[\bm{\phi}] = \int P(\mathbf{x}^{*}) \ln\!\left[\frac{2P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}^{*}
+      + \int P(\mathbf{x})\ln\!\left[\frac{2P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x} - 2\ln 2
     \]
     \vspace{0.3em}
     Os dois fatores $\ln 2$ saem das integrais (pois $\int P = \int P^{*} = 1$).
     Agora cada termo é exatamente uma divergência KL entre uma
-    distribuição e a \emph{mistura} $\frac{P(x^*)+P(x)}{2}$.
+    distribuição e a \emph{mistura} $\frac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}$.
   \end{frame}
 
   %--- Slide: Recognizing KL ---
@@ -647,13 +647,13 @@
     Cada parcela tem a forma da \textbf{KL Divergence}:
     \vspace{0.3em}
     \[
-      D_{KL}\!\left[p(x) \,\|\, q(x)\right] = \int p(x)\ln\!\left[\frac{p(x)}{q(x)}\right] dx
+      D_{KL}\!\left[p(\mathbf{x}) \,\|\, q(\mathbf{x})\right] = \int p(\mathbf{x})\ln\!\left[\frac{p(\mathbf{x})}{q(\mathbf{x})}\right] d\mathbf{x}
     \]
     \vspace{0.3em}
     Portanto:
     \[
-      L[\phi] = D_{KL}\!\left[P(x^{*}) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
-             + D_{KL}\!\left[P(x) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right] - 2\ln 2
+      L[\bm{\phi}] = D_{KL}\!\left[P(\mathbf{x}^{*}) \,\Big\|\, \tfrac{P(\mathbf{x}^{*})+P(\mathbf{x})}{2}\right]
+             + D_{KL}\!\left[P(\mathbf{x}) \,\Big\|\, \tfrac{P(\mathbf{x}^{*})+P(\mathbf{x})}{2}\right] - 2\ln 2
     \]
   \end{frame}
 
@@ -662,12 +662,12 @@
     Reconhecemos a definição da \textbf{Jensen--Shannon Divergence}:
     \vspace{0.3em}
     \[
-      D_{JS}\!\left[P(x^{*}) \,\|\, P(x)\right]
-      = \tfrac{1}{2} D_{KL}\!\left[P(x^{*}) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
-      + \tfrac{1}{2} D_{KL}\!\left[P(x) \,\Big\|\, \tfrac{P(x^{*})+P(x)}{2}\right]
+      D_{JS}\!\left[P(\mathbf{x}^{*}) \,\|\, P(\mathbf{x})\right]
+      = \tfrac{1}{2} D_{KL}\!\left[P(\mathbf{x}^{*}) \,\Big\|\, \tfrac{P(\mathbf{x}^{*})+P(\mathbf{x})}{2}\right]
+      + \tfrac{1}{2} D_{KL}\!\left[P(\mathbf{x}) \,\Big\|\, \tfrac{P(\mathbf{x}^{*})+P(\mathbf{x})}{2}\right]
     \]
     \vspace{0.2em}
-    Logo $L[\phi] = 2\,D_{JS}\!\left[P(x^{*}) \,\|\, P(x)\right] - 2\ln 2$.
+    Logo $L[\bm{\phi}] = 2\,D_{JS}\!\left[P(\mathbf{x}^{*}) \,\|\, P(\mathbf{x})\right] - 2\ln 2$.
     \begin{alertblock}{Interpretação}
       Com discriminador ótimo, a loss de uma GAN é, a menos de uma
       constante e de um fator, a \textbf{divergência de Jensen--Shannon}
@@ -682,18 +682,18 @@
         \vspace{-0.4em}
         \[
           \resizebox{\linewidth}{!}{$
-            D_{JS}[P(x^*)\|P(x)] =
-            \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(x^*)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\textcolor{GenRed}{\text{Qualidade}}}
-            + \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(x)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\textcolor{DiscBlue}{\text{Cobertura}}}
+            D_{JS}[P(\mathbf{x}^*)\|P(\mathbf{x})] =
+            \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(\mathbf{x}^*)\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]}_{\textcolor{GenRed}{\text{Qualidade}}}
+            + \underbrace{\tfrac{1}{2}D_{KL}\!\!\left[P(\mathbf{x})\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]}_{\textcolor{DiscBlue}{\text{Cobertura}}}
           $}
         \]
         \footnotesize
         \begin{itemize}
           \item \textcolor{GenRed}{\textbf{Primeiro termo (qualidade)}},
-          penaliza regiões em que $P(x^*)$ tem probabilidade alta mas
+          penaliza regiões em que $P(\mathbf{x}^*)$ tem probabilidade alta mas
           a mistura não tem, isto é, amostras geradas implausíveis.
           \item \textcolor{DiscBlue}{\textbf{Segundo termo (cobertura)}},
-          penaliza regiões em que $P(x)$ tem probabilidade alta mas a
+          penaliza regiões em que $P(\mathbf{x})$ tem probabilidade alta mas a
           mistura não tem, isto é, modas ignoradas pelo gerador.
         \end{itemize}
         \begin{block}{Pergunta}
@@ -773,17 +773,17 @@
   %--- Slide: segundo termo não depende de gerador ---
   \begin{frame}{Análise da Loss -- Por que há colapso de moda}
     \[
-      D_{JS}[P(x^*)\|P(x)] =
-      \tfrac{1}{2}D_{KL}\!\!\left[P(x^*)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]
-      + \tfrac{1}{2}\underbrace{D_{KL}\!\!\left[P(x)\Big\|\tfrac{P(x^*)+P(x)}{2}\right]}_{\text{depende fracamente de } P(x^*)}
+      D_{JS}[P(\mathbf{x}^*)\|P(\mathbf{x})] =
+      \tfrac{1}{2}D_{KL}\!\!\left[P(\mathbf{x}^*)\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]
+      + \tfrac{1}{2}\underbrace{D_{KL}\!\!\left[P(\mathbf{x})\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]}_{\text{depende fracamente de } P(\mathbf{x}^*)}
     \]
     \vspace{0.4em}
     \begin{alertblock}{Consequência}
-      Quando $P(x^*) \ll P(x)$ em uma região,
-      $(P(x^*){+}P(x))/2 \approx P(x)/2$, então o argumento do log no
+      Quando $P(\mathbf{x}^*) \ll P(\mathbf{x})$ em uma região,
+      $(P(\mathbf{x}^*){+}P(\mathbf{x}))/2 \approx P(\mathbf{x})/2$, então o argumento do log no
       \textcolor{DiscBlue}{segundo termo} satura em
-      $\tfrac{P(x)}{P(x)/2} = 2$, e o integrando reduz-se a
-      $\tfrac{1}{2}P(x)\log 2$, \emph{independente} de $P(x^*)$.
+      $\tfrac{P(\mathbf{x})}{P(\mathbf{x})/2} = 2$, e o integrando reduz-se a
+      $\tfrac{1}{2}P(\mathbf{x})\log 2$, \emph{independente} de $P(\mathbf{x}^*)$.
       \vspace{0.3em}
 
       O gerador é \textbf{incentivado muito mais fortemente a
@@ -796,14 +796,14 @@
     A cadeia de manipulações que aplicamos:
     \begin{enumerate}
       \item Loss original = entropia cruzada binária do discriminador.
-      \item Normalizamos cada soma $\to$ esperanças sobre $P(x)$ e $P(x^{*})$.
+      \item Normalizamos cada soma $\to$ esperanças sobre $P(\mathbf{x})$ e $P(\mathbf{x}^{*})$.
       \item Esperanças $\to$ integrais.
       \item Substituímos $\sigma(f)$ pelo discriminador
-      \emph{ótimo} $\frac{P(x)}{P(x)+P(x^{*})}$.
+      \emph{ótimo} $\frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}$.
       \item Multiplicamos e dividimos por $2$ dentro do logaritmo.
       \item Cada termo virou uma KL contra a mistura
-      $\frac{P(x)+P(x^{*})}{2}$.
-      \item Somando, obtemos $L[\phi] = 2\,D_{JS}\!\left[P(x^{*})\,\|\,P(x)\right] - 2\ln 2$.
+      $\frac{P(\mathbf{x})+P(\mathbf{x}^{*})}{2}$.
+      \item Somando, obtemos $L[\bm{\phi}] = 2\,D_{JS}\!\left[P(\mathbf{x}^{*})\,\|\,P(\mathbf{x})\right] - 2\ln 2$.
     \end{enumerate}
     \begin{alertblock}{Moral}
       Treinar uma GAN com discriminador ótimo equivale a minimizar
@@ -943,11 +943,11 @@
       superfície de \emph{manifold}.
       \item O gerador, por construção, também produz amostras sobre um
       manifold: a imagem da função $g[\cdot,\thetav]$ aplicada ao
-      latente $z \in \mathbb{R}^{d}$, com $d \ll D$.
+      latente $\mathbf{z} \in \mathbb{R}^{d}$, com $d \ll D$.
       \item Dois manifolds de dimensão baixa em $\mathbb{R}^{D}$,
       escolhidos independentemente, quase nunca se cruzam: a interseção
       tem \textbf{medida zero}.
-      \item Consequência: no início do treino, $P(x)$ e $P(x^{*})$ vivem
+      \item Consequência: no início do treino, $P(\mathbf{x})$ e $P(\mathbf{x}^{*})$ vivem
       em regiões praticamente disjuntas, e o $D_{JS}$ fica preso em
       $\ln 2$.
     \end{itemize}
@@ -974,9 +974,9 @@
     \end{itemize}
     \begin{block}{Relembrando KL}
       \[
-        D_{KL}[p(x)\|q(x)] = \int p(x)\ln\!\left[\frac{p(x)}{q(x)}\right] dx
+        D_{KL}[p(\mathbf{x})\|q(\mathbf{x})] = \int p(\mathbf{x})\ln\!\left[\frac{p(\mathbf{x})}{q(\mathbf{x})}\right] d\mathbf{x}
       \]
-      Diverge sempre que existe $x$ com $p(x)>0$ e $q(x)=0$.
+      Diverge sempre que existe $\mathbf{x}$ com $p(\mathbf{x})>0$ e $q(\mathbf{x})=0$.
     \end{block}
   \end{frame}
 
@@ -1188,11 +1188,11 @@
     reais e geradas, obtemos a loss do \textbf{WGAN}:
     \vspace{0.3em}
     \[
-      L[\phi,\thetav] = \sum_{j} f\!\left[g[z^{(j)},\thetav],\phi\right]
-      - \sum_{i} f\!\left[x^{(i)},\phi\right]
+      L[\bm{\phi},\thetav] = \sum_{j} f\!\left[g[\mathbf{z}^{(j)},\thetav],\bm{\phi}\right]
+      - \sum_{i} f\!\left[\mathbf{x}^{(i)},\bm{\phi}\right]
     \]
     \vspace{0.3em}
-    Sujeito à restrição: $\left|\frac{\partial f(x,\phi)}{\partial x}\right| \le 1$
+    Sujeito à restrição: $\left|\frac{\partial f(\mathbf{x},\bm{\phi})}{\partial \mathbf{x}}\right| \le 1$
     \vspace{0.3em}
     \begin{itemize}
       \item Não há mais sigmóide: $f$ é um \textbf{crítico}, não um
@@ -1261,14 +1261,14 @@
       \Require parâmetros iniciais $w_0$ (crítico), $\thetav_0$ (gerador)
       \While{$\thetav$ não convergiu}
         \For{$t = 1, \ldots, n_{\text{critic}}$}
-          \State Amostre $\{x^{(i)}\}_{i=1}^{m} \sim P$ (reais)
-          \State Amostre $\{z^{(i)}\}_{i=1}^{m} \sim p(z)$ (prior)
-          \State $g_w \leftarrow \nabla_w \left[\tfrac{1}{m}\sum_i f_w(x^{(i)}) - \tfrac{1}{m}\sum_i f_w(g_{\thetav}(z^{(i)}))\right]$
+          \State Amostre $\{\mathbf{x}^{(i)}\}_{i=1}^{m} \sim P$ (reais)
+          \State Amostre $\{\mathbf{z}^{(i)}\}_{i=1}^{m} \sim p(\mathbf{z})$ (prior)
+          \State $g_w \leftarrow \nabla_w \left[\tfrac{1}{m}\sum_i f_w(\mathbf{x}^{(i)}) - \tfrac{1}{m}\sum_i f_w(g_{\thetav}(\mathbf{z}^{(i)}))\right]$
           \State $w \leftarrow w + \alpha \cdot \mathrm{RMSProp}(w, g_w)$
           \State $w \leftarrow \mathrm{clip}(w, -c, c)$
         \EndFor
-        \State Amostre $\{z^{(i)}\}_{i=1}^{m} \sim p(z)$
-        \State $g_{\thetav} \leftarrow -\nabla_{\thetav}\, \tfrac{1}{m}\sum_i f_w(g_{\thetav}(z^{(i)}))$
+        \State Amostre $\{\mathbf{z}^{(i)}\}_{i=1}^{m} \sim p(\mathbf{z})$
+        \State $g_{\thetav} \leftarrow -\nabla_{\thetav}\, \tfrac{1}{m}\sum_i f_w(g_{\thetav}(\mathbf{z}^{(i)}))$
         \State $\thetav \leftarrow \thetav - \alpha \cdot \mathrm{RMSProp}(\thetav, g_{\thetav})$
       \EndWhile
     \end{algorithmic}
@@ -1298,12 +1298,12 @@
     \vspace{0.3em}
     \[
       L_{\text{GP}} =
-      \underbrace{\sum_{j} f[g(z^{(j)}),\phi] - \sum_{i} f[x^{(i)},\phi]}_{\text{loss WGAN original}}
-      + \lambda\,\mathbb{E}_{\hat{x}}\!\left[\,\left(\|\nabla_{\hat{x}} f[\hat{x},\phi]\|_{2} - 1\right)^{2}\,\right]
+      \underbrace{\sum_{j} f[g(\mathbf{z}^{(j)}),\bm{\phi}] - \sum_{i} f[\mathbf{x}^{(i)},\bm{\phi}]}_{\text{loss WGAN original}}
+      + \lambda\,\mathbb{E}_{\hat{\mathbf{x}}}\!\left[\,\left(\|\nabla_{\hat{\mathbf{x}}} f[\hat{\mathbf{x}},\bm{\phi}]\|_{2} - 1\right)^{2}\,\right]
     \]
     \vspace{0.2em}
     \begin{itemize}
-      \item $\hat{x} = \alpha\,x + (1-\alpha)\,x^{*}$ com
+      \item $\hat{\mathbf{x}} = \alpha\,\mathbf{x} + (1-\alpha)\,\mathbf{x}^{*}$ com
       $\alpha \sim \mathcal{U}(0,1)$: pontos interpolados entre real e
       gerada.
       \item Penaliza norma do gradiente \emph{diferente de 1}, isto é,
@@ -1361,7 +1361,7 @@
     \begin{columns}[T]
       \begin{column}{0.42\textwidth}
         \begin{itemize}
-          \item Na hora de \emph{amostrar}, só aceite $z$ cujo módulo
+          \item Na hora de \emph{amostrar}, só aceite $\mathbf{z}$ cujo módulo
           seja menor que um limiar $\tau$.
           \item $\tau$ grande → mais diversidade, menos qualidade.
           \item $\tau$ pequeno → mais qualidade, menos diversidade.
@@ -1387,16 +1387,16 @@
     \begin{itemize}
       \item \textbf{Inception Score}\footfullcite{salimans2016improved}
       \[
-        \mathrm{IS} = \exp\!\left(\mathbb{E}_{x^{*}}\!\left[\,D_{KL}\!\left(p(y\mid x^{*})\,\|\,p(y)\right)\,\right]\right)
+        \mathrm{IS} = \exp\!\left(\mathbb{E}_{\mathbf{x}^{*}}\!\left[\,D_{KL}\!\left(p(y\mid \mathbf{x}^{*})\,\|\,p(y)\right)\,\right]\right)
       \]
-      Recompensa imagens de classe nítida ($p(y\mid x^{*})$ concentrada)
+      Recompensa imagens de classe nítida ($p(y\mid \mathbf{x}^{*})$ concentrada)
       \emph{e} diversidade entre amostras ($p(y)$ espalhada).
       Limitação: depende do classificador (Inception em ImageNet).
       \item \textbf{Fréchet Inception Distance (FID)}\footfullcite{heusel2017fid}:
       ajusta gaussianas em \emph{features} do Inception e calcula
       \[
-        \mathrm{FID} = \|\mu_{r}-\mu_{g}\|_{2}^{2} +
-        \mathrm{tr}\!\left(\Sigma_{r}+\Sigma_{g}-2\sqrt{\Sigma_{r}\Sigma_{g}}\right)
+        \mathrm{FID} = \|\boldsymbol{\mu}_{r}-\boldsymbol{\mu}_{g}\|_{2}^{2} +
+        \mathrm{tr}\!\left(\boldsymbol{\Sigma}_{r}+\boldsymbol{\Sigma}_{g}-2\sqrt{\boldsymbol{\Sigma}_{r}\boldsymbol{\Sigma}_{g}}\right)
       \]
       Mais robusto que IS, é o \emph{padrão atual}; valores menores são
       melhores.

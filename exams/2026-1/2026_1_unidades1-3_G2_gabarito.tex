@@ -108,7 +108,7 @@ Preenchimento correto: (1) IoU; (2) semântica; (3) o \textit{backbone} convoluc
 \textbf{(h)} o otimizador usado não altera a definição de \textit{overfitting} nem o fato empírico de I.
 
 \subsection*{Questão 6 \textemdash{} Resposta: (f)}
-Saltos abruptos no custo com norma de gradiente na ordem de $10^{6}$ e \texttt{NaN} são sintomas de \textbf{explosão de gradiente}: a retropropagação no tempo multiplica fatores $\theta_{hh}(1-\tanh^2(z_k))$ por passo e, quando esses fatores têm módulo maior que $1$, o produto cresce exponencialmente com o comprimento da sequência. A mitigação padrão é o \textit{clipping} por norma, $g \leftarrow c\,g/\|g\|$ quando $\|g\| > c$, que limita o tamanho do passo \textbf{preservando a direção} do gradiente.\\
+Saltos abruptos no custo com norma de gradiente na ordem de $10^{6}$ e \texttt{NaN} são sintomas de \textbf{explosão de gradiente}: a retropropagação no tempo multiplica fatores $\theta_{hh}(1-\tanh^2(z_k))$ por passo e, quando esses fatores têm módulo maior que $1$, o produto cresce exponencialmente com o comprimento da sequência. A mitigação padrão é o \textit{clipping} por norma, $\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$, que limita o tamanho do passo \textbf{preservando a direção} do gradiente.\\
 \textbf{(a)} diagnostica dissipação, mas norma $10^{6}$ indica o problema oposto; e a LSTM não impede explosão por si só.
 \textbf{(b)} \textit{batch} menor \emph{aumenta} a variância do gradiente, agravando os saltos.
 \textbf{(c)} inverte a propriedade: é o \textit{clipping} por \emph{norma} que preserva a direção; o por valor distorce o vetor componente a componente.
@@ -125,9 +125,9 @@ Erros agrupados por troca: \textbf{(a)} troca temperatura com Top-P, confundindo
 \subsection*{Questão 8 \textemdash{} Resposta: (f)}
 \textit{Scores} de produto escalar:
 \[
-\mathrm{score}(h_t, s_1) = 1 \cdot 2 + 1 \cdot 2 = 4, \qquad
-\mathrm{score}(h_t, s_2) = 1 + 1 = 2, \qquad
-\mathrm{score}(h_t, s_3) = 0 - 1 = -1.
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_1) = 1 \cdot 2 + 1 \cdot 2 = 4, \qquad
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_2) = 1 + 1 = 2, \qquad
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_3) = 0 - 1 = -1.
 \]
 \textit{Softmax} sobre os \textit{scores} ($e^{4} \approx 54{,}60$, $e^{2} \approx 7{,}39$, $e^{-1} \approx 0{,}37$):
 \[
@@ -138,7 +138,7 @@ a_1^{(t)} = \frac{e^{4}}{e^{4} + e^{2} + e^{-1}} \approx \frac{54{,}60}{54{,}60 
 \textbf{(c)} $0{,}333$ assume pesos uniformes ($1/3$), ignorando os \textit{scores}.
 \textbf{(d)} $0{,}571$ normaliza os módulos dos \textit{scores} ($4/7$) em vez de aplicar a exponencial.
 \textbf{(e)} $0{,}800$ normaliza os \textit{scores} brutos ($4/(4+2-1)$) sem a exponencial da \textit{softmax}.
-\textbf{(g)} $0{,}881$ esquece $s_3$ no denominador ($54{,}60/(54{,}60+7{,}39)$); \textit{scores} negativos também entram na \textit{softmax}.
+\textbf{(g)} $0{,}881$ esquece $\mathbf{s}_3$ no denominador ($54{,}60/(54{,}60+7{,}39)$); \textit{scores} negativos também entram na \textit{softmax}.
 \textbf{(h)} $0{,}982$ aplica a sigmoide ao \textit{score} $4$ em vez da \textit{softmax} sobre os três \textit{scores}.
 
 \color{black}

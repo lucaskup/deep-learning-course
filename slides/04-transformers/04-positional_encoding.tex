@@ -234,13 +234,13 @@
       $k$ & Índice de dimensão ($0 \le k < d/2$) \\
       $\mathbf{x}_i$ & \textit{Embedding} de entrada do \textit{token} na posição $i$ \\
       $\mathbf{q}_i, \mathbf{k}_j$ & Vetores \textit{query} e \textit{key} nas posições $i$, $j$ \\
-      $\text{PE}(i)$ & Vetor de \textit{positional encoding} para posição $i$ \\
+      $\mathbf{PE}(i)$ & Vetor de \textit{positional encoding} para posição $i$ \\
       \bottomrule
     \end{tabular}
 
     \vspace{0.5em}
     \begin{block}{PE Absoluto}
-      $\mathbf{x}_i \;\leftarrow\; \mathbf{x}_i + \text{PE}(i)$ \quad (somado ao \textit{embedding} antes da atenção)
+      $\mathbf{x}_i \;\leftarrow\; \mathbf{x}_i + \mathbf{PE}(i)$ \quad (somado ao \textit{embedding} antes da atenção)
     \end{block}
   \end{frame}
 
@@ -345,7 +345,7 @@
         }
 
         \vspace{0.5em}
-        $\text{PE}(i+\delta)$ pode ser expresso como função linear de $\text{PE}(i)$, permitindo ao modelo aprender \textit{offsets} relativos a partir de PEs absolutos \textit{(é a propriedade-chave; veja o slide de Propriedades)}.
+        $\mathbf{PE}(i+\delta)$ pode ser expresso como função linear de $\mathbf{PE}(i)$, permitindo ao modelo aprender \textit{offsets} relativos a partir de PEs absolutos \textit{(é a propriedade-chave; veja o slide de Propriedades)}.
       \end{column}
     \end{columns}
   \end{frame}
@@ -504,7 +504,7 @@
       \item \textbf{Determinístico}: nenhum parâmetro aprendido, idêntico entre execuções
       \item \textbf{Limitado}: todos os valores em $[-1, 1]$, estável com normalização
       \item \textbf{Único por posição}: cada $i$ gera um vetor PE distinto
-      \item \textcolor{DarkBlue}{\textbf{\textit{Offsets} relativos são lineares}}: $\text{PE}(i+\delta) = M(\delta) \cdot \text{PE}(i)$ para uma matriz fixa $M$
+      \item \textcolor{DarkBlue}{\textbf{\textit{Offsets} relativos são lineares}}: $\mathbf{PE}(i+\delta) = \mathbf{M}(\delta) \cdot \mathbf{PE}(i)$ para uma matriz fixa $\mathbf{M}$
         \begin{itemize}
           \item Permite ao modelo aprender distância relativa a partir de PE absoluto
         \end{itemize}
@@ -518,8 +518,8 @@
   %--- Slide: Learned Absolute PE ---
   \begin{frame}{\textit{Learned Absolute PE}}
     \begin{itemize}
-      \item \textbf{BERT, GPT iniciais:} PE é uma matriz de \textit{embeddings} treinável $E \in \mathbb{R}^{L_{\max} \times d}$
-      \item Consulta por posição: $\text{PE}(i) = E[i, :]$
+      \item \textbf{BERT, GPT iniciais:} PE é uma matriz de \textit{embeddings} treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$
+      \item Consulta por posição: $\mathbf{PE}(i) = \mathbf{E}[i, :]$
       \item \textbf{Vantagens:} adapta-se à distribuição dos dados; sem frequências manuais
       \item \textbf{Desvantagens:}
         \begin{itemize}
@@ -659,15 +659,15 @@
     \begin{block}{Rotação e \textit{Score}}
       \vspace{-0.5em}
       \begin{align*}
-        \tilde{\mathbf{q}}_i &= R_\theta(i) \cdot \mathbf{q}_i \qquad\qquad \tilde{\mathbf{k}}_j = R_\theta(j) \cdot \mathbf{k}_j \\[4pt]
-        \text{score}(i,j) &= \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j = \mathbf{q}_i^\top R_\theta(i)^\top R_\theta(j)\, \mathbf{k}_j = \mathbf{q}_i^\top R_\theta(j{-}i)\, \mathbf{k}_j
+        \tilde{\mathbf{q}}_i &= \mathbf{R}_\theta(i) \cdot \mathbf{q}_i \qquad\qquad \tilde{\mathbf{k}}_j = \mathbf{R}_\theta(j) \cdot \mathbf{k}_j \\[4pt]
+        \text{score}(i,j) &= \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j = \mathbf{q}_i^\top \mathbf{R}_\theta(i)^\top \mathbf{R}_\theta(j)\, \mathbf{k}_j = \mathbf{q}_i^\top \mathbf{R}_\theta(j{-}i)\, \mathbf{k}_j
       \end{align*}
     \end{block}
 
-    Como matrizes de rotação satisfazem $R_\theta(i)^\top = R_\theta(-i)$ (rotação no sentido oposto), temos $R_\theta(i)^\top R_\theta(j) = R_\theta(-i)\,R_\theta(j) = R_\theta(j{-}i)$, \textcolor{DarkBlue}{\textbf{o \textit{score} depende apenas do \textit{offset} relativo $j - i$.}}
+    Como matrizes de rotação satisfazem $\mathbf{R}_\theta(i)^\top = \mathbf{R}_\theta(-i)$ (rotação no sentido oposto), temos $\mathbf{R}_\theta(i)^\top \mathbf{R}_\theta(j) = \mathbf{R}_\theta(-i)\,\mathbf{R}_\theta(j) = \mathbf{R}_\theta(j{-}i)$, \textcolor{DarkBlue}{\textbf{o \textit{score} depende apenas do \textit{offset} relativo $j - i$.}}
 
     \begin{itemize}
-      \item $R_\theta(m)$ é uma matriz de rotação bloco-diagonal parametrizada pela posição $m$
+      \item $\mathbf{R}_\theta(m)$ é uma matriz de rotação bloco-diagonal parametrizada pela posição $m$
       \item Cada bloco 2D rotaciona um par de dimensões por ângulo $m \cdot \theta_k$
       \item \textcolor{DarkBlue}{\textbf{PE NÃO é somado à entrada, é aplicado dentro do \textit{attention head}}}
     \end{itemize}
@@ -678,7 +678,7 @@
     Para um par de dimensões $(q_0, q_1)$ na posição $i$:
 
     \begin{block}{Matriz de rotação 2D}
-      $R_\theta(i) = \begin{pmatrix} \cos(i\theta) & -\sin(i\theta) \\ \sin(i\theta) & \phantom{-}\cos(i\theta) \end{pmatrix}$
+      $\mathbf{R}_\theta(i) = \begin{pmatrix} \cos(i\theta) & -\sin(i\theta) \\ \sin(i\theta) & \phantom{-}\cos(i\theta) \end{pmatrix}$
 
       \vspace{0.3em}
       Par rotacionado: $\bigl[\cos(i\theta)\,q_0 - \sin(i\theta)\,q_1,\;\; \sin(i\theta)\,q_0 + \cos(i\theta)\,q_1\bigr]$
@@ -702,7 +702,7 @@
       \vspace{-0.5em}
       \begin{align*}
         \theta_k &= 10000^{-2k/d} \qquad k = 0, 1, \ldots, d/2{-}1 \\[4pt]
-        R_\theta(i) &= \text{block-diag}\!\bigl(R(i\theta_0),\; R(i\theta_1),\; \ldots,\; R(i\theta_{d/2-1})\bigr)
+        \mathbf{R}_\theta(i) &= \text{block-diag}\!\bigl(\mathbf{R}(i\theta_0),\; \mathbf{R}(i\theta_1),\; \ldots,\; \mathbf{R}(i\theta_{d/2-1})\bigr)
       \end{align*}
     \end{block}
 

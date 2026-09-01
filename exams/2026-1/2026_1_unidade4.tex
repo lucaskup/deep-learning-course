@@ -103,7 +103,7 @@ Nome: \rule{12cm}{0.4pt}
 \begin{enumerate}[a)]
     \item A taxa de aprendizado está alta demais, fazendo com que o \textit{loss} caia rápido demais; reduzi-la em duas ordens de grandeza resolve a divergência inferência-treino.
     \item O modelo está sofrendo \textit{overfitting}; reduzir o número de parâmetros e adicionar \textit{Dropout} resolve o problema.
-    \item A máscara causal não está sendo aplicada a $QK^\top$, então o modelo enxerga tokens futuros e aprende a copiá-los; aplicar $-\infty$ às entradas $(i, j)$ com $j > i$ antes do \textit{softmax} resolve.
+    \item A máscara causal não está sendo aplicada a $\mathbf{Q}\mathbf{K}^\top$, então o modelo enxerga tokens futuros e aprende a copiá-los; aplicar $-\infty$ às entradas $(i, j)$ com $j > i$ antes do \textit{softmax} resolve.
     \item O \textit{tokenizer} está mal treinado, fragmentando palavras em caracteres individuais; treiná-lo com mais corpus resolve o problema.
     \item Os \textit{positional encodings} estão sendo somados à entrada; removê-los faz com que o modelo deixe de depender de informação posicional e generalize melhor.
     \item O \textit{softmax} da atenção precisa ser substituído por \textit{sigmoid} ponto-a-ponto para problemas de geração autorregressiva.
@@ -209,7 +209,7 @@ Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-
 \item (2.0) Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
 
 \begin{enumerate}[a)]
-    \item ( )\,V \quad ( )\,F \quad Em \textit{Multi-Head Attention} com $H$ cabeças e dimensão $d_\text{model}$, cada cabeça opera com dimensão $d_k = d_\text{model}/H$ e a saída final é a concatenação das $H$ projeções, seguida por uma projeção linear $W^O$ que recompõe a dimensão $d_\text{model}$.\\[0.2em]
+    \item ( )\,V \quad ( )\,F \quad Em \textit{Multi-Head Attention} com $H$ cabeças e dimensão $d_\text{model}$, cada cabeça opera com dimensão $d_k = d_\text{model}/H$ e a saída final é a concatenação das $H$ projeções, seguida por uma projeção linear $\mathbf{W}^O$ que recompõe a dimensão $d_\text{model}$.\\[0.2em]
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
@@ -231,25 +231,25 @@ Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-
 \end{enumerate}
 
 %% ---------- Q7: DISS-B numerical attention computation ----------
-\item (2.0) Considere uma camada de \textit{self-attention} causal de \textbf{cabeça única} aplicada a uma sequência de 3 tokens $(x_1, x_2, x_3)$. As matrizes $Q$, $K$, $V$ já foram calculadas e têm dimensão $3 \times 1$ (sequência de comprimento 3, dimensão de chave $d_k = 1$):
+\item (2.0) Considere uma camada de \textit{self-attention} causal de \textbf{cabeça única} aplicada a uma sequência de 3 tokens $(\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3)$. As matrizes $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ já foram calculadas e têm dimensão $3 \times 1$ (sequência de comprimento 3, dimensão de chave $d_k = 1$):
 \[
-    Q = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
-    K = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
-    V = \begin{bmatrix} 2 \\ 4 \\ 6 \end{bmatrix}.
+    \mathbf{Q} = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+    \mathbf{K} = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+    \mathbf{V} = \begin{bmatrix} 2 \\ 4 \\ 6 \end{bmatrix}.
 \]
-A operação aplicada é $O = \mathrm{softmax}\!\left(\mathrm{mask}(QK^\top)/\sqrt{d_k}\right) V$, onde $\mathrm{mask}(\cdot)$ aplica a máscara causal.
+A operação aplicada é $\mathbf{O} = \mathrm{softmax}\!\left(\mathrm{mask}(\mathbf{Q}\mathbf{K}^\top)/\sqrt{d_k}\right) \mathbf{V}$, onde $\mathrm{mask}(\cdot)$ aplica a máscara causal.
 
 \begin{enumerate}[a)]
-    \item (0.5) Compute a matriz de pontuações $S = QK^\top$.
+    \item (0.5) Compute a matriz de pontuações $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top$.
     \vspace{1.5cm}
 
-    \item (0.5) Aplique a máscara causal a $S$ e indique a matriz $S_\text{mask}$ resultante.
+    \item (0.5) Aplique a máscara causal a $\mathbf{S}$ e indique a matriz $\mathbf{S}_\text{mask}$ resultante.
     \vspace{1.5cm}
 
-    \item (0.5) Aplique \textit{softmax} linha a linha em $S_\text{mask}$ e indique a matriz de pesos de atenção $A$.
+    \item (0.5) Aplique \textit{softmax} linha a linha em $\mathbf{S}_\text{mask}$ e indique a matriz de pesos de atenção $\mathbf{A}$.
     \vspace{2.5cm}
 
-    \item (0.5) Compute a saída $O = A \cdot V$. Apresente os três valores $O_1$, $O_2$, $O_3$.
+    \item (0.5) Compute a saída $\mathbf{O} = \mathbf{A} \cdot \mathbf{V}$. Apresente os três valores $O_1$, $O_2$, $O_3$.
     \vspace{2cm}
 \end{enumerate}
 

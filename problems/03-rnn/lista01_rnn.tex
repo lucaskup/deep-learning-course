@@ -79,15 +79,15 @@ f(z) =
             
             % \item Descreva conceitualmente como a informação é "entregue" da CNN para a RNN.
             
-            \item Este processo de geração de palavras é autorregressivo. Descreva o que serve como input ($x_t$) e o que serve como estado oculto anterior ($h_{t-1}$) para a RNN nos seguintes passos de tempo:
+            \item Este processo de geração de palavras é autorregressivo. Descreva o que serve como input ($\mathbf{x}_t$) e o que serve como estado oculto anterior ($\mathbf{h}_{t-1}$) para a RNN nos seguintes passos de tempo:
                 \begin{enumerate}[i.)]
                     \item Para gerar a primeira palavra ($y_1$) no tempo $t=1$.
                     \item Para gerar a segunda palavra ($y_2$) no tempo $t=2$.
                 \end{enumerate}
             
-            \item A CNN (Encoder) processa a imagem uma única vez para gerar um vetor de contexto $v$. Qual é a origem e o formato (shape) mais comum deste vetor $v$? Ele é a saída da última camada convolucional (um tensor 3D), ou é a saída que foi "achatada" (flattened), ou é a saída já processada de uma camada totalmente conectada (FC)?
+            \item A CNN (Encoder) processa a imagem uma única vez para gerar um vetor de contexto $\mathbf{v}$. Qual é a origem e o formato (shape) mais comum deste vetor $\mathbf{v}$? Ele é a saída da última camada convolucional (um tensor 3D), ou é a saída que foi "achatada" (flattened), ou é a saída já processada de uma camada totalmente conectada (FC)?
 
-            \item Digamos que não queremos perder a informação espacial de cada frame ao passá-la para a RNN. Ou seja, queremos que o \textit{input} $x_t$ e o \textit{estado oculto} $h_t$ sejam eles mesmos mapas de características 3D (ex: [Altura, Largura, Canais]), e não vetores 1D. É possível utilizar operações de convolução \emph{dentro} da célula da RNN (para calcular $h_t$ a partir de $h_{t-1}$ e $x_t$) em vez das multiplicações de matrizes (camadas densas) tradicionais? Explique brevemente o conceito.
+            \item Digamos que não queremos perder a informação espacial de cada frame ao passá-la para a RNN. Ou seja, queremos que o \textit{input} $\mathbf{x}_t$ e o \textit{estado oculto} $\mathbf{h}_t$ sejam eles mesmos mapas de características 3D (ex: [Altura, Largura, Canais]), e não vetores 1D. É possível utilizar operações de convolução \emph{dentro} da célula da RNN (para calcular $\mathbf{h}_t$ a partir de $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$) em vez das multiplicações de matrizes (camadas densas) tradicionais? Explique brevemente o conceito.
         \end{enumerate}
 
     \item Considere uma vanilla RNN escalar com pesos $\theta_{hh} = 0.3$, $\theta_{ih} = 0.8$, $\theta_{ho} = 1.0$, \textit{bias} $b_h = b_o = 0$, ativação $\tanh$ e estado inicial $h_0 = 0$. A célula é definida por
@@ -140,7 +140,7 @@ f(z) =
     
     \item 
         \begin{enumerate}[a)]
-            \item Sua função é processar a imagem, analisando e extraindo as características visuais importantes, comprimindo toda a informação em um único vetor ($v$). Usando uma VGG-16 de encoder (como a VGG) não é possível, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
+            \item Sua função é processar a imagem, analisando e extraindo as características visuais importantes, comprimindo toda a informação em um único vetor ($\mathbf{v}$). Usando uma VGG-16 de encoder (como a VGG) não é possível, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
 
             % \item Sua função é processar dados sequenciais, recebendo o vetor $v$ e utilizando ele como ponto de partida para gerar uma sequência de palavras gramaticalmente correta que descreva o contexto visual. Tecnicamente é possível alimentar uma RNN com pixels em sequência, porém ela é inadequada para entender a estrutura espacial 2D de uma imagem e falha em capturar relações de longo alcance, sendo uma escolha ineficiente como encoder de imagens.
 
@@ -148,39 +148,39 @@ f(z) =
                         \begin{enumerate}[i.]
                             \item \textbf{Para gerar $y_1$ (Tempo $t=1$):}
                                 \begin{itemize}
-                                    \item \textbf{Estado Oculto Anterior ($h_{t-1}$):} É o $h_0$, que é o vetor da imagem $v$ fornecido pela CNN.
-                                    
-                                    \item \textbf{Input ($x_1$):} Não temos uma palavra anterior. Portanto, usamos um \textit{token} especial de início de sentença (ex: \texttt{<START>}).
-                                    
-                                    \item \textbf{Cálculo:} $h_1 = f(x_1\,\theta_{ih}^{T} + v\,\theta_{hh}^{T} + b_h)$ e $y_1 = g(h_1\,\theta_{ho}^{T} + b_o)$.
+                                    \item \textbf{Estado Oculto Anterior ($\mathbf{h}_{t-1}$):} É o $\mathbf{h}_0$, que é o vetor da imagem $\mathbf{v}$ fornecido pela CNN.
+
+                                    \item \textbf{Input ($\mathbf{x}_1$):} Não temos uma palavra anterior. Portanto, usamos um \textit{token} especial de início de sentença (ex: \texttt{<START>}).
+
+                                    \item \textbf{Cálculo:} $\mathbf{h}_1 = f(\mathbf{x}_1\,\mathbf{\Theta}_{ih}^{T} + \mathbf{v}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\mathbf{y}_1 = g(\mathbf{h}_1\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$.
                                 \end{itemize}
                         
                             \item \textbf{Para gerar $y_2$ (Tempo $t=2$):}
                                 \begin{itemize}
-                                    \item \textbf{Estado Oculto Anterior ($h_{t-1}$):} É o $h_1$, o estado oculto que acabou de ser calculado no passo anterior.
-                                    
-                                    \item \textbf{Input ($x_2$):} É a palavra que foi gerada no passo anterior, ou seja, $y_1$.
-                                    
-                                    \item \textbf{Cálculo} $h_2 = f(y_1\,\theta_{ih}^{T} + h_1\,\theta_{hh}^{T} + b_h)$ e $y_2 = g(h_2\,\theta_{ho}^{T} + b_o)$.
+                                    \item \textbf{Estado Oculto Anterior ($\mathbf{h}_{t-1}$):} É o $\mathbf{h}_1$, o estado oculto que acabou de ser calculado no passo anterior.
+
+                                    \item \textbf{Input ($\mathbf{x}_2$):} É a palavra que foi gerada no passo anterior, ou seja, $y_1$.
+
+                                    \item \textbf{Cálculo} $\mathbf{h}_2 = f(\mathbf{y}_1\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_1\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\mathbf{y}_2 = g(\mathbf{h}_2\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$.
                                 \end{itemize}
                         \end{enumerate}
 
             \item A abordagem mais comum e direta \textbf{é} usar a saída `achatada' (flattened) da última camada convolucional.
                 \begin{enumerate}[i.]
-                    \item Processo: A imagem passa pelas camadas convolucionais (ex: VGG-16), resultando em um \textit{feature map} 3D (ex: $7 \times 7 \times 512$). Achatamos (flattening) para um vetor 1D (ex: $25088 \times 1$). A saída é usada como o vetor $v$.
-                    \item Formato (Shape): O vetor $v$ é um vetor 1D (ex: `($25088$,)').
-                    \item Uso: Este vetor 1D representa a imagem inteira, é usado para inicializar o primeiro estado oculto ($h_0$) da RNN, `preparando' o decoder com o que ele deve descrever.
+                    \item Processo: A imagem passa pelas camadas convolucionais (ex: VGG-16), resultando em um \textit{feature map} 3D (ex: $7 \times 7 \times 512$). Achatamos (flattening) para um vetor 1D (ex: $25088 \times 1$). A saída é usada como o vetor $\mathbf{v}$.
+                    \item Formato (Shape): O vetor $\mathbf{v}$ é um vetor 1D (ex: `($25088$,)').
+                    \item Uso: Este vetor 1D representa a imagem inteira, é usado para inicializar o primeiro estado oculto ($\mathbf{h}_0$) da RNN, `preparando' o decoder com o que ele deve descrever.
                 \end{enumerate}
 
             \item Sim, é possível, e esta arquitetura é conhecida como \textbf{Convolutional RNN} (ou ConvLSTM/ConvGRU).
                 \begin{enumerate}[i.]
                     \item Conceito: Em uma RNN padrão, o cálculo do novo estado oculto envolve multiplicações de matrizes (camadas densas):
                     $$
-                    h_t = \tanh(x_t\,\theta_{ih}^{T} + h_{t-1}\,\theta_{hh}^{T} + b_h)
+                    \mathbf{h}_t = \tanh(\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)
                     $$
-                    Exigindo que $h_t$, $h_{t-1}$ e $x_t$ sejam vetores 1D.
+                    Exigindo que $\mathbf{h}_t$, $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$ sejam vetores 1D.
 
-                    \item Em uma ConvRNN: As multiplicações de matrizes por $\theta_{ih}$ e $\theta_{hh}$ são substituídas por operações de convolução. Neste caso, o \textit{input} $x_t$ é o próprio mapa de características 3D da CNN (ex: $7 \times 7 \times 512$). É necessário que sejam preservadas as dimensões espaciais, permitindo que a RNN "lembre" não apenas o que viu nos frames anteriores, mas onde (espacialmente) viu.
+                    \item Em uma ConvRNN: As multiplicações de matrizes por $\mathbf{\Theta}_{ih}$ e $\mathbf{\Theta}_{hh}$ são substituídas por operações de convolução. Neste caso, o \textit{input} $\mathbf{x}_t$ é o próprio mapa de características 3D da CNN (ex: $7 \times 7 \times 512$). É necessário que sejam preservadas as dimensões espaciais, permitindo que a RNN "lembre" não apenas o que viu nos frames anteriores, mas onde (espacialmente) viu.
                 \end{enumerate}
 
         \end{enumerate}

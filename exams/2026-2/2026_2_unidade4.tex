@@ -1,0 +1,402 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning, decorations.pathreplacing, patterns}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+% Boxed token marker for tokenization questions (mirrors the \tok command
+% of slides/04-transformers/02-tokenizacao.tex, in print-friendly gray).
+\newcommand{\tok}[1]{{\setlength{\fboxsep}{2pt}\fcolorbox{black!50}{gray!10}{\strut\texttt{#1}}}}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 4}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1  & & & & & & & & \\\hline
+2  & & & & & & & & \\\hline
+3  & & & & & & & & \\\hline
+4  & & & & & & & & \\\hline
+5  & & & & & & & & \\\hline
+6  & & & & & & & & \\\hline
+7  & & & & & & & & \\\hline
+8  & & & & & & & & \\\hline
+9  & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1,0 = 10,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10{,}0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-A numerical (full self-attention with Q, K, V projections) ----------
+\item (1{,}0) Considere uma camada de \textit{self-attention} \textbf{causal} (\textit{scaled dot-product}) sobre uma sequência de 3 \textit{tokens}, com $d_\text{model} = d_k = d_v = 2$. A matriz de entradas $\mathbf{X}$ e as matrizes de projeção são:
+\[
+\mathbf{X} = \begin{bmatrix} -1 & 1 \\ 2 & -1 \\ 1 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_Q = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_K = \begin{bmatrix} 1 & 0 \\ 1 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_V = \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}.
+\]
+Qual é a representação contextualizada (vetor de contexto) do \textbf{segundo} \textit{token}?
+
+\begin{enumerate}[a)]
+    \item $[\,1,\;-2\,]$
+    \item $[\,3,\;2\,]$
+    \item $[\,0,\;4\,]$
+    \item $[\,1,\;2\,]$
+    \item $[\,0.5,\;1\,]$
+    \item $[\,2,\;1\,]$
+    \item $[\,0.5,\;0\,]$
+    \item $[\,1.5,\;3\,]$
+\end{enumerate}
+\pagebreak
+
+%% ---------- Q2: OBJ-D architectural-purpose recall (skip connections) ----------
+\item (1{,}0) Nos blocos do \textit{transformer}, cada sub-bloco (\textit{Multi-Head Attention} e \textit{Feed Forward}) é envolvido por uma \textit{skip connection} no padrão \textit{Add \& Norm}:
+\[
+\text{output} = \mathrm{LayerNorm}\bigl(\mathbf{x} + \mathrm{Subblock}(\mathbf{x})\bigr).
+\]
+Por que essas conexões residuais estão presentes na arquitetura?
+
+\begin{enumerate}[a)]
+    \item Para reduzir o número de parâmetros treináveis do bloco, já que parte do sinal segue adiante sem passar por matrizes de peso.
+    \item Para introduzir a não linearidade do bloco, uma vez que atenção e projeções lineares seriam operações lineares sem o resíduo.
+    \item Para manter o gradiente fluindo através da pilha de blocos, permitindo empilhar muitas camadas mitigando a degradação do gradiente.
+    \item Para carregar a informação posicional às camadas profundas, dispensando a soma do \textit{positional encoding} na entrada da rede.
+    \item Para atuar como regularização estocástica, desligando aleatoriamente sub-blocos inteiros durante cada iteração de treinamento.
+    \item Para garantir a causalidade da atenção, impedindo que posições futuras contaminem o resíduo somado à posição atual.
+    \item Para permitir sequências de comprimento variável, pois a soma residual ajusta a dimensão temporal da entrada de cada bloco.
+    \item Para normalizar a variância dos \textit{scores} de atenção, substituindo o fator $1/\sqrt{d}$ nas camadas mais profundas da pilha.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-B I/II/III analysis (FFN pointwise) ----------
+\item (1{,}0) Sobre as asserções abaixo a respeito da \textit{Feed-Forward Network} (FFN) do \textit{transformer}:
+
+\textbf{I.} A FFN é aplicada a cada posição da sequência de forma independente; por isso, seu número de parâmetros não depende do comprimento da sequência processada.
+
+\textbf{II.} Os papéis dos sub-blocos do \textit{transformer} se complementam: no sub-bloco de \textit{self-attention} os \textit{tokens} trocam informação entre si; na FFN cada posição processa isoladamente a representação que coletou.
+
+\textbf{III.} Em uma camada com \textit{Mixture of Experts} (MoE), a FFN densa é substituída por $N_E$ especialistas, e cada \textit{token} é processado por todos os $N_E$ especialistas.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q4: OBJ-A numerical (BPE inference on a new word) ----------
+\pagebreak
+\item (1{,}0) Um tokenizer BPE foi treinado sobre o corpus \texttt{car} ($\times$8), \texttt{cart} ($\times$4), \texttt{art} ($\times$2), \texttt{care} ($\times$2), com marcador de fim de palavra \texttt{\_}. A tabela de \textit{merges} aprendida (com $k = 5$) é, em ordem:
+\begin{center}
+1.\ \texttt{(a,r)} $\rightarrow$ \texttt{ar} \quad
+2.\ \texttt{(c,ar)} $\rightarrow$ \texttt{car} \quad
+3.\ \texttt{(car,\_)} $\rightarrow$ \texttt{car\_} \quad
+4.\ \texttt{(t,\_)} $\rightarrow$ \texttt{t\_} \quad
+5.\ \texttt{(car,t\_)} $\rightarrow$ \texttt{cart\_}
+\end{center}
+Em tempo de inferência, como fica a tokenização da palavra \texttt{tart}? Nas alternativas, cada caixa representa um \textit{token} da sequência resultante.
+
+\begin{enumerate}[a)]
+    \item \tok{t}~\tok{ar}~\tok{t}~\tok{\_}
+    \item \tok{t}~\tok{ar}~\tok{t\_}
+    \item \tok{tar}~\tok{t\_}
+    \item \tok{t}~\tok{art\_}
+    \item \tok{t}~\tok{a}~\tok{r}~\tok{t}~\tok{\_}
+    \item \tok{tart\_}
+    \item \tok{ta}~\tok{r}~\tok{t\_}
+    \item \tok{tar}~\tok{t}~\tok{\_}
+\end{enumerate}
+
+%% ---------- Q5: OBJ-H column matching (efficient attention mechanisms) ----------
+\item (1{,}0) Associe cada mecanismo de atenção (coluna da esquerda) à sua característica definidora (coluna da direita).
+
+\begin{center}
+\begin{tabular}{p{0.35\linewidth} p{0.57\linewidth}}
+\textbf{1.} MHA (\textit{Multi-Head Attention}) & \textbf{(i)} não altera o resultado da atenção: reorganiza o processamento em blocos na SRAM da GPU, com \textit{softmax} online, evitando materializar a matriz $n \times n$. \\
+\textbf{2.} MQA (\textit{Multi-Query Attention}) & \textbf{(ii)} as cabeças de \textit{query} são divididas em $G$ grupos, e cada grupo compartilha um par de projeções $\mathbf{K}$/$\mathbf{V}$; os casos extremos $G = 1$ e $G = H$ recuperam outros dois mecanismos. \\
+\textbf{3.} GQA (\textit{Grouped-Query Attention}) & \textbf{(iii)} cada cabeça mantém projeções $\mathbf{K}$ e $\mathbf{V}$ próprias; a memória do KV-cache cresce com o número $H$ de cabeças. \\
+\textbf{4.} \textit{Sliding Window Attention} & \textbf{(iv)} todas as cabeças de \textit{query} compartilham um único par de projeções $\mathbf{K}$/$\mathbf{V}$, reduzindo o KV-cache por um fator $H$, com possível perda de qualidade. \\
+\textbf{5.} \textit{FlashAttention} & \textbf{(v)} cada \textit{token} atende apenas aos $w$ \textit{tokens} mais recentes; o custo por camada cai de $\mathcal{O}(n^2)$ para $\mathcal{O}(n \cdot w)$, e o alcance efetivo cresce ao empilhar camadas. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(iii); \quad 2-(ii); \quad 3-(iv); \quad 4-(v); \quad 5-(i)
+    \item 1-(iv); \quad 2-(iii); \quad 3-(ii); \quad 4-(v); \quad 5-(i)
+    \item 1-(iii); \quad 2-(iv); \quad 3-(ii); \quad 4-(i); \quad 5-(v)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(iii); \quad 4-(v); \quad 5-(i)
+    \item 1-(iii); \quad 2-(v); \quad 3-(ii); \quad 4-(iv); \quad 5-(i)
+    \item 1-(i); \quad 2-(iv); \quad 3-(ii); \quad 4-(v); \quad 5-(iii)
+    \item 1-(iii); \quad 2-(iv); \quad 3-(ii); \quad 4-(v); \quad 5-(i)
+    \item 1-(ii); \quad 2-(iii); \quad 3-(iv); \quad 4-(i); \quad 5-(v)
+\end{enumerate}
+
+%% ---------- Q6: OBJ-J diagram + numerical (speculative decoding) ----------
+\pagebreak
+\item (1{,}0) Um LLM (\textit{target} $M_p$) é servido com decodificação especulativa: um modelo \textit{draft} $M_q$ menor propõe $\gamma = 3$ \textit{tokens}, verificados pelo \textit{target} em um único \textit{forward pass}. A partir do \textit{prompt} \textit{``O time venceu o''}, o \textit{draft} propõe o \textit{token} mais provável de $q$ em cada posição, conforme o diagrama abaixo, que também mostra os valores $u_t \sim \mathcal{U}(0,1)$ amostrados para a verificação:
+
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={draw, rounded corners, font=\small\ttfamily, inner sep=4pt, minimum height=0.55cm},
+  lab/.style={font=\scriptsize},
+  arr/.style={->, >=stealth, thick}
+]
+  \node[tok] (prompt) at (0,0) {O time venceu o};
+  \node[tok, right=0.8cm of prompt] (t1) {jogo};
+  \node[tok, right=0.8cm of t1]     (t2) {de};
+  \node[tok, right=0.8cm of t2]     (t3) {ontem};
+  \draw[arr] (prompt) -- (t1);
+  \draw[arr] (t1) -- (t2);
+  \draw[arr] (t2) -- (t3);
+  \node[lab, below=0.18cm of t1] {$u_1 = 0.84$};
+  \node[lab, below=0.18cm of t2] {$u_2 = 0.42$};
+  \node[lab, below=0.18cm of t3] {$u_3 = 0.78$};
+  \draw[decorate, decoration={brace, amplitude=5pt}]
+    ([yshift=0.65cm]t1.north west) -- ([yshift=0.65cm]t3.north east)
+    node[lab, midway, above=6pt] {propostos pelo \textit{draft} $M_q$, verificados em paralelo pelo \textit{target} $M_p$};
+\end{tikzpicture}
+\end{center}
+
+O \textit{token} proposto $\tilde{x}_t$ é aceito se $u_t \le \min\bigl(1,\; p(\tilde{x}_t)/q(\tilde{x}_t)\bigr)$; no primeiro rejeitado, o restante do rascunho é descartado e o \textit{token} da posição é reamostrado de $p'(x) \propto \max\bigl(0,\, p(x) - q(x)\bigr)$. A tabela dá os logits dos dois modelos em cada posição e as probabilidades correspondentes ($\mathrm{softmax}$ arredondada); considere nulas as probabilidades dos demais \textit{tokens} do vocabulário. Os gráficos ilustram as mesmas distribuições:
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 1} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{jogo}     & 2.0 & 0.50 & 1.9 & 0.60 \\
+\texttt{título}   & 1.1 & 0.20 & 0.6 & 0.16 \\
+\texttt{clássico} & 1.1 & 0.20 & 0.4 & 0.13 \\
+\texttt{rival}    & 0.4 & 0.10 & 0.2 & 0.11 \\\hline
+\end{tabular}\hspace{0.5em}%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 2} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{de}  & 2.6 & 0.70 & 1.3 & 0.36 \\
+\texttt{por} & 1.1 & 0.16 & 1.4 & 0.40 \\
+\texttt{com} & 0.6 & 0.09 & 0.4 & 0.15 \\
+\texttt{na}  & 0.0 & 0.05 & $-$0.1 & 0.09 \\\hline
+\end{tabular}\hspace{0.5em}%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 3} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{ontem}  & 2.5 & 0.60 & 0.4 & 0.15 \\
+\texttt{virada} & 1.6 & 0.25 & 1.4 & 0.40 \\
+\texttt{hoje}   & 0.0 & 0.05 & 1.3 & 0.36 \\
+\texttt{novo}   & 0.7 & 0.10 & $-$0.1 & 0.09 \\\hline
+\end{tabular}}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 1: proposto \texttt{jogo}},
+  symbolic x coords={jogo,título,clássico,rival}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+  legend style={font=\scriptsize, at={(0.97,0.95)}, anchor=north east},
+]
+  \addplot[fill=gray!40] coordinates {(jogo,0.50)(título,0.20)(clássico,0.20)(rival,0.10)};
+  \addplot[pattern=north east lines] coordinates {(jogo,0.60)(título,0.16)(clássico,0.13)(rival,0.11)};
+  \legend{$q$, $p$}
+\end{axis}
+\end{tikzpicture}%
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 2: proposto \texttt{de}},
+  symbolic x coords={de,por,com,na}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+]
+  \addplot[fill=gray!40] coordinates {(de,0.70)(por,0.16)(com,0.09)(na,0.05)};
+  \addplot[pattern=north east lines] coordinates {(de,0.36)(por,0.40)(com,0.15)(na,0.09)};
+\end{axis}
+\end{tikzpicture}%
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 3: proposto \texttt{ontem}},
+  symbolic x coords={ontem,virada,hoje,novo}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+]
+  \addplot[fill=gray!40] coordinates {(ontem,0.60)(virada,0.25)(hoje,0.05)(novo,0.10)};
+  \addplot[pattern=north east lines] coordinates {(ontem,0.15)(virada,0.40)(hoje,0.36)(novo,0.09)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+Qual \textit{token} do rascunho é rejeitado e qual é o \textit{token} mais provável de ser obtido na reamostragem?
+
+\begin{enumerate}[a)]
+    \item Nenhum \textit{token} é rejeitado; os três são aceitos e um \textit{token} extra é amostrado de $p$.
+    \item O \textit{token} \texttt{jogo} é rejeitado; o mais provável na reamostragem é \texttt{título}.
+    \item O \textit{token} \texttt{de} é rejeitado; o mais provável na reamostragem é \texttt{por}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{virada}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{hoje}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{ontem}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{novo}.
+    \item Os \textit{tokens} \texttt{de} e \texttt{ontem} são rejeitados; nas reamostragens, os mais prováveis são \texttt{por} e \texttt{hoje}.
+\end{enumerate}
+
+%% ---------- Q7: OBJ-B I/II/III analysis (parallel training and causal mask) ----------
+\item (1{,}0) Sobre as asserções abaixo a respeito do pré-treinamento de modelos \textit{decoder-only}:
+
+\textbf{I.} Uma sequência de $n$ \textit{tokens} fornece $n$ exemplos de treino simultâneos: a perda é computada para todas as posições em um único passe, com alvo igual à entrada deslocada uma posição (\textit{shift-by-one}).
+
+\textbf{II.} A máscara causal é necessária apenas na inferência; durante o treinamento ela pode ser omitida sem prejuízo, pois os alvos de cada posição já são conhecidos.
+
+\textbf{III.} Em RNNs o mesmo paralelismo entre posições não é possível, pois o estado oculto de cada posição depende do estado da posição anterior, forçando o processamento \textit{token} a \textit{token}.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q8: OBJ-J TikZ diagram interpretation (beam search vs greedy) ----------
+\item (1{,}0) Um modelo \textit{decoder-only} completa o \textit{prompt} \textit{``O céu está''} em duas etapas de geração. O diagrama mostra as três hipóteses mais prováveis da primeira etapa e, para cada uma, os dois candidatos mais prováveis da segunda; as arestas indicam as probabilidades condicionais.
+
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={draw, rounded corners, font=\small\ttfamily, inner sep=3pt, minimum height=0.5cm},
+  lbl/.style={font=\scriptsize, midway, above, sloped},
+  arr/.style={->, >=stealth, thick}
+]
+  \node[tok] (root)  at (0, 0)      {O céu está};
+  \node[tok] (azul)  at (3.4, 1.7)  {azul};
+  \node[tok] (cinza) at (3.4, 0.0)  {cinza};
+  \node[tok] (limpo) at (3.4, -1.7) {limpo};
+  \node[tok] (hoje)   at (6.6, 2.15)  {hoje};
+  \node[tok] (agora)  at (6.6, 1.25)  {agora};
+  \node[tok] (escuro) at (6.6, 0.45)  {escuro};
+  \node[tok] (claro)  at (6.6, -0.45) {claro};
+  \node[tok] (e)      at (6.6, -1.25) {e};
+  \node[tok] (mas)    at (6.6, -2.15) {mas};
+
+  \draw[arr] (root) -- node[lbl] {$0.5$} (azul);
+  \draw[arr] (root) -- node[lbl] {$0.3$} (cinza);
+  \draw[arr] (root) -- node[lbl] {$0.2$} (limpo);
+  \draw[arr] (azul)  -- node[lbl] {$0.4$}  (hoje);
+  \draw[arr] (azul)  -- node[lbl] {$0.3$}  (agora);
+  \draw[arr] (cinza) -- node[lbl] {$0.8$}  (escuro);
+  \draw[arr] (cinza) -- node[lbl] {$0.1$}  (claro);
+  \draw[arr] (limpo) -- node[lbl] {$0.95$} (e);
+  \draw[arr] (limpo) -- node[lbl] {$0.05$} (mas);
+\end{tikzpicture}
+\end{center}
+
+Qual sequência o \textit{beam search} com largura $B = 2$ retorna e o que a decodificação \textit{greedy} teria feito no mesmo cenário?
+
+\begin{enumerate}[a)]
+    \item Beam: \texttt{azul hoje}; \textit{greedy} retorna o mesmo, pois com $B = 2$ os dois métodos sempre coincidem.
+    \item Beam: \texttt{limpo e}; \textit{greedy} retorna \texttt{cinza escuro}, pois a probabilidade conjunta soma as probabilidades das duas etapas.
+    \item Beam: \texttt{azul hoje}, pois a hipótese mais provável da primeira etapa já determina qual sequência vence na comparação final.
+    \item Beam: \texttt{limpo e}, pois contém o maior fator condicional do diagrama; \textit{greedy} retorna \texttt{azul hoje}, com conjunta menor.
+    \item Beam: \texttt{cinza escuro}; \textit{greedy} retorna o mesmo, pois a continuação de maior probabilidade condicional decide os dois métodos.
+    \item Beam: \texttt{cinza escuro}; \textit{greedy} teria escolhido \texttt{azul} e depois \texttt{hoje}, terminando com probabilidade conjunta menor.
+    \item Beam: \texttt{azul hoje}; \textit{greedy} retorna \texttt{cinza escuro}, pois o beam maximiza cada passo isolado e o \textit{greedy} maximiza a sequência completa.
+    \item Beam: \texttt{azul hoje} e \texttt{cinza escuro} empatam na probabilidade conjunta, e o \textit{beam search} desempata pela ordem lexicográfica dos \textit{tokens}.
+\end{enumerate}
+
+%% ---------- Q9: OBJ-C scenario diagnostic (degeneration with beam search) ----------
+\pagebreak
+\item (1{,}0) Um \textit{chatbot} de geração aberta usa \textit{beam search} com $B = 8$. As respostas frequentemente entram em repetição: \textit{``Fico feliz em ajudar. Fico feliz em ajudar. Fico feliz em ajudar\ldots''}. A perda de treinamento está normal e o modelo responde bem a perguntas factuais curtas. Qual é o diagnóstico e a mitigação mais adequada?
+
+\begin{enumerate}[a)]
+    \item O modelo sofreu esquecimento catastrófico durante o ajuste; retreinar com os dados originais de pré-treino elimina os loops de repetição.
+    \item É degeneração por maximização de probabilidade: repetir uma frase aumenta a probabilidade da própria repetição, e texto humano não é o texto mais provável; usar amostragem truncada (top-$k$ ou top-$p$) mitiga.
+    \item A máscara causal está ausente na inferência, fazendo o modelo copiar o próprio passado; reaplicar a máscara na atenção elimina os loops.
+    \item O KV-cache está devolvendo entradas antigas repetidas durante o \textit{decode}; desativar o cache corrige a geração sem nenhum custo adicional.
+    \item A largura $B = 8$ é pequena demais para escapar dos loops; aumentar o \textit{beam} para $B = 64$ elimina a repetição ao explorar mais hipóteses.
+    \item A temperatura de amostragem está alta demais, gerando texto aleatório; reduzir $T$ para próximo de $0$ elimina a repetição observada.
+    \item O \textit{tokenizer} aprendeu a frase repetida como um único \textit{token}; retreinar o \textit{tokenizer} com frequência mínima maior corrige o problema.
+    \item É \textit{overfitting} ao corpus de pré-treino; aplicar \textit{dropout} também durante a inferência diversifica as respostas geradas.
+\end{enumerate}
+
+%% ---------- Q10: OBJ-A numerical (embedding + LM head, weight tying) ----------
+\item (1{,}0) Um modelo \textit{decoder-only} tem vocabulário $|V| = 32\,000$ e dimensão $d_\text{model} = 2\,048$. A tabela de \textit{embedding} $\mathbf{W}_\text{emb} \in \mathbb{R}^{|V| \times d_\text{model}}$ e a LM \textit{head} $\mathbf{W}_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}$ são, inicialmente, matrizes independentes (sem \textit{bias}). Quantos parâmetros as duas somam, e o que muda ao aplicar \textit{weight tying} ($\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$)?
+
+\begin{enumerate}[a)]
+    \item Somam $65{,}5$ milhões; com \textit{weight tying} o total cai para $32{,}8$ milhões, pois cada matriz passa a usar metade das linhas.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total não muda, pois as duas matrizes continuam existindo e apenas os gradientes são somados.
+    \item Somam $65{,}5$ milhões; com \textit{weight tying} o total dobra para $131{,}1$ milhões, pois a matriz precisa ser replicada na saída.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} a mesma matriz é reutilizada na entrada e na saída, e o total cai para $65{,}5$ milhões.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total cai para $65{,}5$ milhões, mas o modelo perde a capacidade de gerar \textit{tokens} raros do vocabulário.
+    \item Somam $262{,}1$ milhões; com \textit{weight tying} o total cai para $131{,}1$ milhões, pois cada matriz mantém uma cópia própria dos vieses.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total cai para $98{,}3$ milhões, pois apenas as linhas dos \textit{tokens} frequentes são compartilhadas.
+    \item Somam $68{,}1$ mil; com \textit{weight tying} o total cai para $34{,}0$ mil, pois cada matriz contribui com $|V| + d_\text{model}$ parâmetros.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

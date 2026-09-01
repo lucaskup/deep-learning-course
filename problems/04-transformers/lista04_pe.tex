@@ -172,8 +172,8 @@
 \begin{enumerate}[a)]
     \item Todos os valores são limitados ao intervalo $[-1, 1]$, mantendo os gradientes estáveis.
     \item O encoding usa base 10\,000, compatível com tamanhos típicos de vocabulário.
-    \item $\mathrm{PE}(i + \delta)$ pode ser escrito como uma transformação linear fixa
-          (multiplicação de matriz) de $\mathrm{PE}(i)$ para qualquer offset $\delta$.
+    \item $\mathbf{PE}(i + \delta)$ pode ser escrito como uma transformação linear fixa
+          (multiplicação de matriz) de $\mathbf{PE}(i)$ para qualquer offset $\delta$.
     \item As funções seno e cosseno são ortogonais, tornando cada dimensão independente.
 \end{enumerate}
 
@@ -351,8 +351,8 @@
 % Q24: Difícil (analítica – invertibilidade do PE senoidal)
 % ------------------------------------------------------------------
 \item \emoji{skull-and-crossbones} Considere o positional encoding senoidal
-      $\mathrm{PE}(i) \in \mathbb{R}^d$ com $d = 512$ para posições inteiras $i \geq 0$.
-      É possível recuperar univocamente a posição $i$ a partir do vetor $\mathrm{PE}(i)$?
+      $\mathbf{PE}(i) \in \mathbb{R}^d$ com $d = 512$ para posições inteiras $i \geq 0$.
+      É possível recuperar univocamente a posição $i$ a partir do vetor $\mathbf{PE}(i)$?
 %R: b
 
 \begin{enumerate}[a)]
@@ -363,8 +363,8 @@
           $\omega_k = 10000^{2k/d}$ crescem geometricamente e as combinações
           $(\sin(i/\omega_k),\,\cos(i/\omega_k))$ são virtualmente distintas
           para posições inteiras dentro do intervalo de uso típico,
-          tornando o mapeamento $i \mapsto \mathrm{PE}(i)$ injetivo nesse domínio.
-    \item Não, pois a norma de $\mathrm{PE}(i)$ é constante igual a $\sqrt{d/2}$
+          tornando o mapeamento $i \mapsto \mathbf{PE}(i)$ injetivo nesse domínio.
+    \item Não, pois a norma de $\mathbf{PE}(i)$ é constante igual a $\sqrt{d/2}$
           para todo $i$, tornando impossível distinguir posições distintas.
     \item Sim, mas somente utilizando a primeira dimensão $\mathrm{PE}(i,0) = \sin(i)$,
           que determina a posição de forma única para qualquer inteiro não negativo.
@@ -381,7 +381,7 @@
 
 \begin{enumerate}[a)]
     \item O modelo extrapola suavemente os embeddings posicionais usando interpolação
-          linear entre $\mathrm{PE}(511)$ e $\mathrm{PE}(0)$.
+          linear entre $\mathbf{PE}(511)$ e $\mathbf{PE}(0)$.
     \item Essas posições não possuem embeddings treinados; a implementação típica
           lançará um erro de índice (\textit{index out of bounds}) ou, se o índice
           for truncado, reutilizará vetores de posições iniciais, gerando representações
@@ -406,11 +406,11 @@
           embedding de entrada.
     \item Compartilham o mesmo espectro de frequências, mas diferem fundamentalmente:
           o PE senoidal codifica posição \emph{absoluta} por adição ao embedding de
-          entrada (antes das projeções lineares $W_Q$, $W_K$), enquanto o RoPE
+          entrada (antes das projeções lineares $\mathbf{W}_Q$, $\mathbf{W}_K$), enquanto o RoPE
           codifica posição \emph{relativa} via rotação dos vetores de query e key
           (após as projeções). Não existe configuração de pesos que torne os dois
           métodos equivalentes em geral.
-    \item São equivalentes quando $W_Q = W_K = I$ (projeções identidade), pois
+    \item São equivalentes quando $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$ (projeções identidade), pois
           nesse caso adição e rotação têm o mesmo efeito sobre o produto interno.
     \item O PE senoidal é um caso especial do RoPE aplicado somente às duas primeiras
           dimensões do embedding.
@@ -422,24 +422,24 @@
 \item \emoji{skull-and-crossbones} Para o RoPE com $d = 2$ e parâmetro $\theta$,
       a matriz de rotação na posição $i$ é
       \[
-        R(i) =
+        \mathbf{R}(i) =
         \begin{pmatrix}
           \cos(i\theta) & -\sin(i\theta) \\
           \sin(i\theta) & \phantom{-}\cos(i\theta)
         \end{pmatrix}.
       \]
-      Dado que matrizes de rotação satisfazem $R(i)^\top R(j) = R(j - i)$,
-      e que $\tilde{\mathbf{q}}_i = R(i)\,\mathbf{q}$ e
-      $\tilde{\mathbf{k}}_j = R(j)\,\mathbf{k}$, como o score de atenção
+      Dado que matrizes de rotação satisfazem $\mathbf{R}(i)^\top \mathbf{R}(j) = \mathbf{R}(j - i)$,
+      e que $\tilde{\mathbf{q}}_i = \mathbf{R}(i)\,\mathbf{q}$ e
+      $\tilde{\mathbf{k}}_j = \mathbf{R}(j)\,\mathbf{k}$, como o score de atenção
       $\tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j$ pode ser reescrito?
 %R: b
 
 \begin{enumerate}[a)]
     \item $\mathbf{q}^\top\mathbf{k} + (i-j)\theta$,
           mostrando dependência linear na posição relativa.
-    \item $\mathbf{q}^\top R(j-i)\,\mathbf{k}$, mostrando que o score depende apenas
+    \item $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$, mostrando que o score depende apenas
           do offset relativo $(j-i)$ e não das posições absolutas $i$ ou $j$ individualmente.
-    \item $\mathbf{q}^\top R(i+j)\,\mathbf{k}$,
+    \item $\mathbf{q}^\top \mathbf{R}(i+j)\,\mathbf{k}$,
           mostrando dependência na posição absoluta somada.
     \item $\|\mathbf{q}\|\,\|\mathbf{k}\|\cos((i-j)\theta)$, válido apenas quando
           $\mathbf{q}$ e $\mathbf{k}$ são vetores unitários paralelos.
@@ -475,9 +475,9 @@ frequência. As opções (a) e (d) invertem seno e cosseno; a opção (b) troca 
 
 % --- Solução Q3 ---
 \subsection*{III, Resposta:(c)}
-O RoPE (Su et al., 2024) aplica uma matriz de rotação $R_\theta(i)$ diretamente aos
+O RoPE (Su et al., 2024) aplica uma matriz de rotação $\mathbf{R}_\theta(i)$ diretamente aos
 vetores de query $\mathbf{q}_i$ e key $\mathbf{k}_j$ dentro de cada cabeça de atenção:
-$\tilde{\mathbf{q}}_i = R_\theta(i)\,\mathbf{q}_i$.
+$\tilde{\mathbf{q}}_i = \mathbf{R}_\theta(i)\,\mathbf{q}_i$.
 O token embedding $\mathbf{x}_i$ \emph{não} é modificado.
 O positional encoding senoidal e o aprendido somam um vetor ao embedding de entrada;
 o NoPE não faz nada.
@@ -505,7 +505,7 @@ máscara causal muda, e ela o faz de forma previsível e suave.
 % --- Solução Q6 ---
 \subsection*{VI, Resposta:(d)}
 O positional encoding absoluto aprendido (usado no BERT e nos primeiros GPTs) armazena
-uma matriz treinável $E \in \mathbb{R}^{L_{\max} \times d}$. Uma posição $i > L_{\max}$
+uma matriz treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$. Uma posição $i > L_{\max}$
 simplesmente não tem linha em $E$: o embedding não existe. O encoding senoidal possui
 fórmula fechada para qualquer posição; RoPE e ALiBi são relativos e escalam naturalmente.
 % ---
@@ -553,8 +553,8 @@ todos os argumentos são iguais a 0.
 % --- Solução Q11 ---
 \subsection*{XI, Resposta:(c)}
 Usando fórmulas de adição trigonométricas, pode-se demonstrar que
-$\mathrm{PE}(i + \delta) = M(\delta)\,\mathrm{PE}(i)$
-para uma matriz de rotação em blocos \emph{fixa} $M(\delta)$ que depende apenas de
+$\mathbf{PE}(i + \delta) = \mathbf{M}(\delta)\,\mathbf{PE}(i)$
+para uma matriz de rotação em blocos \emph{fixa} $\mathbf{M}(\delta)$ que depende apenas de
 $\delta$. Como essa relação linear vale para qualquer $\delta$, uma camada de atenção
 pode, em princípio, aprender a calcular offsets relativos aplicando a transformação
 inversa.
@@ -721,7 +721,7 @@ ao mesmo tempo atenção local e global com diferentes cabeças.
 % --- Solução Q24 ---
 \subsection*{XXII, Resposta:(b)}
 A primeira dimensão de seno usa frequência $\omega_0 = 1$, com período $2\pi \approx 6.28$.
-Para que dois inteiros $i \neq j$ produzam o mesmo $\mathrm{PE}$, seria necessário que
+Para que dois inteiros $i \neq j$ produzam o mesmo $\mathbf{PE}$, seria necessário que
 $(j-i)/\omega_k$ fosse múltiplo de $2\pi$ para \emph{todos} os $k$ simultaneamente.
 Como $2\pi$ é irracional e as frequências $\omega_k = 10000^{2k/d}$ são
 multiplicativamente incomenssuráveis (para $k$ distintos), isso não acontece para
@@ -729,7 +729,7 @@ nenhum par de inteiros na faixa de uso prático ($i < 10^4$): o mapeamento é in
 A opção (a) erra ao afirmar que inteiros próximos colidem — $2\pi$ é irracional,
 portanto $\lfloor i \rfloor$ nunca repete o seno de $\lfloor j \rfloor$ para $i,j$
 inteiros com $|i-j| < 2\pi$.
-A opção (c) erra ao afirmar norma constante: em geral $\|\mathrm{PE}(i)\| \neq \sqrt{d/2}$
+A opção (c) erra ao afirmar norma constante: em geral $\|\mathbf{PE}(i)\| \neq \sqrt{d/2}$
 exatamente para inteiros finitos.
 A opção (d) erra porque $\sin(i)$ repete com período irracional; entre inteiros, não
 há repetição, mas tampouco unicidade garantida por uma única dimensão.
@@ -758,15 +758,15 @@ O PE senoidal e o RoPE compartilham o espectro $\theta_k = 10000^{-2k/d}$ por
 design — ambos precisam de frequências variadas para distinguir um amplo intervalo
 de posições. Contudo as operações realizadas são fundamentalmente distintas:
 \begin{itemize}
-  \item \textbf{PE senoidal}: adiciona $\mathrm{PE}(i)$ ao token embedding
-        \emph{antes} das projeções $W_Q$, $W_K$. O score de atenção contém termos
+  \item \textbf{PE senoidal}: adiciona $\mathbf{PE}(i)$ ao token embedding
+        \emph{antes} das projeções $\mathbf{W}_Q$, $\mathbf{W}_K$. O score de atenção contém termos
         cruzados conteúdo-posição e termos de posição absoluta.
-  \item \textbf{RoPE}: aplica $R_\theta(i)$ \emph{após} a projeção $W_Q\mathbf{x}_i$,
-        resultando em $\mathbf{q}^\top R(j-i)\,\mathbf{k}$ — dependência
+  \item \textbf{RoPE}: aplica $\mathbf{R}_\theta(i)$ \emph{após} a projeção $\mathbf{W}_Q\mathbf{x}_i$,
+        resultando em $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$ — dependência
         exclusivamente relativa, sem termos de posição absoluta no score.
 \end{itemize}
-Mesmo com $W_Q = W_K = I$, os dois scores diferem: o PE senoidal ainda gera termos
-cruzados $\mathbf{x}_i^\top\mathrm{PE}(j)$ que o RoPE não possui. Não existe,
+Mesmo com $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois scores diferem: o PE senoidal ainda gera termos
+cruzados $\mathbf{x}_i^\top\mathbf{PE}(j)$ que o RoPE não possui. Não existe,
 portanto, equivalência algébrica entre os dois métodos.
 % ---
 
@@ -775,21 +775,21 @@ portanto, equivalência algébrica entre os dois métodos.
 Aplicando a definição dos vetores rotacionados:
 \[
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
-  = \bigl(R(i)\,\mathbf{q}\bigr)^\top\bigl(R(j)\,\mathbf{k}\bigr)
-  = \mathbf{q}^\top R(i)^\top R(j)\,\mathbf{k}.
+  = \bigl(\mathbf{R}(i)\,\mathbf{q}\bigr)^\top\bigl(\mathbf{R}(j)\,\mathbf{k}\bigr)
+  = \mathbf{q}^\top \mathbf{R}(i)^\top \mathbf{R}(j)\,\mathbf{k}.
 \]
-Usando $R(i)^\top = R(-i)$ (matrizes de rotação são ortogonais) e
-a propriedade de composição $R(-i)\,R(j) = R(j-i)$:
+Usando $\mathbf{R}(i)^\top = \mathbf{R}(-i)$ (matrizes de rotação são ortogonais) e
+a propriedade de composição $\mathbf{R}(-i)\,\mathbf{R}(j) = \mathbf{R}(j-i)$:
 \[
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
-  = \mathbf{q}^\top R(j-i)\,\mathbf{k}.
+  = \mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}.
 \]
 As posições absolutas $i$ e $j$ aparecem apenas por meio do offset relativo $(j-i)$.
 Dois pares de tokens com o mesmo offset relativo $\delta = j - i$ recebem
 exatamente a mesma contribuição posicional, independentemente de onde estejam na
 sequência. Isso distingue o RoPE do PE senoidal e é a base teórica para sua
 generalização zero-shot a sequências mais longas que as do treinamento:
-o produto $\mathbf{q}^\top R(\delta)\,\mathbf{k}$ é bem definido para qualquer
+o produto $\mathbf{q}^\top \mathbf{R}(\delta)\,\mathbf{k}$ é bem definido para qualquer
 $\delta$, não dependendo de uma tabela de embeddings pré-treinada.
 % ---
 
@@ -845,7 +845,7 @@ dimensões $(2k, 2k+1)$.
 
 A rotação no plano $[q_0, q_1]$ aplica a matriz
 \[
-  R(i\theta_0) =
+  \mathbf{R}(i\theta_0) =
   \begin{pmatrix}
     \cos(1.0) & -\sin(1.0) \\
     \sin(1.0) & \phantom{-}\cos(1.0)
@@ -883,7 +883,7 @@ $\tilde{\mathbf{q}}_1 = [0.540,\; 0.841,\; 1.000,\; 0.010]$.
 \textbf{Bloco $k=0$ para key — ângulo de rotação $\beta = j\,\theta_0 = 3 \times 1.0 = 3.0\;\mathrm{rad}$:}
 
 \[
-  R(j\theta_0) =
+  \mathbf{R}(j\theta_0) =
   \begin{pmatrix}
     -0.990 & -0.141 \\
     \phantom{-}0.141 & -0.990
@@ -1169,9 +1169,9 @@ além dos já existentes em cada cabeça de atenção.
 \subsection*{XXIII \emoji{skull-and-crossbones} — Injetividade do Positional Encoding Senoidal}
 
 \paragraph{Enunciado.}
-Considere o positional encoding senoidal $\mathrm{PE}(i) \in \mathbb{R}^d$ com
+Considere o positional encoding senoidal $\mathbf{PE}(i) \in \mathbb{R}^d$ com
 $d = 512$ para posições inteiras $i \geq 0$. É possível recuperar univocamente a
-posição $i$ a partir do vetor $\mathrm{PE}(i)$?
+posição $i$ a partir do vetor $\mathbf{PE}(i)$?
 
 \begin{respostabox}
 Alternativa \textbf{(b)}: Sim, para posições práticas ($i \ll 10^4$): as frequências
@@ -1189,7 +1189,7 @@ virtualmente distintas para posições inteiras dentro do intervalo de uso típi
 \]
 
 \textbf{Condição de colisão.} Dois inteiros $i \neq j$ com $i, j \geq 0$ produzem
-$\mathrm{PE}(i) = \mathrm{PE}(j)$ se e somente se, para \emph{todo} $k$:
+$\mathbf{PE}(i) = \mathbf{PE}(j)$ se e somente se, para \emph{todo} $k$:
 \[
   \frac{i}{\omega_k} \equiv \frac{j}{\omega_k} \pmod{2\pi},
 \]
@@ -1205,7 +1205,7 @@ o que implica $i = j$.
 
 \textbf{Conclusão.} A frequência $k = 0$ \emph{por si só} é suficiente para garantir
 que nenhuma colisão existe entre posições inteiras não-negativas distintas quaisquer.
-O mapeamento $i \mapsto \mathrm{PE}(i)$ é \textbf{estritamente injetivo} para todo
+O mapeamento $i \mapsto \mathbf{PE}(i)$ é \textbf{estritamente injetivo} para todo
 $i, j \in \mathbb{Z}_{\geq 0}$ com $i \neq j$.
 
 \paragraph{Por que a alternativa (b) diz ``para posições práticas''?}
@@ -1224,9 +1224,9 @@ não-negativos — a irracionalidade de $2\pi$ garante isso matematicamente.
         irracional, então nenhum múltiplo não-nulo de $2\pi$ é inteiro. A premissa
         da opção (a) nunca é satisfeita para posições inteiras.
 
-  \item \textbf{(c) — Errada.} A norma de $\mathrm{PE}(i)$ é:
+  \item \textbf{(c) — Errada.} A norma de $\mathbf{PE}(i)$ é:
         \[
-          \|\mathrm{PE}(i)\|^2 = \sum_{k=0}^{d/2-1}
+          \|\mathbf{PE}(i)\|^2 = \sum_{k=0}^{d/2-1}
           \!\left[\sin^2\!\!\left(\frac{i}{\omega_k}\right)
                 + \cos^2\!\!\left(\frac{i}{\omega_k}\right)\right]
           = \sum_{k=0}^{d/2-1} 1 = \frac{d}{2}.
@@ -1234,7 +1234,7 @@ não-negativos — a irracionalidade de $2\pi$ garante isso matematicamente.
         A norma é constante igual a $\sqrt{d/2}$ para \emph{todo} $i$. Isso é
         correto e decorre da identidade pitagórica, mas a norma constante é
         indiferente à questão de injetividade: o que importa para distinguir $i$
-        de $j$ é a \emph{direção} do vetor $\mathrm{PE}(i)$, não sua magnitude.
+        de $j$ é a \emph{direção} do vetor $\mathbf{PE}(i)$, não sua magnitude.
         Dois vetores podem ter a mesma norma e ainda assim ser distintos.
 
   \item \textbf{(d) — Errada.} $\sin(i)$ é periódica em $i \in \mathbb{R}$ com
@@ -1273,7 +1273,7 @@ O positional encoding aprendido é implementado como uma tabela de consulta
 \texttt{position\_embeddings = nn.Embedding(L\_max, d)}
 \end{center}
 
-Essa camada armazena uma matriz treinável $E \in \mathbb{R}^{L_{\max} \times d}$,
+Essa camada armazena uma matriz treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$,
 com uma linha por posição $i \in \{0, 1, \ldots, L_{\max}-1\}$.
 
 \textbf{Cenário 1 — Erro de índice.}
@@ -1353,46 +1353,46 @@ amplo intervalo (da resolução de token único até o comprimento máximo da se
 \toprule
 Característica & PE Senoidal (Vaswani et al.) & RoPE (Su et al.) \\
 \midrule
-Ponto de aplicação & Antes de $W_Q$, $W_K$ (na entrada) & Após $W_Q$, $W_K$ \\
-Operação & Adição: $\mathbf{x}_i + \mathrm{PE}(i)$ & Rotação: $R(i)\,\mathbf{q}_i$ \\
+Ponto de aplicação & Antes de $\mathbf{W}_Q$, $\mathbf{W}_K$ (na entrada) & Após $\mathbf{W}_Q$, $\mathbf{W}_K$ \\
+Operação & Adição: $\mathbf{x}_i + \mathbf{PE}(i)$ & Rotação: $\mathbf{R}(i)\,\mathbf{q}_i$ \\
 Tipo de encoding & Posição absoluta & Posição relativa \\
-Score de atenção & Contém termos cruzados conteúdo-posição & Apenas $\mathbf{q}^\top R(j-i)\mathbf{k}$ \\
+Score de atenção & Contém termos cruzados conteúdo-posição & Apenas $\mathbf{q}^\top \mathbf{R}(j-i)\mathbf{k}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Por que não são equivalentes mesmo com $W_Q = W_K = I$?}
+\textbf{Por que não são equivalentes mesmo com $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$?}
 
 Com PE senoidal, o logit de atenção é:
 \[
   A_{\mathrm{seno}}(i,j)
-  = (\mathbf{x}_i + \mathrm{PE}(i))^\top (\mathbf{x}_j + \mathrm{PE}(j))
+  = (\mathbf{x}_i + \mathbf{PE}(i))^\top (\mathbf{x}_j + \mathbf{PE}(j))
   = \mathbf{x}_i^\top \mathbf{x}_j
-    + \mathbf{x}_i^\top \mathrm{PE}(j)
-    + \mathrm{PE}(i)^\top \mathbf{x}_j
-    + \mathrm{PE}(i)^\top \mathrm{PE}(j).
+    + \mathbf{x}_i^\top \mathbf{PE}(j)
+    + \mathbf{PE}(i)^\top \mathbf{x}_j
+    + \mathbf{PE}(i)^\top \mathbf{PE}(j).
 \]
 
-O último termo $\mathrm{PE}(i)^\top \mathrm{PE}(j)$ se simplifica via identidades
+O último termo $\mathbf{PE}(i)^\top \mathbf{PE}(j)$ se simplifica via identidades
 trigonométricas:
 \[
-  \mathrm{PE}(i)^\top \mathrm{PE}(j)
+  \mathbf{PE}(i)^\top \mathbf{PE}(j)
   = \sum_k \cos\!\!\left(\frac{j-i}{\omega_k}\right),
 \]
 que depende apenas de $(j-i)$. Contudo, os termos cruzados
-$\mathbf{x}_i^\top \mathrm{PE}(j)$ e $\mathrm{PE}(i)^\top \mathbf{x}_j$
+$\mathbf{x}_i^\top \mathbf{PE}(j)$ e $\mathbf{PE}(i)^\top \mathbf{x}_j$
 introduzem dependência de posição absoluta misturada com conteúdo vetorial.
 
 Com RoPE:
 \[
   A_{\mathrm{RoPE}}(i,j)
-  = (R(i)\mathbf{x}_i)^\top (R(j)\mathbf{x}_j)
-  = \mathbf{x}_i^\top R(j-i)\,\mathbf{x}_j.
+  = (\mathbf{R}(i)\mathbf{x}_i)^\top (\mathbf{R}(j)\mathbf{x}_j)
+  = \mathbf{x}_i^\top \mathbf{R}(j-i)\,\mathbf{x}_j.
 \]
 Não há termos cruzados conteúdo-posição absoluta: a posição entra exclusivamente
-como offset relativo $R(j-i)$.
+como offset relativo $\mathbf{R}(j-i)$.
 
-Portanto, mesmo quando $W_Q = W_K = I$, os dois logits contêm termos
+Portanto, mesmo quando $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois logits contêm termos
 estruturalmente distintos e os dois métodos não são equivalentes para nenhuma
 escolha de pesos.
 
@@ -1404,40 +1404,40 @@ escolha de pesos.
 \paragraph{Enunciado.}
 Para o RoPE com $d = 2$ e parâmetro $\theta$, a matriz de rotação é
 \[
-  R(i) =
+  \mathbf{R}(i) =
   \begin{pmatrix}
     \cos(i\theta) & -\sin(i\theta) \\
     \sin(i\theta) & \phantom{-}\cos(i\theta)
   \end{pmatrix}.
 \]
-Dado que $R(i)^\top R(j) = R(j-i)$ e que $\tilde{\mathbf{q}}_i = R(i)\,\mathbf{q}$
-e $\tilde{\mathbf{k}}_j = R(j)\,\mathbf{k}$, como o score
+Dado que $\mathbf{R}(i)^\top \mathbf{R}(j) = \mathbf{R}(j-i)$ e que $\tilde{\mathbf{q}}_i = \mathbf{R}(i)\,\mathbf{q}$
+e $\tilde{\mathbf{k}}_j = \mathbf{R}(j)\,\mathbf{k}$, como o score
 $\tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j$ pode ser reescrito?
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: $\mathbf{q}^\top R(j-i)\,\mathbf{k}$, mostrando que o
+Alternativa \textbf{(b)}: $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$, mostrando que o
 score depende apenas do offset relativo $(j-i)$.
 \end{respostabox}
 
 \paragraph{Prova completa em três partes.}
 
-\textbf{Parte 1 — Ortogonalidade de $R(i)$.}
+\textbf{Parte 1 — Ortogonalidade de $\mathbf{R}(i)$.}
 
-$R(i)$ é uma matriz de rotação plana e, portanto, ortogonal:
+$\mathbf{R}(i)$ é uma matriz de rotação plana e, portanto, ortogonal:
 \[
-  R(i)^\top R(i) = I \quad \Longrightarrow \quad R(i)^\top = R(i)^{-1} = R(-i).
+  \mathbf{R}(i)^\top \mathbf{R}(i) = \mathbf{I} \quad \Longrightarrow \quad \mathbf{R}(i)^\top = \mathbf{R}(i)^{-1} = \mathbf{R}(-i).
 \]
 Verificação explícita:
 \[
-  R(i)^\top =
+  \mathbf{R}(i)^\top =
   \begin{pmatrix}\cos(i\theta) & \sin(i\theta) \\ -\sin(i\theta) & \cos(i\theta)\end{pmatrix}
-  = R(-i).
+  = \mathbf{R}(-i).
 \]
 
-\textbf{Parte 2 — Propriedade de composição $R(a) R(b) = R(a+b)$.}
+\textbf{Parte 2 — Propriedade de composição $\mathbf{R}(a) \mathbf{R}(b) = \mathbf{R}(a+b)$.}
 
 \begin{align*}
-  R(a) R(b)
+  \mathbf{R}(a) \mathbf{R}(b)
   &= \begin{pmatrix}\cos a\theta & -\sin a\theta \\ \sin a\theta & \cos a\theta\end{pmatrix}
      \begin{pmatrix}\cos b\theta & -\sin b\theta \\ \sin b\theta & \cos b\theta\end{pmatrix} \\
   &= \begin{pmatrix}
@@ -1450,34 +1450,34 @@ Verificação explícita:
        \cos(a+b)\theta & -\sin(a+b)\theta \\
        \sin(a+b)\theta & \phantom{-}\cos(a+b)\theta
      \end{pmatrix}
-  = R(a+b).
+  = \mathbf{R}(a+b).
 \end{align*}
 
 \textbf{Parte 3 — Reescrita do score de atenção.}
 
 \begin{align*}
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
-  &= \bigl(R(i)\,\mathbf{q}\bigr)^\top \bigl(R(j)\,\mathbf{k}\bigr) \\
-  &= \mathbf{q}^\top R(i)^\top R(j)\,\mathbf{k} & &\text{(transposição de produto)} \\
-  &= \mathbf{q}^\top R(-i) R(j)\,\mathbf{k} & &\text{(Parte 1)} \\
-  &= \mathbf{q}^\top R(-i + j)\,\mathbf{k} & &\text{(Parte 2 com } a = -i,\, b = j\text{)} \\
-  &= \mathbf{q}^\top R(j - i)\,\mathbf{k}. & &
+  &= \bigl(\mathbf{R}(i)\,\mathbf{q}\bigr)^\top \bigl(\mathbf{R}(j)\,\mathbf{k}\bigr) \\
+  &= \mathbf{q}^\top \mathbf{R}(i)^\top \mathbf{R}(j)\,\mathbf{k} & &\text{(transposição de produto)} \\
+  &= \mathbf{q}^\top \mathbf{R}(-i) \mathbf{R}(j)\,\mathbf{k} & &\text{(Parte 1)} \\
+  &= \mathbf{q}^\top \mathbf{R}(-i + j)\,\mathbf{k} & &\text{(Parte 2 com } a = -i,\, b = j\text{)} \\
+  &= \mathbf{q}^\top \mathbf{R}(j - i)\,\mathbf{k}. & &
 \end{align*}
 
 \paragraph{Interpretação teórica.}
 
-O resultado $\mathbf{q}^\top R(j-i)\,\mathbf{k}$ mostra que:
+O resultado $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$ mostra que:
 
 \begin{enumerate}[1.]
   \item As posições absolutas $i$ e $j$ cancelam-se durante a derivação; apenas o
         offset relativo $\delta = j - i$ permanece.
-  \item A matriz $R(\delta)$ é uma rotação \emph{fixa} por ângulo $\delta\theta$ que
+  \item A matriz $\mathbf{R}(\delta)$ é uma rotação \emph{fixa} por ângulo $\delta\theta$ que
         pondera o produto interno entre $\mathbf{q}$ e $\mathbf{k}$ de forma dependente
         da separação entre os tokens.
-  \item Para $\delta = 0$ (self-attention em $i = j$): $R(0) = I$, e o score reduz-se
+  \item Para $\delta = 0$ (self-attention em $i = j$): $\mathbf{R}(0) = \mathbf{I}$, e o score reduz-se
         ao produto interno simples $\mathbf{q}^\top \mathbf{k}$ sem penalidade posicional.
   \item O resultado generaliza para $d > 2$: o RoPE aplica blocos de rotação 2D
-        independentes $\{R_k(\delta)\}_{k=0}^{d/2-1}$ a cada par de dimensões,
+        independentes $\{\mathbf{R}_k(\delta)\}_{k=0}^{d/2-1}$ a cada par de dimensões,
         e a mesma argumentação se aplica a cada bloco individualmente.
 \end{enumerate}
 
@@ -1491,7 +1491,7 @@ Para $d = 2M$ (dimensão geral), o RoPE aplica:
     R_k(j-i)\,
     \left[\mathbf{k}_{[2k:2k+2]}\right],
 \]
-onde $R_k(\delta) = R(\delta\theta_k)$ usa a frequência $\theta_k = 10000^{-2k/d}$.
+onde $\mathbf{R}_k(\delta) = \mathbf{R}(\delta\theta_k)$ usa a frequência $\theta_k = 10000^{-2k/d}$.
 Cada bloco $k$ contribui com uma dependência relativa de frequência $\theta_k$
 distinta, e a soma sobre todos os blocos é o score completo de atenção RoPE,
 cujo valor depende apenas de $\delta = j-i$ e dos vetores de conteúdo

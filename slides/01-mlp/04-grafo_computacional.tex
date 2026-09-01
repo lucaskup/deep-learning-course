@@ -37,15 +37,15 @@
 
 % Grafo do MLP vetorizado (aula de backpropagation), reutilizado em três slides
 \newcommand{\mlpgrafo}{%
-  \node[cgvar] (X)   at (0,1.9)     {$X$};
-  \node[cgvar] (t1)  at (0,-2.7)    {$\theta^{(1)}$};
+  \node[cgvar] (X)   at (0,1.9)     {$\mathbf{X}$};
+  \node[cgvar] (t1)  at (0,-2.7)    {$\mathbf{\Theta}^{(1)}$};
   \node[cgopw] (mm1) at (0,0)       {\textit{matmul}};
   \node[cgop]  (s1)  at (4.0,0)     {$\sigma$};
   \node[cgopw] (mm2) at (8.0,0)     {\textit{matmul}};
-  \node[cgvar] (t2)  at (8.0,-2.7)  {$\theta^{(2)}$};
+  \node[cgvar] (t2)  at (8.0,-2.7)  {$\mathbf{\Theta}^{(2)}$};
   \node[cgop]  (s2)  at (11.0,0)    {$\sigma$};
   \node[cgopw] (L)   at (13.4,0)    {\textit{loss}};
-  \node[cgvar] (yv)  at (13.4,1.9)  {$y$};
+  \node[cgvar] (yv)  at (13.4,1.9)  {$\mathbf{y}$};
   \node        (J)   at (15.4,0)    {$J$};
   \draw[cgedge] (X)   -- (mm1);
   \draw[cgedge] (t1)  -- (mm1);
@@ -262,7 +262,7 @@
   \begin{frame}{Outro exemplo: regressão logística}
     \begin{itemize}
       \item Considere a função
-        $$f(\bm\theta, \bm x) = \frac{1}{1 + \exp\!\bigl(-(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\bigr)}.$$
+        $$f(\thetav, \mathbf{x}) = \frac{1}{1 + \exp\!\bigl(-(\theta_0 + \theta_1 x_1 + \theta_2 x_2)\bigr)}.$$
       \item Composição de nodos elementares: combinação afim,
         $\times(-1)$, $\exp$, $+1$, $1/u$.
       \item Vamos avaliar para
@@ -398,36 +398,36 @@
       \begin{column}{.58\linewidth}
         \begin{itemize}
           \item No MLP vetorizado, a pré-ativação de cada camada é um produto
-            de matrizes: $Z = A\,\theta^{\top}$, com
-            $A \in \mathbb{R}^{N\times d_e}$ (entradas da camada),
-            $\theta \in \mathbb{R}^{d_s\times d_e}$ (pesos) e
-            $Z \in \mathbb{R}^{N\times d_s}$.
+            de matrizes: $\mathbf{Z} = \mathbf{A}\,\mathbf{\Theta}^{\top}$, com
+            $\mathbf{A} \in \mathbb{R}^{N\times d_e}$ (entradas da camada),
+            $\mathbf{\Theta} \in \mathbb{R}^{d_s\times d_e}$ (pesos) e
+            $\mathbf{Z} \in \mathbb{R}^{N\times d_s}$.
           \item No \textit{backward}, o gradiente \textit{upstream} é
-            $G = \partial J/\partial Z$, com a mesma forma de $Z$:
+            $\mathbf{G} = \partial J/\partial \mathbf{Z}$, com a mesma forma de $\mathbf{Z}$:
             \[
-              \frac{\partial J}{\partial A} = G\,\theta
+              \frac{\partial J}{\partial \mathbf{A}} = \mathbf{G}\,\mathbf{\Theta}
               \qquad
-              \frac{\partial J}{\partial \theta} = G^{\top}A
+              \frac{\partial J}{\partial \mathbf{\Theta}} = \mathbf{G}^{\top}\mathbf{A}
             \]
           \item Mesma regra do nodo $\times$ escalar: cada entrada
             recebe o gradiente multiplicado pela \textit{outra} entrada.
-          \item Confira as dimensões: $G\,\theta$ é $N\times d_e$ (forma de $A$)
-            e $G^{\top}A$ é $d_s\times d_e$ (forma de $\theta$).
+          \item Confira as dimensões: $\mathbf{G}\,\mathbf{\Theta}$ é $N\times d_e$ (forma de $\mathbf{A}$)
+            e $\mathbf{G}^{\top}\mathbf{A}$ é $d_s\times d_e$ (forma de $\mathbf{\Theta}$).
         \end{itemize}
       \end{column}
       \begin{column}{.42\linewidth}
         \centering
         \begin{tikzpicture}[node distance=1.4cm and 1.6cm]
-          \node[cgvar] (A) {$A$};
-          \node[cgvar, below=of A] (T) {$\theta$};
+          \node[cgvar] (A) {$\mathbf{A}$};
+          \node[cgvar, below=of A] (T) {$\mathbf{\Theta}$};
           \node[cgopw, right=of A, yshift=-1.1cm] (mm) {\textit{matmul}};
-          \node[right=of mm, xshift=-0.4cm] (Z) {$Z$};
+          \node[right=of mm, xshift=-0.4cm] (Z) {$\mathbf{Z}$};
           \draw[cgedge] (A) -- (mm);
           \draw[cgedge] (T) -- (mm);
           \draw[cgedge] (mm) -- (Z);
-          \node[cggrad, below right=0.05cm and 0.05cm of mm] {$G$};
-          \node[cggrad, below right=0.0cm and 0.05cm of A] {$G\,\theta$};
-          \node[cggrad, below right=0.0cm and 0.05cm of T] {$G^{\top}A$};
+          \node[cggrad, below right=0.05cm and 0.05cm of mm] {$\mathbf{G}$};
+          \node[cggrad, below right=0.0cm and 0.05cm of A] {$\mathbf{G}\,\mathbf{\Theta}$};
+          \node[cggrad, below right=0.0cm and 0.05cm of T] {$\mathbf{G}^{\top}\mathbf{A}$};
         \end{tikzpicture}
       \end{column}
     \end{columns}
@@ -439,30 +439,30 @@
       \begin{column}{.58\linewidth}
         \begin{itemize}
           \item O nodo de ativação aplica $\sigma$ em cada posição da
-            matriz: $A = \sigma(Z)$, e $A$ tem a mesma forma de $Z$.
+            matriz: $\mathbf{A} = \sigma(\mathbf{Z})$, e $\mathbf{A}$ tem a mesma forma de $\mathbf{Z}$.
           \item Como o nodo não mistura posições, o \textit{backward}
             é a regra escalar aplicada elemento a elemento:
             \[
-              \frac{\partial J}{\partial Z} = G \odot \sigma'(Z)
+              \frac{\partial J}{\partial \mathbf{Z}} = \mathbf{G} \odot \sigma'(\mathbf{Z})
               \qquad
-              \sigma'(Z) = A \odot (1 - A)
+              \sigma'(\mathbf{Z}) = \mathbf{A} \odot (1 - \mathbf{A})
             \]
           \item $\odot$ é o produto de Hadamard (elemento a elemento), o mesmo
             da aula de \textit{backpropagation}.
           \item Como no nodo sigmoide escalar, $\sigma'$ reaproveita a
-            saída $A$ já calculada no \textit{forward}.
+            saída $\mathbf{A}$ já calculada no \textit{forward}.
         \end{itemize}
       \end{column}
       \begin{column}{.42\linewidth}
         \centering
         \begin{tikzpicture}[node distance=1.0cm and 1.6cm]
-          \node[cgvar] (Z) {$Z$};
+          \node[cgvar] (Z) {$\mathbf{Z}$};
           \node[cgop, right=of Z] (sig) {$\sigma$};
-          \node[right=of sig, xshift=-0.4cm] (A) {$A$};
+          \node[right=of sig, xshift=-0.4cm] (A) {$\mathbf{A}$};
           \draw[cgedge] (Z) -- (sig);
           \draw[cgedge] (sig) -- (A);
-          \node[cggrad, below right=0.05cm and 0.05cm of sig] {$G$};
-          \node[cggrad, below right=0.05cm and 0.05cm of Z] {$G \odot \sigma'(Z)$};
+          \node[cggrad, below right=0.05cm and 0.05cm of sig] {$\mathbf{G}$};
+          \node[cggrad, below right=0.05cm and 0.05cm of Z] {$\mathbf{G} \odot \sigma'(\mathbf{Z})$};
         \end{tikzpicture}
       \end{column}
     \end{columns}
@@ -478,28 +478,28 @@
             \[
               J = \frac{1}{2}\sum_{i}\left(y_i - \hat{y}_i\right)^{2}
               \qquad
-              \frac{\partial J}{\partial \hat{y}} = \hat{y} - y
+              \frac{\partial J}{\partial \hat{\mathbf{y}}} = \hat{\mathbf{y}} - \mathbf{y}
             \]
           \item O \textit{backward} começa nesse escalar, com
             $\partial J/\partial J = 1$; o gradiente devolvido tem a mesma
-            forma de $\hat{y}$ (o fator $\tfrac{1}{2}$ cancela o $2$ da
+            forma de $\hat{\mathbf{y}}$ (o fator $\tfrac{1}{2}$ cancela o $2$ da
             derivada).
-          \item $y$ é dado do problema: não é treinável, então nenhum gradiente
+          \item $\mathbf{y}$ é dado do problema: não é treinável, então nenhum gradiente
             é propagado para ele.
         \end{itemize}
       \end{column}
       \begin{column}{.42\linewidth}
         \centering
         \begin{tikzpicture}[node distance=1.4cm and 1.6cm]
-          \node[cgvar] (yh) {$\hat{y}$};
-          \node[cgvar, below=of yh] (yy) {$y$};
+          \node[cgvar] (yh) {$\hat{\mathbf{y}}$};
+          \node[cgvar, below=of yh] (yy) {$\mathbf{y}$};
           \node[cgopw, right=of yh, yshift=-1.1cm] (Ls) {\textit{loss}};
           \node[right=of Ls, xshift=-0.4cm] (Jn) {$J$};
           \draw[cgedge] (yh) -- (Ls);
           \draw[cgedge] (yy) -- (Ls);
           \draw[cgedge] (Ls) -- (Jn);
           \node[cggrad, below right=0.05cm and 0.05cm of Ls] {$1$};
-          \node[cggrad, below right=0.0cm and 0.05cm of yh] {$\hat{y} - y$};
+          \node[cggrad, below right=0.0cm and 0.05cm of yh] {$\hat{\mathbf{y}} - \mathbf{y}$};
         \end{tikzpicture}
       \end{column}
     \end{columns}
@@ -511,7 +511,7 @@
       \item Mesma rede do exemplo vetorizado: 2 entradas, camada oculta com 3
         unidades, 1 saída, sigmoide nas duas camadas, sem \textit{bias}.
       \item \textit{Batch} com 2 exemplos: cinco nodos encadeados
-        computam $J = \tfrac{1}{2}\sum\left(y - \sigma\bigl(\sigma(X{\theta^{(1)}}^{\top}){\theta^{(2)}}^{\top}\bigr)\right)^{2}$.
+        computam $J = \tfrac{1}{2}\sum\left(\mathbf{y} - \sigma\bigl(\sigma(\mathbf{X}{\mathbf{\Theta}^{(1)}}^{\top}){\mathbf{\Theta}^{(2)}}^{\top}\bigr)\right)^{2}$.
     \end{itemize}
     \centering
     \resizebox{\textwidth}{!}{%
@@ -519,11 +519,11 @@
       \mlpgrafo
       \node[cgval, above right=0.05cm and 0.05cm of X]   {$2\times 2$};
       \node[cgval, above right=0.0cm and 0.05cm of t1]   {$3\times 2$};
-      \node[cgval, above right=0.05cm and 0.05cm of mm1] {$Z^{(1)}\;(2\times 3)$};
-      \node[cgval, above right=0.05cm and 0.05cm of s1]  {$A^{(1)}\;(2\times 3)$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm1] {$\mathbf{Z}^{(1)}\;(2\times 3)$};
+      \node[cgval, above right=0.05cm and 0.05cm of s1]  {$\mathbf{A}^{(1)}\;(2\times 3)$};
       \node[cgval, above right=0.0cm and 0.05cm of t2]   {$1\times 3$};
-      \node[cgval, above right=0.05cm and 0.05cm of mm2] {$Z^{(2)}\;(2\times 1)$};
-      \node[cgval, above right=0.05cm and 0.05cm of s2]  {$A^{(2)} = \hat{y}\;(2\times 1)$};
+      \node[cgval, above right=0.05cm and 0.05cm of mm2] {$\mathbf{Z}^{(2)}\;(2\times 1)$};
+      \node[cgval, above right=0.05cm and 0.05cm of s2]  {$\mathbf{A}^{(2)} = \hat{\mathbf{y}}\;(2\times 1)$};
       \node[cgval, above right=0.05cm and 0.05cm of yv]  {$2\times 1$};
       \node[cgval, above right=0.05cm and 0.05cm of L]   {escalar};
     \end{tikzpicture}
@@ -562,11 +562,11 @@
 
     \medskip
     \footnotesize
-    \onslide<3->{$Z^{(1)} = X\,{\theta^{(1)}}^{\top}$ \;}
-    \onslide<4->{$A^{(1)} = \sigma(Z^{(1)})$ \;}
-    \onslide<5->{$Z^{(2)} = A^{(1)}{\theta^{(2)}}^{\top}$ \;}
-    \onslide<6->{$\hat{y} = A^{(2)} = \sigma(Z^{(2)})$ \;}
-    \onslide<7->{$J = \tfrac{1}{2}\sum\left(y - \hat{y}\right)^{2}$}
+    \onslide<3->{$\mathbf{Z}^{(1)} = \mathbf{X}\,{\mathbf{\Theta}^{(1)}}^{\top}$ \;}
+    \onslide<4->{$\mathbf{A}^{(1)} = \sigma(\mathbf{Z}^{(1)})$ \;}
+    \onslide<5->{$\mathbf{Z}^{(2)} = \mathbf{A}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top}$ \;}
+    \onslide<6->{$\hat{\mathbf{y}} = \mathbf{A}^{(2)} = \sigma(\mathbf{Z}^{(2)})$ \;}
+    \onslide<7->{$J = \tfrac{1}{2}\sum\left(\mathbf{y} - \hat{\mathbf{y}}\right)^{2}$}
   \end{frame}
 
   %--- Slide: backward do MLP no grafo ---
@@ -608,13 +608,13 @@
 
     \medskip
     \footnotesize
-    \onslide<3->{$\tfrac{\partial J}{\partial \hat{y}} = \hat{y} - y$ \;}
-    \onslide<4->{$\delta^{(2)} = \tfrac{\partial J}{\partial \hat{y}} \odot \sigma'(Z^{(2)})$ \;}
-    \onslide<5->{$\tfrac{\partial J}{\partial \theta^{(2)}} = {\delta^{(2)}}^{\top}A^{(1)}$ \; $\tfrac{\partial J}{\partial A^{(1)}} = \delta^{(2)}\theta^{(2)}$ \;}
-    \onslide<6->{$\delta^{(1)} = \tfrac{\partial J}{\partial A^{(1)}} \odot \sigma'(Z^{(1)})$ \;}
-    \onslide<7->{$\tfrac{\partial J}{\partial \theta^{(1)}} = {\delta^{(1)}}^{\top}X$}\\
-    \onslide<7->{$X$ e $y$ não são treináveis, então não precisam de gradiente.
-      Os gradientes de $\theta^{(1)}$ e $\theta^{(2)}$ são os mesmos calculados
+    \onslide<3->{$\tfrac{\partial J}{\partial \hat{\mathbf{y}}} = \hat{\mathbf{y}} - \mathbf{y}$ \;}
+    \onslide<4->{$\bm{\delta}^{(2)} = \tfrac{\partial J}{\partial \hat{\mathbf{y}}} \odot \sigma'(\mathbf{Z}^{(2)})$ \;}
+    \onslide<5->{$\tfrac{\partial J}{\partial \mathbf{\Theta}^{(2)}} = {\bm{\delta}^{(2)}}^{\top}\mathbf{A}^{(1)}$ \; $\tfrac{\partial J}{\partial \mathbf{A}^{(1)}} = \bm{\delta}^{(2)}\mathbf{\Theta}^{(2)}$ \;}
+    \onslide<6->{$\bm{\delta}^{(1)} = \tfrac{\partial J}{\partial \mathbf{A}^{(1)}} \odot \sigma'(\mathbf{Z}^{(1)})$ \;}
+    \onslide<7->{$\tfrac{\partial J}{\partial \mathbf{\Theta}^{(1)}} = {\bm{\delta}^{(1)}}^{\top}\mathbf{X}$}\\
+    \onslide<7->{$\mathbf{X}$ e $\mathbf{y}$ não são treináveis, então não precisam de gradiente.
+      Os gradientes de $\mathbf{\Theta}^{(1)}$ e $\mathbf{\Theta}^{(2)}$ são os mesmos calculados
       à mão na aula de \textit{backpropagation}.}
   \end{frame}
 

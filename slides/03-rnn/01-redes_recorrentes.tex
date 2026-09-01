@@ -470,8 +470,8 @@ Precisamos de uma rede que:
 
 \begin{frame}{Solução: Recorrência}
 \begin{itemize}
-    \item Além da entrada $x_t$ no instante atual, vamos passar adiante alguma informação do instante anterior.
-    \item Chamamos essa informação de \textbf{estado interno} $h_t$.
+    \item Além da entrada $\mathbf{x}_t$ no instante atual, vamos passar adiante alguma informação do instante anterior.
+    \item Chamamos essa informação de \textbf{estado interno} $\mathbf{h}_t$.
 \end{itemize}
 \vspace{0.4em}
 \centering
@@ -537,15 +537,15 @@ Precisamos de uma rede que:
 \end{itemize}
 \vspace{0.6em}
 \begin{equation*}
-    \underbrace{\bigl(\,\colorbox{PastelPink}{$\hat{y}_t$}\,,\;\colorbox{PastelOrange}{$h_t$}\,\bigr)}_{\text{\textcolor{Magenta}{\textbf{saída}}}}
+    \underbrace{\bigl(\,\colorbox{PastelPink}{$\hat{\mathbf{y}}_t$}\,,\;\colorbox{PastelOrange}{$\mathbf{h}_t$}\,\bigr)}_{\text{\textcolor{Magenta}{\textbf{saída}}}}
     \;=\; f\Bigl(\;
-    \underbrace{\colorbox{PastelBlue}{$x_t$}}_{\text{\textcolor{RoyalBlue}{\textbf{entrada}}}}\;,\;\;
-    \underbrace{\colorbox{PastelOrange}{$h_{t-1}$}}_{\substack{\text{\textcolor{Orange}{\textbf{memória ou}}}\\[0.1em]\text{\textcolor{Orange}{\textbf{estado interno}}}}}
+    \underbrace{\colorbox{PastelBlue}{$\mathbf{x}_t$}}_{\text{\textcolor{RoyalBlue}{\textbf{entrada}}}}\;,\;\;
+    \underbrace{\colorbox{PastelOrange}{$\mathbf{h}_{t-1}$}}_{\substack{\text{\textcolor{Orange}{\textbf{memória ou}}}\\[0.1em]\text{\textcolor{Orange}{\textbf{estado interno}}}}}
     \;\Bigr)
 \end{equation*}
 \vspace{0.4em}
 \begin{itemize}
-    \item O estado interno $h_{t-1}$ resume tudo o que a rede ``viu'' até o passo anterior.
+    \item O estado interno $\mathbf{h}_{t-1}$ resume tudo o que a rede ``viu'' até o passo anterior.
 \end{itemize}
 \end{frame}
 
@@ -575,23 +575,23 @@ print(next_word)
 \end{itemize}
 \vspace{0.3em}
 \begin{equation*}
-    z_t = x_t\,\theta_{ih}^{T} + h_{t-1}\,\theta_{hh}^{T} + b_h, \qquad h_t = \tanh(z_t)
+    \mathbf{z}_t = \mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h, \qquad \mathbf{h}_t = \tanh(\mathbf{z}_t)
 \end{equation*}
 \begin{equation*}
-    \hat{y}_t = h_t\,\theta_{ho}^{T} + b_o
+    \hat{\mathbf{y}}_t = \mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o
 \end{equation*}
 \begin{itemize}\footnotesize
-    \item Chamamos de $z_t$ a \textbf{pré-ativação} (a soma antes do $\tanh$); ela reaparece no \textit{backward pass}.
+    \item Chamamos de $\mathbf{z}_t$ a \textbf{pré-ativação} (a soma antes do $\tanh$); ela reaparece no \textit{backward pass}.
 \end{itemize}
 \begin{itemize}
-    \item $\theta_{ih}$: pesos da entrada para o estado interno (\textit{input-to-hidden}, \texttt{weight\_ih}).
-    \item $\theta_{hh}$: pesos do estado interno anterior para o novo estado interno (\textit{hidden-to-hidden}, \texttt{weight\_hh}).
-    \item $\theta_{ho}$: pesos do estado interno para a saída (camada \texttt{Linear} adicional, fora do \texttt{nn.RNN}).
-    \item $b_h$: \textit{bias} do estado interno; \quad $b_o$: \textit{bias} da saída.
+    \item $\mathbf{\Theta}_{ih}$: pesos da entrada para o estado interno (\textit{input-to-hidden}, \texttt{weight\_ih}).
+    \item $\mathbf{\Theta}_{hh}$: pesos do estado interno anterior para o novo estado interno (\textit{hidden-to-hidden}, \texttt{weight\_hh}).
+    \item $\mathbf{\Theta}_{ho}$: pesos do estado interno para a saída (camada \texttt{Linear} adicional, fora do \texttt{nn.RNN}).
+    \item $\mathbf{b}_h$: \textit{bias} do estado interno; \quad $\mathbf{b}_o$: \textit{bias} da saída.
 \end{itemize}
 \vspace{0.3em}
 \begin{itemize}\footnotesize
-    \item Mesma notação do \texttt{nn.RNN} do PyTorch (que usa $W$ no lugar de $\theta$). O PyTorch mantém \textbf{dois} \textit{bias} no estado interno, $b_{ih}$ e $b_{hh}$; aqui os combinamos em um único $b_h$, pois só a soma importa.
+    \item Mesma notação do \texttt{nn.RNN} do PyTorch (que usa $\mathbf{W}$ no lugar de $\mathbf{\Theta}$). O PyTorch mantém \textbf{dois} \textit{bias} no estado interno, $\mathbf{b}_{ih}$ e $\mathbf{b}_{hh}$; aqui os combinamos em um único $\mathbf{b}_h$, pois só a soma importa.
 \end{itemize}
 \end{frame}
 
@@ -630,20 +630,20 @@ print(next_word)
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
-            \node[opnode] (xh) at (0, -0.5) {$x_t\,\theta_{ih}^{T} + b_h$};
-            \node[opnode] (hh) at (-1.2, 0.4) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[opnode] (xh) at (0, -0.5) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
+            \node[opnode] (hh) at (-1.2, 0.4) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
             \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
             \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
-            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$h_t\,\theta_{ho}^{T} + b_o$};
-            \node[inputnode] (xnode) at (0, -2.0) {$x_t$};
-            \node[outputnode] (ynode) at (0, 2.4) {$\hat{y}_t$};
+            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$\mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o$};
+            \node[inputnode] (xnode) at (0, -2.0) {$\mathbf{x}_t$};
+            \node[outputnode] (ynode) at (0, 2.4) {$\hat{\mathbf{y}}_t$};
             \draw[->] (xnode) -- (xh);
             \draw[->] (xh) -- (plus);
             \draw[->] (hh) -- (plus);
             \draw[->] (plus) -- (tanh);
             \draw[->] (tanh) |- (out);
             \draw[->] (out) -- (ynode);
-            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$h_t$};
+            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$\mathbf{h}_t$};
         \end{tikzpicture}
     \end{column}
 \end{columns}
@@ -989,8 +989,8 @@ optimizer.step()
 \begin{columns}
     \begin{column}{.55\linewidth}
         \begin{itemize}
-            \item É comum que \textit{frameworks} como o PyTorch \textbf{não} incluam a camada de saída $\hat{y}$ diretamente no bloco RNN.
-            \item Cabe ao desenvolvedor adicionar uma camada densa (\texttt{nn.Linear}) sobre o estado interno $h_t$.
+            \item É comum que \textit{frameworks} como o PyTorch \textbf{não} incluam a camada de saída $\hat{\mathbf{y}}$ diretamente no bloco RNN.
+            \item Cabe ao desenvolvedor adicionar uma camada densa (\texttt{nn.Linear}) sobre o estado interno $\mathbf{h}_t$.
             \item Isso dá flexibilidade para combinar a célula recorrente com diferentes camadas de saída (regressão, classificação, sequência).
         \end{itemize}
     \end{column}
@@ -998,16 +998,16 @@ optimizer.step()
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             \node[rnncell, minimum width=3.2cm, minimum height=2.0cm, fill=PastelGreen] (cell) at (0, 0) {};
-            \node[opnode] (xh) at (0, -0.6) {$x_t\,\theta_{ih}^{T} + b_h$};
-            \node[opnode] (hh) at (-1.0, 0.2) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[opnode] (xh) at (0, -0.6) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
+            \node[opnode] (hh) at (-1.0, 0.2) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
             \node[draw, circle, inner sep=1pt] (plus) at (0, 0.2) {$+$};
             \node[opnode] (tanh) at (0.8, 0.2) {$\tanh$};
-            \node[inputnode] (xnode) at (0, -1.8) {$x_t$};
+            \node[inputnode] (xnode) at (0, -1.8) {$\mathbf{x}_t$};
             \draw[->] (xnode) -- (xh);
             \draw[->] (xh) -- (plus);
             \draw[->] (hh) -- (plus);
             \draw[->] (plus) -- (tanh);
-            \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$h_t$};
+            \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$\mathbf{h}_t$};
         \end{tikzpicture}
     \end{column}
 \end{columns}
