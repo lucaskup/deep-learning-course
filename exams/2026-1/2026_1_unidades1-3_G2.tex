@@ -171,7 +171,7 @@ Assinale a alternativa correta:
 \end{enumerate}
 
 %% ---------- Q6 (U3): OBJ-C scenario diagnostic — exploding gradients ----------
-\item (1{,}0) Você treina uma RNN \textit{vanilla} (ativação $\tanh$ nas conexões recorrentes) para modelagem de linguagem em sequências longas. A curva da função de custo cai durante algumas centenas de iterações, mas de tempos em tempos \textbf{salta abruptamente} para valores muito altos e, em uma dessas ocasiões, passa a registrar \texttt{NaN}. Ao imprimir a norma do gradiente $\|g\|$ a cada iteração, você observa que ela ocasionalmente atinge valores na ordem de $10^{6}$. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+\item (1{,}0) Você treina uma RNN \textit{vanilla} (ativação $\tanh$ nas conexões recorrentes) para modelagem de linguagem em sequências longas. A curva da função de custo cai durante algumas centenas de iterações, mas de tempos em tempos \textbf{salta abruptamente} para valores muito altos e, em uma dessas ocasiões, passa a registrar \texttt{NaN}. Ao imprimir a norma do gradiente $\|\mathbf{g}\|$ a cada iteração, você observa que ela ocasionalmente atinge valores na ordem de $10^{6}$. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
 
 \begin{enumerate}[a)]
     \item Os gradientes se dissipam ao longo dos passos de tempo; substituir a RNN por uma LSTM elimina os saltos, pois os portões impedem qualquer crescimento da norma do gradiente.
@@ -179,7 +179,7 @@ Assinale a alternativa correta:
     \item O gradiente explode ocasionalmente; aplicar \textit{clipping} por valor em cada componente é preferível ao \textit{clipping} por norma, pois somente o primeiro preserva a direção do vetor gradiente.
     \item O modelo está em \textit{overfitting} nas sequências longas; adicionar \textit{dropout} nas conexões recorrentes reduz a variância do gradiente e impede que a norma atinja valores extremos.
     \item A saturação da $\tanh$ é a causa dos saltos; trocá-la por ReLU nas conexões recorrentes limita o crescimento das ativações e, portanto, o crescimento da norma do gradiente.
-    \item O gradiente explode: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1-\tanh^2(z_k))$ que podem ter módulo maior que $1$; aplicar \textit{clipping} por norma ($g \leftarrow c\,g/\|g\|$ quando $\|g\| > c$) limita o passo preservando a direção.
+    \item O gradiente explode: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1-\tanh^2(z_k))$ que podem ter módulo maior que $1$; aplicar \textit{clipping} por norma ($\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$) limita o passo preservando a direção.
     \item O \texttt{NaN} indica erro numérico interno do \textit{framework} de autodiferenciação; reexecutar o treinamento com outra semente aleatória, sem alterar hiperparâmetros, é suficiente para eliminar o problema.
     \item O treinamento com \textit{teacher forcing} acumula erros de exposição; alimentar o modelo com as próprias predições durante o treino estabiliza a norma do gradiente e evita os saltos.
 \end{enumerate}
@@ -209,9 +209,9 @@ Assinale a alternativa correta:
 \end{enumerate}
 
 %% ---------- Q8 (U3): numeric — dot-product attention weight ----------
-\item (1{,}0) Em um modelo \textit{seq2seq} com atenção de produto escalar, o estado do decodificador no passo $t$ é $h_t = (1;\ 1)$ e os estados do codificador são $s_1 = (2;\ 2)$, $s_2 = (1;\ 1)$ e $s_3 = (0;\ -1)$. Os \textit{scores} são $\mathrm{score}(h_t, s_k) = h_t^{\top} s_k$ e os pesos de atenção são
+\item (1{,}0) Em um modelo \textit{seq2seq} com atenção de produto escalar, o estado do decodificador no passo $t$ é $\mathbf{h}_t = (1;\ 1)$ e os estados do codificador são $\mathbf{s}_1 = (2;\ 2)$, $\mathbf{s}_2 = (1;\ 1)$ e $\mathbf{s}_3 = (0;\ -1)$. Os \textit{scores} são $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ e os pesos de atenção são
 \[
-a_k^{(t)} = \frac{\exp(\mathrm{score}(h_t, s_k))}{\sum_{i=1}^{3}\exp(\mathrm{score}(h_t, s_i))}.
+a_k^{(t)} = \frac{\exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_{i=1}^{3}\exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_i))}.
 \]
 Qual o valor aproximado de $a_1^{(t)}$?
 
@@ -242,23 +242,23 @@ Qual o valor aproximado de $a_1^{(t)}$?
 %% ---------- Q9 (U3): DISS-A — LSTM single step by hand ----------
 \item (1{,}0) Considere uma célula LSTM \textbf{escalar} (todas as dimensões iguais a $1$), com as equações vistas em aula:
 \[
-f_t = \sigma(\theta_f\,[h_{t-1}, x_t] + b_f), \qquad
-i_t = \sigma(\theta_i\,[h_{t-1}, x_t] + b_i), \qquad
-\tilde{c}_t = \tanh(\theta_c\,[h_{t-1}, x_t] + b_c),
+f_t = \sigma(\boldsymbol{\theta}_f\,[h_{t-1}, x_t] + b_f), \qquad
+i_t = \sigma(\boldsymbol{\theta}_i\,[h_{t-1}, x_t] + b_i), \qquad
+\tilde{c}_t = \tanh(\boldsymbol{\theta}_c\,[h_{t-1}, x_t] + b_c),
 \]
 \[
 c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t, \qquad
-o_t = \sigma(\theta_o\,[h_{t-1}, x_t] + b_o), \qquad
+o_t = \sigma(\boldsymbol{\theta}_o\,[h_{t-1}, x_t] + b_o), \qquad
 h_t = o_t \odot \tanh(c_t).
 \]
 O estado inicial é $c_0 = -0{,}2$ e $h_0 = 0{,}4$, e a entrada no passo $1$ é $x_1 = 0{,}5$, de modo que $[h_0, x_1] = [0{,}4,\ 0{,}5]$. Os parâmetros são:
 \[
-\theta_f = [0{,}5,\ -0{,}4],\ b_f = 0{,}2; \qquad
-\theta_i = [-0{,}3,\ 0{,}6],\ b_i = -0{,}1; \qquad
+\boldsymbol{\theta}_f = [0{,}5,\ -0{,}4],\ b_f = 0{,}2; \qquad
+\boldsymbol{\theta}_i = [-0{,}3,\ 0{,}6],\ b_i = -0{,}1; \qquad
 \]
 \[
-\theta_c = [0{,}2,\ 0{,}8],\ b_c = 0; \qquad
-\theta_o = [0{,}7,\ 0{,}1],\ b_o = -0{,}3.
+\boldsymbol{\theta}_c = [0{,}2,\ 0{,}8],\ b_c = 0; \qquad
+\boldsymbol{\theta}_o = [0{,}7,\ 0{,}1],\ b_o = -0{,}3.
 \]
 Pode arredondar para $4$ casas decimais.
 

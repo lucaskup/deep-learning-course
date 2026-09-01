@@ -89,12 +89,12 @@
   \begin{frame}{Notação e Tipos de Grafos}
     \begin{block}{Definição básica}
       Um grafo é $G = (V, E)$ com $|V| = n$ nós e $|E| = m$ arestas. A
-      \textit{adjacency matrix} $A \in \{0,1\}^{n \times n}$ codifica $E$.
-      Atributos de nó vivem em $X \in \mathbb{R}^{n \times d}$.
+      \textit{adjacency matrix} $\mathbf{A} \in \{0,1\}^{n \times n}$ codifica $E$.
+      Atributos de nó vivem em $\mathbf{X} \in \mathbb{R}^{n \times d}$.
     \end{block}
     \vspace{0.3em}
     \begin{itemize}
-      \item \textbf{Dirigido vs não-dirigido}: $A$ simétrica ou não.
+      \item \textbf{Dirigido vs não-dirigido}: $\mathbf{A}$ simétrica ou não.
       \item \textbf{Ponderado vs não-ponderado}: $A_{ij} \in \mathbb{R}$ ou $\{0,1\}$.
       \item \textbf{Homogêneo vs heterogêneo}: tipos únicos de nó/aresta ou múltiplos
             (e.g., paciente, doença, fármaco em uma KG médica).
@@ -104,7 +104,7 @@
       \begin{itemize}
         \item Esta aula vai focar em grafos não-dirigidos, homogêneos e estáticos para
               manter o escopo. Heterogêneos e dinâmicos são extensões naturais.
-        \item Mostrar que $X$ existe é importante: GNNs se diferenciam de embeddings
+        \item Mostrar que $\mathbf{X}$ existe é importante: GNNs se diferenciam de embeddings
               clássicos justamente por usar atributos de nó como sinal supervisor.
       \end{itemize}
     }
@@ -135,7 +135,7 @@
       \end{column}
       \begin{column}{0.55\textwidth}
         \[
-          A =
+          \mathbf{A} =
           \begin{bmatrix}
             0 & 1 & 0 & 0 \\
             1 & 0 & 1 & 1 \\
@@ -147,7 +147,7 @@
         \begin{itemize}
           \item Linha $i$: vizinhança de $i$.
           \item $A_{ij} = 1$ se $(i,j) \in E$.
-          \item Não-dirigido $\Rightarrow A$ \textbf{simétrica}.
+          \item Não-dirigido $\Rightarrow \mathbf{A}$ \textbf{simétrica}.
           \item Soma da linha $i$ $=$ grau $d_i$.
         \end{itemize}
       \end{column}
@@ -155,7 +155,7 @@
     \vspace{0.3em}
     Esse mesmo grafo será o exemplo numérico para GCN mais à frente.
     \note{
-      Aproveite para apontar: a diagonal de $A$ é zero (sem auto-laços por
+      Aproveite para apontar: a diagonal de $\mathbf{A}$ é zero (sem auto-laços por
       padrão). Quando GCN entrar em cena, vamos somar a identidade para
       incluir o próprio nó na agregação.
     }
@@ -164,7 +164,7 @@
   %--- Slide: O que queremos aprender ---
   \begin{frame}{O Que Queremos Aprender}
     \begin{itemize}
-      \item Representações vetoriais $h_v \in \mathbb{R}^{d'}$ para cada nó $v$.
+      \item Representações vetoriais $\mathbf{h}_v \in \mathbb{R}^{d'}$ para cada nó $v$.
       \item Que essas representações sejam úteis em tarefas \textit{downstream}:
             classificar nós, prever arestas, classificar o grafo inteiro.
       \item E que respeitem a estrutura do grafo: vizinhança, simetrias, escala.
@@ -257,17 +257,17 @@
   \begin{frame}{Sem Ordem Canônica}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
-        Um mesmo grafo $G$ pode ser representado por matrizes de adjacência $A$
+        Um mesmo grafo $G$ pode ser representado por matrizes de adjacência $\mathbf{A}$
         \textbf{diferentes}, dependendo de como rotulamos os nós.
 
         \vspace{0.4em}
-        Se $P$ é qualquer permutação dos nós, então $A$ e $P A P^\top$ descrevem o
+        Se $\mathbf{P}$ é qualquer permutação dos nós, então $\mathbf{A}$ e $\mathbf{P} \mathbf{A} \mathbf{P}^\top$ descrevem o
         \textbf{mesmo grafo}, apenas com etiquetas trocadas.
 
         \vspace{0.5em}
         \begin{block}{Implicação}
-          Qualquer modelo $f(A, X)$ que veja $G$ deve ser indiferente a essa
-          permutação: $f(P A P^\top, P X) = f(A, X)$ (no caso invariante).
+          Qualquer modelo $f(\mathbf{A}, \mathbf{X})$ que veja $G$ deve ser indiferente a essa
+          permutação: $f(\mathbf{P} \mathbf{A} \mathbf{P}^\top, \mathbf{P} \mathbf{X}) = f(\mathbf{A}, \mathbf{X})$ (no caso invariante).
         \end{block}
       \end{column}
       \begin{column}{0.42\textwidth}
@@ -295,7 +295,7 @@
           \draw[e] (t1)--(p3);
         \end{tikzpicture}}
         \vspace{0.2em}\\
-        \scriptsize Mesmo grafo, duas rotulagens, duas matrizes $A$ distintas.
+        \scriptsize Mesmo grafo, duas rotulagens, duas matrizes $\mathbf{A}$ distintas.
       \end{column}
     \end{columns}
     \note{
@@ -307,15 +307,15 @@
 
   %--- Slide: Invariância e equivariância à permutação ---
   \begin{frame}{Invariância e Equivariância à Permutação}
-    Seja $P$ uma matriz de permutação $n \times n$.
+    Seja $\mathbf{P}$ uma matriz de permutação $n \times n$.
     \begin{itemize}
       \item Função \textbf{invariante} (saída no nível-grafo, e.g., classe da molécula):
         \[
-          f(P A P^\top, P X) = f(A, X)
+          f(\mathbf{P} \mathbf{A} \mathbf{P}^\top, \mathbf{P} \mathbf{X}) = f(\mathbf{A}, \mathbf{X})
         \]
       \item Função \textbf{equivariante} (saída no nível-nó, e.g., embedding por nó):
         \[
-          f(P A P^\top, P X) = P\, f(A, X)
+          f(\mathbf{P} \mathbf{A} \mathbf{P}^\top, \mathbf{P} \mathbf{X}) = \mathbf{P}\, f(\mathbf{A}, \mathbf{X})
         \]
     \end{itemize}
 
@@ -361,9 +361,9 @@
     \vspace{1em}
     Cada tarefa demanda uma estratégia de \textit{readout} diferente:
     \begin{itemize}
-      \item Nó: usar diretamente $h_v$.
-      \item Aresta: combinar $h_u$ e $h_v$ (concatenação, produto interno, MLP).
-      \item Grafo: agregação (\textit{pooling}) sobre todos os $h_v$ (soma, média, máx, atenção).
+      \item Nó: usar diretamente $\mathbf{h}_v$.
+      \item Aresta: combinar $\mathbf{h}_u$ e $\mathbf{h}_v$ (concatenação, produto interno, MLP).
+      \item Grafo: agregação (\textit{pooling}) sobre todos os $\mathbf{h}_v$ (soma, média, máx, atenção).
     \end{itemize}
     \note{
       Vale antecipar que classificação de nó/grafo usa métricas padrão (acurácia, F1).
@@ -393,7 +393,7 @@
           \draw[e] (c)--(d); \draw[e] (q)--(d);
         \end{tikzpicture}\\[0.6em]
         \small De qual \textcolor{NodeBlue}{classe} é o nó \enquote{?}\\[0.2em]
-        \scriptsize \textit{readout}: usar $h_v$ direto
+        \scriptsize \textit{readout}: usar $\mathbf{h}_v$ direto
       \end{column}
       \begin{column}{0.32\textwidth}
         \centering
@@ -412,7 +412,7 @@
             node[midway, right=2pt, font=\scriptsize\bfseries, NodeRed] {?};
         \end{tikzpicture}\\[0.6em]
         \small A aresta \textcolor{NodeRed}{tracejada} existe ou existirá?\\[0.2em]
-        \scriptsize \textit{readout}: combinar $h_u$ e $h_v$
+        \scriptsize \textit{readout}: combinar $\mathbf{h}_u$ e $\mathbf{h}_v$
       \end{column}
       \begin{column}{0.32\textwidth}
         \centering
@@ -428,10 +428,10 @@
           \draw[NodeGreen, dashed, rounded corners, thick]
             (-1.35,-0.7) rectangle (1.35,1.75);
           \node[font=\scriptsize, NodeGreen] at (0,-1.05)
-            {$\{h_v\} \xrightarrow{\;\mathrm{pooling}\;} h_G$};
+            {$\{\mathbf{h}_v\} \xrightarrow{\;\mathrm{pooling}\;} \mathbf{h}_G$};
         \end{tikzpicture}\\[0.35em]
         \small O \textcolor{NodeGreen}{grafo inteiro} é tóxico?\\[0.2em]
-        \scriptsize \textit{readout}: pooling sobre $\{h_v\}$
+        \scriptsize \textit{readout}: pooling sobre $\{\mathbf{h}_v\}$
       \end{column}
     \end{columns}
     \note{
@@ -738,7 +738,7 @@
         \begin{alertblock}{Limites fundamentais}
           \begin{itemize}
             \item \textbf{Transdutivo}: embeddings só existem para nós vistos no treino.
-            \item \textbf{Sem atributos}: ignora $X$.
+            \item \textbf{Sem atributos}: ignora $\mathbf{X}$.
             \item \textbf{Não generaliza entre grafos}.
             \item Sem fim-a-fim com tarefas \textit{downstream}.
           \end{itemize}
@@ -748,7 +748,7 @@
 
     \vspace{0.5em}
     \begin{block}{Para onde queremos ir}
-      Um modelo que (i) seja \textbf{indutivo}, (ii) use atributos $X$, (iii) treine
+      Um modelo que (i) seja \textbf{indutivo}, (ii) use atributos $\mathbf{X}$, (iii) treine
       fim-a-fim, e (iv) compartilhe pesos entre grafos. $\Rightarrow$ \textbf{GNNs}.
     \end{block}
     \note{
@@ -771,19 +771,19 @@
       \begin{enumerate}
         \item \textbf{Message}: cada vizinho $u$ envia uma mensagem
           \[
-            m^{(k)}_{u \to v} = M^{(k)}\!\bigl(h^{(k-1)}_u,\, h^{(k-1)}_v,\, e_{uv}\bigr)
+            \mathbf{m}^{(k)}_{u \to v} = M^{(k)}\!\bigl(\mathbf{h}^{(k-1)}_u,\, \mathbf{h}^{(k-1)}_v,\, e_{uv}\bigr)
           \]
         \item \textbf{Aggregate}: $v$ combina mensagens dos vizinhos $\mathcal{N}(v)$
           \[
-            a^{(k)}_v = \mathrm{AGG}\!\bigl(\{m^{(k)}_{u \to v} : u \in \mathcal{N}(v)\}\bigr)
+            \mathbf{a}^{(k)}_v = \mathrm{AGG}\!\bigl(\{\mathbf{m}^{(k)}_{u \to v} : u \in \mathcal{N}(v)\}\bigr)
           \]
         \item \textbf{Update}: $v$ atualiza seu próprio embedding
           \[
-            h^{(k)}_v = U^{(k)}\!\bigl(h^{(k-1)}_v,\, a^{(k)}_v\bigr)
+            \mathbf{h}^{(k)}_v = U^{(k)}\!\bigl(\mathbf{h}^{(k-1)}_v,\, \mathbf{a}^{(k)}_v\bigr)
           \]
       \end{enumerate}
     \end{block}
-    {\footnotesize Convenções: $h^{(0)}_v = X_v$ (atributos iniciais do nó), $\mathcal{N}(v)$ é a vizinhança de $v$ e $e_{uv}$ é o atributo (opcional) da aresta.}
+    {\footnotesize Convenções: $\mathbf{h}^{(0)}_v = \mathbf{x}_v$ (atributos iniciais do nó), $\mathcal{N}(v)$ é a vizinhança de $v$ e $e_{uv}$ é o atributo (opcional) da aresta.}
     \note{
       O ponto-chave: \textbf{AGG deve ser invariante à ordem dos vizinhos} (soma,
       média, máx, atenção, etc.). É essa propriedade que dá equivariância à
@@ -813,15 +813,15 @@
       \draw[e] (v) -- (u3); \draw[e] (v) -- (u4);
       % Messages (passo 1, aparece no overlay 2)
       \visible<2->{
-        \draw[msg] (u1) to[bend right=10] node[midway,above,font=\scriptsize,NodeBlue]{$m_{u_1\to v}$} (v);
-        \draw[msg] (u2) to[bend left=10]  node[midway,above,font=\scriptsize,NodeBlue]{$m_{u_2\to v}$} (v);
-        \draw[msg] (u3) to[bend left=10]  node[midway,below,font=\scriptsize,NodeBlue]{$m_{u_3\to v}$} (v);
-        \draw[msg] (u4) to[bend right=10] node[midway,below,font=\scriptsize,NodeBlue]{$m_{u_4\to v}$} (v);
+        \draw[msg] (u1) to[bend right=10] node[midway,above,font=\scriptsize,NodeBlue]{$\mathbf{m}_{u_1\to v}$} (v);
+        \draw[msg] (u2) to[bend left=10]  node[midway,above,font=\scriptsize,NodeBlue]{$\mathbf{m}_{u_2\to v}$} (v);
+        \draw[msg] (u3) to[bend left=10]  node[midway,below,font=\scriptsize,NodeBlue]{$\mathbf{m}_{u_3\to v}$} (v);
+        \draw[msg] (u4) to[bend right=10] node[midway,below,font=\scriptsize,NodeBlue]{$\mathbf{m}_{u_4\to v}$} (v);
       }
       % Aggregate + update (passos 2 e 3, overlay 3)
       \visible<3->{
         \node[font=\small, NodeRed, right=2.6cm of v] (agg)
-          {$\mathrm{AGG}\to a_v \to U \to h_v^{(k)}$};
+          {$\mathrm{AGG}\to \mathbf{a}_v \to U \to \mathbf{h}_v^{(k)}$};
         \draw[->, thick, NodeRed] (v) -- (agg);
       }
     \end{tikzpicture}}
@@ -830,7 +830,7 @@
     \begin{itemize}
       \item<1-> A estrutura do grafo define \textbf{quem fala com quem}.
       \item<2-> Cada vizinho envia uma mensagem; \alert<3>{$v$ agrega e atualiza}.
-      \item<3-> Após $K$ camadas, $h_v$ contém informação a até $K$ saltos:
+      \item<3-> Após $K$ camadas, $\mathbf{h}_v$ contém informação a até $K$ saltos:
             empilhar camadas $\approx$ aumentar o \textit{receptive field}.
     \end{itemize}
     \note{
@@ -904,10 +904,10 @@
     \vspace{0.25em}
     \begin{block}{Forma por nó}
       \[
-        h^{(k)}_v = \sigma\!\left(
-          W^{(k)} \cdot
+        \mathbf{h}^{(k)}_v = \sigma\!\left(
+          \mathbf{W}^{(k)} \cdot
           \sum_{u \in \mathcal{N}(v) \cup \{v\}}
-            \frac{1}{\sqrt{\tilde d_v\, \tilde d_u}}\, h^{(k-1)}_u
+            \frac{1}{\sqrt{\tilde d_v\, \tilde d_u}}\, \mathbf{h}^{(k-1)}_u
         \right)
       \]
       onde $\tilde d_v$ é o grau de $v$ no grafo com auto-laços adicionados.
@@ -915,9 +915,9 @@
 
     \vspace{0.2em}
     \begin{itemize}
-      \item Mensagem $=$ identidade ($h_u$).
+      \item Mensagem $=$ identidade ($\mathbf{h}_u$).
       \item Agregação $=$ soma normalizada simétrica.
-      \item Update $=$ projeção linear $W^{(k)}$ + não-linearidade $\sigma$.
+      \item Update $=$ projeção linear $\mathbf{W}^{(k)}$ + não-linearidade $\sigma$.
     \end{itemize}
     {\footnotesize A normalização \textbf{simétrica} (não a média $1/\tilde d_v$) evita que vizinhos de grau alto dominem a agregação.}
     \note{
@@ -930,21 +930,21 @@
 
   %--- Slide: GCN forma matricial ---
   \begin{frame}{GCN}{Forma Matricial}
-    Definindo $\tilde A = A + I$ (auto-laços, para $v$ manter a própria informação) e $\tilde D = \mathrm{diag}(\tilde A \mathbf{1})$:
+    Definindo $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ (auto-laços, para $v$ manter a própria informação) e $\tilde{\mathbf{D}} = \mathrm{diag}(\tilde{\mathbf{A}} \mathbf{1})$:
 
     \vspace{0.4em}
     \begin{block}{Camada GCN inteira de uma vez}
       \[
-        H^{(k)} = \sigma\!\left(
-          \tilde D^{-1/2} \tilde A \tilde D^{-1/2}\, H^{(k-1)}\, W^{(k)}
+        \mathbf{H}^{(k)} = \sigma\!\left(
+          \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}\, \mathbf{H}^{(k-1)}\, \mathbf{W}^{(k)}
         \right)
       \]
     \end{block}
 
     \vspace{0.5em}
     \begin{itemize}
-      \item $H^{(k)} \in \mathbb{R}^{n \times d_k}$: matriz de embeddings por nó.
-      \item $\tilde D^{-1/2} \tilde A \tilde D^{-1/2}$: \textbf{depende apenas
+      \item $\mathbf{H}^{(k)} \in \mathbb{R}^{n \times d_k}$: matriz de embeddings por nó.
+      \item $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$: \textbf{depende apenas
             do grafo}, é constante durante o treino.
       \item Implementação eficiente: multiplicação esparsa-densa.
       \item \textbf{Limitação}: precisa do grafo todo em memória $\Rightarrow$
@@ -959,7 +959,7 @@
 
   %--- Slide: Exemplo numérico GCN (1/2) ---
   \begin{frame}{Exemplo Numérico: GCN em 4 Nós (1/2)}
-    Mesmo grafo da Seção 1. Atributos iniciais 1D: $h^{(0)} = (1, 2, 3, 4)^\top$.
+    Mesmo grafo da Seção 1. Atributos iniciais 1D: $\mathbf{h}^{(0)} = (1, 2, 3, 4)^\top$.
     Para clareza fazemos $W^{(1)} = 1$ (escalar) e $\sigma = \mathrm{Id}$.
     \begin{columns}[T]
       \begin{column}{0.24\textwidth}
@@ -979,7 +979,7 @@
       \end{column}
       \begin{column}{0.34\textwidth}
         \[
-          \tilde A = A + I =
+          \tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I} =
           \begin{bmatrix}
             1 & 1 & 0 & 0 \\
             1 & 1 & 1 & 1 \\
@@ -989,19 +989,19 @@
         \]
       \end{column}
       \begin{column}{0.40\textwidth}
-        Graus em $\tilde A$:
+        Graus em $\tilde{\mathbf{A}}$:
         \[
-          \tilde d = (2,\, 4,\, 3,\, 3)
+          \tilde{\mathbf{d}} = (2,\, 4,\, 3,\, 3)
         \]
         \[
-          \tilde D^{-1/2} = \mathrm{diag}\!\left(
+          \tilde{\mathbf{D}}^{-1/2} = \mathrm{diag}\!\left(
             \tfrac{1}{\sqrt 2},\, \tfrac{1}{2},\, \tfrac{1}{\sqrt 3},\, \tfrac{1}{\sqrt 3}
           \right)
         \]
       \end{column}
     \end{columns}
     \vspace{0.5em}
-    Próximo passo: aplicar $\tilde D^{-1/2} \tilde A\, \tilde D^{-1/2}$ a $h^{(0)}$.
+    Próximo passo: aplicar $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}}\, \tilde{\mathbf{D}}^{-1/2}$ a $\mathbf{h}^{(0)}$.
     \note{
       A escolha $W=1$ e $\sigma=\mathrm{Id}$ é só para o exemplo render números
       legíveis. Em treino real, $W$ é uma matriz aprendida e $\sigma$ é
@@ -1011,10 +1011,10 @@
 
   %--- Slide: Exemplo numérico GCN (2/2) ---
   \begin{frame}{Exemplo Numérico: GCN em 4 Nós (2/2)}
-    Matriz normalizada $\hat A = \tilde D^{-1/2} \tilde A\, \tilde D^{-1/2}$
+    Matriz normalizada $\hat{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}}\, \tilde{\mathbf{D}}^{-1/2}$
     com entrada $(i,j) = \tilde A_{ij}/\sqrt{\tilde d_i\, \tilde d_j}$:
     \[
-      \hat A \approx
+      \hat{\mathbf{A}} \approx
       \begin{bmatrix}
         0.50 & 0.35 & 0      & 0      \\
         0.35 & 0.25 & 0.29 & 0.29 \\
@@ -1022,10 +1022,10 @@
         0      & 0.29 & 0.33 & 0.33 \\
       \end{bmatrix}
     \]
-    Aplicando a $h^{(0)} = (1, 2, 3, 4)^\top$, por exemplo
+    Aplicando a $\mathbf{h}^{(0)} = (1, 2, 3, 4)^\top$, por exemplo
     $h^{(1)}_1 = 0.50 \cdot 1 + 0.354 \cdot 2 \approx 1.21$:
     \[
-      h^{(1)} = \hat A\, h^{(0)} \approx (1.21,\; 2.87,\; 2.91,\; 2.91)^\top
+      \mathbf{h}^{(1)} = \hat{\mathbf{A}}\, \mathbf{h}^{(0)} \approx (1.21,\; 2.87,\; 2.91,\; 2.91)^\top
     \]
     \begin{alertblock}{Observação}
       $h^{(1)}_3 = h^{(1)}_4$ porque os nós $3$ e $4$ são \textbf{simétricos
@@ -1035,7 +1035,7 @@
     \end{alertblock}
     \note{
       Esse exemplo deixa claro como GCN é uma média ponderada de vizinhos:
-      o nó $1$ tem só dois vizinhos em $\tilde A$ (ele mesmo e o nó $2$),
+      o nó $1$ tem só dois vizinhos em $\tilde{\mathbf{A}}$ (ele mesmo e o nó $2$),
       então $h^{(1)}_1$ é uma combinação linear de duas entradas apenas.
     }
   \end{frame}
@@ -1051,8 +1051,8 @@
 
     \vspace{0.4em}
     \begin{itemize}
-      \item \textbf{Transdutivo}: precisa do grafo todo para computar $H^{(k)}$.
-      \item \textbf{Custo de memória}: $\tilde A$ esparsa de \texttt{ogbn-papers100M}
+      \item \textbf{Transdutivo}: precisa do grafo todo para computar $\mathbf{H}^{(k)}$.
+      \item \textbf{Custo de memória}: $\tilde{\mathbf{A}}$ esparsa de \texttt{ogbn-papers100M}
             tem $\sim$1.6 B entradas. Não cabe em GPU.
     \end{itemize}
 
@@ -1080,30 +1080,30 @@
         \textbf{Funções AGG comuns}
         \begin{itemize}
           \item \textbf{Mean}: média dos vizinhos.
-          \item \textbf{Pool}: max-pool de MLP$(h_u)$.
+          \item \textbf{Pool}: max-pool de MLP$(\mathbf{h}_u)$.
           \item \textbf{LSTM}: LSTM sobre vizinhos (com ordem aleatória, para preservar
                 permutação).
         \end{itemize}
 
         \vspace{0.5em}
         \begin{alertblock}{Concatenação no update}
-          GraphSAGE \textbf{concatena} $h_v$ com a agregação, em vez de fundi-los
+          GraphSAGE \textbf{concatena} $\mathbf{h}_v$ com a agregação, em vez de fundi-los
           como GCN. Isso preserva melhor a identidade do nó central.
         \end{alertblock}
       \end{column}
       \begin{column}{0.55\textwidth}
         \begin{algorithmic}[1]
-          \Require Grafo $G$, atributos $X$, $K$ camadas, tamanhos $S_1,\ldots,S_K$
-          \State $h^{(0)}_v \gets X_v$ para todo $v$
+          \Require Grafo $G$, atributos $\mathbf{X}$, $K$ camadas, tamanhos $S_1,\ldots,S_K$
+          \State $\mathbf{h}^{(0)}_v \gets \mathbf{x}_v$ para todo $v$
           \For{$k = 1, \ldots, K$}
             \For{cada nó $v$ no minibatch}
               \State $S_k(v) \gets$ amostra de $S_k$ vizinhos de $\mathcal{N}(v)$
-              \State $a^{(k)}_v \gets \mathrm{AGG}(\{h^{(k-1)}_u : u \in S_k(v)\})$
-              \State $h^{(k)}_v \gets \sigma\!\bigl(W^{(k)}\,[h^{(k-1)}_v \,\Vert\, a^{(k)}_v]\bigr)$
-              \State $h^{(k)}_v \gets h^{(k)}_v / \|h^{(k)}_v\|_2$
+              \State $\mathbf{a}^{(k)}_v \gets \mathrm{AGG}(\{\mathbf{h}^{(k-1)}_u : u \in S_k(v)\})$
+              \State $\mathbf{h}^{(k)}_v \gets \sigma\!\bigl(\mathbf{W}^{(k)}\,[\mathbf{h}^{(k-1)}_v \,\Vert\, \mathbf{a}^{(k)}_v]\bigr)$
+              \State $\mathbf{h}^{(k)}_v \gets \mathbf{h}^{(k)}_v / \|\mathbf{h}^{(k)}_v\|_2$
             \EndFor
           \EndFor
-          \State \Return $\{h^{(K)}_v\}$
+          \State \Return $\{\mathbf{h}^{(K)}_v\}$
         \end{algorithmic}
       \end{column}
     \end{columns}
@@ -1147,7 +1147,7 @@
       \draw[nse] (u3)--(w4); \draw[se] (u3)--(w5); \draw[se] (u3)--(w6);
       % rótulos por nível
       \node[font=\scriptsize, EdgeGray, anchor=west] at (4.1,0)
-        {saída: $h^{(2)}_v$};
+        {saída: $\mathbf{h}^{(2)}_v$};
       \node[font=\scriptsize, EdgeGray, anchor=west] at (4.1,-1.25)
         {camada 1: $S_1 = 2$ dos $4$ vizinhos};
       \node[font=\scriptsize, EdgeGray, anchor=west] at (4.1,-2.5)
@@ -1183,7 +1183,7 @@
     \begin{block}{Coeficientes de atenção}
       \[
         e_{vu} = \mathrm{LeakyReLU}\!\left(
-          \mathbf{a}^{\top}\, [\,W h_v \,\Vert\, W h_u\,]
+          \mathbf{a}^{\top}\, [\,\mathbf{W} \mathbf{h}_v \,\Vert\, \mathbf{W} \mathbf{h}_u\,]
         \right)
       \]
       \[
@@ -1191,7 +1191,7 @@
         = \frac{\exp(e_{vu})}{\sum_{u' \in \mathcal{N}(v)} \exp(e_{vu'})}
       \]
       \[
-        h^{(k)}_v = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu}\, W h^{(k-1)}_u\right)
+        \mathbf{h}^{(k)}_v = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu}\, \mathbf{W} \mathbf{h}^{(k-1)}_u\right)
       \]
     \end{block}
 
@@ -1210,8 +1210,8 @@
       \begin{column}{0.55\textwidth}
         Como em Transformers, \textbf{múltiplas cabeças} de atenção são empilhadas:
         \[
-          h^{(k)}_v = \big\Vert_{i=1}^{H}\, \sigma\!\left(
-            \sum_{u \in \mathcal{N}(v)} \alpha^{(i)}_{vu}\, W^{(i)} h^{(k-1)}_u
+          \mathbf{h}^{(k)}_v = \big\Vert_{i=1}^{H}\, \sigma\!\left(
+            \sum_{u \in \mathcal{N}(v)} \alpha^{(i)}_{vu}\, \mathbf{W}^{(i)} \mathbf{h}^{(k-1)}_u
           \right)
         \]
         Na camada final costuma-se \textbf{tirar a média} das cabeças em vez
@@ -1242,16 +1242,16 @@
 
   %--- Slide: Exemplo numérico GAT ---
   \begin{frame}{Exemplo Numérico: Coeficientes de Atenção em GAT}
-    Nó $v$ com 3 vizinhos. Após projeção, $W h_v = (1, 0)$ e
+    Nó $v$ com 3 vizinhos. Após projeção, $\mathbf{W} \mathbf{h}_v = (1, 0)$ e
     \[
-      W h_{u_1} = (1, 0), \qquad
-      W h_{u_2} = (0, 1), \qquad
-      W h_{u_3} = (0.5,\, 0.5).
+      \mathbf{W} \mathbf{h}_{u_1} = (1, 0), \qquad
+      \mathbf{W} \mathbf{h}_{u_2} = (0, 1), \qquad
+      \mathbf{W} \mathbf{h}_{u_3} = (0.5,\, 0.5).
     \]
     Vetor de atenção (parâmetro aprendido): $\mathbf{a} = (1, 0, 1, 0)$, de dimensão $4$ ($2\times$ a dos embeddings projetados, por causa da concatenação).
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        Scores $e_{v,u_k} = \mathbf{a}^\top [W h_v \,\Vert\, W h_{u_k}]$
+        Scores $e_{v,u_k} = \mathbf{a}^\top [\mathbf{W} \mathbf{h}_v \,\Vert\, \mathbf{W} \mathbf{h}_{u_k}]$
         (todos positivos, LeakyReLU é identidade):
         \begin{align*}
           e_{v, u_1} &= (1,0,1,0)\cdot(1,0,1,0) = 2 \\
@@ -1266,7 +1266,7 @@
       \begin{column}{0.45\textwidth}
         \begin{block}{Embedding final de $v$}
           \[
-            h_v^{\text{novo}} = \sum_{k} \alpha_{v, u_k}\, W h_{u_k}
+            \mathbf{h}_v^{\text{novo}} = \sum_{k} \alpha_{v, u_k}\, \mathbf{W} \mathbf{h}_{u_k}
           \]
           \[
             \approx 0.51\,(1,0) + 0.19\,(0,1) + 0.31\,(0.5,\, 0.5)
@@ -1456,7 +1456,7 @@
   %--- Slide: Mitigações ---
   \begin{frame}{Mitigações}
     \begin{itemize}
-      \item \textbf{Skip connections} (estilo ResNet): $h^{(k)}_v = h^{(k-1)}_v +
+      \item \textbf{Skip connections} (estilo ResNet): $\mathbf{h}^{(k)}_v = \mathbf{h}^{(k-1)}_v +
             \mathrm{GNN}^{(k)}(\ldots)$.
       \item \textbf{Jumping Knowledge} (JK-Net): concatena ou faz max-pool das
             ativações de \textit{todas} as camadas no final.
@@ -1678,9 +1678,9 @@
     \vspace{0.5em}
     \begin{block}{Camada GIN}
       \[
-        h^{(k)}_v = \mathrm{MLP}^{(k)}\!\Bigl(
-          (1 + \epsilon^{(k)})\, h^{(k-1)}_v +
-          \sum_{u \in \mathcal{N}(v)} h^{(k-1)}_u
+        \mathbf{h}^{(k)}_v = \mathrm{MLP}^{(k)}\!\Bigl(
+          (1 + \epsilon^{(k)})\, \mathbf{h}^{(k-1)}_v +
+          \sum_{u \in \mathcal{N}(v)} \mathbf{h}^{(k-1)}_u
         \Bigr)
       \]
       Soma + MLP $\Rightarrow$ injetividade. Em prática, GIN frequentemente
@@ -1822,7 +1822,7 @@
     \vspace{0.4em}
     \begin{itemize}
       \item \textbf{Laplacian PE}: usar os $k$ primeiros autovetores do
-            Laplaciano $L = D - A$ como coordenadas espectrais. Capturam
+            Laplaciano $\mathbf{L} = \mathbf{D} - \mathbf{A}$ como coordenadas espectrais. Capturam
             estrutura global do grafo.
       \item \textbf{Random Walk PE} (RWPE): probabilidade de estar em $v$ após
             $t$ passos partindo de $v$ ($1$ a $T$ passos).

@@ -62,7 +62,7 @@ O campo receptivo é $9 \times 9$, logo o lado é $9$.\\
 \textbf{(b)} $6$: número sem correspondência com a recursão.
 
 \subsection*{Questão 2 \textemdash{} Resposta: (c)}
-A soma $h = x + f(x)$ faz a variância crescer ao longo da profundidade (no caso descorrelacionado, $\sigma_{\text{out}}^2 = 2\,\sigma_{\text{in}}^2$). A \textit{batch normalization} reescala as ativações para média/variância controladas (e depois aplica o reajuste afim $\gamma, \beta$), estabilizando a distribuição internamente ao bloco e permitindo treinar redes muito profundas.\\
+A soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ faz a variância crescer ao longo da profundidade (no caso descorrelacionado, $\sigma_{\text{out}}^2 = 2\,\sigma_{\text{in}}^2$). A \textit{batch normalization} reescala as ativações para média/variância controladas (e depois aplica o reajuste afim $\gamma, \beta$), estabilizando a distribuição internamente ao bloco e permitindo treinar redes muito profundas.\\
 \textbf{(a)} $\gamma$ e $\beta$ são $2$ parâmetros por canal/unidade; não substituem os pesos das convoluções nem reduzem o total de parâmetros de forma relevante.
 \textbf{(b)} a \textit{skip connection} é justamente o que resolve a degradação/desaparecimento; a \textit{batch norm} não a substitui.
 \textbf{(d)} a não-linearidade continua sendo a função de ativação (ReLU); a \textit{batch norm} é uma transformação afim por canal.
@@ -82,11 +82,11 @@ Os sintomas (gradiente normal nos passos finais, praticamente nulo nos iniciais)
 \textbf{(h)} \textit{dropout} desliga unidades; não aumenta a magnitude do gradiente propagado.
 
 \subsection*{Questão 4 \textemdash{} Resposta: (e)}
-\textbf{I é correta:} $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ combina memória anterior (via \textit{forget gate}) e candidato (via \textit{input gate}); o caminho de $c_{t-1}$ a $c_t$ é aditivo, o que sustenta o gradiente ao longo do tempo (\textit{constant error carousel}).
+\textbf{I é correta:} $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ combina memória anterior (via \textit{forget gate}) e candidato (via \textit{input gate}); o caminho de $\mathbf{c}_{t-1}$ a $\mathbf{c}_t$ é aditivo, o que sustenta o gradiente ao longo do tempo (\textit{constant error carousel}).
 
-\textbf{II é incorreta:} na LSTM padrão, \textit{forget gate} e \textit{input gate} são independentes (cada um com seus próprios pesos e ativação sigmoide), não há restrição $i_t = 1 - f_t$. Esse acoplamento existe apenas em uma variante específica (CIFG, \textit{coupled input-forget gate}), e não na LSTM clássica; na LSTM padrão a célula pode, por exemplo, esquecer e escrever simultaneamente.
+\textbf{II é incorreta:} na LSTM padrão, \textit{forget gate} e \textit{input gate} são independentes (cada um com seus próprios pesos e ativação sigmoide), não há restrição $\mathbf{i}_t = 1 - \mathbf{f}_t$. Esse acoplamento existe apenas em uma variante específica (CIFG, \textit{coupled input-forget gate}), e não na LSTM clássica; na LSTM padrão a célula pode, por exemplo, esquecer e escrever simultaneamente.
 
-\textbf{III é correta:} $h_t = o_t \odot \tanh(c_t)$; o \textit{output gate} controla qual parte da memória $c_t$ é exposta como estado oculto no passo $t$.
+\textbf{III é correta:} $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$; o \textit{output gate} controla qual parte da memória $\mathbf{c}_t$ é exposta como estado oculto no passo $t$.
 
 Logo, apenas I e III estão corretas.\\
 \textbf{(a)/(b)/(c)} excluem uma afirmação correta.
@@ -122,13 +122,13 @@ O \textit{beam search} compara as sequências completas e escolhe ``O sol brilha
 \begin{enumerate}[a)]
     \item \textbf{F.} Um \textit{kernel} $5\times 5$ com \textit{stride} $1$ encolhe cada dimensão em $K - 1 = 4$ a menos do que o \textit{padding} compensa: com \textit{padding} $1$ a saída fica $(H - 5 + 2\cdot 1 + 1) = (H - 2)$ por lado. Para preservar $H\times W$ é preciso \textit{padding} $p = (K-1)/2 = 2$. \textit{Modificação:} usar \textit{padding} $2$ (em geral $p = (K-1)/2$ para \textit{kernel} ímpar e \textit{stride} $1$).
 
-    \item \textbf{V.} A derivada da saída do bloco em relação à entrada contém o termo identidade $I$ (mais os termos das funções $f$); esse $I$ garante um caminho de gradiente que não é atenuado pelos pesos das camadas internas, mitigando o desaparecimento do gradiente em grande profundidade.
+    \item \textbf{V.} A derivada da saída do bloco em relação à entrada contém o termo identidade $\mathbf{I}$ (mais os termos das funções $f$); esse $\mathbf{I}$ garante um caminho de gradiente que não é atenuado pelos pesos das camadas internas, mitigando o desaparecimento do gradiente em grande profundidade.
 
     \item \textbf{F.} Na inferência a \textit{batch norm} \emph{não} usa as estatísticas do \textit{mini-batch} de teste (a saída de uma amostra dependeria das outras do \textit{batch}, e o resultado deixaria de ser determinístico). \textit{Modificação:} usar as médias móveis $\mu_{\text{mov}}, \sigma_{\text{mov}}$ acumuladas durante o \emph{treino}.
 
     \item \textbf{F.} Com distribuição uniforme sobre $|V|$ \textit{tokens}, $p(y_t \mid y_{<t}) = 1/|V|$ a cada passo, e a perplexidade resulta em $|V|$ (o pior caso: o modelo está em dúvida entre todos os \textit{tokens}). De fato $\text{Perplexidade} \in [1, |V|]$, e $1$ corresponde ao modelo determinístico e sempre certo. \textit{Modificação:} a perplexidade é igual a $|V|$ (não a $1$).
 
-    \item \textbf{V.} Com $f_t \to 1$ e $i_t \to 0$, $c_t = f_t\odot c_{t-1} + i_t \odot \tilde{c}_t \to c_{t-1}$: o \textit{forget gate} aberto e o \textit{input gate} fechado fazem a LSTM copiar a memória anterior (\textit{constant error carousel}), preservando dependências de longo prazo.
+    \item \textbf{V.} Com $\mathbf{f}_t \to 1$ e $\mathbf{i}_t \to 0$, $\mathbf{c}_t = \mathbf{f}_t\odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t \to \mathbf{c}_{t-1}$: o \textit{forget gate} aberto e o \textit{input gate} fechado fazem a LSTM copiar a memória anterior (\textit{constant error carousel}), preservando dependências de longo prazo.
 \end{enumerate}
 
 \textit{(Três asserções falsas: a, c, d. Duas verdadeiras: b, e.)}

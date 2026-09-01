@@ -45,8 +45,8 @@
       \item O objetivo de um \textbf{modelo gerador} é aprender uma
       \textcolor{EncRed}{distribuição de probabilidade} sobre uma
       variável $\mathbf{X}$ usando dados observados
-      $\{x^{(i)}\}_{i=1}^{N}$.
-      \item A densidade $p_{X}(x)$ é parametrizada por $\thetav$.
+      $\{\mathbf{x}^{(i)}\}_{i=1}^{N}$.
+      \item A densidade $p_{X}(\mathbf{x})$ é parametrizada por $\thetav$.
       \item Já vimos:
       \begin{itemize}
         \item \textbf{GANs} (jogo min-max),
@@ -87,7 +87,7 @@
       \item No processo de \textit{denoising} (decoder) treinamos uma
       rede neural para \textbf{remover um passo} de ruído.
       \item Após o treinamento podemos gerar novas instâncias partindo
-      de $z_T \sim \mathcal{N}(0,\mathbf{I})$.
+      de $\mathbf{z}_T \sim \mathcal{N}(0,\mathbf{I})$.
     \end{itemize}
   \end{frame}
 
@@ -98,20 +98,20 @@
 
   %--- Slide: Difusão definição ---
   \begin{frame}{Difusão -- Definição}
-    O processo de difusão (\textit{forward}) mapeia um exemplo $x$ por
-    uma série de etapas intermediárias $z_1, z_2, \ldots, z_T$ via
+    O processo de difusão (\textit{forward}) mapeia um exemplo $\mathbf{x}$ por
+    uma série de etapas intermediárias $\mathbf{z}_1, \mathbf{z}_2, \ldots, \mathbf{z}_T$ via
     adição de ruído:
     \vspace{0.3em}
     \[
-      z_1 = \sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1
+      \mathbf{z}_1 = \sqrt{1 - \beta_1}\cdot \mathbf{x} + \sqrt{\beta_1}\cdot \boldsymbol{\epsilon}_1
     \]
     \[
-      z_t = \sqrt{1 - \beta_t}\cdot z_{t-1} + \sqrt{\beta_t}\cdot \epsilon_t
+      \mathbf{z}_t = \sqrt{1 - \beta_t}\cdot \mathbf{z}_{t-1} + \sqrt{\beta_t}\cdot \boldsymbol{\epsilon}_t
       \qquad \forall t \in \{2, 3, \ldots, T\}
     \]
     \vspace{0.2em}
     \begin{itemize}
-      \item $\epsilon_t \sim \mathcal{N}(0,\mathbf{I})$: ruído amostrado
+      \item $\boldsymbol{\epsilon}_t \sim \mathcal{N}(0,\mathbf{I})$: ruído amostrado
       da normal padrão.
       \item Hiperparâmetros $\beta_t \in [0,1]$ são o
       \textbf{\textit{noise schedule}} (controlam a velocidade da
@@ -124,18 +124,18 @@
     Equivalentemente, podemos escrever:
     \vspace{0.3em}
     \[
-      q(z_1 \mid x) = \mathcal{N}_{z_1}\!\left[\sqrt{1 - \beta_1}\cdot x,\, \beta_1 \cdot \mathbf{I}\right]
+      q(\mathbf{z}_1 \mid \mathbf{x}) = \mathcal{N}_{\mathbf{z}_1}\!\left[\sqrt{1 - \beta_1}\cdot \mathbf{x},\, \beta_1 \cdot \mathbf{I}\right]
     \]
     \[
-      q(z_t \mid z_{t-1}) = \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t \cdot \mathbf{I}\right]
+      q(\mathbf{z}_t \mid \mathbf{z}_{t-1}) = \mathcal{N}_{\mathbf{z}_t}\!\left[\sqrt{1 - \beta_t}\cdot \mathbf{z}_{t-1},\, \beta_t \cdot \mathbf{I}\right]
       \qquad \forall t \geq 2
     \]
     \vspace{0.3em}
     \begin{block}{Cadeia de Markov}
-      $z_t$ depende apenas de $z_{t-1}$. Por isso, a distribuição
+      $\mathbf{z}_t$ depende apenas de $\mathbf{z}_{t-1}$. Por isso, a distribuição
       conjunta fatoriza:
       \[
-        q(z_{1\ldots T} \mid x) = q(z_1 \mid x)\, \prod_{t=2}^{T} q(z_t \mid z_{t-1}).
+        q(\mathbf{z}_{1\ldots T} \mid \mathbf{x}) = q(\mathbf{z}_1 \mid \mathbf{x})\, \prod_{t=2}^{T} q(\mathbf{z}_t \mid \mathbf{z}_{t-1}).
       \]
     \end{block}
   \end{frame}
@@ -145,8 +145,8 @@
     \begin{columns}[T]
       \begin{column}{0.46\textwidth}
         \begin{itemize}
-          \item Partimos de \textbf{três instâncias} $x^{(1)}, x^{(2)},
-          x^{(3)}$ (1D).
+          \item Partimos de \textbf{três instâncias} $\mathbf{x}^{(1)}, \mathbf{x}^{(2)},
+          \mathbf{x}^{(3)}$ (1D).
           \item Conforme os passos de difusão são aplicados, as
           instâncias são combinadas com ruído e vão aos poucos perdendo
           identidade.
@@ -163,10 +163,10 @@
           }
           % eixo vertical (tempo) com rótulos z_t
           \draw[black!60] (-3,0) -- (-3,112);
-          \node[left, font=\scriptsize] at (-3,0) {$x$};
+          \node[left, font=\scriptsize] at (-3,0) {$\mathbf{x}$};
           \foreach \t in {20,40,60,80,100}{
             \draw[black!60] (-3,\t) -- (-3.12,\t);
-            \node[left, font=\scriptsize] at (-3.12,\t) {$z_{\t}$};
+            \node[left, font=\scriptsize] at (-3.12,\t) {$\mathbf{z}_{\t}$};
           }
           % eixo horizontal (valor de z)
           \draw[black!60] (-3,112) -- (3,112);
@@ -195,9 +195,9 @@
             }
           \end{scope}
           % rótulos das instâncias no topo
-          \node[above, font=\scriptsize, MediumBlue] at (-2.3,-2) {$x^{(1)}$};
-          \node[above, font=\scriptsize, MediumGreen] at (-0.7,-2) {$x^{(2)}$};
-          \node[above, font=\scriptsize, MediumRed] at (2.2,-2) {$x^{(3)}$};
+          \node[above, font=\scriptsize, MediumBlue] at (-2.3,-2) {$\mathbf{x}^{(1)}$};
+          \node[above, font=\scriptsize, MediumGreen] at (-0.7,-2) {$\mathbf{x}^{(2)}$};
+          \node[above, font=\scriptsize, MediumRed] at (2.2,-2) {$\mathbf{x}^{(3)}$};
           % densidade N(0,1) ao final da cadeia
           \draw[black!50, dashed, thick]
             plot[domain=-3:3, samples=80] (\x, {112 - 12*exp(-\x*\x/2)});
@@ -218,28 +218,28 @@
   \begin{frame}{Kernel de Difusão -- Motivação}
     \begin{itemize}
       \item Como o processo de difusão é probabilístico, para uma mesma
-      instância $x$ obtemos \textbf{várias amostras} $z_t$ em cada
+      instância $\mathbf{x}$ obtemos \textbf{várias amostras} $\mathbf{z}_t$ em cada
       instante.
       \item O processo definido até aqui é \textbf{sequencial}: para
-      chegar em $z_t$ precisamos passar por $z_1, \ldots, z_{t-1}$.
+      chegar em $\mathbf{z}_t$ precisamos passar por $\mathbf{z}_1, \ldots, \mathbf{z}_{t-1}$.
       \item Para acelerar, vamos derivar uma \textbf{forma fechada}
-      para amostrar diretamente $z_t$ a partir de $x$.
+      para amostrar diretamente $\mathbf{z}_t$ a partir de $\mathbf{x}$.
     \end{itemize}
   \end{frame}
 
   %--- Slide: kernel - derivação z2 ---
-  \begin{frame}{Kernel de Difusão -- Substituindo $z_1$ em $z_2$}
+  \begin{frame}{Kernel de Difusão -- Substituindo $\mathbf{z}_1$ em $\mathbf{z}_2$}
     Partindo das definições:
     \vspace{0.2em}
     \[
-      z_1 = \sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1,
+      \mathbf{z}_1 = \sqrt{1 - \beta_1}\cdot \mathbf{x} + \sqrt{\beta_1}\cdot \boldsymbol{\epsilon}_1,
       \qquad
-      z_2 = \sqrt{1 - \beta_2}\cdot z_1 + \sqrt{\beta_2}\cdot \epsilon_2.
+      \mathbf{z}_2 = \sqrt{1 - \beta_2}\cdot \mathbf{z}_1 + \sqrt{\beta_2}\cdot \boldsymbol{\epsilon}_2.
     \]
     \vspace{0.2em}
-    Substituindo $z_1$:
+    Substituindo $\mathbf{z}_1$:
     \[
-      z_2 = \sqrt{1 - \beta_2}\!\left(\sqrt{1 - \beta_1}\cdot x + \sqrt{\beta_1}\cdot \epsilon_1\right) + \sqrt{\beta_2}\cdot \epsilon_2.
+      \mathbf{z}_2 = \sqrt{1 - \beta_2}\!\left(\sqrt{1 - \beta_1}\cdot \mathbf{x} + \sqrt{\beta_1}\cdot \boldsymbol{\epsilon}_1\right) + \sqrt{\beta_2}\cdot \boldsymbol{\epsilon}_2.
     \]
   \end{frame}
 
@@ -248,14 +248,14 @@
     Reescrevendo $\sqrt{\beta_1} = \sqrt{1 - (1 - \beta_1)}$:
     \vspace{0.2em}
     \[
-      z_2 = \sqrt{1-\beta_2}\!\left(\sqrt{1-\beta_1}\,x + \sqrt{1-(1-\beta_1)}\,\epsilon_1\right) + \sqrt{\beta_2}\,\epsilon_2.
+      \mathbf{z}_2 = \sqrt{1-\beta_2}\!\left(\sqrt{1-\beta_1}\,\mathbf{x} + \sqrt{1-(1-\beta_1)}\,\boldsymbol{\epsilon}_1\right) + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2.
     \]
     \vspace{0.2em}
     Distribuindo:
     \[
-      z_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\,x
-      + \sqrt{(1-\beta_2) - (1-\beta_2)(1-\beta_1)}\,\epsilon_1
-      + \sqrt{\beta_2}\,\epsilon_2.
+      \mathbf{z}_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\,\mathbf{x}
+      + \sqrt{(1-\beta_2) - (1-\beta_2)(1-\beta_1)}\,\boldsymbol{\epsilon}_1
+      + \sqrt{\beta_2}\,\boldsymbol{\epsilon}_2.
     \]
   \end{frame}
 
@@ -269,11 +269,11 @@
     \vspace{0.3em}
     Os dois últimos termos viram um único ruído gaussiano:
     \[
-      z_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\cdot x
-      + \sqrt{1 - (1-\beta_2)(1-\beta_1)}\cdot \epsilon.
+      \mathbf{z}_2 = \sqrt{(1-\beta_2)(1-\beta_1)}\cdot \mathbf{x}
+      + \sqrt{1 - (1-\beta_2)(1-\beta_1)}\cdot \boldsymbol{\epsilon}.
     \]
     \begin{block}{Observação}
-      Podemos repetir esse processo para todos os $z_t$, sempre
+      Podemos repetir esse processo para todos os $\mathbf{z}_t$, sempre
       acumulando os fatores $(1 - \beta_s)$.
     \end{block}
   \end{frame}
@@ -283,16 +283,16 @@
     Definindo $\alpha_t = \prod_{s=1}^{t}(1 - \beta_s)$, temos:
     \vspace{0.3em}
     \[
-      \boxed{z_t = \sqrt{\alpha_t}\cdot x + \sqrt{1 - \alpha_t}\cdot \epsilon}
-      \qquad \epsilon \sim \mathcal{N}(0,\mathbf{I})
+      \boxed{\mathbf{z}_t = \sqrt{\alpha_t}\cdot \mathbf{x} + \sqrt{1 - \alpha_t}\cdot \boldsymbol{\epsilon}}
+      \qquad \boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})
     \]
     \vspace{0.3em}
     Em forma probabilística:
     \[
-      q(z_t \mid x) = \mathcal{N}_{z_t}\!\left[\sqrt{\alpha_t}\cdot x,\; (1 - \alpha_t)\cdot \mathbf{I}\right].
+      q(\mathbf{z}_t \mid \mathbf{x}) = \mathcal{N}_{\mathbf{z}_t}\!\left[\sqrt{\alpha_t}\cdot \mathbf{x},\; (1 - \alpha_t)\cdot \mathbf{I}\right].
     \]
     \begin{block}{Vantagem prática}
-      Podemos amostrar $z_t$ \textbf{diretamente} a partir de $x$ sem
+      Podemos amostrar $\mathbf{z}_t$ \textbf{diretamente} a partir de $\mathbf{x}$ sem
       simular toda a cadeia. Isso permite treinamento por
       \textit{minibatch} eficiente.
     \end{block}
@@ -300,10 +300,10 @@
 
   %--- Slide: Exemplo numérico schedule ---
   \begin{frame}{Exemplo Numérico: \textit{Schedule} $\beta$ e Sinal vs Ruído}
-    \footnotesize Pense em $x$ como uma \emph{imagem limpa} (e.g., um
+    \footnotesize Pense em $\mathbf{x}$ como uma \emph{imagem limpa} (e.g., um
     pixel ou um vetor latente). $\beta_t$ é a \emph{variância de ruído}
     adicionada no passo $t$ do \textit{forward process}; $\alpha_t$ é o
-    quanto sobrou de $x$ após $t$ passos. Aqui usamos $T = 4$ para
+    quanto sobrou de $\mathbf{x}$ após $t$ passos. Aqui usamos $T = 4$ para
     visualização, DDPM real tem $T = 1000$ e $\beta$ na faixa
     $10^{-4}$ a $0.02$, mas a curva é a mesma.
 
@@ -329,13 +329,13 @@
         \scriptsize Ex.: $\alpha_3 = 0.9 \cdot 0.8 \cdot 0.7 = 0.504$.
       \end{column}
       \begin{column}{0.42\textwidth}
-        Para $x = 1$:
+        Para $\mathbf{x} = 1$:
         \[
-          z_t = \sqrt{\alpha_t}\cdot 1 + \sqrt{1 - \alpha_t}\cdot \epsilon
+          \mathbf{z}_t = \sqrt{\alpha_t}\cdot 1 + \sqrt{1 - \alpha_t}\cdot \boldsymbol{\epsilon}
         \]
         \vspace{-0.4em}
         Em $t = 3$ o sinal e o ruído se cruzam; em $t = T$ grande,
-        $\alpha_T \to 0$ e $z_T \approx \mathcal{N}(0, \mathbf{I})$
+        $\alpha_T \to 0$ e $\mathbf{z}_T \approx \mathcal{N}(0, \mathbf{I})$
         \textbf{por construção}, é o que permite o \textit{decoder}
         começar a amostragem de ruído puro.
       \end{column}
@@ -370,10 +370,10 @@
           }
           % eixo vertical (tempo) com rótulos z_t
           \draw[black!60] (-3,0) -- (-3,106);
-          \node[left, font=\scriptsize] at (-3,0) {$x$};
+          \node[left, font=\scriptsize] at (-3,0) {$\mathbf{x}$};
           \foreach \t in {15,55,100}{
             \draw[black!60] (-3,\t) -- (-3.12,\t);
-            \node[left, font=\scriptsize] at (-3.12,\t) {$z_{\t}$};
+            \node[left, font=\scriptsize] at (-3.12,\t) {$\mathbf{z}_{\t}$};
           }
           % eixo horizontal (valor de z)
           \draw[black!60] (-3,106) -- (3,106);
@@ -402,7 +402,7 @@
           \draw[EncRed, dashed, thick]
             plot[domain=0:100, samples=80] ({2*sqrt(al(\x))}, \x);
           \node[right, font=\tiny, EncRed] at (2.0,30)
-            {$\sqrt{\alpha_t}\,x^{*}$};
+            {$\sqrt{\alpha_t}\,\mathbf{x}^{*}$};
           % desvio padrão do kernel (largura da faixa)
           \draw[<->, NoiseAmber!60!black, thin]
             ({2*sqrt(al(78)) - sqrt(1-al(78))},78) --
@@ -419,37 +419,37 @@
                 (\x, {\tk - (9/\sd)*exp(-(\x-\mu)^2/(2*\sd^2))});
           }
           \node[right, font=\tiny, EncRed] at (-2.95,8)
-            {$q(z_{15} \mid x^{*})$};
+            {$q(\mathbf{z}_{15} \mid \mathbf{x}^{*})$};
           \node[right, font=\tiny, EncRed] at (-2.95,46)
-            {$q(z_{55} \mid x^{*})$};
+            {$q(\mathbf{z}_{55} \mid \mathbf{x}^{*})$};
           \node[right, font=\tiny, EncRed] at (-2.95,90)
-            {$q(z_{100} \mid x^{*}) \approx \mathcal{N}(0,\mathbf{I})$};
+            {$q(\mathbf{z}_{100} \mid \mathbf{x}^{*}) \approx \mathcal{N}(0,\mathbf{I})$};
           % ponto de partida
           \fill[black] (2,0) circle (1.5pt);
-          \node[above, font=\scriptsize] at (2,-1.5) {$x^{*}$};
+          \node[above, font=\scriptsize] at (2,-1.5) {$\mathbf{x}^{*}$};
         \end{tikzpicture}\\[0.2em]
         {\tiny Mesmas condições do slide de trajetórias ($\beta = 0.04$,
         $T = 100$), agora com todas as trajetórias partindo de
-        $x^{*} = 2$.}
+        $\mathbf{x}^{*} = 2$.}
       \end{column}
       \begin{column}{0.46\textwidth}
         \footnotesize
-        O mesmo $x^{*}$ gera várias trajetórias (em cinza). O kernel
+        O mesmo $\mathbf{x}^{*}$ gera várias trajetórias (em cinza). O kernel
         resume onde elas podem estar no instante $t$:
         \[
-          q(z_t \mid x) = \mathcal{N}_{z_t}\!\big[
-            {\color{EncRed}\sqrt{\alpha_t}\cdot x},\;
+          q(\mathbf{z}_t \mid \mathbf{x}) = \mathcal{N}_{\mathbf{z}_t}\!\big[
+            {\color{EncRed}\sqrt{\alpha_t}\cdot \mathbf{x}},\;
             {\color{NoiseAmber!60!black}(1 - \alpha_t)}\cdot\mathbf{I}\big]
         \]
         \begin{itemize}
-          \item \textcolor{EncRed}{$\sqrt{\alpha_t}\,x$} (linha
+          \item \textcolor{EncRed}{$\sqrt{\alpha_t}\,\mathbf{x}$} (linha
           tracejada): a \textbf{média}. O sinal original encolhe
           geometricamente rumo a zero.
           \item \textcolor{NoiseAmber!60!black}{$1 - \alpha_t$} (faixa):
           a \textbf{variância}. A incerteza acumulada pelo ruído cresce
           rumo a 1.
           \item \textcolor{EncRed}{Curvas sólidas}: o kernel
-          $q(z_t \mid x^{*})$ em $t = 15, 55, 100$. Amostrar dele
+          $q(\mathbf{z}_t \mid \mathbf{x}^{*})$ em $t = 15, 55, 100$. Amostrar dele
           dispensa simular a cadeia passo a passo.
           \item Em $t = 100$: $\alpha_t \approx 0$, então o kernel já é
           aproximadamente $\mathcal{N}(0,\mathbf{I})$.
@@ -459,7 +459,7 @@
     \note{
       A figura substitui a versão do livro do Prince: aqui todas as
       trajetórias partem do mesmo ponto para evidenciar que o kernel é
-      a distribuição marginal de $z_t$ dado $x$. A média decai como
+      a distribuição marginal de $\mathbf{z}_t$ dado $\mathbf{x}$. A média decai como
       $\sqrt{\alpha_t}$ e a variância satura em 1, por isso a faixa
       amarela abre em forma de cone e a densidade final coincide com a
       normal padrão.
@@ -476,12 +476,12 @@
   %--------------------------------------------------------------------
 
   %--- Slide: motivação ---
-  \begin{frame}{Distribuição condicional $q(z_{t-1} \mid z_t, x)$}
+  \begin{frame}{Distribuição condicional $q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})$}
     Para o decoder vamos precisar de uma expressão para a difusão
-    \textbf{revertida no tempo}, condicionada em $x$:
+    \textbf{revertida no tempo}, condicionada em $\mathbf{x}$:
     \vspace{0.3em}
     \[
-      q(z_{t-1} \mid z_t, x) = \frac{q(z_t \mid z_{t-1}, x)\, q(z_{t-1} \mid x)}{q(z_t \mid x)}
+      q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x}) = \frac{q(\mathbf{z}_t \mid \mathbf{z}_{t-1}, \mathbf{x})\, q(\mathbf{z}_{t-1} \mid \mathbf{x})}{q(\mathbf{z}_t \mid \mathbf{x})}
     \]
     \vspace{0.3em}
     Por regra de Bayes. Vamos manipular essa expressão.
@@ -491,12 +491,12 @@
   \begin{frame}{Distribuição condicional -- Simplificação Markov}
     \begin{itemize}
       \item Como difusão é Markov:
-      $q(z_t \mid z_{t-1}, x) = q(z_t \mid z_{t-1})$.
+      $q(\mathbf{z}_t \mid \mathbf{z}_{t-1}, \mathbf{x}) = q(\mathbf{z}_t \mid \mathbf{z}_{t-1})$.
       \item Tirando o denominador, a igualdade vira proporcionalidade:
     \end{itemize}
     \vspace{0.3em}
     \[
-      q(z_{t-1} \mid z_t, x) \;\propto\; q(z_t \mid z_{t-1})\, q(z_{t-1} \mid x).
+      q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x}) \;\propto\; q(\mathbf{z}_t \mid \mathbf{z}_{t-1})\, q(\mathbf{z}_{t-1} \mid \mathbf{x}).
     \]
   \end{frame}
 
@@ -505,36 +505,36 @@
     Substituindo cada termo pela sua respectiva normal:
     \[
       \propto
-      \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t\,\mathbf{I}\right]
+      \mathcal{N}_{\mathbf{z}_t}\!\left[\sqrt{1 - \beta_t}\cdot \mathbf{z}_{t-1},\, \beta_t\,\mathbf{I}\right]
       \cdot
-      \mathcal{N}_{z_{t-1}}\!\left[\sqrt{\alpha_{t-1}}\cdot x,\, (1 - \alpha_{t-1})\,\mathbf{I}\right].
+      \mathcal{N}_{\mathbf{z}_{t-1}}\!\left[\sqrt{\alpha_{t-1}}\cdot \mathbf{x},\, (1 - \alpha_{t-1})\,\mathbf{I}\right].
     \]
     \begin{alertblock}{Mudança de variável}
-      O primeiro fator é uma gaussiana em $z_t$, mas pode ser reescrito
-      como uma gaussiana em $z_{t-1}$:
+      O primeiro fator é uma gaussiana em $\mathbf{z}_t$, mas pode ser reescrito
+      como uma gaussiana em $\mathbf{z}_{t-1}$:
       \[
-        \mathcal{N}_{z_t}\!\left[\sqrt{1 - \beta_t}\cdot z_{t-1},\, \beta_t\,\mathbf{I}\right]
+        \mathcal{N}_{\mathbf{z}_t}\!\left[\sqrt{1 - \beta_t}\cdot \mathbf{z}_{t-1},\, \beta_t\,\mathbf{I}\right]
         \;\propto\;
-        \mathcal{N}_{z_{t-1}}\!\left[\tfrac{1}{\sqrt{1 - \beta_t}}\, z_t,\;
+        \mathcal{N}_{\mathbf{z}_{t-1}}\!\left[\tfrac{1}{\sqrt{1 - \beta_t}}\, \mathbf{z}_t,\;
         \tfrac{\beta_t}{1 - \beta_t}\,\mathbf{I}\right].
       \]
     \end{alertblock}
-    O produto de duas gaussianas em $z_{t-1}$ é proporcional a uma
-    gaussiana em $z_{t-1}$; como o lado esquerdo é uma distribuição, a
+    O produto de duas gaussianas em $\mathbf{z}_{t-1}$ é proporcional a uma
+    gaussiana em $\mathbf{z}_{t-1}$; como o lado esquerdo é uma distribuição, a
     normalização é automática:
     \[
-      q(z_{t-1} \mid z_t, x) = \mathcal{N}_{z_{t-1}}\!\left[
-        \tfrac{(1 - \alpha_{t-1})}{1 - \alpha_t}\sqrt{1 - \beta_t}\, z_t
-        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1 - \alpha_t}\, x,\;
+      q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x}) = \mathcal{N}_{\mathbf{z}_{t-1}}\!\left[
+        \tfrac{(1 - \alpha_{t-1})}{1 - \alpha_t}\sqrt{1 - \beta_t}\, \mathbf{z}_t
+        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1 - \alpha_t}\, \mathbf{x},\;
         \tfrac{\beta_t (1 - \alpha_{t-1})}{1 - \alpha_t}\,\mathbf{I}
       \right]
     \]
     \note{
       A identidade segue de completar o quadrado: o expoente
-      $-(z_t - \sqrt{1-\beta_t}\,z_{t-1})^2 / (2\beta_t)$ é o mesmo de
-      uma gaussiana em $z_{t-1}$ com média $z_t/\sqrt{1-\beta_t}$ e
+      $-(\mathbf{z}_t - \sqrt{1-\beta_t}\,\mathbf{z}_{t-1})^2 / (2\beta_t)$ é o mesmo de
+      uma gaussiana em $\mathbf{z}_{t-1}$ com média $\mathbf{z}_t/\sqrt{1-\beta_t}$ e
       variância $\beta_t/(1-\beta_t)$, a menos de fator constante em
-      $z_{t-1}$. No produto final, usar
+      $\mathbf{z}_{t-1}$. No produto final, usar
       $\alpha_t = \alpha_{t-1}(1-\beta_t)$ faz os denominadores
       colapsarem em $1 - \alpha_t$.
     }
@@ -549,22 +549,22 @@
     O aprendizado está \textbf{todo no decoder}:
     \vspace{0.3em}
     \[
-      z_T \;\to\; z_{T-1} \;\to\; \cdots \;\to\; z_1 \;\to\; x.
+      \mathbf{z}_T \;\to\; \mathbf{z}_{T-1} \;\to\; \cdots \;\to\; \mathbf{z}_1 \;\to\; \mathbf{x}.
     \]
     \vspace{0.3em}
     \begin{itemize}
-      \item A distribuição reversa real $q(z_{t-1} \mid z_t)$ é
+      \item A distribuição reversa real $q(\mathbf{z}_{t-1} \mid \mathbf{z}_t)$ é
       complexa e potencialmente multimodal, depende dos dados.
       \item Na prática, \textbf{aproximamos} essa reversa por uma
       \emph{normal}:
     \end{itemize}
     \[
-      p(z_T) = \mathcal{N}_{z_T}[0,\mathbf{I}],
+      p(\mathbf{z}_T) = \mathcal{N}_{\mathbf{z}_T}[0,\mathbf{I}],
       \qquad
-      p(z_{t-1} \mid z_t,\thetav_t) = \mathcal{N}_{z_{t-1}}\!\left[f_t[z_t,\thetav_t],\; \sigma_t^{2}\,\mathbf{I}\right],
+      p(\mathbf{z}_{t-1} \mid \mathbf{z}_t,\thetav_t) = \mathcal{N}_{\mathbf{z}_{t-1}}\!\left[f_t[\mathbf{z}_t,\thetav_t],\; \sigma_t^{2}\,\mathbf{I}\right],
     \]
     \[
-      p(x \mid z_1,\thetav_1) = \mathcal{N}_{x}\!\left[f_1[z_1,\thetav_1],\; \sigma_1^{2}\,\mathbf{I}\right].
+      p(\mathbf{x} \mid \mathbf{z}_1,\thetav_1) = \mathcal{N}_{\mathbf{x}}\!\left[f_1[\mathbf{z}_1,\thetav_1],\; \sigma_1^{2}\,\mathbf{I}\right].
     \]
     \begin{block}{Quando essa aproximação é razoável}
       Se o número de passos $T$ for grande e $\beta_t$ for próximo de
@@ -583,10 +583,10 @@
     \vspace{0.3em}
     \[
       \hat{\thetav}_{1\ldots T} = \argmax_{\thetav_{1\ldots T}}
-      \left[\sum_{i=1}^{N} \log p(x^{(i)} \mid \thetav_{1\ldots T})\right]
+      \left[\sum_{i=1}^{N} \log p(\mathbf{x}^{(i)} \mid \thetav_{1\ldots T})\right]
     \]
     \[
-      p(x \mid \thetav_{1\ldots T}) = \int p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})\, dz_{1\ldots T}
+      p(\mathbf{x} \mid \thetav_{1\ldots T}) = \int p(\mathbf{x}, \mathbf{z}_{1\ldots T} \mid \thetav_{1\ldots T})\, d\mathbf{z}_{1\ldots T}
     \]
     \begin{alertblock}{Inviável}
       Essa integral é \textbf{intratável}. Vamos usar o
@@ -598,13 +598,13 @@
   \begin{frame}{Treinamento -- Distribuições conjuntas}
     \begin{block}{Conjunta do modelo (decoder)}
       \[
-        p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})
-        = p(x \mid z_1,\thetav_1)\, \prod_{t=2}^{T} p(z_{t-1} \mid z_t,\thetav_t)\cdot p(z_T)
+        p(\mathbf{x}, \mathbf{z}_{1\ldots T} \mid \thetav_{1\ldots T})
+        = p(\mathbf{x} \mid \mathbf{z}_1,\thetav_1)\, \prod_{t=2}^{T} p(\mathbf{z}_{t-1} \mid \mathbf{z}_t,\thetav_t)\cdot p(\mathbf{z}_T)
       \]
     \end{block}
     \begin{block}{Conjunta da difusão (encoder)}
       \[
-        q(z_{1\ldots T} \mid x) = q(z_1 \mid x)\, \prod_{t=2}^{T} q(z_t \mid z_{t-1})
+        q(\mathbf{z}_{1\ldots T} \mid \mathbf{x}) = q(\mathbf{z}_1 \mid \mathbf{x})\, \prod_{t=2}^{T} q(\mathbf{z}_t \mid \mathbf{z}_{t-1})
       \]
     \end{block}
     \vspace{0.2em}
@@ -613,14 +613,14 @@
 
   %--- Slide: derivação ELBO ---
   \begin{frame}{Evidence Lower Bound (ELBO)}
-    Multiplicamos e dividimos por $q(z_{1\ldots T}\mid x)$, e aplicamos
+    Multiplicamos e dividimos por $q(\mathbf{z}_{1\ldots T}\mid \mathbf{x})$, e aplicamos
     a desigualdade de Jensen:
     \vspace{0.2em}
     \begin{align*}
-      \log p(x \mid \thetav_{1\ldots T})
-      &= \log\!\left[\int p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})\, dz\right] \\
-      &= \log\!\left[\int q(z_{1\ldots T} \mid x)\frac{p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})}{q(z_{1\ldots T} \mid x)}\, dz\right] \\
-      &\geq \int q(z_{1\ldots T} \mid x) \log\!\left[\frac{p(x, z_{1\ldots T} \mid \thetav_{1\ldots T})}{q(z_{1\ldots T} \mid x)}\right] dz
+      \log p(\mathbf{x} \mid \thetav_{1\ldots T})
+      &= \log\!\left[\int p(\mathbf{x}, \mathbf{z}_{1\ldots T} \mid \thetav_{1\ldots T})\, d\mathbf{z}\right] \\
+      &= \log\!\left[\int q(\mathbf{z}_{1\ldots T} \mid \mathbf{x})\frac{p(\mathbf{x}, \mathbf{z}_{1\ldots T} \mid \thetav_{1\ldots T})}{q(\mathbf{z}_{1\ldots T} \mid \mathbf{x})}\, d\mathbf{z}\right] \\
+      &\geq \int q(\mathbf{z}_{1\ldots T} \mid \mathbf{x}) \log\!\left[\frac{p(\mathbf{x}, \mathbf{z}_{1\ldots T} \mid \thetav_{1\ldots T})}{q(\mathbf{z}_{1\ldots T} \mid \mathbf{x})}\right] d\mathbf{z}
       \quad \text{(Jensen)}
     \end{align*}
     \vspace{0.1em}
@@ -632,27 +632,27 @@
     Substituindo as definições do encoder e decoder:
     \vspace{0.2em}
     \[
-      \log\!\left[\frac{p(x|z_1,\thetav_1) \prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)\cdot p(z_T)}{q(z_1|x)\prod_{t=2}^{T} q(z_t|z_{t-1})}\right]
+      \log\!\left[\frac{p(\mathbf{x}|\mathbf{z}_1,\thetav_1) \prod_{t=2}^{T} p(\mathbf{z}_{t-1}|\mathbf{z}_t,\thetav_t)\cdot p(\mathbf{z}_T)}{q(\mathbf{z}_1|\mathbf{x})\prod_{t=2}^{T} q(\mathbf{z}_t|\mathbf{z}_{t-1})}\right]
     \]
     \vspace{0.1em}
     \[
-      = \log\!\left[\frac{p(x|z_1,\thetav_1)}{q(z_1|x)}\right]
-      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_t|z_{t-1})}\right]
-      + \log p(z_T).
+      = \log\!\left[\frac{p(\mathbf{x}|\mathbf{z}_1,\thetav_1)}{q(\mathbf{z}_1|\mathbf{x})}\right]
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(\mathbf{z}_{t-1}|\mathbf{z}_t,\thetav_t)}{\prod_{t=2}^{T} q(\mathbf{z}_t|\mathbf{z}_{t-1})}\right]
+      + \log p(\mathbf{z}_T).
     \]
   \end{frame}
 
   %--- Slide: ELBO Bayes no q ---
-  \begin{frame}{ELBO -- Aplicando Bayes em $q(z_t|z_{t-1})$}
+  \begin{frame}{ELBO -- Aplicando Bayes em $q(\mathbf{z}_t|\mathbf{z}_{t-1})$}
     Pela regra de Bayes (e Markov):
     \[
-      q(z_t \mid z_{t-1}) = \frac{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}{q(z_{t-1} \mid x)}.
+      q(\mathbf{z}_t \mid \mathbf{z}_{t-1}) = \frac{q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})\, q(\mathbf{z}_t \mid \mathbf{x})}{q(\mathbf{z}_{t-1} \mid \mathbf{x})}.
     \]
     Aplicando isso na razão dentro do produtório, vários termos se
-    cancelam, sobrando apenas $q(z_1 \mid x)$ no numerador e
-    $q(z_T \mid x)$ no denominador:
+    cancelam, sobrando apenas $q(\mathbf{z}_1 \mid \mathbf{x})$ no numerador e
+    $q(\mathbf{z}_T \mid \mathbf{x})$ no denominador:
     \[
-      \prod_{t=2}^{T}\frac{1}{q(z_t \mid z_{t-1})} = \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}.
+      \prod_{t=2}^{T}\frac{1}{q(\mathbf{z}_t \mid \mathbf{z}_{t-1})} = \prod_{t=2}^{T}\frac{q(\mathbf{z}_{t-1} \mid \mathbf{x})}{q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})\, q(\mathbf{z}_t \mid \mathbf{x})}.
     \]
   \end{frame}
 
@@ -661,19 +661,19 @@
     Separamos o produtório em uma parte que permanece e outra cujos
     termos se cancelam:
     \[
-      \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_{t-1} \mid z_t, x)\, q(z_t \mid x)}
-      = \underbrace{\prod_{t=2}^{T}\frac{1}{q(z_{t-1} \mid z_t, x)}}_{\text{permanece}}
-        \cdot \underbrace{\prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_t \mid x)}}_{\text{cancela}}
+      \prod_{t=2}^{T}\frac{q(\mathbf{z}_{t-1} \mid \mathbf{x})}{q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})\, q(\mathbf{z}_t \mid \mathbf{x})}
+      = \underbrace{\prod_{t=2}^{T}\frac{1}{q(\mathbf{z}_{t-1} \mid \mathbf{z}_t, \mathbf{x})}}_{\text{permanece}}
+        \cdot \underbrace{\prod_{t=2}^{T}\frac{q(\mathbf{z}_{t-1} \mid \mathbf{x})}{q(\mathbf{z}_t \mid \mathbf{x})}}_{\text{cancela}}
     \]
     \vspace{0.4em}
     Ao expandir essa segunda parte, cada denominador cancela o
     numerador seguinte, sobrando apenas os extremos:
     \[
-      \prod_{t=2}^{T}\frac{q(z_{t-1} \mid x)}{q(z_t \mid x)}
-      = \frac{q(z_1 \mid x)}{\cancel{q(z_2 \mid x)}}\cdot
-        \frac{\cancel{q(z_2 \mid x)}}{\cancel{q(z_3 \mid x)}}\cdots
-        \frac{\cancel{q(z_{T-1} \mid x)}}{q(z_T \mid x)}
-      = \frac{q(z_1 \mid x)}{q(z_T \mid x)}.
+      \prod_{t=2}^{T}\frac{q(\mathbf{z}_{t-1} \mid \mathbf{x})}{q(\mathbf{z}_t \mid \mathbf{x})}
+      = \frac{q(\mathbf{z}_1 \mid \mathbf{x})}{\cancel{q(\mathbf{z}_2 \mid \mathbf{x})}}\cdot
+        \frac{\cancel{q(\mathbf{z}_2 \mid \mathbf{x})}}{\cancel{q(\mathbf{z}_3 \mid \mathbf{x})}}\cdots
+        \frac{\cancel{q(\mathbf{z}_{T-1} \mid \mathbf{x})}}{q(\mathbf{z}_T \mid \mathbf{x})}
+      = \frac{q(\mathbf{z}_1 \mid \mathbf{x})}{q(\mathbf{z}_T \mid \mathbf{x})}.
     \]
   \end{frame}
 
@@ -682,36 +682,36 @@
     Após o cancelamento, a expressão fica:
     \vspace{0.2em}
     \[
-      = \log\!\left[\frac{p(x|z_1,\thetav_1)\,q(z_1|x)}{q(z_1|x)}\right]
-      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_{t-1}|z_t,x)}\right]
-      + \log\!\left[\frac{p(z_T)}{q(z_T|x)}\right]
+      = \log\!\left[\frac{p(\mathbf{x}|\mathbf{z}_1,\thetav_1)\,q(\mathbf{z}_1|\mathbf{x})}{q(\mathbf{z}_1|\mathbf{x})}\right]
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(\mathbf{z}_{t-1}|\mathbf{z}_t,\thetav_t)}{\prod_{t=2}^{T} q(\mathbf{z}_{t-1}|\mathbf{z}_t,\mathbf{x})}\right]
+      + \log\!\left[\frac{p(\mathbf{z}_T)}{q(\mathbf{z}_T|\mathbf{x})}\right]
     \]
     \vspace{0.2em}
     \[
-      = \log p(x|z_1,\thetav_1)
-      + \log\!\left[\frac{\prod_{t=2}^{T} p(z_{t-1}|z_t,\thetav_t)}{\prod_{t=2}^{T} q(z_{t-1}|z_t,x)}\right]
-      + \cancel{\log\!\left[\tfrac{p(z_T)}{q(z_T|x)}\right]}^{\approx 0}
+      = \log p(\mathbf{x}|\mathbf{z}_1,\thetav_1)
+      + \log\!\left[\frac{\prod_{t=2}^{T} p(\mathbf{z}_{t-1}|\mathbf{z}_t,\thetav_t)}{\prod_{t=2}^{T} q(\mathbf{z}_{t-1}|\mathbf{z}_t,\mathbf{x})}\right]
+      + \cancel{\log\!\left[\tfrac{p(\mathbf{z}_T)}{q(\mathbf{z}_T|\mathbf{x})}\right]}^{\approx 0}
     \]
     \vspace{0.2em}
-    O último termo é desprezível: $q(z_T|x)\approx p(z_T)$ para $T$
+    O último termo é desprezível: $q(\mathbf{z}_T|\mathbf{x})\approx p(\mathbf{z}_T)$ para $T$
     grande.
   \end{frame}
 
   %--- Slide: ELBO formulação final ---
   \begin{frame}{ELBO -- Formulação final}
-    Tomando esperança em $q(z_{1\ldots T} \mid x)$:
+    Tomando esperança em $q(\mathbf{z}_{1\ldots T} \mid \mathbf{x})$:
     \vspace{0.2em}
     \[
       \boxed{
         \mathrm{ELBO}[\thetav_{1\ldots T}]
-        = \mathbb{E}_{q(z_1|x)}\!\big[\log p(x|z_1,\thetav_1)\big]
-        - \sum_{t=2}^{T} \mathbb{E}_{q(z_t|x)}\!\big[D_{KL}\!\big[q(z_{t-1}|z_t,x)\,\|\,p(z_{t-1}|z_t,\thetav_t)\big]\big]
+        = \mathbb{E}_{q(\mathbf{z}_1|\mathbf{x})}\!\big[\log p(\mathbf{x}|\mathbf{z}_1,\thetav_1)\big]
+        - \sum_{t=2}^{T} \mathbb{E}_{q(\mathbf{z}_t|\mathbf{x})}\!\big[D_{KL}\!\big[q(\mathbf{z}_{t-1}|\mathbf{z}_t,\mathbf{x})\,\|\,p(\mathbf{z}_{t-1}|\mathbf{z}_t,\thetav_t)\big]\big]
       }
     \]
     \vspace{0.3em}
     \begin{itemize}
       \item \textcolor{ReconGreen}{\textbf{Termo de reconstrução}}:
-      $\log p(x|z_1,\thetav_1)$ é uma normal $\Rightarrow$ MSE.
+      $\log p(\mathbf{x}|\mathbf{z}_1,\thetav_1)$ é uma normal $\Rightarrow$ MSE.
       \item \textcolor{DecBlue}{\textbf{Termos KL}}: ambas
       distribuições são normais $\Rightarrow$ \textbf{forma fechada}!
     \end{itemize}
@@ -723,12 +723,12 @@
     \vspace{0.4em}
     \begin{block}{KL desenvolvida}
       \[
-        \mathbb{E}_{q(z_t|x)}\!\left[D_{KL}\!\left(q\,\|\,p\right)\right]
+        \mathbb{E}_{q(\mathbf{z}_t|\mathbf{x})}\!\left[D_{KL}\!\left(q\,\|\,p\right)\right]
         =
         \tfrac{1}{2\sigma_t^{2}}\!\left|
-          \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
-          + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
-          - f_t[z_t,\thetav_t]
+          \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, \mathbf{z}_t
+          + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, \mathbf{x}
+          - f_t[\mathbf{z}_t,\thetav_t]
         \right|^{2}
       \]
     \end{block}
@@ -741,11 +741,11 @@
   \begin{frame}{\textit{Diffusion Loss Function}}
     \resizebox{\linewidth}{!}{$\displaystyle
       \mathcal{L}[\thetav_{1\ldots T}]
-      = \underbrace{\sum_{i=1}^{N}\!\big(-\log\mathcal{N}_x[f_1[z_1,\thetav_1],\sigma_1^2\mathbf{I}]\big)}_{\textcolor{ReconGreen}{\text{reconstrução}}}
+      = \underbrace{\sum_{i=1}^{N}\!\big(-\log\mathcal{N}_{\mathbf{x}}[f_1[\mathbf{z}_1,\thetav_1],\sigma_1^2\mathbf{I}]\big)}_{\textcolor{ReconGreen}{\text{reconstrução}}}
       + \underbrace{\sum_{t=2}^{T}\tfrac{1}{2\sigma_t^{2}}\left|
-        \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
-        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
-        - f_t[z_t,\thetav_t]
+        \tfrac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, \mathbf{z}_t
+        + \tfrac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, \mathbf{x}
+        - f_t[\mathbf{z}_t,\thetav_t]
       \right|^{2}}_{\textcolor{DecBlue}{\text{erro quadrático no \textit{timestep} } t}}
     $}
     \vspace{0.5em}
@@ -753,7 +753,7 @@
       \item Forma de \textbf{MSE} em vez de log-verossimilhança
       intratável.
       \item Cada termo $t$ pede a rede $f_t$ a prever a média da
-      reversa em $z_{t-1}$.
+      reversa em $\mathbf{z}_{t-1}$.
     \end{itemize}
   \end{frame}
 
@@ -767,34 +767,34 @@
       Após treinar diversos modelos difusores que tentavam descobrir
       \emph{diretamente} a imagem, percebeu-se empiricamente que os
       resultados eram \textbf{melhores} ao usar a rede para
-      \textbf{estimar o ruído} $\epsilon$ adicionado, e não a imagem.
+      \textbf{estimar o ruído} $\boldsymbol{\epsilon}$ adicionado, e não a imagem.
     \end{alertblock}
     \vspace{0.5em}
     Vamos reparametrizar a função de custo para que a rede prediga
-    $\epsilon$ em vez de $z_{t-1}$.
+    $\boldsymbol{\epsilon}$ em vez de $\mathbf{z}_{t-1}$.
   \end{frame}
 
   %--- Slide: isolar x ---
-  \begin{frame}{Reparametrizando a loss -- Isolar $x$}
-    Do kernel de difusão $z_t = \sqrt{\alpha_t}\,x + \sqrt{1-\alpha_t}\,\epsilon$:
+  \begin{frame}{Reparametrizando a loss -- Isolar $\mathbf{x}$}
+    Do kernel de difusão $\mathbf{z}_t = \sqrt{\alpha_t}\,\mathbf{x} + \sqrt{1-\alpha_t}\,\boldsymbol{\epsilon}$:
     \[
-      x = \frac{z_t}{\sqrt{\alpha_t}} - \frac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\epsilon.
+      \mathbf{x} = \frac{\mathbf{z}_t}{\sqrt{\alpha_t}} - \frac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\boldsymbol{\epsilon}.
     \]
     \vspace{0.3em}
-    Substituímos essa expressão de $x$ dentro da loss e simplificamos.
+    Substituímos essa expressão de $\mathbf{x}$ dentro da loss e simplificamos.
   \end{frame}
 
   %--- Slide: simplificação, coeficiente de z_t ---
-  \begin{frame}{Reparametrizando a loss -- Agrupando $z_t$}
+  \begin{frame}{Reparametrizando a loss -- Agrupando $\mathbf{z}_t$}
     O argumento dentro do quadrado (termo KL) era:
     \[
-      \frac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, z_t
-      + \frac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, x
-      - f_t[z_t,\thetav_t].
+      \frac{1-\alpha_{t-1}}{1-\alpha_t}\sqrt{1-\beta_t}\, \mathbf{z}_t
+      + \frac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\, \mathbf{x}
+      - f_t[\mathbf{z}_t,\thetav_t].
     \]
-    Substituímos $x = \tfrac{z_t}{\sqrt{\alpha_t}} - \tfrac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\epsilon$
+    Substituímos $\mathbf{x} = \tfrac{\mathbf{z}_t}{\sqrt{\alpha_t}} - \tfrac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}\,\boldsymbol{\epsilon}$
     e usamos $\sqrt{\alpha_t} = \sqrt{1-\beta_t}\,\sqrt{\alpha_{t-1}}$.
-    \begin{block}{Coeficiente de $z_t$}
+    \begin{block}{Coeficiente de $\mathbf{z}_t$}
       \[
         \frac{(1-\alpha_{t-1})\sqrt{1-\beta_t}}{1-\alpha_t}
         + \frac{\beta_t}{(1-\alpha_t)\sqrt{1-\beta_t}}
@@ -808,7 +808,7 @@
 
   %--- Slide: simplificação, coeficiente de epsilon e resultado ---
   \begin{frame}{Reparametrizando a loss -- Resultado}
-    \begin{block}{Coeficiente de $\epsilon$}
+    \begin{block}{Coeficiente de $\boldsymbol{\epsilon}$}
       \[
         -\,\frac{\sqrt{\alpha_{t-1}}\,\beta_t}{1-\alpha_t}\cdot\frac{\sqrt{1-\alpha_t}}{\sqrt{\alpha_t}}
         = -\,\frac{\beta_t}{\sqrt{1-\alpha_t}\,\sqrt{1-\beta_t}},
@@ -817,16 +817,16 @@
     \end{block}
     Logo, o argumento se reduz a:
     \[
-      \frac{1}{\sqrt{1-\beta_t}}\, z_t
-      - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\epsilon
-      - f_t[z_t,\thetav_t].
+      \frac{1}{\sqrt{1-\beta_t}}\, \mathbf{z}_t
+      - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\boldsymbol{\epsilon}
+      - f_t[\mathbf{z}_t,\thetav_t].
     \]
     \begin{block}{Reparametrização da rede}
-      Definimos $f_t$ na mesma forma, trocando $\epsilon$ pela
+      Definimos $f_t$ na mesma forma, trocando $\boldsymbol{\epsilon}$ pela
       \textbf{nova rede $g_t$ que prediz o ruído}:
       \[
-        f_t[z_t,\thetav_t] = \frac{1}{\sqrt{1-\beta_t}}\, z_t
-        - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[z_t,\thetav_t].
+        f_t[\mathbf{z}_t,\thetav_t] = \frac{1}{\sqrt{1-\beta_t}}\, \mathbf{z}_t
+        - \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[\mathbf{z}_t,\thetav_t].
       \]
     \end{block}
   \end{frame}
@@ -834,44 +834,44 @@
   %--- Slide: cancelamento z_t ---
   \begin{frame}{Reparametrizando a rede -- Cancelamento}
     Como $f_t$ tem a \textbf{mesma forma} do argumento, ao substituí-la
-    os termos em $z_t$ (coeficiente $\tfrac{1}{\sqrt{1-\beta_t}}$ idêntico)
+    os termos em $\mathbf{z}_t$ (coeficiente $\tfrac{1}{\sqrt{1-\beta_t}}$ idêntico)
     \textbf{se cancelam}:
     \vspace{0.3em}
     \[
-      \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, z_t}
-      - \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\epsilon
-      - \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, z_t}
-      + \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[z_t,\thetav_t].
+      \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, \mathbf{z}_t}
+      - \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,\boldsymbol{\epsilon}
+      - \cancel{\tfrac{1}{\sqrt{1-\beta_t}}\, \mathbf{z}_t}
+      + \tfrac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\, g_t[\mathbf{z}_t,\thetav_t].
     \]
     \vspace{0.2em}
     Sobra apenas a diferença entre ruído predito e real, escalada por um
     fator:
     \[
       \frac{\beta_t}{\sqrt{1-\alpha_t}\sqrt{1-\beta_t}}\,
-      \big(g_t[z_t,\thetav_t] - \epsilon\big).
+      \big(g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}\big).
     \]
   \end{frame}
 
   %--- Slide: loss simplificada ---
   \begin{frame}{Reparametrizando a rede -- Loss final}
     Substituindo, o termo do quadrado vira simplesmente
-    $|g_t[z_t,\thetav_t] - \epsilon_t|^{2}$ a menos de uma constante
+    $|g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}_t|^{2}$ a menos de uma constante
     multiplicativa, que podemos absorver durante a otimização:
     \vspace{0.3em}
     \[
       \boxed{
-        \mathcal{L}[\thetav_{1\ldots T}] = \sum_{i=1}^{N}\sum_{t=2}^{T} \big|g_t[z_t,\thetav_t] - \epsilon_t\big|^{2}
+        \mathcal{L}[\thetav_{1\ldots T}] = \sum_{i=1}^{N}\sum_{t=2}^{T} \big|g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}_t\big|^{2}
       }
     \]
     \vspace{0.3em}
     \begin{block}{Função de custo do modelo difusor}
-      É um \emph{erro quadrático médio} entre o ruído real $\epsilon_t$
+      É um \emph{erro quadrático médio} entre o ruído real $\boldsymbol{\epsilon}_t$
       adicionado em cada passo e a estimativa $g_t$ da rede.
       \textbf{Surpreendentemente simples}.
     \end{block}
     \vspace{0.2em}
     \footnotesize O termo de reconstrução ($t=1$) tem a mesma forma de MSE
-    em $\epsilon$; na prática o somatório roda de $t=1$ a $T$.
+    em $\boldsymbol{\epsilon}$; na prática o somatório roda de $t=1$ a $T$.
   \end{frame}
 
   %--- Slide: parametrizações do alvo ---
@@ -880,19 +880,19 @@
     escolha afeta a estabilidade e a qualidade:
     \vspace{0.3em}
     \begin{itemize}
-      \item \textbf{$\epsilon$-prediction} (DDPM, usado aqui): estima o
-      ruído $\epsilon$. Loss MSE simples e estável; é o \emph{default}.
-      \item \textbf{$x_0$-prediction}: estima diretamente a imagem limpa
-      $x$. Equivalente pela álgebra do kernel, mas empiricamente pior em
+      \item \textbf{$\boldsymbol{\epsilon}$-prediction} (DDPM, usado aqui): estima o
+      ruído $\boldsymbol{\epsilon}$. Loss MSE simples e estável; é o \emph{default}.
+      \item \textbf{$\mathbf{x}_0$-prediction}: estima diretamente a imagem limpa
+      $\mathbf{x}$. Equivalente pela álgebra do kernel, mas empiricamente pior em
       \emph{timesteps} de ruído alto.
-      \item \textbf{$v$-prediction} (Salimans \& Ho, 2022): estima
-      $v = \sqrt{\alpha_t}\,\epsilon - \sqrt{1-\alpha_t}\,x$, combinação de
+      \item \textbf{$\mathbf{v}$-prediction} (Salimans \& Ho, 2022): estima
+      $\mathbf{v} = \sqrt{\alpha_t}\,\boldsymbol{\epsilon} - \sqrt{1-\alpha_t}\,\mathbf{x}$, combinação de
       ruído e sinal. Estável em todo o \emph{schedule}; comum em geração de
       vídeo e em \emph{distillation}.
     \end{itemize}
     \begin{block}{Resumo}
       As três são equivalentes via o kernel
-      $z_t = \sqrt{\alpha_t}\,x + \sqrt{1-\alpha_t}\,\epsilon$; diferem na
+      $\mathbf{z}_t = \sqrt{\alpha_t}\,\mathbf{x} + \sqrt{1-\alpha_t}\,\boldsymbol{\epsilon}$; diferem na
       escala efetiva da loss por \emph{timestep}.
     \end{block}
   \end{frame}
@@ -905,39 +905,39 @@
   %--- Slide: algoritmo treinamento ---
   \begin{frame}{Algoritmo de Treinamento}
     \begin{algorithmic}
-      \State \textbf{Entrada:} dados de treino $x$
+      \State \textbf{Entrada:} dados de treino $\mathbf{x}$
       \State \textbf{Saída:} parâmetros do modelo $\thetav_t$
       \Repeat
         \For{$i \in \mathcal{B}$} \Comment{para cada exemplo do \textit{minibatch}}
           \State $t \sim \mathrm{Uniform}[1,\ldots,T]$ \Comment{sorteia o passo}
-          \State $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ \Comment{sorteia o ruído}
-          \State $\ell_i = \big\| g_t\big[\sqrt{\alpha_t}\,x_i + \sqrt{1-\alpha_t}\,\epsilon,\ \thetav_t\big] - \epsilon \big\|^{2}$
+          \State $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$ \Comment{sorteia o ruído}
+          \State $\ell_i = \big\| g_t\big[\sqrt{\alpha_t}\,\mathbf{x}_i + \sqrt{1-\alpha_t}\,\boldsymbol{\epsilon},\ \thetav_t\big] - \boldsymbol{\epsilon} \big\|^{2}$
         \EndFor
         \State Acumule as \textit{losses} do \textit{batch} e dê um passo de gradiente
       \Until{convergir}
     \end{algorithmic}
     \vspace{0.8em}
-    {\footnotesize Monta-se $z_t$ pelo kernel ($\sqrt{\alpha_t}\,x_i +
-    \sqrt{1-\alpha_t}\,\epsilon$) e treina-se $g_t$ para prever o ruído
-    $\epsilon$.}
+    {\footnotesize Monta-se $\mathbf{z}_t$ pelo kernel ($\sqrt{\alpha_t}\,\mathbf{x}_i +
+    \sqrt{1-\alpha_t}\,\boldsymbol{\epsilon}$) e treina-se $g_t$ para prever o ruído
+    $\boldsymbol{\epsilon}$.}
   \end{frame}
 
   %--- Slide: algoritmo amostragem ---
   \begin{frame}{Algoritmo de Amostragem}
     \begin{algorithmic}
       \State \textbf{Entrada:} modelo $g_t[\,\cdot\,,\thetav_t]$
-      \State \textbf{Saída:} amostra $x$
-      \State $z_T \sim \mathcal{N}(0,\mathbf{I})$ \Comment{última variável latente}
+      \State \textbf{Saída:} amostra $\mathbf{x}$
+      \State $\mathbf{z}_T \sim \mathcal{N}(0,\mathbf{I})$ \Comment{última variável latente}
       \For{$t = T,\ldots,2$}
-        \State $\hat{z}_{t-1} = \dfrac{1}{\sqrt{1-\beta_t}}\,z_t -
-          \dfrac{\beta_t}{\sqrt{1-\alpha_t}\,\sqrt{1-\beta_t}}\,g_t[z_t,\thetav_t]$
+        \State $\hat{\mathbf{z}}_{t-1} = \dfrac{1}{\sqrt{1-\beta_t}}\,\mathbf{z}_t -
+          \dfrac{\beta_t}{\sqrt{1-\alpha_t}\,\sqrt{1-\beta_t}}\,g_t[\mathbf{z}_t,\thetav_t]$
           \Comment{prediz o latente anterior}
-        \State $\epsilon \sim \mathcal{N}(0,\mathbf{I})$ \Comment{novo ruído}
-        \State $z_{t-1} = \hat{z}_{t-1} + \sigma_t\,\epsilon$ \Comment{adiciona ruído}
+        \State $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$ \Comment{novo ruído}
+        \State $\mathbf{z}_{t-1} = \hat{\mathbf{z}}_{t-1} + \sigma_t\,\boldsymbol{\epsilon}$ \Comment{adiciona ruído}
       \EndFor
-      \State $x = \dfrac{1}{\sqrt{1-\beta_1}}\,z_1 -
-        \dfrac{\beta_1}{\sqrt{1-\alpha_1}\,\sqrt{1-\beta_1}}\,g_1[z_1,\thetav_1]$
-        \Comment{gera $x$ sem ruído}
+      \State $\mathbf{x} = \dfrac{1}{\sqrt{1-\beta_1}}\,\mathbf{z}_1 -
+        \dfrac{\beta_1}{\sqrt{1-\alpha_1}\,\sqrt{1-\beta_1}}\,g_1[\mathbf{z}_1,\thetav_1]$
+        \Comment{gera $\mathbf{x}$ sem ruído}
     \end{algorithmic}
   \end{frame}
 
@@ -947,15 +947,15 @@
   \section{Implementação e Extensões}
 
   %--- Slide: U-Net ---
-  \begin{frame}{Modelo para estimar $\epsilon_t$ -- \textit{U-Net}}
+  \begin{frame}{Modelo para estimar $\boldsymbol{\epsilon}_t$ -- \textit{U-Net}}
     \centering
     \includegraphics[width=0.85\linewidth]{slides/img/05-geradores/dm-unet-architecture.png}\\
     \vspace{0.3em}
     \begin{itemize}
       \item Arquitetura padrão: \textbf{U-Net} com blocos residuais e
       auto-atenção.
-      \item Recebe $z_t$ + um \emph{time embedding} de $t$, devolve
-      uma estimativa de $\epsilon$ com a mesma forma de $z_t$.
+      \item Recebe $\mathbf{z}_t$ + um \emph{time embedding} de $t$, devolve
+      uma estimativa de $\boldsymbol{\epsilon}$ com a mesma forma de $\mathbf{z}_t$.
       \item \textit{Skip connections} preservam alta-frequência entre
       escalas.
     \end{itemize}
@@ -1036,14 +1036,14 @@
   \begin{frame}{Resumo}
     \begin{itemize}
       \item \textbf{Difusão} (encoder, sem parâmetros): cadeia de
-      Markov gaussiana que destrói gradualmente a estrutura de $x$.
-      \item \textbf{Kernel}: forma fechada para amostrar $z_t$
-      diretamente de $x$.
+      Markov gaussiana que destrói gradualmente a estrutura de $\mathbf{x}$.
+      \item \textbf{Kernel}: forma fechada para amostrar $\mathbf{z}_t$
+      diretamente de $\mathbf{x}$.
       \item \textbf{Reverse process} (decoder): rede neural aprende a
       reverter um passo da difusão.
       \item \textbf{ELBO}: termo de reconstrução + soma de KLs entre
       normais (todas com forma fechada).
-      \item \textbf{Reparametrização}: prever \emph{ruído} $\epsilon$
+      \item \textbf{Reparametrização}: prever \emph{ruído} $\boldsymbol{\epsilon}$
       em vez da imagem leva a uma loss MSE simples.
       \item \textbf{Arquitetura}: U-Net com \textit{time embedding}.
       \item \textbf{Extensões}: \textit{classifier-free guidance},

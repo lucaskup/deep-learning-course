@@ -6,7 +6,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação $S$ para a matriz de similaridades, $\tau$ para a temperatura e $\mathcal{L}$ para a perda, conforme utilizadas em aula.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação $\mathbf{S}$ para a matriz de similaridades, $\tau$ para a temperatura e $\mathcal{L}$ para a perda, conforme utilizadas em aula.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -30,7 +30,7 @@
         %c
     \end{enumerate}
 
-    \item Em um \textit{batch} de $N$ pares (imagem, texto) durante o treino do CLIP, quantos pares são tratados como positivos e quantos como negativos na matriz $S \in \mathbb{R}^{N \times N}$?
+    \item Em um \textit{batch} de $N$ pares (imagem, texto) durante o treino do CLIP, quantos pares são tratados como positivos e quantos como negativos na matriz $\mathbf{S} \in \mathbb{R}^{N \times N}$?
     \begin{enumerate}[(a)]
         \item $N$ positivos e $N$ negativos, um par positivo e um negativo por linha.
         \item $N$ positivos (na diagonal) e $N(N-1)$ negativos (fora da diagonal).
@@ -39,7 +39,7 @@
         %b
     \end{enumerate}
 
-    \item Antes de compor a matriz $S$ usada na \textit{InfoNCE}, o CLIP projeta as saídas dos \textit{encoders} em um espaço comum e normaliza os vetores. Qual operação de similaridade entre um vetor de imagem $\mathbf{u}$ e um vetor de texto $\mathbf{v}$ é efetivamente computada após essa normalização?
+    \item Antes de compor a matriz $\mathbf{S}$ usada na \textit{InfoNCE}, o CLIP projeta as saídas dos \textit{encoders} em um espaço comum e normaliza os vetores. Qual operação de similaridade entre um vetor de imagem $\mathbf{u}$ e um vetor de texto $\mathbf{v}$ é efetivamente computada após essa normalização?
     \begin{enumerate}[(a)]
         \item Distância euclidiana $\lVert \mathbf{u} - \mathbf{v} \rVert_2$ entre as projeções.
         \item Produto interno cru $\mathbf{u}^{\top}\mathbf{v}$ sobre os vetores não normalizados.
@@ -48,7 +48,7 @@
         %c
     \end{enumerate}
 
-    \item Em uma linha da matriz $S$ obtém-se os logits $(0.96,\, 0.64)$ associados ao par positivo (coluna 1) e a um negativo (coluna 2). Aplicando $\mathrm{softmax}$ a $S/\tau$, qual coluna recebe maior probabilidade quando $\tau = 0.1$ em comparação com $\tau = 1.0$?
+    \item Em uma linha da matriz $\mathbf{S}$ obtém-se os logits $(0.96,\, 0.64)$ associados ao par positivo (coluna 1) e a um negativo (coluna 2). Aplicando $\mathrm{softmax}$ a $\mathbf{S}/\tau$, qual coluna recebe maior probabilidade quando $\tau = 0.1$ em comparação com $\tau = 1.0$?
     \begin{enumerate}[(a)]
         \item Em ambos os valores de $\tau$ a distribuição se mantém praticamente uniforme entre as duas colunas.
         \item Com $\tau = 1.0$ o positivo recebe cerca de $0.58$ e com $\tau = 0.1$ esse valor sobe para aproximadamente $0.96$.
@@ -59,7 +59,7 @@
 
     \item \emoji{skull-and-crossbones} Suponha um \textit{batch} com $N = 2$ e a matriz de similaridades já dividida por $\tau$:
     \[
-        S/\tau = \begin{pmatrix} 9.6 & 6.4 \\ 3.6 & 9.6 \end{pmatrix}.
+        \mathbf{S}/\tau = \begin{pmatrix} 9.6 & 6.4 \\ 3.6 & 9.6 \end{pmatrix}.
     \]
     Considerando o termo $\mathcal{L}_{i \to t} = -\tfrac{1}{N}\sum_i \log\frac{\exp(S_{ii}/\tau)}{\sum_j \exp(S_{ij}/\tau)}$, qual é o valor aproximado dessa perda?
     \begin{enumerate}[(a)]
@@ -72,7 +72,7 @@
 
     \item A perda total do CLIP é definida como $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(\mathcal{L}_{i \to t} + \mathcal{L}_{t \to i})$. Qual é a justificativa principal para essa simetrização?
     \begin{enumerate}[(a)]
-        \item Garantir que a matriz $S$ seja simétrica em todos os passos de treino.
+        \item Garantir que a matriz $\mathbf{S}$ seja simétrica em todos os passos de treino.
         \item Permitir que cada modalidade atue como consulta sobre a outra, evitando viés em uma única direção de recuperação.
         \item Reduzir pela metade o custo computacional do passo de \textit{backpropagation}.
         \item Forçar os dois \textit{encoders} a compartilhar pesos durante o treino.
@@ -111,7 +111,7 @@
         \item \textit{Full fine-tuning}, que ajusta todos os pesos da rede.
         \item \textit{Linear probe}, que aprende uma única camada linear sobre as \textit{features}.
         \item \textit{Adapter modules}, que adicionam pequenos blocos com não linearidade entre as camadas.
-        \item LoRA, que adiciona produtos $A B^{\top}$ de baixo posto às matrizes de pesos congeladas.
+        \item LoRA, que adiciona produtos $\mathbf{A}\mathbf{B}^{\top}$ de baixo posto às matrizes de pesos congeladas.
         %d
     \end{enumerate}
 
@@ -132,11 +132,11 @@
 
     \item \emoji{skull-and-crossbones} (\textbf{Perda \textit{InfoNCE}}) Considere um \textit{batch} com $N = 2$ pares e a matriz de similaridades
     \[
-        S = \begin{pmatrix} 0.96 & 0.64 \\ 0.36 & 0.96 \end{pmatrix}.
+        \mathbf{S} = \begin{pmatrix} 0.96 & 0.64 \\ 0.36 & 0.96 \end{pmatrix}.
     \]
     \begin{enumerate}[(a)]
-        \item Escreva a expressão de $\mathcal{L}_{i \to t}$ em função de $S$ e $\tau$ e explique, em uma frase, qual é o papel da temperatura.
-        \item Calcule $\mathcal{L}_{i \to t}$ para $\tau = 1.0$ e para $\tau = 0.1$. Apresente os valores das duas linhas de $\mathrm{softmax}(S/\tau)$ e a perda final em cada caso.
+        \item Escreva a expressão de $\mathcal{L}_{i \to t}$ em função de $\mathbf{S}$ e $\tau$ e explique, em uma frase, qual é o papel da temperatura.
+        \item Calcule $\mathcal{L}_{i \to t}$ para $\tau = 1.0$ e para $\tau = 0.1$. Apresente os valores das duas linhas de $\mathrm{softmax}(\mathbf{S}/\tau)$ e a perda final em cada caso.
         \item Comente o que acontece com o gradiente associado ao positivo da primeira linha à medida que $\tau$ diminui, e por que isso justifica o \textit{clipping} de $1/\tau$ em $\log 100$ feito pelos autores.
     \end{enumerate}
 
@@ -189,7 +189,7 @@
 
     \item \textbf{(b)} As legendas vistas em treino são frases completas, então frases construídas com \textit{templates} ficam mais próximas dessa distribuição que palavras isoladas. As demais alternativas invocam mecanismos que não correspondem ao treino do modelo.
 
-    \item \textbf{(d)} LoRA insere produtos de baixo posto $A B^{\top}$ em camadas de atenção ou \textit{feed-forward}, treinando apenas $A$ e $B$ e mantendo o resto congelado. O \textit{linear probe} treina apenas a camada final, \textit{adapters} adicionam blocos não lineares completos, e \textit{full fine-tuning} ajusta todos os pesos.
+    \item \textbf{(d)} LoRA insere produtos de baixo posto $\mathbf{A}\mathbf{B}^{\top}$ em camadas de atenção ou \textit{feed-forward}, treinando apenas $\mathbf{A}$ e $\mathbf{B}$ e mantendo o resto congelado. O \textit{linear probe} treina apenas a camada final, \textit{adapters} adicionam blocos não lineares completos, e \textit{full fine-tuning} ajusta todos os pesos.
 
     \item \textbf{(b)} Contagem precisa de objetos é uma falha conhecida do CLIP, junto com leitura de texto em imagens, tarefas de granularidade fina e raciocínio espacial. Recuperação semântica e classificação \textit{zero-shot} em classes amplas estão entre seus pontos fortes.
 \end{enumerate}

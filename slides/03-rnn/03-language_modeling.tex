@@ -118,8 +118,8 @@
         \begin{itemize}\small
             \item Modelos de linguagem com NNs costumam ter duas partes:
             \begin{itemize}
-                \item Uma rede que processa o \textbf{contexto} $y_{<t}$ produzindo um vetor $h$.
-                \item Uma camada de saída que aproxima a distribuição do \textbf{próximo \textit{token}} a partir de $h$.
+                \item Uma rede que processa o \textbf{contexto} $y_{<t}$ produzindo um vetor $\mathbf{h}$.
+                \item Uma camada de saída que aproxima a distribuição do \textbf{próximo \textit{token}} a partir de $\mathbf{h}$.
             \end{itemize}
             \item Para processar contexto:
             \begin{itemize}
@@ -142,7 +142,7 @@
                 \draw[->, thin] (e\i.north) -- (e\i.north |- nn.south);
             }
             % h vector
-            \node[draw, rounded corners, fill=PastelPurple, minimum width=0.7cm, minimum height=0.5cm] (h) at (1.75, 1.7) {$h$};
+            \node[draw, rounded corners, fill=PastelPurple, minimum width=0.7cm, minimum height=0.5cm] (h) at (1.75, 1.7) {$\mathbf{h}$};
             \draw[->] (nn) -- (h);
             % linear/softmax
             \node[draw, rounded corners, fill=PastelBlue, minimum width=2.2cm, minimum height=0.5cm] (lin) at (1.75, 2.4) {Linear + softmax};
@@ -157,8 +157,8 @@
 
 \begin{frame}{RNN como Modelo de Linguagem}
 \begin{itemize}\footnotesize
-    \item Numa RNN, o estado oculto $h_t$ resume todo o contexto $y_{<t}$ e é atualizado a cada \textit{token}.
-    \item A cada passo a rede prevê o \textbf{próximo \textit{token}} a partir de $h_t$.
+    \item Numa RNN, o estado oculto $\mathbf{h}_t$ resume todo o contexto $y_{<t}$ e é atualizado a cada \textit{token}.
+    \item A cada passo a rede prevê o \textbf{próximo \textit{token}} a partir de $\mathbf{h}_t$.
 \end{itemize}
 \vspace{0.2em}
 \centering
@@ -193,15 +193,15 @@
 \begin{columns}
     \begin{column}{.64\linewidth}
         \begin{itemize}\small
-            \item A partir do vetor de contexto $h \in \mathbb{R}^d$ aplicamos uma transformação para a dimensão do vocabulário $|V|$.
+            \item A partir do vetor de contexto $\mathbf{h} \in \mathbb{R}^d$ aplicamos uma transformação para a dimensão do vocabulário $|V|$.
             \begin{equation*}
-                \text{logits} = W h + b, \qquad W \in \mathbb{R}^{|V|\times d}
+                \text{logits} = \mathbf{W} \mathbf{h} + \mathbf{b}, \qquad \mathbf{W} \in \mathbb{R}^{|V|\times d}
             \end{equation*}
             \item Em seguida, \textit{softmax} converte os \textit{logits} em probabilidades:
             \begin{equation*}
-                P(y_t = w_i \mid y_{<t}) = \frac{\exp(w_i^{\top} h)}{\sum_{w_j \in V} \exp(w_j^{\top} h)}
+                P(y_t = w_i \mid y_{<t}) = \frac{\exp(\mathbf{w}_i^{\top} \mathbf{h})}{\sum_{w_j \in V} \exp(\mathbf{w}_j^{\top} \mathbf{h})}
             \end{equation*}
-            \item Cada \textbf{linha} de $W$ é um \textit{output word embedding}, a representação do \textit{token} de saída.
+            \item Cada \textbf{linha} de $\mathbf{W}$ é um \textit{output word embedding}, a representação do \textit{token} de saída.
         \end{itemize}
     \end{column}
     \begin{column}{.36\linewidth}
@@ -214,7 +214,7 @@
                     \draw[fill=PastelBlue!40!white] (\c*0.32, -\r*0.26) rectangle ++(0.32, 0.26);
                 }
             }
-            \node[font=\scriptsize] at (0.48, 0.45) {$W$};
+            \node[font=\scriptsize] at (0.48, 0.45) {$\mathbf{W}$};
             \node[anchor=east, font=\tiny] at (-0.1, -0.52) {$|V|$};
             \node[font=\tiny] at (0.48, -1.55) {$d$};
             % highlight one row = one token embedding, label lifted above the gap (clear of h)
@@ -226,7 +226,7 @@
             \foreach \r in {0,...,2}{
                 \draw[fill=PastelPurple] (1.9, -\r*0.26-0.13) rectangle ++(0.26, 0.26);
             }
-            \node[font=\scriptsize] at (2.03, 0.45) {$h$};
+            \node[font=\scriptsize] at (2.03, 0.45) {$\mathbf{h}$};
             % equals logits
             \node[font=\scriptsize] at (2.55, -0.6) {$=$};
             \foreach \r in {0,...,4}{
@@ -246,9 +246,9 @@
     \item A cada passo de tempo temos um problema de classificação multiclasse com $|V|$ classes.
     \item Usamos \textit{cross-entropy} como função de custo:
     \begin{equation*}
-        \mathcal{L}(y, \hat{y}) = -\sum_{i=1}^{|V|} y_i \, \ln\bigl(p(\hat{y}_i)\bigr) = -\ln\bigl(p(y_t \mid y_{<t})\bigr)
+        \mathcal{L}(\mathbf{y}, \hat{\mathbf{y}}) = -\sum_{i=1}^{|V|} y_i \, \ln\bigl(p(\hat{y}_i)\bigr) = -\ln\bigl(p(y_t \mid y_{<t})\bigr)
     \end{equation*}
-    \item O alvo $y$ é um \textit{one-hot} para o \textit{token} correto, de modo que a soma colapsa para o termo do alvo.
+    \item O alvo $\mathbf{y}$ é um \textit{one-hot} para o \textit{token} correto, de modo que a soma colapsa para o termo do alvo.
 \end{itemize}
 \end{frame}
 
@@ -319,7 +319,7 @@
     \item Para controlar diversidade, dividimos os \textit{logits} por uma temperatura $\tau$:
 \end{itemize}
 \begin{equation*}
-    \frac{\exp(w_i^{\top} h)}{\sum_{w_j \in V} \exp(w_j^{\top} h)} \quad\longrightarrow\quad \frac{\exp\!\left(\frac{w_i^{\top} h}{\tau}\right)}{\sum_{w_j \in V} \exp\!\left(\frac{w_j^{\top} h}{\tau}\right)}
+    \frac{\exp(\mathbf{w}_i^{\top} \mathbf{h})}{\sum_{w_j \in V} \exp(\mathbf{w}_j^{\top} \mathbf{h})} \quad\longrightarrow\quad \frac{\exp\!\left(\frac{\mathbf{w}_i^{\top} \mathbf{h}}{\tau}\right)}{\sum_{w_j \in V} \exp\!\left(\frac{\mathbf{w}_j^{\top} \mathbf{h}}{\tau}\right)}
 \end{equation*}
 \centering
 \begin{tikzpicture}[every node/.style={font=\tiny}]
@@ -722,7 +722,7 @@
         \item O \textit{encoder} costuma ser \textbf{bidirecional}: lê a sequência nos dois sentidos, de modo que o estado de cada posição combina contexto à esquerda e à direita.
         \item \textit{Tokens} especiais \texttt{<bos>} e \texttt{<eos>} marcam começo e fim.
     \end{itemize}
-    \item Notação: $s_k$ são os estados do \textit{encoder} e $h_t$ o estado do \textit{decoder} no passo $t$.
+    \item Notação: $\mathbf{s}_k$ são os estados do \textit{encoder} e $\mathbf{h}_t$ o estado do \textit{decoder} no passo $t$.
 \end{itemize}
 \centering
 \begin{tikzpicture}[every node/.style={font=\tiny}]
@@ -838,7 +838,7 @@
         \item \textit{Beam Search} para gerar a tradução final.
     \end{itemize}
     \item Exemplo: traduzir \texttt{Je vois un chat sur un tapis} (FR) para \texttt{I saw a cat on a mat} (EN).
-    \item O \textit{encoder} bidirecional produz os estados ocultos $s_1, \dots, s_8$ e o \textit{decoder} parte do estado oculto final para gerar a tradução.
+    \item O \textit{encoder} bidirecional produz os estados ocultos $\mathbf{s}_1, \dots, \mathbf{s}_8$ e o \textit{decoder} parte do estado oculto final para gerar a tradução.
 \end{itemize}
 \centering
 \mttrainstep{8}{}{}{0}{0}{}
@@ -995,15 +995,15 @@
 \begin{itemize}
     \item A cada passo $t$ do \textit{decoder}:
     \begin{enumerate}
-        \item Recebe o estado oculto do \textit{decoder} $\textcolor{decInk}{h_t}$ e todos os estados do \textit{encoder} $\textcolor{encInk}{s_1}, \dots, \textcolor{encInk}{s_m}$.
-        \item Computa um \textit{score} $\text{score}(\textcolor{decInk}{h_t}, \textcolor{encInk}{s_k})$ para cada $k = 1, \dots, m$.
+        \item Recebe o estado oculto do \textit{decoder} $\textcolor{decInk}{\mathbf{h}_t}$ e todos os estados do \textit{encoder} $\textcolor{encInk}{\mathbf{s}_1}, \dots, \textcolor{encInk}{\mathbf{s}_m}$.
+        \item Computa um \textit{score} $\text{score}(\textcolor{decInk}{\mathbf{h}_t}, \textcolor{encInk}{\mathbf{s}_k})$ para cada $k = 1, \dots, m$.
         \item Aplica \textcolor{smInk}{\textit{softmax}} sobre os \textit{scores} para obter os \textbf{pesos de atenção} $\textcolor{wInk}{a_k^{(t)}}$.
-        \item Calcula o \textit{context vector} $\textcolor{ctxInk}{c^{(t)}}$ como soma ponderada dos $\textcolor{encInk}{s_k}$ pelos pesos.
+        \item Calcula o \textit{context vector} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}$ como soma ponderada dos $\textcolor{encInk}{\mathbf{s}_k}$ pelos pesos.
         \item O contexto é passado para o \textit{decoder} para a previsão do próximo \textit{token}.
     \end{enumerate}
 \end{itemize}
 \begin{equation*}
-    \textcolor{wInk}{a_k^{(t)}} = \frac{\exp(\text{score}(\textcolor{decInk}{h_t}, \textcolor{encInk}{s_k}))}{\sum_{i=1}^{m} \exp(\text{score}(\textcolor{decInk}{h_t}, \textcolor{encInk}{s_i}))}, \qquad \textcolor{ctxInk}{c^{(t)}} = \sum_{k=1}^{m} \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{s_k}
+    \textcolor{wInk}{a_k^{(t)}} = \frac{\exp(\text{score}(\textcolor{decInk}{\mathbf{h}_t}, \textcolor{encInk}{\mathbf{s}_k}))}{\sum_{i=1}^{m} \exp(\text{score}(\textcolor{decInk}{\mathbf{h}_t}, \textcolor{encInk}{\mathbf{s}_i}))}, \qquad \textcolor{ctxInk}{\mathbf{c}^{(t)}} = \sum_{k=1}^{m} \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k}
 \end{equation*}
 \end{frame}
 
@@ -1022,13 +1022,13 @@
         \draw[->, thin] (s\i.north) to[bend left=26] (s\j.north);
         \draw[->, thin] (s\j.south) to[bend left=26] (s\i.south);
     }
-    \node[font=\scriptsize, ForestGreen] at (2.375, -1.45) {\textbf{Encoder} ($s_k$, bidirecional)};
+    \node[font=\scriptsize, ForestGreen] at (2.375, -1.45) {\textbf{Encoder} ($\mathbf{s}_k$, bidirecional)};
 
     % ---------------- (2) decoder ----------------
     \onslide<2->{
         \node[deccell, minimum width=0.65cm, minimum height=0.8cm] (dt) at (7.0, 0) {};
         \node[font=\tiny] at (7.0, -0.55) {<bos>};
-        \node[font=\tiny, decInk] at (7.0, 1.0) {$h_t$};
+        \node[font=\tiny, decInk] at (7.0, 1.0) {$\mathbf{h}_t$};
         \node[font=\tiny, gray] at (7.0, 1.35) {$(2;\,1)$};
         \draw[->, thin] (dt) -- (7.0, 0.85);
         \node[font=\scriptsize, red!70!black] at (7.0, -1.1) {\textbf{Decoder}};
@@ -1044,7 +1044,7 @@
             \draw[->, thin, red!70!black] (dt) to[bend left=15] (sc\i);
             \node[font=\tiny, red!70!black, anchor=south east] at (0.95*\i-0.12, 1.33) {\sval};
         }
-        \node[font=\tiny, red!70!black] at (5.8, 1.95) {$\text{score}=h_t^\top s_k$};
+        \node[font=\tiny, red!70!black] at (5.8, 1.95) {$\text{score}=\mathbf{h}_t^\top \mathbf{s}_k$};
     }
 
     % ---------------- (4) softmax + pesos (alturas = pesos reais) ----------------
@@ -1062,7 +1062,7 @@
 
     % ---------------- (5) context vector = soma ponderada ----------------
     \onslide<5->{
-        \node[draw, rounded corners, fill=PastelPurple, minimum width=0.5cm, minimum height=0.9cm] (cv) at (3.9, 3.4) {$c^{(t)}$};
+        \node[draw, rounded corners, fill=PastelPurple, minimum width=0.5cm, minimum height=0.9cm] (cv) at (3.9, 3.4) {$\mathbf{c}^{(t)}$};
         \foreach \i/\h in {0/0.719, 1/0.265, 2/0.097, 3/0.036, 4/0.097, 5/0.036}{
             \draw[->, thin, dashed, gray] (0.95*\i, 2.25+\h+0.2) to[bend left=10] (cv.south);
         }
@@ -1078,10 +1078,10 @@
 
 \vspace{-0.2em}
 \centering\scriptsize
-\onslide<3->{\textcolor{decInk}{\textbf{Scores:}} empilhando os $\textcolor{encInk}{s_k}$ como colunas de $\textcolor{encInk}{S}$, um único produto $\textcolor{decInk}{h_t^\top}\textcolor{encInk}{S}$:\\[0.15em]
+\onslide<3->{\textcolor{decInk}{\textbf{Scores:}} empilhando os $\textcolor{encInk}{\mathbf{s}_k}$ como colunas de $\textcolor{encInk}{\mathbf{S}}$, um único produto $\textcolor{decInk}{\mathbf{h}_t^\top}\textcolor{encInk}{\mathbf{S}}$:\\[0.15em]
 $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {-}1 & {-}1 & 0\\[-0.2em] 0 & 1 & {-}1 & 1 & 2 & {-}1\end{pmatrix}}=(\,2\;\;1\;\;0\;\;{-}1\;\;0\;\;{-}1\,)$}\\[0.2em]
-\onslide<4->{\textcolor{smInk}{\textbf{Pesos de Atenção:}} $\textcolor{wInk}{a^{(t)}}=\operatorname{softmax}(\textcolor{decInk}{\text{scores}_t})=[\,0.58;\,0.21;\,0.08;\,0.03;\,0.08;\,0.03\,]$}\\[0.15em]
-\onslide<5->{\textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{c^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{s_k} \approx (0.51;\,0.29)$}
+\onslide<4->{\textcolor{smInk}{\textbf{Pesos de Atenção:}} $\textcolor{wInk}{\mathbf{a}^{(t)}}=\operatorname{softmax}(\textcolor{decInk}{\text{scores}_t})=[\,0.58;\,0.21;\,0.08;\,0.03;\,0.08;\,0.03\,]$}\\[0.15em]
+\onslide<5->{\textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k} \approx (0.51;\,0.29)$}
 \par
 \begin{itemize}\footnotesize
     \item<6-> A cada \textit{token} gerado o cálculo se repete e a distribuição de atenção se \textbf{redistribui} sobre a entrada (ver a matriz de alinhamento a seguir).
@@ -1128,7 +1128,7 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
 
 \begin{frame}{Variantes do Score}
 \begin{itemize}
-    \item Existem várias formas de calcular $\text{score}(h_t, s_k)$. As três mais clássicas\footfullcite{luong2015effective}, vistas como produtos de matrizes:
+    \item Existem várias formas de calcular $\text{score}(\mathbf{h}_t, \mathbf{s}_k)$. As três mais clássicas\footfullcite{luong2015effective}, vistas como produtos de matrizes:
 \end{itemize}
 \vspace{0.2em}
 \centering
@@ -1136,13 +1136,13 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
 
     % ===================== DOT-PRODUCT =====================
     \node[font=\scriptsize] at (-5.0, 1.7) {\textbf{Dot-product}};
-    \node[font=\scriptsize] at (-5.0, 1.15) {$\text{score} = h_t^{\top} s_k$};
+    \node[font=\scriptsize] at (-5.0, 1.15) {$\text{score} = \mathbf{h}_t^{\top} \mathbf{s}_k$};
     % h_t^T : vetor linha (1 x d)
     \foreach \c in {0,1,2}{\draw[fill=PastelPurple] (-5.75+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelPurple!60!black] at (-5.45,0.32) {$h_t^{\top}$};
+    \node[font=\tiny, text=PastelPurple!60!black] at (-5.45,0.32) {$\mathbf{h}_t^{\top}$};
     % s_k : vetor coluna (d x 1)
     \foreach \r in {0,1,2}{\draw[fill=PastelGreen] (-5.05,0.1-\r*0.2) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelGreen!45!black] at (-4.95,0.45) {$s_k$};
+    \node[font=\tiny, text=PastelGreen!45!black] at (-4.95,0.45) {$\mathbf{s}_k$};
     \node[font=\scriptsize] at (-4.65,0) {$=$};
     \draw[scalar] (-4.5,-0.1) rectangle ++(0.2,0.2);
     \node[font=\tiny] at (-4.4,-0.4) {escalar};
@@ -1150,35 +1150,35 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
 
     % ===================== BILINEAR =====================
     \node[font=\scriptsize] at (0,1.7) {\textbf{Bilinear} (Luong)};
-    \node[font=\scriptsize] at (0,1.15) {$\text{score} = h_t^{\top} W s_k$};
+    \node[font=\scriptsize] at (0,1.15) {$\text{score} = \mathbf{h}_t^{\top} \mathbf{W} \mathbf{s}_k$};
     \foreach \c in {0,1,2}{\draw[fill=PastelPurple] (-1.05+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelPurple!60!black] at (-0.75,0.32) {$h_t^{\top}$};
+    \node[font=\tiny, text=PastelPurple!60!black] at (-0.75,0.32) {$\mathbf{h}_t^{\top}$};
     % W : matriz quadrada (d x d)
     \foreach \r in {0,1,2}{\foreach \c in {0,1,2}{\draw[fill=PastelBlue] (-0.35+\c*0.2,0.1-\r*0.2) rectangle ++(0.2,0.2);}}
-    \node[font=\tiny] at (-0.05,0.45) {$W$};
+    \node[font=\tiny] at (-0.05,0.45) {$\mathbf{W}$};
     \foreach \r in {0,1,2}{\draw[fill=PastelGreen] (0.3,0.1-\r*0.2) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelGreen!45!black] at (0.4,0.45) {$s_k$};
+    \node[font=\tiny, text=PastelGreen!45!black] at (0.4,0.45) {$\mathbf{s}_k$};
     \node[font=\scriptsize] at (0.75,0) {$=$};
     \draw[scalar] (0.95,-0.1) rectangle ++(0.2,0.2);
     \node[font=\tiny] at (1.05,-0.4) {escalar};
-    \node[font=\tiny] at (0,-0.95) {matriz $W$ aprendida};
+    \node[font=\tiny] at (0,-0.95) {matriz $\mathbf{W}$ aprendida};
 
     % ===================== MLP =====================
     \node[font=\scriptsize] at (5.0,1.7) {\textbf{MLP} (Bahdanau)};
-    \node[font=\tiny] at (5.0,1.15) {$\text{score} = w_2^{\top} \tanh\!\bigl(W_1 [h_t, s_k]\bigr)$};
+    \node[font=\tiny] at (5.0,1.15) {$\text{score} = \mathbf{w}_2^{\top} \tanh\!\bigl(\mathbf{W}_1 [\mathbf{h}_t, \mathbf{s}_k]\bigr)$};
     % w_2^T : vetor linha de pesos
     \foreach \c in {0,1,2}{\draw[fill=PastelBlue] (2.6+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny] at (2.9,0.32) {$w_2^{\top}$};
+    \node[font=\tiny] at (2.9,0.32) {$\mathbf{w}_2^{\top}$};
     % tanh( ... ) envolvendo W_1 [h_t,s_k]
     \node[font=\scriptsize, anchor=east] at (4.3,0) {$\tanh\!\big($};
     % W_1 : matriz (h x 2d)
     \foreach \r in {0,1,2}{\foreach \c in {0,1,2,3}{\draw[fill=PastelBlue] (4.4+\c*0.2,0.1-\r*0.2) rectangle ++(0.2,0.2);}}
-    \node[font=\tiny] at (4.8,0.45) {$W_1$};
+    \node[font=\tiny] at (4.8,0.45) {$\mathbf{W}_1$};
     % [h_t ; s_k] : vetor coluna concatenado
     \foreach \r in {0,1}{\draw[fill=PastelPurple] (5.3,0.2-\r*0.2) rectangle ++(0.2,0.2);}
     \foreach \r in {2,3}{\draw[fill=PastelGreen] (5.3,0.2-\r*0.2) rectangle ++(0.2,0.2);}
     \node[font=\scriptsize, anchor=west] at (5.55,0) {$\big)$};
-    \node[font=\tiny] at (5.4,-0.62) {$[h_t, s_k]$};
+    \node[font=\tiny] at (5.4,-0.62) {$[\mathbf{h}_t, \mathbf{s}_k]$};
     \node[font=\scriptsize] at (5.9,0) {$=$};
     \draw[scalar] (6.1,-0.1) rectangle ++(0.2,0.2);
     \node[font=\tiny] at (4.7,-0.95) {camada não linear};

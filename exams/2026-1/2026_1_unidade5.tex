@@ -83,7 +83,7 @@ Nome: \rule{12cm}{0.4pt}
 
 \textbf{I.} Em uma camada \textit{affine coupling}, o log-determinante da Jacobiana vale $\sum_i s_i$, e a \textit{coupling network} que produz $(\mathbf{s}, \mathbf{t})$ não precisa ser inversível, pois nunca é invertida, apenas reavaliada a partir de $\mathbf{x}^{A}$.
 
-\textbf{II.} Empilhar várias camadas de \textit{linear flow} $f(\mathbf{x}) = \boldsymbol{\theta}\mathbf{x} + \mathbf{b}$ com matrizes $\boldsymbol{\theta}$ distintas aumenta progressivamente a expressividade do modelo, permitindo representar densidades que uma única camada linear não consegue representar.
+\textbf{II.} Empilhar várias camadas de \textit{linear flow} $f(\mathbf{x}) = \mathbf{\Theta}\mathbf{x} + \mathbf{b}$ com matrizes $\mathbf{\Theta}$ distintas aumenta progressivamente a expressividade do modelo, permitindo representar densidades que uma única camada linear não consegue representar.
 
 \textbf{III.} Por exigirem uma bijeção, \textit{normalizing flows} preservam a dimensão ($\dim \mathbf{z} = \dim \mathbf{x}$), de modo que não há gargalo de compressão como no latente de um VAE.
 
@@ -99,29 +99,29 @@ Nome: \rule{12cm}{0.4pt}
 \end{enumerate}
 
 %% ---------- Q3: OBJ-C scenario diagnostic (GAN vanishing gradient) ----------
-\item (1.2) Você treina uma GAN com a \emph{loss} original do gerador, $L[\thetav] = \sum_{j} \ln\!\left[1 - \sigma\!\left(f\!\left[g[z^{(j)},\thetav],\phi\right]\right)\right]$. Nas primeiras épocas, a acurácia do discriminador sobe para perto de $100\%$ e $\sigma(f[x^{*},\phi]) \approx 0$ em todas as amostras geradas; a \emph{loss} do gerador fica praticamente constante e $\|\nabla_{\thetav} L\| \approx 0$. Qual é o diagnóstico mais consistente com esses sintomas e a mitigação mais direta?
+\item (1.2) Você treina uma GAN com a \emph{loss} original do gerador, $L[\thetav] = \sum_{j} \ln\!\left[1 - \sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\boldsymbol{\phi}\right]\right)\right]$. Nas primeiras épocas, a acurácia do discriminador sobe para perto de $100\%$ e $\sigma(f[\mathbf{x}^{*},\boldsymbol{\phi}]) \approx 0$ em todas as amostras geradas; a \emph{loss} do gerador fica praticamente constante e $\|\nabla_{\thetav} L\| \approx 0$. Qual é o diagnóstico mais consistente com esses sintomas e a mitigação mais direta?
 \begin{enumerate}[a)]
     \item O discriminador venceu o jogo cedo demais; com $\sigma \approx 0$ a \emph{loss} original satura e o gradiente do gerador some; trocar para a \textit{non-saturating loss} $-\ln \sigma(\cdot)$ recupera o sinal.
     \item O gerador entrou em \textit{mode collapse} e produz amostras idênticas entre si; adicionar \textit{minibatch discrimination} restaura a diversidade das amostras e o gradiente.
     \item A taxa de aprendizado do gerador está alta demais e ele saltou por cima do mínimo; reduzi-la em uma ordem de grandeza devolve o progresso normal do treinamento.
     \item O discriminador sofre de \textit{overfitting} sobre as imagens reais do conjunto de treino; aplicar \textit{Dropout} nas camadas do gerador equilibra o jogo adversarial.
     \item O treinamento atingiu o equilíbrio de Nash ($P^{*} = P$), no qual o gradiente nulo é o comportamento esperado; basta interromper o treino e amostrar do gerador.
-    \item Os \textit{manifolds} de $P$ e $P^{*}$ estão sobrepostos demais desde o início; reduzir a dimensão do latente $z$ separa as distribuições e recria o sinal de gradiente.
+    \item Os \textit{manifolds} de $P$ e $P^{*}$ estão sobrepostos demais desde o início; reduzir a dimensão do latente $\mathbf{z}$ separa as distribuições e recria o sinal de gradiente.
     \item A última camada do gerador deveria usar ReLU em vez de \emph{Tanh}; o intervalo de saída incorreto impede o discriminador de aprender qualquer fronteira útil.
     \item O \textit{batch size} está pequeno demais para estimar a esperança da \emph{loss}; aumentá-lo reduz a variância do gradiente e elimina a saturação observada.
 \end{enumerate}
 
 %% ---------- Q4: OBJ-D architectural-purpose recall (time embedding na U-Net) ----------
-\item (1.2) Em um modelo difusor, a U-Net que estima o ruído recebe como entrada não apenas o latente $z_t$, mas também um \textit{time embedding} construído a partir do passo $t$. Por que essa informação de $t$ é necessária?
+\item (1.2) Em um modelo difusor, a U-Net que estima o ruído recebe como entrada não apenas o latente $\mathbf{z}_t$, mas também um \textit{time embedding} construído a partir do passo $t$. Por que essa informação de $t$ é necessária?
 \begin{enumerate}[a)]
     \item Porque o \textit{embedding} de $t$ funciona como \textit{positional encoding} espacial, informando à U-Net a posição de cada \textit{pixel} dentro da imagem ruidosa.
     \item Porque o \textit{embedding} de $t$ substitui o \textit{noise schedule} $\beta_t$, dispensando a escolha de hiperparâmetros do processo de difusão durante o treinamento.
-    \item Porque o \textit{embedding} de $t$ injeta a estocasticidade necessária na rede, fazendo o papel do termo de ruído $\sigma_t\,\epsilon$ usado na amostragem reversa.
+    \item Porque o \textit{embedding} de $t$ injeta a estocasticidade necessária na rede, fazendo o papel do termo de ruído $\sigma_t\,\boldsymbol{\epsilon}$ usado na amostragem reversa.
     \item Porque $t$ indexa qual das $T$ redes completamente independentes deve ser ativada, e o \textit{embedding} seleciona o subconjunto de pesos correspondente ao passo.
     \item Porque o \textit{embedding} de $t$ atua como um regularizador da U-Net, prevenindo que ela memorize o conjunto de treinamento ao longo dos $T$ passos.
     \item Porque a magnitude do ruído em $z_t$ varia com $t$ conforme o \textit{schedule}; a rede precisa saber o nível de ruído para calibrar a remoção em cada passo.
     \item Porque a propriedade markoviana do processo de difusão só se mantém se o \textit{decoder} conhecer $t$; sem o \textit{embedding} a cadeia deixa de ser Markov.
-    \item Porque sem o \textit{embedding} de $t$ a \emph{loss} MSE $|g_t[z_t,\thetav_t] - \epsilon|^{2}$ deixa de ser diferenciável em relação aos parâmetros da U-Net.
+    \item Porque sem o \textit{embedding} de $t$ a \emph{loss} MSE $|\mathbf{g}_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}|^{2}$ deixa de ser diferenciável em relação aos parâmetros da U-Net.
 \end{enumerate}
 
 %% ---------- Q5: OBJ visual (mode collapse + qualidade vs cobertura, TikZ) ----------
@@ -181,7 +181,7 @@ Considerando a decomposição $D_{JS}[P^{*}\|P] = \underbrace{\tfrac{1}{2}D_{KL}
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
-    \item ( )\,V \quad ( )\,F \quad O \textit{reparametrization trick} reescreve a amostragem do latente como $z^{*} = \mu + \Sigma^{1/2}\epsilon^{*}$, com $\epsilon^{*} \sim \mathcal{N}(\mathbf{0},\mathbf{I})$, de modo que a estocasticidade fica concentrada em $\epsilon^{*}$ e o caminho por $\mu$ e $\Sigma^{1/2}$ permanece diferenciável em relação a $\phi$.\\[0.2em]
+    \item ( )\,V \quad ( )\,F \quad O \textit{reparametrization trick} reescreve a amostragem do latente como $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}^{*}$, com $\boldsymbol{\epsilon}^{*} \sim \mathcal{N}(0,\mathbf{I})$, de modo que a estocasticidade fica concentrada em $\boldsymbol{\epsilon}^{*}$ e o caminho por $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}^{1/2}$ permanece diferenciável em relação a $\boldsymbol{\phi}$.\\[0.2em]
     \rule{\linewidth}{0.4pt}\\[0.2em]
     \rule{\linewidth}{0.4pt}
 
@@ -195,23 +195,23 @@ Considerando a decomposição $D_{JS}[P^{*}\|P] = \underbrace{\tfrac{1}{2}D_{KL}
 \end{enumerate}
 
 %% ---------- Q7: DISS-B numerical (VAE: KL + reparametrização + reconstrução) ----------
-\item (2.0) Considere um VAE com latente bidimensional ($D_z = 2$) e \textit{decoder} $p(x \mid z, \thetav) = \mathcal{N}_{x}\!\left(f[z,\thetav],\, \mathbf{I}\right)$. Para a entrada $x = (2.4,\; -1.0)$, o \textit{encoder} $g[x,\phi]$ produz
+\item (2.0) Considere um VAE com latente bidimensional ($D_z = 2$) e \textit{decoder} $p(\mathbf{x} \mid \mathbf{z}, \thetav) = \mathcal{N}_{\mathbf{x}}\!\left(f[\mathbf{z},\thetav],\, \mathbf{I}\right)$. Para a entrada $\mathbf{x} = (2.4,\; -1.0)$, o \textit{encoder} $g[\mathbf{x},\boldsymbol{\phi}]$ produz
 \[
-  \mu = (2,\; -1), \qquad \Sigma = \mathrm{diag}(0.25,\; 4) \quad (\text{logo } \sigma = (0.5,\; 2)).
+  \boldsymbol{\mu} = (2,\; -1), \qquad \boldsymbol{\Sigma} = \mathrm{diag}(0.25,\; 4) \quad (\text{logo } \boldsymbol{\sigma} = (0.5,\; 2)).
 \]
-Use a forma fechada $D_{KL}\!\left[\mathcal{N}(\mu,\Sigma)\,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\Sigma] + \mu^{\top}\mu - D_z - \log\det\Sigma\right)$.
+Use a forma fechada $D_{KL}\!\left[\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\,\|\,\mathcal{N}(0,\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\boldsymbol{\Sigma}] + \boldsymbol{\mu}^{\top}\boldsymbol{\mu} - D_z - \log\det\boldsymbol{\Sigma}\right)$.
 
 \begin{enumerate}[a)]
-    \item (0.5) Calcule $D_{KL}\!\left[q(z \mid x, \phi)\,\|\,p(z)\right]$, mostrando o valor de cada um dos quatro termos.
+    \item (0.5) Calcule $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$, mostrando o valor de cada um dos quatro termos.
     \vspace{2.5cm}
 
-    \item (0.5) Foi amostrado $\epsilon^{*} = (0.2,\; -0.3)$. Calcule $z^{*}$ pelo \textit{reparametrization trick}.
+    \item (0.5) Foi amostrado $\boldsymbol{\epsilon}^{*} = (0.2,\; -0.3)$. Calcule $\mathbf{z}^{*}$ pelo \textit{reparametrization trick}.
     \vspace{2cm}
 
-    \item (0.5) O \textit{decoder} devolve $f[z^{*},\thetav] = (2.0,\; -1.3)$. Calcule o termo de reconstrução $\tfrac{1}{2}\lVert x - f[z^{*},\thetav]\rVert^{2}$ e monte o valor aproximado de $-\mathrm{ELBO} \approx \text{reconstrução} + D_{KL}$.
+    \item (0.5) O \textit{decoder} devolve $f[\mathbf{z}^{*},\thetav] = (2.0,\; -1.3)$. Calcule o termo de reconstrução $\tfrac{1}{2}\lVert \mathbf{x} - f[\mathbf{z}^{*},\thetav]\rVert^{2}$ e monte o valor aproximado de $-\mathrm{ELBO} \approx \text{reconstrução} + D_{KL}$.
     \vspace{2.5cm}
 
-    \item (0.5) Suponha que, para todas as entradas, o \textit{encoder} passasse a produzir $\Sigma = \mathrm{diag}(10^{-6},\, 10^{-6})$. O que acontece com o termo $-\log\det\Sigma$ da KL e qual comportamento indesejado do \textit{encoder} essa penalização evita?
+    \item (0.5) Suponha que, para todas as entradas, o \textit{encoder} passasse a produzir $\boldsymbol{\Sigma} = \mathrm{diag}(10^{-6},\, 10^{-6})$. O que acontece com o termo $-\log\det\boldsymbol{\Sigma}$ da KL e qual comportamento indesejado do \textit{encoder} essa penalização evita?
     \vspace{2.5cm}
 \end{enumerate}
 

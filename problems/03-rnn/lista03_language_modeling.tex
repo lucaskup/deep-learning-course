@@ -29,8 +29,8 @@ Qual é a probabilidade conjunta da frase \texttt{The dog runs}?
 % ------------------------------------------------------------------
 % Q2 — Medium (parâmetros da camada de saída; distrator = sem bias)
 % ------------------------------------------------------------------
-\item A camada de saída de um LM calcula $\text{logits} = W h + b$ a partir de um vetor de
-contexto $h \in \mathbb{R}^{d}$, com $W \in \mathbb{R}^{|V| \times d}$. Para $d = 8$ e
+\item A camada de saída de um LM calcula $\text{logits} = \mathbf{W} \mathbf{h} + \mathbf{b}$ a partir de um vetor de
+contexto $\mathbf{h} \in \mathbb{R}^{d}$, com $\mathbf{W} \in \mathbb{R}^{|V| \times d}$. Para $d = 8$ e
 vocabulário $|V| = 50$, quantos parâmetros treináveis (pesos e \textit{bias}) essa camada possui?
 
 \begin{enumerate}[a)]
@@ -144,8 +144,8 @@ perplexidade?
 % Q8 — Medium (peso de atenção via softmax; distrator = normalização linear)
 % ------------------------------------------------------------------
 \item Em um passo do \textit{decoder}, os \textit{scores} de atenção para três estados do
-\textit{encoder} são $\text{score}(h_t, s_k) = [\,3,\; 1,\; 0\,]$. Usando
-$a_k^{(t)} = \dfrac{\exp(\text{score}(h_t, s_k))}{\sum_i \exp(\text{score}(h_t, s_i))}$, qual é o
+\textit{encoder} são $\text{score}(\mathbf{h}_t, \mathbf{s}_k) = [\,3,\; 1,\; 0\,]$. Usando
+$a_k^{(t)} = \dfrac{\exp(\text{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_i \exp(\text{score}(\mathbf{h}_t, \mathbf{s}_i))}$, qual é o
 peso de atenção $a_1^{(t)}$ do primeiro estado?
 
 \begin{enumerate}[a)]
@@ -159,9 +159,9 @@ peso de atenção $a_1^{(t)}$ do primeiro estado?
 % ------------------------------------------------------------------
 % Q9 — Medium (context vector como soma ponderada; distrator = sem pesos)
 % ------------------------------------------------------------------
-\item Os pesos de atenção de um passo são $a^{(t)} = [\,0.6,\; 0.3,\; 0.1\,]$ e os estados do
-\textit{encoder} são $s_1 = (2;\, 0)$, $s_2 = (0;\, 4)$ e $s_3 = ({-}2;\, {-}2)$. Qual é o
-\textit{context vector} $c^{(t)} = \sum_k a_k^{(t)}\, s_k$?
+\item Os pesos de atenção de um passo são $\mathbf{a}^{(t)} = [\,0.6,\; 0.3,\; 0.1\,]$ e os estados do
+\textit{encoder} são $\mathbf{s}_1 = (2;\, 0)$, $\mathbf{s}_2 = (0;\, 4)$ e $\mathbf{s}_3 = ({-}2;\, {-}2)$. Qual é o
+\textit{context vector} $\mathbf{c}^{(t)} = \sum_k a_k^{(t)}\, \mathbf{s}_k$?
 
 \begin{enumerate}[a)]
     \item $(1.0;\; 1.0)$.
@@ -196,8 +196,8 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
     \item \textbf{a.} Pela regra da cadeia, $P = 0.5 \cdot 0.4 \cdot 0.3 = 0.06$. A
     alternativa (b) $0.12$ esquece o primeiro fator $P(\text{The})$; (c) $1.20$ soma as
     probabilidades em vez de multiplicar; (d) $0.20$ usa apenas os dois primeiros fatores.
-    \item \textbf{a.} A matriz $W$ tem $|V| \cdot d = 50 \cdot 8 = 400$ pesos e o \textit{bias}
-    $b \in \mathbb{R}^{|V|}$ acrescenta $50$, totalizando $450$. A alternativa (b) $400$ ignora o
+    \item \textbf{a.} A matriz $\mathbf{W}$ tem $|V| \cdot d = 50 \cdot 8 = 400$ pesos e o \textit{bias}
+    $\mathbf{b} \in \mathbb{R}^{|V|}$ acrescenta $50$, totalizando $450$. A alternativa (b) $400$ ignora o
     \textit{bias}; (c) $408$ usa um \textit{bias} de dimensão $d$ (entrada) em vez de $|V|$
     (saída); (d) $58$ soma $|V| + d$ em vez de multiplicar.
     \item \textbf{a.} $\mathcal{L} = -\ln(0.25) \approx 1.386$. A alternativa (b) $2$ usa
@@ -230,9 +230,9 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
     \textit{softmax}; (c) $0.114$ é o peso $a_2^{(t)}$ do segundo estado; (d) $0.333$ supõe
     pesos uniformes.
     \item \textbf{a.}
-    $c^{(t)} = 0.6 (2;\, 0) + 0.3 (0;\, 4) + 0.1 ({-}2;\, {-}2)
+    $\mathbf{c}^{(t)} = 0.6 (2;\, 0) + 0.3 (0;\, 4) + 0.1 ({-}2;\, {-}2)
     = (1.2 - 0.2;\; 1.2 - 0.2) = (1.0;\; 1.0)$. A alternativa (b) $(1.2;\, 1.2)$
-    ignora a contribuição de $s_3$; (c) $(0.0;\, 0.67)$ faz a média simples dos vetores sem
+    ignora a contribuição de $\mathbf{s}_3$; (c) $(0.0;\, 0.67)$ faz a média simples dos vetores sem
     os pesos; (d) $(0.0;\, 2.0)$ soma os vetores sem ponderar.
     \item \textbf{a.} $\frac{1}{n^{\alpha}} \sum_t \log P = \frac{1}{4^{1}} (-1.6) = -0.40$.
     A alternativa (b) $-0.80$ divide por $2$ (comprimento errado); (c) $-1.60$ não aplica
@@ -252,14 +252,14 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
 % D1 — Medium (passo completo de atenção: scores, pesos, contexto)
 % ------------------------------------------------------------------
 \item No mecanismo de atenção de \textit{Bahdanau}, o estado do \textit{decoder} é
-$h_t = (1;\, 2)$ e há três estados do \textit{encoder}: $s_1 = (2;\, 0)$, $s_2 = (0;\, 2)$ e
-$s_3 = ({-}1;\, 1)$. Use $\text{score}(h_t, s_k) = h_t^{\top} s_k$ e
-$a_k^{(t)} = \dfrac{\exp(\text{score}(h_t, s_k))}{\sum_i \exp(\text{score}(h_t, s_i))}$.
+$\mathbf{h}_t = (1;\, 2)$ e há três estados do \textit{encoder}: $\mathbf{s}_1 = (2;\, 0)$, $\mathbf{s}_2 = (0;\, 2)$ e
+$\mathbf{s}_3 = ({-}1;\, 1)$. Use $\text{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ e
+$a_k^{(t)} = \dfrac{\exp(\text{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_i \exp(\text{score}(\mathbf{h}_t, \mathbf{s}_i))}$.
 Calcule, passo a passo (use 4 casas decimais quando necessário):
 \begin{enumerate}[(a)]
-    \item os três \textit{scores} $\text{score}(h_t, s_k)$;
+    \item os três \textit{scores} $\text{score}(\mathbf{h}_t, \mathbf{s}_k)$;
     \item os pesos de atenção $a_k^{(t)}$;
-    \item o \textit{context vector} $c^{(t)} = \sum_k a_k^{(t)}\, s_k$.
+    \item o \textit{context vector} $\mathbf{c}^{(t)} = \sum_k a_k^{(t)}\, \mathbf{s}_k$.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -366,24 +366,24 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
 % ----- D1 -----
 \item Passo completo de atenção.
 \begin{enumerate}[(a)]
-    \item \textit{Scores} (produto interno $h_t^{\top} s_k$ com $h_t = (1;\, 2)$):
+    \item \textit{Scores} (produto interno $\mathbf{h}_t^{\top} \mathbf{s}_k$ com $\mathbf{h}_t = (1;\, 2)$):
     \begin{align*}
-        \text{score}(h_t, s_1) &= 1 \cdot 2 + 2 \cdot 0 = 2, \\
-        \text{score}(h_t, s_2) &= 1 \cdot 0 + 2 \cdot 2 = 4, \\
-        \text{score}(h_t, s_3) &= 1 \cdot ({-}1) + 2 \cdot 1 = 1.
+        \text{score}(\mathbf{h}_t, \mathbf{s}_1) &= 1 \cdot 2 + 2 \cdot 0 = 2, \\
+        \text{score}(\mathbf{h}_t, \mathbf{s}_2) &= 1 \cdot 0 + 2 \cdot 2 = 4, \\
+        \text{score}(\mathbf{h}_t, \mathbf{s}_3) &= 1 \cdot ({-}1) + 2 \cdot 1 = 1.
     \end{align*}
     \item Exponenciais: $\exp(2) = 7.3891$, $\exp(4) = 54.5982$, $\exp(1) = 2.7183$, com
     soma $64.7056$. Logo
     \[
-        a^{(t)} = \left[\frac{7.3891}{64.7056};\; \frac{54.5982}{64.7056};\;
+        \mathbf{a}^{(t)} = \left[\frac{7.3891}{64.7056};\; \frac{54.5982}{64.7056};\;
         \frac{2.7183}{64.7056}\right] \approx [\,0.1142;\; 0.8438;\; 0.0420\,].
     \]
     \item \textit{Context vector}:
     \begin{align*}
-        c^{(t)} &= 0.1142 (2;\, 0) + 0.8438 (0;\, 2) + 0.0420 ({-}1;\, 1) \\
+        \mathbf{c}^{(t)} &= 0.1142 (2;\, 0) + 0.8438 (0;\, 2) + 0.0420 ({-}1;\, 1) \\
                 &= (0.2284 - 0.0420;\; 1.6876 + 0.0420) \approx (0.186;\; 1.730).
     \end{align*}
-    O peso domina em $s_2$, o estado de maior \textit{score}, e o contexto é puxado nessa direção.
+    O peso domina em $\mathbf{s}_2$, o estado de maior \textit{score}, e o contexto é puxado nessa direção.
 \end{enumerate}
 
 % ----- D2 -----
