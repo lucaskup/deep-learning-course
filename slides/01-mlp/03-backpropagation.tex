@@ -51,15 +51,15 @@
           % \draw[help lines] (-2,-2) grid (3,3);
           % first
           \fill (-2, \yone) circle[x radius=0.15, y radius=0.15];
-          \node at (-2, \yone+0.5) {$\mlinstance_{0}=1$};
+          \node at (-2, \yone+0.5) {$x_{0}=1$};
 
           % second
           \fill (-2, \ytwo) circle[x radius=0.15, y radius=0.15];
-          \node at (-2, \ytwo+0.5) {$\mlinstance_{1}$};
+          \node at (-2, \ytwo+0.5) {$x_{1}$};
 
           % third
           \fill (-2, \ythree) circle[x radius=0.15, y radius=0.15];
-          \node at (-2, \ythree+0.5) {$\mlinstance_{2}$};
+          \node at (-2, \ythree+0.5) {$x_{2}$};
 
           \draw[thick] (-2, \yone) -- (\ex, \ey-1);
           \draw[thick] (-2, \ytwo) -- (\ex, \ey-1);
@@ -100,8 +100,8 @@
         \begin{tikzpicture}
           \begin{axis}[
             legend pos=south east, % <-- this line controls the width
-            xlabel={$\mlinstance_{1}$},
-            ylabel={$\mlinstance_{2}$},
+            xlabel={$x_{1}$},
+            ylabel={$x_{2}$},
             xmin=-1.5,
             xmax=1.5,
             ymin=-1.5,
@@ -181,7 +181,7 @@
 
       \item \textbf{Regra de atualização:}
         \[
-          \thetav_{t+1}=\thetav_{t}-\eta\nabla J
+          \thetav_{t+1}=\thetav_{t}-\eta\nabla_{\thetav} J
         \]
     \end{itemize}
     \vfill
@@ -193,7 +193,7 @@
 
       \item Desconsideramos o bias
 
-      \item Temos apenas um exemplo $\y=1, \X_{1}=1$
+      \item Temos apenas um exemplo $\y=1, x_{1}=1$
     \end{itemize}
   \end{frame}
 
@@ -201,18 +201,18 @@
     \begin{itemize}
       \item $l\in [0,1,2,...,L]$ é o índice da camada do MLP ($L$ é o número de camadas)
 
-      \item $\X$ é a entrada do MLP (também pode ser chamado de $a^{(0)}$)
+      \item $\X$ é a entrada do MLP (também pode ser chamado de $\mathbf{a}^{(0)}$)
 
       \item $\y$ é a variável alvo
 
-      \item $\thetav_{ij}^{(l)}$ é o peso da camada $l$ que conecta a entrada $j$
+      \item $\theta^{(l)}_{ij}$ é o peso da camada $l$ que conecta a entrada $j$
         a saída $i$
 
-      \item $z^{(l)}$ é a \textbf{\alert{pré-ativação}} da unidade, $z^{(l)}=
-        a^{(l-1)}\thetav^{(l)^\top}$
+      \item $\mathbf{z}^{(l)}$ é a \textbf{\alert{pré-ativação}} da unidade, $\mathbf{z}^{(l)}=
+        \mathbf{a}^{(l-1)}\mathbf{\Theta}^{(l)^\top}$
 
-      \item $a^{(l)}$ é a \textbf{\alert{ativação}} (saída) da unidade
-        $a^{(l)}=\varphi(z^{(l)})$
+      \item $\mathbf{a}^{(l)}$ é a \textbf{\alert{ativação}} (saída) da unidade
+        $\mathbf{a}^{(l)}=\varphi(\mathbf{z}^{(l)})$
     \end{itemize}
   \end{frame}
 
@@ -333,7 +333,7 @@
       \item Vamos considerar os pesos iniciais como: $\theta^{(1)}=-0.5$ e
         $\theta^{(2)}=0.5$.
 
-      \item Computando o loss para o par $X_{1}=1$, $y=1$.
+      \item Computando o loss para o par $x_{1}=1$, $y=1$.
     \end{itemize}
     \vfill
     \textbf{Passo a passo (Forward Pass):}
@@ -341,7 +341,7 @@
       \begin{column}{0.6\textwidth}
         \begin{enumerate}
           \visible<1->{\item
-          $z^{(1)}= X_{1}\cdot \theta^{(1)}= 1 \cdot (-0.5) = -0.5$} \visible<2->{\item
+          $z^{(1)}= x_{1}\cdot \theta^{(1)}= 1 \cdot (-0.5) = -0.5$} \visible<2->{\item
           $a^{(1)}= \sigma(z^{(1)}) = \sigma(-0.5) = 0.3775$} \visible<3->{\item
           $z^{(2)}= a^{(1)}\cdot \theta^{(2)}= 0.3775 \cdot 0.5 = 0.18875$} \visible<4->{\item
           $\hat{y}= a^{(2)}= \sigma(z^{(2)}) = \sigma(0.18875) = 0.5470$}
@@ -394,7 +394,7 @@
         \end{figure}
         \vfill
         \begin{align*}
-          \yhat     & = 0.5470    \\
+          \hat{y}   & = 0.5470    \\
           J(\theta) & = 0.1026045
         \end{align*}
         \vfill
@@ -421,13 +421,13 @@
       \begin{column}{0.6\textwidth}
         Nossa rede neural computa a seguinte função:
         \[
-          a^{(2)}= \sigma(\sigma(X_{1}\cdot \theta^{(1)})\cdot \theta^{(2)})
+          a^{(2)}= \sigma(\sigma(x_{1}\cdot \theta^{(1)})\cdot \theta^{(2)})
         \]
 
         Logo, a função de custo é:
         \[
           J(\theta)=\frac{1}{2}(y-a^{(2)})^{2}=\frac{1}{2}\left(1-\sigma\left(\sigma
-          ( X_{1}\cdot \theta^{(1)})\cdot \theta^{(2)}\right)\right)^{2}
+          ( x_{1}\cdot \theta^{(1)})\cdot \theta^{(2)}\right)\right)^{2}
         \]
       \end{column}
       \begin{column}{0.4\textwidth}
@@ -538,7 +538,7 @@
 
           \item<3-> $\frac{\partial a^{(1)}}{\partial z^{(1)}}=a^{(1)}(1-a^{(1)})$
 
-          \item<4> $\frac{\partial z^{(1)}}{\partial \theta^{(1)}}=\X_{1}$
+          \item<4> $\frac{\partial z^{(1)}}{\partial \theta^{(1)}}=x_{1}$
         \end{itemize}
       \end{column}
       \begin{column}{.67\linewidth}
@@ -559,8 +559,8 @@
                                                     & =\sigma(z^{(1)})(1-\sigma(z^{(1)}))=a^{(1)}(1-a^{(1)})
         \end{align*}} \only<4>{
         \begin{align*}
-          \frac{\partial z^{(1)}}{\partial \theta^{(1)}} & =\frac{\partial \left(X_{1}\theta^{(1)}\right)}{\partial \theta^{(1)}} \\
-                                                         & =X_{1}
+          \frac{\partial z^{(1)}}{\partial \theta^{(1)}} & =\frac{\partial \left(x_{1}\theta^{(1)}\right)}{\partial \theta^{(1)}} \\
+                                                         & =x_{1}
         \end{align*}}
       \end{column}
     \end{columns}
@@ -571,7 +571,7 @@
     \begin{align*}
       \onslide<1->{\frac{\partial J}{\partial\theta^{(2)}} & = \underbrace{(a^{(2)}-y) \cdot a^{(2)}(1 -a^{(2)})}_{\delta^{(2)}}\cdot a^{(1)}}                                          \\
       \onslide<2->{                                            & = (0.5470-1) \cdot 0.5470(1-0.5470) \cdot 0.3775 = \textbf{−0.04237412}}                                                   \\
-      \onslide<3->{\frac{\partial J}{\partial\theta^{(1)}} & = \underbrace{(a^{(2)}-y) \cdot a^{(2)}(1 -a^{(2)})}_{\delta^{(2)}}\cdot \theta^{(2)}\cdot a^{(1)}(1-a^{(1)}) \cdot X_{1}} \\
+      \onslide<3->{\frac{\partial J}{\partial\theta^{(1)}} & = \underbrace{(a^{(2)}-y) \cdot a^{(2)}(1 -a^{(2)})}_{\delta^{(2)}}\cdot \theta^{(2)}\cdot a^{(1)}(1-a^{(1)}) \cdot x_{1}} \\
       \onslide<4->{                                            & = (0.5470-1) \cdot 0.5470(1-0.5470) \cdot 0.5 \cdot 0.3775(1-0.3775) \cdot 1 = \textbf{−0.01318894}}
     \end{align*}
     \only<5>{
@@ -584,7 +584,7 @@
 
   \begin{frame}{Descida de Gradiente}
     \begin{itemize}
-      \item Usando $\eta = 0.1$: $\theta_{t}= \theta_{t-1}- \eta \nabla J$
+      \item Usando $\eta = 0.1$: $\theta_{t}= \theta_{t-1}- \eta \nabla_{\theta} J$
 
       \item $\theta_{t}^{(2)}= 0.5 - 0.1(-0.042374) = \textbf{0.5042374}$
 
@@ -610,7 +610,7 @@
 
       \item O novo valor de $a^{(2)}$ é:
         \[
-          a^{(2)}= \sigma(\sigma(X_{1}\cdot\theta^{(1)})\cdot\theta^{(2)})= \sigma
+          a^{(2)}= \sigma(\sigma(x_{1}\cdot\theta^{(1)})\cdot\theta^{(2)})= \sigma
           (\sigma(1\cdot(-0.4986811))\cdot 0.5042374)=0.547\textcolor{PastelBlue2}{4}
         \]
 
@@ -632,10 +632,10 @@
     \begin{columns}
       \begin{column}{0.4\textwidth}
         \begin{align*}
-          \frac{\partial J}{\partial \thetav^{(1)}} & =-0.01318894 \\
-          \frac{\partial J}{\partial \thetav^{(2)}} & =-0.04237412 \\
-          \theta_{t}^{(2)}                          & = 0.5042374  \\
-          \theta_{t}^{(1)}                          & = -0.4986811
+          \frac{\partial J}{\partial \mathbf{\Theta}^{(1)}} & =-0.01318894 \\
+          \frac{\partial J}{\partial \mathbf{\Theta}^{(2)}} & =-0.04237412 \\
+          \mathbf{\Theta}_{t}^{(2)}                         & = 0.5042374  \\
+          \mathbf{\Theta}_{t}^{(1)}                         & = -0.4986811
         \end{align*}
       \end{column}
       \begin{column}{.6\linewidth}
@@ -688,23 +688,23 @@
     O gradiente em cada camada pode ser dividido em dois componentes:
     \begin{itemize}
       \item \textbf{Delta da Camada:}
-        $\delta^{(l)}= \frac{\partial J}{\partial z^{(l)}}$
+        $\bm{\delta}^{(l)}= \frac{\partial J}{\partial \mathbf{z}^{(l)}}$
 
-      \item \textbf{Ativação da Camada Anterior:} $a^{(l-1)}$
+      \item \textbf{Ativação da Camada Anterior:} $\mathbf{a}^{(l-1)}$
     \end{itemize}
     \vfill
     \textbf{Backpropagation:}
     \begin{enumerate}
       \item \textbf{Erro na Camada de Saída:}
-        $\delta^{(L)}=\frac{\partial J}{\partial a^{(L)}}\odot\frac{\partial a^{(L)}}{\partial z^{(L)}}$
+        $\bm{\delta}^{(L)}=\frac{\partial J}{\partial \mathbf{a}^{(L)}}\odot\frac{\partial \mathbf{a}^{(L)}}{\partial \mathbf{z}^{(L)}}$
         \vfill
-      
+
       \item \textbf{Propagação do Erro:}
-        $\delta^{(l)}=(\delta^{(l+1)}\theta^{(l+1)})\odot a^{\prime(l)}$
+        $\bm{\delta}^{(l)}=(\bm{\delta}^{(l+1)}\mathbf{\Theta}^{(l+1)})\odot \mathbf{a}^{\prime(l)}$
         \vfill
-      
+
       \item \textbf{Gradiente do Parâmetros:}
-        $\frac{\partial J}{\partial\theta^{(i)}}=\delta^{(i)^\top}a^{(i-1)}$
+        $\frac{\partial J}{\partial\mathbf{\Theta}^{(i)}}=\bm{\delta}^{(i)^\top}\mathbf{a}^{(i-1)}$
         \vfill
 
 
@@ -718,11 +718,11 @@
         \begin{itemize}
             \item Dataset (\textit{Batch Size} = 2)
             \[
-              X =
+              \mathbf{X} =
               \begin{bmatrix}
                 0.5 & 0.1 \\
                 0.2 & 0.6
-              \end{bmatrix}, \quad y =
+              \end{bmatrix}, \quad \mathbf{y} =
               \begin{bmatrix}
                 0.6 \\
                 0.8
@@ -736,14 +736,14 @@
                 \end{itemize}
             \item Pesos Iniciais
                 \begin{itemize}
-                  \item Camada 1: $\theta^{(1)}=
+                  \item Camada 1: $\mathbf{\Theta}^{(1)}=
                     \begin{bmatrix}
                       0.5  & 0.2  \\
                       0.6  & -0.1 \\
                       -0.4 & -0.3
                     \end{bmatrix}$
             
-                  \item Camada 2: $\theta^{(2)}=
+                  \item Camada 2: $\mathbf{\Theta}^{(2)}=
                     \begin{bmatrix}
                       0.7 & -0.1 & 0.2
                     \end{bmatrix}$
@@ -769,7 +769,7 @@
         \begin{column}{.6\linewidth}
         \small
         \begin{align*}
-            Z^{(1)} &= X \cdot{\theta^{(1)}}^{\top}\\
+            \mathbf{Z}^{(1)} &= \mathbf{X} \cdot{\mathbf{\Theta}^{(1)}}^{\top}\\
             &= \begin{bmatrix}
         0.5 & 0.1 \\
         0.2 & 0.6
@@ -782,7 +782,7 @@
         0.27 & 0.29 & -0.23 \\
         0.22 & 0.06 & -0.26
       \end{bmatrix}_{2\times3}\\
-      A^{(1)} &= \sigma(Z^{(1)})\\
+      \mathbf{A}^{(1)} &= \sigma(\mathbf{Z}^{(1)})\\
       &= \sigma\left(\begin{bmatrix}
         0.27 & 0.29 & -0.23 \\
         0.22 & 0.06 & -0.26
@@ -810,7 +810,7 @@
         \begin{column}{.6\linewidth}
         \small
         \begin{align*}
-      Z^{(2)}&= A^{(1)}\cdot{\theta^{(2)}}^{T}\\
+      \mathbf{Z}^{(2)}&= \mathbf{A}^{(1)}\cdot{\mathbf{\Theta}^{(2)}}^{T}\\
       &=\begin{bmatrix}
         0.5671 & 0.5720 & 0.4428 \\
         0.5548 & 0.5150 & 0.4354
@@ -825,7 +825,7 @@
         0.4283 \\
         0.4239
       \end{bmatrix}_{2\times1}\\
-      A^{(2)}&= \hat{y}= \sigma(Z^{(2)})\\
+      \mathbf{A}^{(2)}&= \hat{\mathbf{y}}= \sigma(\mathbf{Z}^{(2)})\\
       &= \sigma\left(\begin{bmatrix}
         0.4283 \\
         0.4239
@@ -851,7 +851,7 @@
         \begin{column}{.6\linewidth}
         \small
         \begin{align*}
-         J &= \frac{1}{2}\sum (y - \hat{y})^{2}\\
+         J &= \frac{1}{2}\sum (\mathbf{y} - \hat{\mathbf{y}})^{2}\\
          &= \frac{1}{2}\sum\left(\begin{bmatrix}
         0.6055 \\
         0.6044
@@ -877,7 +877,7 @@
 \begin{frame}{Exemplo Vetorizado: \textit{Backward Pass}}
         \small
         \begin{align*}
-      \delta^{(2)} &= \left(
+      \bm{\delta}^{(2)} &= \left(
       \begin{bmatrix}
         0.6055 \\
         0.6044
@@ -907,7 +907,7 @@
         0.00131 \\
         -0.04676
       \end{bmatrix}\\
-      \delta^{(1)} &= (\delta^{(2)}\cdot \theta^{(2)}) \odot \sigma'(Z^{(1)})\\
+      \bm{\delta}^{(1)} &= (\bm{\delta}^{(2)}\cdot \mathbf{\Theta}^{(2)}) \odot \sigma'(\mathbf{Z}^{(1)})\\
       &= \left(
       \begin{bmatrix}
         0.00131 \\
@@ -934,7 +934,7 @@
         \begin{column}{.6\linewidth}
         \small
         \begin{align*}
-              \frac{\partial J}{\partial \theta^{(2)}}&={\delta^{(2)}}^{T}\cdot A^{(1)}\\
+              \frac{\partial J}{\partial \mathbf{\Theta}^{(2)}}&={\bm{\delta}^{(2)}}^{T}\cdot \mathbf{A}^{(1)}\\
               &=
       \begin{bmatrix}
         0.00131 & -0.04676
@@ -948,7 +948,7 @@
       \begin{bmatrix}
         -0.0252 & -0.0233 & -0.0198
       \end{bmatrix}\\
-      \frac{\partial J}{\partial \theta^{(1)}}&={\delta^{(1)}}^{T}\cdot X \\
+      \frac{\partial J}{\partial \mathbf{\Theta}^{(1)}}&={\bm{\delta}^{(1)}}^{T}\cdot \mathbf{X} \\
             &=
       \begin{bmatrix}
         0.00022 & -0.00809 \\
@@ -983,12 +983,12 @@
     \small
     \textbf{Atualização dos Pesos ($\eta = 0.1$):}
     \[
-      \theta_{t}^{(l)}=\theta_{t-1}^{(l)}-\eta\nabla_{\theta}J
+      \mathbf{\Theta}_{t}^{(l)}=\mathbf{\Theta}_{t-1}^{(l)}-\eta\nabla_{\thetav}J
     \]
     \vfill
     \textbf{Novos Pesos da Camada 2:}
     \begin{align*}
-      \theta_{new}^{(2)}&=
+      \mathbf{\Theta}_{new}^{(2)}&=
       \begin{bmatrix}
         0.7 & -0.1 & 0.2
       \end{bmatrix}
@@ -1004,7 +1004,7 @@
     \vfill
     \textbf{Novos Pesos da Camada 1:}
     \begin{align*}
-      \theta_{new}^{(1)}&=
+      \mathbf{\Theta}_{new}^{(1)}&=
       \begin{bmatrix}
         0.5  & 0.2  \\
         0.6  & -0.1 \\

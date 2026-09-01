@@ -25,9 +25,9 @@
 \definecolor{normblock}{RGB}{250,235,200}
 
 % Atalhos para destacar Q, K, V em fórmulas
-\newcommand{\Qc}{\textcolor{qcolor}{Q}}
-\newcommand{\Kc}{\textcolor{kcolor}{K}}
-\newcommand{\Vc}{\textcolor{vcolor}{V}}
+\newcommand{\Qc}{\textcolor{qcolor}{\mathbf{Q}}}
+\newcommand{\Kc}{\textcolor{kcolor}{\mathbf{K}}}
+\newcommand{\Vc}{\textcolor{vcolor}{\mathbf{V}}}
 
 % Slide da arquitetura completa em duas colunas.
 % #1: texto da coluna esquerda; #2: destaques desenhados sobre a figura,
@@ -150,7 +150,7 @@ A \textbf{atenção} é um bloco da rede que conecta encoder e decoder e atribui
     }
 
     % Context node
-    \node[draw, fill=lightblue, rounded corners, minimum width=1.6cm, minimum height=0.5cm, font=\scriptsize] (ctx) at (3.5, 2.2) {contexto $c^{(t)}$};
+    \node[draw, fill=lightblue, rounded corners, minimum width=1.6cm, minimum height=0.5cm, font=\scriptsize] (ctx) at (3.5, 2.2) {contexto $\mathbf{c}^{(t)}$};
 
     \draw[->, thick] (ctx.east) -- ++(2,0) -| (d3.north);
 
@@ -166,7 +166,7 @@ A \textbf{atenção} é um bloco da rede que conecta encoder e decoder e atribui
 
 \vspace{4pt}
 
-A cada passo $t$ do decoder calculamos um \textbf{contexto} $c^{(t)}$, uma soma ponderada dos estados do encoder, com pesos dados pela atenção.
+A cada passo $t$ do decoder calculamos um \textbf{contexto} $\mathbf{c}^{(t)}$, uma soma ponderada dos estados do encoder, com pesos dados pela atenção.
 
 \end{frame}
 
@@ -174,7 +174,7 @@ A cada passo $t$ do decoder calculamos um \textbf{contexto} $c^{(t)}$, uma soma 
 
 \begin{frame}[shrink=10]{Atenção: Scores, Pesos e Contexto}
 
-A cada passo $t$ do decoder com estado $h_t$ e estados do encoder $s_1, \dots, s_m$:
+A cada passo $t$ do decoder com estado $\mathbf{h}_t$ e estados do encoder $\mathbf{s}_1, \dots, \mathbf{s}_m$:
 
 \vspace{4pt}
 
@@ -182,22 +182,22 @@ A cada passo $t$ do decoder com estado $h_t$ e estados do encoder $s_1, \dots, s
 \begin{enumerate}
     \item \textbf{Score} entre o estado atual e cada estado da fonte:
     \[
-        \mathrm{score}(h_t, s_k), \quad k = 1, 2, \dots, m
+        \mathrm{score}(\mathbf{h}_t, \mathbf{s}_k), \quad k = 1, 2, \dots, m
     \]
     \item \textbf{Pesos da atenção} (softmax sobre os scores):
     \[
-        a_k^{(t)} = \frac{\exp\bigl(\mathrm{score}(h_t, s_k)\bigr)}{\sum_{i=1}^{m} \exp\bigl(\mathrm{score}(h_t, s_i)\bigr)}
+        a_k^{(t)} = \frac{\exp\bigl(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k)\bigr)}{\sum_{i=1}^{m} \exp\bigl(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_i)\bigr)}
     \]
     \item \textbf{Contexto} (soma ponderada dos estados da fonte):
     \[
-        c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, s_k
+        \mathbf{c}^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, \mathbf{s}_k
     \]
 \end{enumerate}
 \end{block}
 
 \vspace{4pt}
 
-O contexto $c^{(t)}$ é então combinado ao estado do decoder para produzir a próxima saída.
+O contexto $\mathbf{c}^{(t)}$ é então combinado ao estado do decoder para produzir a próxima saída.
 
 \end{frame}
 
@@ -205,7 +205,7 @@ O contexto $c^{(t)}$ é então combinado ao estado do decoder para produzir a pr
 
 \begin{frame}{Como Calcular os Scores}
 
-Existem várias formas de definir $\mathrm{score}(h_t, s_k)$:
+Existem várias formas de definir $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k)$:
 
 \vspace{6pt}
 
@@ -215,9 +215,9 @@ Existem várias formas de definir $\mathrm{score}(h_t, s_k)$:
 \toprule
 \textbf{Variante} & \textbf{Fórmula} & \textbf{Referência} \\
 \midrule
-Dot-product   & $\mathrm{score}(h_t, s_k) = h_t^{\top} s_k$ & --- \\
-Bilinear      & $\mathrm{score}(h_t, s_k) = h_t^{\top} W \, s_k$ & Luong et al., 2015 \\
-MLP (aditiva) & $\mathrm{score}(h_t, s_k) = w_2^{\top} \tanh\bigl(W_1 [h_t; s_k]\bigr)$ & Bahdanau et al., 2014 \\
+Dot-product   & $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ & --- \\
+Bilinear      & $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{W} \, \mathbf{s}_k$ & Luong et al., 2015 \\
+MLP (aditiva) & $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{w}_2^{\top} \tanh\bigl(\mathbf{W}_1 [\mathbf{h}_t; \mathbf{s}_k]\bigr)$ & Bahdanau et al., 2014 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -226,7 +226,7 @@ MLP (aditiva) & $\mathrm{score}(h_t, s_k) = w_2^{\top} \tanh\bigl(W_1 [h_t; s_k]
 
 \begin{itemize}
     \item \textbf{Dot-product:} mais simples, sem parâmetros adicionais
-    \item \textbf{Bilinear:} adiciona uma matriz de pesos $W$ aprendida
+    \item \textbf{Bilinear:} adiciona uma matriz de pesos $\mathbf{W}$ aprendida
     \item \textbf{MLP:} mais expressiva, mas mais cara computacionalmente
 \end{itemize}
 
@@ -247,15 +247,15 @@ Treinar redes com \textit{dot product attention} pode causar \textbf{vanishing g
 \vspace{6pt}
 
 \begin{block}{Intuição}
-Para vetores de dimensão $d$ grande, $h_t^{\top} s_k$ tende a ter magnitudes grandes. A softmax sobre esses scores satura, fazendo com que quase todos os pesos da atenção fiquem próximos de 0 ou de 1.
+Para vetores de dimensão $d$ grande, $\mathbf{h}_t^{\top} \mathbf{s}_k$ tende a ter magnitudes grandes. A softmax sobre esses scores satura, fazendo com que quase todos os pesos da atenção fiquem próximos de 0 ou de 1.
 \end{block}
 
 \vspace{6pt}
 
-\textbf{Vamos quantificar:} suponha $s_i, h_i \sim \mathcal{N}(0, 1)$ i.i.d., componentes dos vetores $S, H \in \mathbb{R}^d$.
+\textbf{Vamos quantificar:} suponha $s_i, h_i \sim \mathcal{N}(0, 1)$ i.i.d., componentes dos vetores $\mathbf{s}, \mathbf{h} \in \mathbb{R}^d$.
 
 \vspace{4pt}
-Calcule $\mathbb{E}[S \cdot H]$ e $\mathrm{var}[S \cdot H]$.
+Calcule $\mathbb{E}[\mathbf{s} \cdot \mathbf{h}]$ e $\mathrm{var}[\mathbf{s} \cdot \mathbf{h}]$.
 
 \end{frame}
 
@@ -267,7 +267,7 @@ Calcule $\mathbb{E}[S \cdot H]$ e $\mathrm{var}[S \cdot H]$.
 \begin{column}{0.42\textwidth}
 \textbf{Esperança:}
 \begin{align*}
-\mathbb{E}[S \cdot H]
+\mathbb{E}[\mathbf{s} \cdot \mathbf{h}]
 &= \mathbb{E}\!\left[\sum_{i=1}^{d} s_i h_i\right] \\
 &= \sum_{i=1}^{d} \mathbb{E}[s_i]\,\mathbb{E}[h_i] = 0
 \end{align*}
@@ -276,14 +276,14 @@ Calcule $\mathbb{E}[S \cdot H]$ e $\mathrm{var}[S \cdot H]$.
 {\footnotesize Para $s_i, h_i \sim \mathcal{N}(0, 1)$ i.i.d., $\mathbb{E}[s_i^2] = \mathrm{var}(s_i) = 1$ (pois $\mathbb{E}[s_i] = 0$), o que justifica os dois últimos passos.}
 
 \vspace{6pt}
-\textbf{Conclusão:} $\mathrm{var}[S \cdot H]$ cresce linearmente com $d$.
+\textbf{Conclusão:} $\mathrm{var}[\mathbf{s} \cdot \mathbf{h}]$ cresce linearmente com $d$.
 }
 \end{column}
 \begin{column}{0.58\textwidth}
 \onslide<2->{%
 \textbf{Variância:} por independência,
 \begin{align*}
-\mathrm{var}[S \cdot H]
+\mathrm{var}[\mathbf{s} \cdot \mathbf{h}]
 &= \sum_{i=1}^{d} \mathrm{var}[s_i h_i] \\[2pt]
 &= \sum_{i=1}^{d} \Bigl(\mathbb{E}[s_i^2 h_i^2] - \mathbb{E}[s_i h_i]^2\Bigr) \\[2pt]
 &= \sum_{i=1}^{d} \mathbb{E}[s_i^2]\,\mathbb{E}[h_i^2] \\[2pt]
@@ -305,11 +305,11 @@ Para evitar \textit{scores} com magnitude crescente em $d$, normalizamos por $\s
 
 \begin{exampleblock}{Scaled Dot Product Attention}
 \[
-\mathrm{score}(h_t, s_k) = \frac{h_t^{\top} s_k}{\sqrt{d}}, \quad k = 1, 2, \dots, m
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \frac{\mathbf{h}_t^{\top} \mathbf{s}_k}{\sqrt{d}}, \quad k = 1, 2, \dots, m
 \]
 \[
-a_k^{(t)} = \frac{\exp(\mathrm{score}(h_t, s_k))}{\sum_{i=1}^{m} \exp(\mathrm{score}(h_t, s_i))}, \qquad
-c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} s_k
+a_k^{(t)} = \frac{\exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_{i=1}^{m} \exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_i))}, \qquad
+\mathbf{c}^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \mathbf{s}_k
 \]
 \end{exampleblock}
 
@@ -401,16 +401,16 @@ A \textcolor{qcolor}{\textbf{query}} é comparada a todas as \textcolor{kcolor}{
 
 \begin{frame}{Self-Attention: a Forma ``Crua'' Não Funciona}
 
-Aplicar dot product attention diretamente sobre os tokens da entrada $x_1, \dots, x_m$:
+Aplicar dot product attention diretamente sobre os tokens da entrada $\mathbf{x}_1, \dots, \mathbf{x}_m$:
 
 \vspace{4pt}
 
 \[
-\mathrm{score}(x_t, x_k) = \frac{x_t \, x_k^{\top}}{\sqrt{d}}, \qquad
-a_k^{(t)} = \mathrm{softmax}_k\bigl(\mathrm{score}(x_t, x_k)\bigr)
+\mathrm{score}(\mathbf{x}_t, \mathbf{x}_k) = \frac{\mathbf{x}_t \, \mathbf{x}_k^{\top}}{\sqrt{d}}, \qquad
+a_k^{(t)} = \mathrm{softmax}_k\bigl(\mathrm{score}(\mathbf{x}_t, \mathbf{x}_k)\bigr)
 \]
 \[
-c^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, x_k
+\mathbf{c}^{(t)} = \sum_{k=1}^{m} a_k^{(t)} \, \mathbf{x}_k
 \]
 
 \vspace{6pt}
@@ -429,16 +429,16 @@ Não há \textbf{nada para aprender} aqui: o cálculo é determinístico nas ent
 
 \begin{frame}[shrink=10]{Queries, Keys e Values}
 
-Para cada token $x_t \in \mathbb{R}^{d_{\text{emb}}}$, projetamos em três vetores via matrizes aprendidas:
+Para cada token $\mathbf{x}_t \in \mathbb{R}^{d_{\text{emb}}}$, projetamos em três vetores via matrizes aprendidas:
 
 \vspace{6pt}
 
 \begin{columns}[T]
 \begin{column}{0.52\textwidth}
 \begin{flalign*}
-\textcolor{qcolor}{q_t} &= x_t \, W_q + b_q, & W_q &\in \mathbb{R}^{d_{\text{emb}} \times d}, & q_t &\in \mathbb{R}^{d} && \\
-\textcolor{kcolor}{k_t} &= x_t \, W_k + b_k, & W_k &\in \mathbb{R}^{d_{\text{emb}} \times d}, & k_t &\in \mathbb{R}^{d} && \\
-\textcolor{vcolor}{v_t} &= x_t \, W_v + b_v, & W_v &\in \mathbb{R}^{d_{\text{emb}} \times d_v}, & v_t &\in \mathbb{R}^{d_v} &&
+\textcolor{qcolor}{\mathbf{q}_t} &= \mathbf{x}_t \, \mathbf{W}_q + \mathbf{b}_q, & \mathbf{W}_q &\in \mathbb{R}^{d_{\text{emb}} \times d}, & \mathbf{q}_t &\in \mathbb{R}^{d} && \\
+\textcolor{kcolor}{\mathbf{k}_t} &= \mathbf{x}_t \, \mathbf{W}_k + \mathbf{b}_k, & \mathbf{W}_k &\in \mathbb{R}^{d_{\text{emb}} \times d}, & \mathbf{k}_t &\in \mathbb{R}^{d} && \\
+\textcolor{vcolor}{\mathbf{v}_t} &= \mathbf{x}_t \, \mathbf{W}_v + \mathbf{b}_v, & \mathbf{W}_v &\in \mathbb{R}^{d_{\text{emb}} \times d_v}, & \mathbf{v}_t &\in \mathbb{R}^{d_v} &&
 \end{flalign*}
 \end{column}
 \begin{column}{0.48\textwidth}
@@ -455,14 +455,14 @@ Para cada token $x_t \in \mathbb{R}^{d_{\text{emb}}}$, projetamos em três vetor
 
 A atenção passa a ser:
 \[
-\mathrm{score}(q_t, k_i) = \frac{q_t \, k_i^{\top}}{\sqrt{d}}, \qquad
-a_i^{(t)} = \mathrm{softmax}_i(\mathrm{score}(q_t, k_i))
+\mathrm{score}(\mathbf{q}_t, \mathbf{k}_i) = \frac{\mathbf{q}_t \, \mathbf{k}_i^{\top}}{\sqrt{d}}, \qquad
+a_i^{(t)} = \mathrm{softmax}_i(\mathrm{score}(\mathbf{q}_t, \mathbf{k}_i))
 \]
 \[
-c^{(t)} = \sum_{i=1}^{m} a_i^{(t)} \, v_i
+\mathbf{c}^{(t)} = \sum_{i=1}^{m} a_i^{(t)} \, \mathbf{v}_i
 \]
 
-\textbf{Agora há parâmetros aprendidos:} $W_q, W_k, W_v$.
+\textbf{Agora há parâmetros aprendidos:} $\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v$.
 
 \end{frame}
 
@@ -472,19 +472,19 @@ c^{(t)} = \sum_{i=1}^{m} a_i^{(t)} \, v_i
 
 \textbf{Embeddings de entrada} (dois tokens, $d_{\text{emb}}=3$):
 \[
-x_1 = [1,\ -3,\ 2], \qquad x_2 = [2,\ -1,\ 1]
+\mathbf{x}_1 = [1,\ -3,\ 2], \qquad \mathbf{x}_2 = [2,\ -1,\ 1]
 \]
 
 \textbf{Matrizes de pesos} (todas com bias $0$, projeção para $d=2$):
 \[
-W_q = \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}, \quad
-W_k = \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}, \quad
-W_v = \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
+\mathbf{W}_q = \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}, \quad
+\mathbf{W}_k = \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}, \quad
+\mathbf{W}_v = \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
 \]
 
 \vspace{4pt}
 \centering
-Projetamos cada token aplicando $W_q, W_k, W_v$; os cálculos completos vêm a seguir.
+Projetamos cada token aplicando $\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v$; os cálculos completos vêm a seguir.
 
 \end{frame}
 
@@ -492,10 +492,10 @@ Projetamos cada token aplicando $W_q, W_k, W_v$; os cálculos completos vêm a s
 
 \begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{qcolor}{Queries})}
 
-Cada token é um vetor linha, multiplicado pela matriz $W_q$ ($q_i = x_i W_q$):
+Cada token é um vetor linha, multiplicado pela matriz $\mathbf{W}_q$ ($\mathbf{q}_i = \mathbf{x}_i \mathbf{W}_q$):
 
 \begin{align*}
-\textcolor{qcolor}{q_1} = x_1 W_q &=
+\textcolor{qcolor}{\mathbf{q}_1} = \mathbf{x}_1 \mathbf{W}_q &=
 \begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
 \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
 = \begin{bmatrix} 1(1){+}(-3)(1){+}2(0) & \;\; 1(0){+}(-3)(-1){+}2(-2) \end{bmatrix} \\[2pt]
@@ -505,7 +505,7 @@ Cada token é um vetor linha, multiplicado pela matriz $W_q$ ($q_i = x_i W_q$):
 \vspace{4pt}
 
 \begin{align*}
-\textcolor{qcolor}{q_2} = x_2 W_q &=
+\textcolor{qcolor}{\mathbf{q}_2} = \mathbf{x}_2 \mathbf{W}_q &=
 \begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
 = \begin{bmatrix} 2(1){+}(-1)(1){+}1(0) & \;\; 2(0){+}(-1)(-1){+}1(-2) \end{bmatrix} \\[2pt]
@@ -518,10 +518,10 @@ Cada token é um vetor linha, multiplicado pela matriz $W_q$ ($q_i = x_i W_q$):
 
 \begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{kcolor}{Keys})}
 
-O mesmo procedimento com a matriz $W_k$ ($k_i = x_i W_k$):
+O mesmo procedimento com a matriz $\mathbf{W}_k$ ($\mathbf{k}_i = \mathbf{x}_i \mathbf{W}_k$):
 
 \begin{align*}
-\textcolor{kcolor}{k_1} = x_1 W_k &=
+\textcolor{kcolor}{\mathbf{k}_1} = \mathbf{x}_1 \mathbf{W}_k &=
 \begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
 \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
 = \begin{bmatrix} 1(1){+}(-3)(0){+}2(0) & \;\; 1(1){+}(-3)(-1){+}2(0) \end{bmatrix} \\[2pt]
@@ -531,7 +531,7 @@ O mesmo procedimento com a matriz $W_k$ ($k_i = x_i W_k$):
 \vspace{4pt}
 
 \begin{align*}
-\textcolor{kcolor}{k_2} = x_2 W_k &=
+\textcolor{kcolor}{\mathbf{k}_2} = \mathbf{x}_2 \mathbf{W}_k &=
 \begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
 = \begin{bmatrix} 2(1){+}(-1)(0){+}1(0) & \;\; 2(1){+}(-1)(-1){+}1(0) \end{bmatrix} \\[2pt]
@@ -544,10 +544,10 @@ O mesmo procedimento com a matriz $W_k$ ($k_i = x_i W_k$):
 
 \begin{frame}[shrink=10]{Self-Attention: Cálculo das Projeções (\textcolor{vcolor}{Values})}
 
-E, por fim, com a matriz $W_v$ ($v_i = x_i W_v$):
+E, por fim, com a matriz $\mathbf{W}_v$ ($\mathbf{v}_i = \mathbf{x}_i \mathbf{W}_v$):
 
 \begin{align*}
-\textcolor{vcolor}{v_1} = x_1 W_v &=
+\textcolor{vcolor}{\mathbf{v}_1} = \mathbf{x}_1 \mathbf{W}_v &=
 \begin{bmatrix} 1 & -3 & 2 \end{bmatrix}
 \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
 = \begin{bmatrix} 1(-2){+}(-3)(0){+}2(0) & \;\; 1(1){+}(-3)(1){+}2(2) \end{bmatrix} \\[2pt]
@@ -557,7 +557,7 @@ E, por fim, com a matriz $W_v$ ($v_i = x_i W_v$):
 \vspace{4pt}
 
 \begin{align*}
-\textcolor{vcolor}{v_2} = x_2 W_v &=
+\textcolor{vcolor}{\mathbf{v}_2} = \mathbf{x}_2 \mathbf{W}_v &=
 \begin{bmatrix} 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
 = \begin{bmatrix} 2(-2){+}(-1)(0){+}1(0) & \;\; 2(1){+}(-1)(1){+}1(2) \end{bmatrix} \\[2pt]
@@ -570,17 +570,17 @@ E, por fim, com a matriz $W_v$ ($v_i = x_i W_v$):
 
 \begin{frame}[shrink=15]{Self-Attention: Exemplo Numérico (Cálculo)}
 
-\textbf{Foco no token 1:} usamos $\textcolor{qcolor}{q_1 = [-2, -1]}$ contra todas as keys.
+\textbf{Foco no token 1:} usamos $\textcolor{qcolor}{\mathbf{q}_1 = [-2, -1]}$ contra todas as keys.
 
 \vspace{6pt}
 
 \textbf{Scores não normalizados} (vetor linha vezes coluna):
 \[
-q_1 k_1^{\top} =
+\mathbf{q}_1 \mathbf{k}_1^{\top} =
 \begin{bmatrix} -2 & -1 \end{bmatrix}
 \begin{bmatrix} 1 \\ 4 \end{bmatrix}
 = -6, \qquad
-q_1 k_2^{\top} =
+\mathbf{q}_1 \mathbf{k}_2^{\top} =
 \begin{bmatrix} -2 & -1 \end{bmatrix}
 \begin{bmatrix} 2 \\ 3 \end{bmatrix}
 = -7
@@ -604,7 +604,7 @@ a_1^{(1)} \approx 0.67, \qquad a_2^{(1)} \approx 0.33
 
 \textbf{Soma ponderada dos values:}
 \[
-c^{(1)} = 0.67 \cdot [-2, 2] + 0.33 \cdot [-4, 3] \approx [-2.66,\ 2.33]
+\mathbf{c}^{(1)} = 0.67 \cdot [-2, 2] + 0.33 \cdot [-4, 3] \approx [-2.66,\ 2.33]
 \]
 
 \vspace{4pt}
@@ -631,11 +631,11 @@ A implementação anterior processa cada query \textbf{de forma independente}. C
 
 \vspace{6pt}
 
-\textbf{Com} ($X$: \texttt{seq\_size $\times$ emb\_size}):
+\textbf{Com} ($\mathbf{X}$: \texttt{seq\_size $\times$ emb\_size}):
 \begin{itemize}
-    \item $\Qc = X W_q$, $\quad$ $W_q$: \texttt{emb\_size $\times$ d}, $\quad$ $\Qc$: \texttt{seq\_size $\times$ d}
-    \item $\Kc = X W_k$, $\quad$ $W_k$: \texttt{emb\_size $\times$ d}, $\quad$ $\Kc$: \texttt{seq\_size $\times$ d}
-    \item $\Vc = X W_v$, $\quad$ $W_v$: \texttt{emb\_size $\times$ value\_size}, $\quad$ $\Vc$: \texttt{seq\_size $\times$ value\_size}
+    \item $\Qc = \mathbf{X} \mathbf{W}_q$, $\quad$ $\mathbf{W}_q$: \texttt{emb\_size $\times$ d}, $\quad$ $\Qc$: \texttt{seq\_size $\times$ d}
+    \item $\Kc = \mathbf{X} \mathbf{W}_k$, $\quad$ $\mathbf{W}_k$: \texttt{emb\_size $\times$ d}, $\quad$ $\Kc$: \texttt{seq\_size $\times$ d}
+    \item $\Vc = \mathbf{X} \mathbf{W}_v$, $\quad$ $\mathbf{W}_v$: \texttt{emb\_size $\times$ value\_size}, $\quad$ $\Vc$: \texttt{seq\_size $\times$ value\_size}
 \end{itemize}
 
 \vspace{4pt}
@@ -648,23 +648,23 @@ A matriz $\mathrm{softmax}(\Qc \Kc^{\top} / \sqrt{d})$ tem shape \texttt{seq\_si
 
 \begin{frame}[shrink=10]{Forma Matricial: Projeções $\Qc, \Kc, \Vc$}
 
-Empilhando os dois embeddings nas linhas de $X$ ($2\times3$) e projetando com $W_q, W_k, W_v$ ($3\times2$), cada projeção fica $2\times2$:
+Empilhando os dois embeddings nas linhas de $\mathbf{X}$ ($2\times3$) e projetando com $\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v$ ($3\times2$), cada projeção fica $2\times2$:
 
 \vspace{2pt}
 \[
-\Qc = X W_q =
+\Qc = \mathbf{X} \mathbf{W}_q =
 \begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} 1 & 0 \\ 1 & -1 \\ 0 & -2 \end{bmatrix}
 = \begin{bmatrix} -2 & -1 \\ 1 & -1 \end{bmatrix}
 \]
 \[
-\Kc = X W_k =
+\Kc = \mathbf{X} \mathbf{W}_k =
 \begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} 1 & 1 \\ 0 & -1 \\ 0 & 0 \end{bmatrix}
 = \begin{bmatrix} 1 & 4 \\ 2 & 3 \end{bmatrix}
 \]
 \[
-\Vc = X W_v =
+\Vc = \mathbf{X} \mathbf{W}_v =
 \begin{bmatrix} 1 & -3 & 2 \\ 2 & -1 & 1 \end{bmatrix}
 \begin{bmatrix} -2 & 1 \\ 0 & 1 \\ 0 & 2 \end{bmatrix}
 = \begin{bmatrix} -2 & 2 \\ -4 & 3 \end{bmatrix}
@@ -716,13 +716,13 @@ Com as projeções do slide anterior:
 \begin{frame}{Refletindo sobre Self-Attention}
 
 \begin{block}{É não linear?}
-\textbf{Sim:} $Q K^{\top} V$ é polinomial de grau 3 nos parâmetros; a softmax já é não-linear.
+\textbf{Sim:} $\Qc \Kc^{\top} \Vc$ é polinomial de grau 3 nos parâmetros; a softmax já é não-linear.
 \end{block}
 
 \begin{columns}[T]
 \column{0.48\textwidth}
 \begin{block}{Vantagem em relação a um MLP}
-O número de parâmetros \textbf{não escala} com o tamanho da sequência. Os mesmos $W_q, W_k, W_v$ atendem qualquer comprimento.
+O número de parâmetros \textbf{não escala} com o tamanho da sequência. Os mesmos $\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v$ atendem qualquer comprimento.
 \end{block}
 
 \column{0.48\textwidth}
@@ -1034,7 +1034,7 @@ Após a tokenização, cada token da sequência é um \textbf{índice inteiro} d
 \begin{block}{A camada de embedding}
 É uma \textbf{matriz de parâmetros aprendidos}
 \[
-E \in \mathbb{R}^{|V| \times d},
+\mathbf{E} \in \mathbb{R}^{|V| \times d},
 \]
 com uma linha por token do vocabulário: a linha $t$ é o embedding do token de índice $t$. A matriz é treinada por backpropagation como qualquer outro peso da rede.
 \end{block}
@@ -1051,13 +1051,13 @@ Com $|V| = 50\,000$ e $d = 512$, a camada de embedding tem $|V| \times d = 25{,}
 
 \begin{frame}{Selecionando o Embedding de um Token}
 
-Como o modelo seleciona o embedding do token de índice $t$? O índice vira um vetor \textbf{one-hot} $u \in \{0,1\}^{|V|}$, com $1$ apenas na posição $t$, e o produto $u^{\top} E$ devolve exatamente a \textbf{linha $t$} de $E$.
+Como o modelo seleciona o embedding do token de índice $t$? O índice vira um vetor \textbf{one-hot} $\mathbf{u} \in \{0,1\}^{|V|}$, com $1$ apenas na posição $t$, e o produto $\mathbf{u}^{\top} \mathbf{E}$ devolve exatamente a \textbf{linha $t$} de $\mathbf{E}$.
 
 \vspace{4pt}
 
 \begin{exampleblock}{Exemplo com $|V| = 4$ e $d = 3$, token de índice $3$}
 \[
-u^{\top} E =
+\mathbf{u}^{\top} \mathbf{E} =
 \begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix}
 \begin{bmatrix}
 0.2 & -1.1 & 0.7 \\
@@ -1067,7 +1067,7 @@ u^{\top} E =
 \end{bmatrix}
 =
 \begin{bmatrix} -0.8 & 0.9 & 2.1 \end{bmatrix}
-= E_{3,:}
+= \mathbf{E}_{3,:}
 \]
 \end{exampleblock}
 
@@ -1113,10 +1113,10 @@ O bloco de atenção que já conhecemos, agora dividido em várias ``cabeças'' 
 \begin{exampleblock}{Fórmula}
 \small
 \[
-\mathrm{MultiHead}(\Qc, \Kc, \Vc) = \mathrm{Concat}(\mathrm{head}_1, \dots, \mathrm{head}_H) W_O
+\mathrm{MultiHead}(\Qc, \Kc, \Vc) = \mathrm{Concat}(\mathrm{head}_1, \dots, \mathrm{head}_H) \mathbf{W}_O
 \]
 \[
-\mathrm{head}_i = \mathrm{attention}(\Qc W_Q^i, \Kc W_K^i, \Vc W_V^i)
+\mathrm{head}_i = \mathrm{attention}(\Qc \mathbf{W}_Q^i, \Kc \mathbf{W}_K^i, \Vc \mathbf{W}_V^i)
 \]
 \end{exampleblock}
 
@@ -1173,7 +1173,7 @@ Note no diagrama do transformer que existe uma seta passando \textbf{ao redor} d
 \begin{exampleblock}{Add \& Norm}
 \centering
 \[
-\text{output} = \mathrm{LayerNorm}\bigl(x + \mathrm{Subblock}(x)\bigr)
+\text{output} = \mathrm{LayerNorm}\bigl(\mathbf{x} + \mathrm{Subblock}(\mathbf{x})\bigr)
 \]
 \end{exampleblock}
 
@@ -1202,9 +1202,9 @@ Sem skip connections, o transformer não treinaria em profundidade.
 
 \vspace{8pt}
 \begin{exampleblock}{Forma fechada}
-Para um \textit{token} $x_i \in \mathbb{R}^{d}$,
+Para um \textit{token} $\mathbf{x}_i \in \mathbb{R}^{d}$,
 \[
-    \mathrm{LN}(x_i) = \gamma \odot \frac{x_i - \mu_i}{\sigma_i} + \beta, \qquad
+    \mathrm{LN}(\mathbf{x}_i) = \boldsymbol{\gamma} \odot \frac{\mathbf{x}_i - \mu_i}{\sigma_i} + \boldsymbol{\beta}, \qquad
     \mu_i = \frac{1}{d}\sum_{k=1}^{d} x_{i,k}, \quad
     \sigma_i^2 = \frac{1}{d}\sum_{k=1}^{d}(x_{i,k} - \mu_i)^2.
 \]
@@ -1274,7 +1274,7 @@ Após o bloco \textit{Multi-Head Attention} e o \textit{Add \& Norm}, o transfor
 
 \begin{exampleblock}{Estrutura}
 \[
-\mathrm{FFN}(x) = \mathrm{ReLU}(x \, W_1 + b_1) \, W_2 + b_2
+\mathrm{FFN}(\mathbf{x}) = \mathrm{ReLU}(\mathbf{x} \, \mathbf{W}_1 + \mathbf{b}_1) \, \mathbf{W}_2 + \mathbf{b}_2
 \]
 \end{exampleblock}
 
@@ -1371,7 +1371,7 @@ A máscara é o que torna o decoder \textbf{autoregressivo}: cada token é gerad
 
 \begin{enumerate}
     \item Calcule os scores $\Qc \Kc^{\top} / \sqrt{d}$ (matriz \texttt{seq $\times$ seq})
-    \item Some uma matriz de máscara $M$:
+    \item Some uma matriz de máscara $\mathbf{M}$:
     \begin{itemize}
         \item $M_{ij} = 0$ para $j \leq i$ (válido)
         \item $M_{ij} = -\infty$ para $j > i$ (futuro)

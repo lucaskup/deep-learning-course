@@ -112,7 +112,7 @@
           \item Arquitetura: MLP com 5 camadas, todas com 300 unidades tanh,
             saída softmax com 10 classes.
           \item Tamanho do \textit{batch}: 100 imagens.
-          \item Vamos olhar o histograma das ativações $A^{[1]},\ldots,A^{[4]}$
+          \item Vamos olhar o histograma das ativações $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$
             em cada camada oculta.
         \end{itemize}
       \end{column}
@@ -121,7 +121,7 @@
     \centering
     \resizebox{.95\linewidth}{!}{%
     \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
-      \node (x) at (0, 0) {$X = A^{[0]}$};
+      \node (x) at (0, 0) {$\mathbf{X} = \mathbf{A}^{(0)}$};
       \node[below=0.15cm of x, font=\scriptsize, align=center]
         {batch de 100 imagens $28\times28$\\shape $(100, 784)$};
       \node[circle, draw, minimum size=1.1cm] (h1) at (2.6, 0) {tanh};
@@ -129,31 +129,31 @@
       \node[circle, draw, minimum size=1.1cm] (h3) at (7.8, 0) {tanh};
       \node[circle, draw, minimum size=1.1cm] (h4) at (10.4, 0) {tanh};
       \node[circle, draw, minimum size=1.1cm, font=\scriptsize] (out) at (13.2, 0) {softmax};
-      \node (y) at (15.8, 0) {$\hat{y} = A^{[5]}$};
+      \node (y) at (15.8, 0) {$\hat{\mathbf{y}} = \mathbf{A}^{(5)}$};
       \node[below=0.15cm of y, font=\scriptsize, align=center]
         {probabilidades das 10 classes\\shape $(100, 10)$};
       \draw[->] (x)  -- (h1);
-      \draw[->] (h1) -- node[above]{$A^{[1]}$} node[below, font=\scriptsize]{$(100, 300)$} (h2);
-      \draw[->] (h2) -- node[above]{$A^{[2]}$} node[below, font=\scriptsize]{$(100, 300)$} (h3);
-      \draw[->] (h3) -- node[above]{$A^{[3]}$} node[below, font=\scriptsize]{$(100, 300)$} (h4);
-      \draw[->] (h4) -- node[above]{$A^{[4]}$} node[below, font=\scriptsize]{$(100, 300)$} (out);
+      \draw[->] (h1) -- node[above]{$\mathbf{A}^{(1)}$} node[below, font=\scriptsize]{$(100, 300)$} (h2);
+      \draw[->] (h2) -- node[above]{$\mathbf{A}^{(2)}$} node[below, font=\scriptsize]{$(100, 300)$} (h3);
+      \draw[->] (h3) -- node[above]{$\mathbf{A}^{(3)}$} node[below, font=\scriptsize]{$(100, 300)$} (h4);
+      \draw[->] (h4) -- node[above]{$\mathbf{A}^{(4)}$} node[below, font=\scriptsize]{$(100, 300)$} (out);
       \draw[->] (out) -- (y);
       \node[below=0.15cm of h1, font=\scriptsize, align=center]
-        {300 unidades\\$\theta^{[1]}\!: (300, 784)$};
+        {300 unidades\\$\mathbf{\Theta}^{(1)}\!: (300, 784)$};
       \node[below=0.15cm of h2, font=\scriptsize, align=center]
-        {300 unidades\\$\theta^{[2]}\!: (300, 300)$};
+        {300 unidades\\$\mathbf{\Theta}^{(2)}\!: (300, 300)$};
       \node[below=0.15cm of h3, font=\scriptsize, align=center]
-        {300 unidades\\$\theta^{[3]}\!: (300, 300)$};
+        {300 unidades\\$\mathbf{\Theta}^{(3)}\!: (300, 300)$};
       \node[below=0.15cm of h4, font=\scriptsize, align=center]
-        {300 unidades\\$\theta^{[4]}\!: (300, 300)$};
+        {300 unidades\\$\mathbf{\Theta}^{(4)}\!: (300, 300)$};
       \node[below=0.15cm of out, font=\scriptsize, align=center]
-        {10 unidades\\$\theta^{[5]}\!: (10, 300)$};
+        {10 unidades\\$\mathbf{\Theta}^{(5)}\!: (10, 300)$};
     \end{tikzpicture}%
     }
   \end{frame}
 
   %--- Slide: theta = 0 ---
-  \begin{frame}{Tentativa 1: $\theta = 0$}
+  \begin{frame}{Tentativa 1: $\thetav = 0$}
     \begin{columns}
       \begin{column}{.4\linewidth}
         \begin{itemize}
@@ -167,13 +167,13 @@
       \begin{column}{.6\linewidth}
         \centering
         \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-zero.png}
-        \footnotesize Histogramas de $A^{[1]},\ldots,A^{[4]}$ com $\theta=0$.
+        \footnotesize Histogramas de $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$ com $\thetav=0$.
       \end{column}
     \end{columns}
   \end{frame}
 
   %--- Slide: theta ~ N(0,1) ---
-  \begin{frame}{Tentativa 2: $\theta \sim \mathcal{N}(0,1)$}
+  \begin{frame}{Tentativa 2: $\thetav \sim \mathcal{N}(0,1)$}
     \begin{columns}
       \begin{column}{.4\linewidth}
         \begin{itemize}
@@ -193,13 +193,13 @@
   \end{frame}
 
   %--- Slide: theta ~ U(-1, 1) ---
-  \begin{frame}{Tentativa 3: $\theta \sim \mathcal{U}(-1,1)$}
+  \begin{frame}{Tentativa 3: $\thetav \sim \mathcal{U}(-1,1)$}
     \begin{columns}
       \begin{column}{.4\linewidth}
         \begin{itemize}
           \item Variância $\sigma_\theta^2 = 1/3$, menor que o caso anterior.
           \item Mesmo assim, as ativações \alert{encolhem} a cada camada.
-          \item Em $A^{[4]}$ a distribuição é uma agulha em zero.
+          \item Em $\mathbf{A}^{(4)}$ a distribuição é uma agulha em zero.
           \item Sintoma de \textit{vanishing} em forward.
         \end{itemize}
       \end{column}
@@ -234,14 +234,14 @@
   \begin{frame}{Definição da pré-ativação por camada}
     Cada exemplo é um vetor linha e o peso multiplica a entrada pela direita:
     \[
-      z^{(l)} = \varphi\!\left(z^{(l-1)}\right)\theta^{(l)\top} + b^{(l)}
+      \mathbf{z}^{(l)} = \varphi\!\left(\mathbf{z}^{(l-1)}\right)\mathbf{\Theta}^{(l)\top} + \mathbf{b}^{(l)}
       \qquad\Longrightarrow\qquad
       z^{(l)}_i = b^{(l)}_i + \sum_{j=1}^{n^{(l-1)}} \varphi\!\left(z^{(l-1)}_j\right)\theta^{(l)}_{ij}
     \]
     \begin{itemize}
-      \item $z^{(l)}$: pré-ativação da camada $l$, vetor linha com $n^{(l)}$ componentes.
-      \item $b^{(l)}$: bias, \alert{inicializado em 0}.
-      \item $\theta^{(l)}$: pesos, matriz de shape $(n^{(l)}, n^{(l-1)})$,
+      \item $\mathbf{z}^{(l)}$: pré-ativação da camada $l$, vetor linha com $n^{(l)}$ componentes.
+      \item $\mathbf{b}^{(l)}$: bias, \alert{inicializado em 0}.
+      \item $\mathbf{\Theta}^{(l)}$: pesos, matriz de shape $(n^{(l)}, n^{(l-1)})$,
         com $\theta^{(l)}_{ij} \sim \mathcal{N}(0,\sigma_\theta^2)$.
       \item $\varphi$: ativação (tomamos ReLU como referência).
     \end{itemize}
@@ -256,15 +256,15 @@
   \begin{frame}{Esperança: separar bias do somatório}
     Aplicando a linearidade da esperança:
     \[
-      E[z^{(l)}_i]
-        = E[b^{(l)}_i] + E\!\left[\sum_{j=1}^{n^{(l-1)}} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
+      \mathbb{E}[z^{(l)}_i]
+        = \mathbb{E}[b^{(l)}_i] + \mathbb{E}\!\left[\sum_{j=1}^{n^{(l-1)}} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
     \]
     \begin{itemize}
-      \item Como inicializamos $b^{(l)}_i = 0$, $E[b^{(l)}_i] = 0$.
+      \item Como inicializamos $b^{(l)}_i = 0$, $\mathbb{E}[b^{(l)}_i] = 0$.
       \item Sobra a esperança do somatório, que reescrevemos como soma das esperanças.
     \end{itemize}
     \[
-      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
+      \mathbb{E}[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} \mathbb{E}\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right].
     \]
   \end{frame}
 
@@ -272,16 +272,16 @@
   \begin{frame}{Esperança: independência $\varphi\perp\theta$}
     Como $\varphi(z^{(l-1)}_j)$ é independente de $\theta^{(l)}_{ij}$,
     \[
-      E\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right]
-        = E[\varphi(z^{(l-1)}_j)]\,E[\theta^{(l)}_{ij}].
+      \mathbb{E}\!\left[\varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\right]
+        = \mathbb{E}[\varphi(z^{(l-1)}_j)]\,\mathbb{E}[\theta^{(l)}_{ij}].
     \]
     \begin{itemize}
       \item Por construção, $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$, logo
-        $E[\theta^{(l)}_{ij}] = 0$.
+        $\mathbb{E}[\theta^{(l)}_{ij}] = 0$.
       \item O produto inteiro é zero, independentemente de $\varphi$.
     \end{itemize}
     \[
-      E[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} E[\varphi(z^{(l-1)}_j)] \cdot 0 = 0.
+      \mathbb{E}[z^{(l)}_i] = \sum_{j=1}^{n^{(l-1)}} \mathbb{E}[\varphi(z^{(l-1)}_j)] \cdot 0 = 0.
     \]
   \end{frame}
 
@@ -289,13 +289,13 @@
   \begin{frame}{Resultado intermediário}
     \begin{block}{Média das pré-ativações é zero}
       \[
-        E[z^{(l)}_i] = 0 \quad\text{para toda camada } l.
+        \mathbb{E}[z^{(l)}_i] = 0 \quad\text{para toda camada } l.
       \]
     \end{block}
     \vfill
     \begin{itemize}
       \item Vamos usar este resultado para calcular a variância em seguida.
-      \item Como $E[z^{(l)}_i]=0$, temos $\mathrm{Var}[z^{(l)}_i] = E[(z^{(l)}_i)^2]$.
+      \item Como $\mathbb{E}[z^{(l)}_i]=0$, temos $\mathrm{Var}[z^{(l)}_i] = \mathbb{E}[(z^{(l)}_i)^2]$.
     \end{itemize}
   \end{frame}
 
@@ -307,36 +307,36 @@
   \begin{frame}{Variância: ponto de partida}
     \[
       \sigma^2_{z^{(l)}}
-        = E\!\left[(z^{(l)}_i)^2\right] - \cancelto{0}{\big(E[z^{(l)}_i]\big)^2}
-        = E\!\left[\Big(b^{(l)}_i + \sum_{j} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\Big)^2\right].
+        = \mathbb{E}\!\left[(z^{(l)}_i)^2\right] - \cancelto{0}{\big(\mathbb{E}[z^{(l)}_i]\big)^2}
+        = \mathbb{E}\!\left[\Big(b^{(l)}_i + \sum_{j} \varphi(z^{(l-1)}_j)\,\theta^{(l)}_{ij}\Big)^2\right].
     \]
     \begin{itemize}
       \item Como $b^{(l)}_i = 0$, expandimos sem o termo do bias.
       \item Cross-terms entre pesos diferentes desaparecem por independência
-        e $E[\theta]=0$.
+        e $\mathbb{E}[\theta]=0$.
     \end{itemize}
     \[
       \sigma^2_{z^{(l)}}
-        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\,
-                                 E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right].
+        = \sum_{j=1}^{n^{(l-1)}} \mathbb{E}\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\,
+                                 \mathbb{E}\!\left[\big(\theta^{(l)}_{ij}\big)^2\right].
     \]
   \end{frame}
 
   %--- Slide: identifica sigma_theta^2 ---
   \begin{frame}{Identificando $\sigma_\theta^2$}
-    Como $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$ e $E[\theta]=0$:
+    Como $\theta^{(l)}_{ij}\sim\mathcal{N}(0,\sigma_\theta^2)$ e $\mathbb{E}[\theta]=0$:
     \[
-      E\!\left[\big(\theta^{(l)}_{ij}\big)^2\right]
+      \mathbb{E}\!\left[\big(\theta^{(l)}_{ij}\big)^2\right]
         = \mathrm{Var}[\theta^{(l)}_{ij}] = \sigma_\theta^2.
     \]
     Substituindo:
     \[
       \sigma^2_{z^{(l)}}
-        = \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\sigma_\theta^2
-        = \sigma_\theta^2 \sum_{j=1}^{n^{(l-1)}} E\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
+        = \sum_{j=1}^{n^{(l-1)}} \mathbb{E}\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right]\sigma_\theta^2
+        = \sigma_\theta^2 \sum_{j=1}^{n^{(l-1)}} \mathbb{E}\!\left[\varphi\!\big(z^{(l-1)}_j\big)^2\right].
     \]
     \begin{itemize}
-      \item Falta calcular $E[\varphi(z)^2]$ para $\varphi$ = ReLU.
+      \item Falta calcular $\mathbb{E}[\varphi(z)^2]$ para $\varphi$ = ReLU.
     \end{itemize}
   \end{frame}
 
@@ -344,7 +344,7 @@
   \begin{frame}{Para ReLU sobre $z$ simétrica em zero}
     Vamos provar (próximo slide) que, se $z$ é simétrica em zero com variância $\sigma_z^2$,
     \[
-      E[\mathrm{ReLU}(z)^2] = \frac{\sigma_z^2}{2}.
+      \mathbb{E}[\mathrm{ReLU}(z)^2] = \frac{\sigma_z^2}{2}.
     \]
     \begin{itemize}
       \item ReLU corta os valores negativos, mantendo metade da massa.
@@ -355,7 +355,7 @@
 
   %--- Slide: Junta tudo ---
   \begin{frame}{Variância da pré-ativação em função de $\sigma_\theta^2$ e $\sigma^2_{z^{(l-1)}}$}
-    Aplicando o resultado anterior, $E[\varphi(z^{(l-1)}_j)^2] = \sigma^2_{z^{(l-1)}}/2$
+    Aplicando o resultado anterior, $\mathbb{E}[\varphi(z^{(l-1)}_j)^2] = \sigma^2_{z^{(l-1)}}/2$
     para toda unidade $j$:
     \[
       \sigma^2_{z^{(l)}}
@@ -381,16 +381,16 @@
   %--- Slide: enunciado ---
   \begin{frame}{Exercício: segundo momento de ReLU}
     \begin{exampleblock}{Enunciado}
-      Seja $a$ uma variável aleatória contínua, simétrica em torno de $E[a]=0$, com
+      Seja $a$ uma variável aleatória contínua, simétrica em torno de $\mathbb{E}[a]=0$, com
       variância $\mathrm{Var}[a] = \sigma^2$. Mostre que
       \[
-        E\!\left[\mathrm{ReLU}(a)^2\right] = \frac{\sigma^2}{2}.
+        \mathbb{E}\!\left[\mathrm{ReLU}(a)^2\right] = \frac{\sigma^2}{2}.
       \]
     \end{exampleblock}
     \vfill
     \begin{itemize}
       \item Lembre que $\mathrm{ReLU}(a) = \max(0,a)$.
-      \item Use $E[a^2] = \mathrm{Var}[a] + (E[a])^2 = \sigma^2$.
+      \item Use $\mathbb{E}[a^2] = \mathrm{Var}[a] + (\mathbb{E}[a])^2 = \sigma^2$.
       \item Use a simetria de $a$ em torno de zero.
     \end{itemize}
   \end{frame}
@@ -399,18 +399,18 @@
   \begin{frame}{Solução}
     Pela definição de $\mathrm{ReLU}$:
     \[
-      E[\mathrm{ReLU}(a)^2] = \int_{-\infty}^{\infty} \max(0,a)^2 p(a)\,da
+      \mathbb{E}[\mathrm{ReLU}(a)^2] = \int_{-\infty}^{\infty} \max(0,a)^2 p(a)\,da
         = \int_{0}^{\infty} a^2 p(a)\,da.
     \]
     Pela simetria de $p$ em torno de zero, $\int_{-\infty}^{0} a^2 p(a)\,da = \int_{0}^{\infty} a^2 p(a)\,da$.
     Logo,
     \[
-      E[a^2] = 2 \int_{0}^{\infty} a^2 p(a)\,da
+      \mathbb{E}[a^2] = 2 \int_{0}^{\infty} a^2 p(a)\,da
         \quad\Longrightarrow\quad
-      \int_{0}^{\infty} a^2 p(a)\,da = \frac{E[a^2]}{2} = \frac{\sigma^2}{2}.
+      \int_{0}^{\infty} a^2 p(a)\,da = \frac{\mathbb{E}[a^2]}{2} = \frac{\sigma^2}{2}.
     \]
     \[
-      \boxed{E[\mathrm{ReLU}(a)^2] = \frac{\sigma^2}{2}.}
+      \boxed{\mathbb{E}[\mathrm{ReLU}(a)^2] = \frac{\sigma^2}{2}.}
     \]
   \end{frame}
 
@@ -446,7 +446,7 @@
       \item Apresentada em 2015 por Kaiming He et al. para redes muito profundas com ReLU.
       \item Permitiu treinar redes com mais de 30 camadas convolucionais sem
         \textit{batch norm}.
-      \item Variante uniforme: $\theta\sim\mathcal{U}\!\left(-\sqrt{6/n},\;\sqrt{6/n}\right)$,
+      \item Variante uniforme: $\thetav\sim\mathcal{U}\!\left(-\sqrt{6/n},\;\sqrt{6/n}\right)$,
         que tem a mesma variância $2/n$.
     \end{itemize}
   \end{frame}
@@ -456,7 +456,7 @@
     \begin{itemize}
       \item Antes de He, Glorot e Bengio (2010) fizeram o mesmo argumento para
         \textbf{tanh} ao redor de zero.
-      \item Para tanh, $\varphi(z)\approx z$ perto da origem, então $E[\varphi(z)^2]\approx \sigma_z^2$
+      \item Para tanh, $\varphi(z)\approx z$ perto da origem, então $\mathbb{E}[\varphi(z)^2]\approx \sigma_z^2$
         sem o fator $1/2$.
       \item Isso leva a $\sigma_\theta^2 = 1/n^{(l-1)}$.
       \[
@@ -481,7 +481,7 @@
       \end{column}
       \begin{column}{.4\linewidth}
         \begin{itemize}
-          \item Histogramas das ativações $A^{[1]},\ldots,A^{[4]}$ ficam estáveis
+          \item Histogramas das ativações $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$ ficam estáveis
             ao longo das camadas.
           \item A magnitude não cresce nem encolhe, e a tanh não satura.
           \item A rede consegue treinar.
@@ -496,16 +496,16 @@
       \begin{column}{.5\linewidth}
         \centering
         \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-zero.png}\\
-        \footnotesize $\theta = 0$\\[0.3em]
+        \footnotesize $\thetav = 0$\\[0.3em]
         \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-uniform.png}\\
-        \footnotesize $\theta\sim\mathcal{U}(-1,1)$
+        \footnotesize $\thetav\sim\mathcal{U}(-1,1)$
       \end{column}
       \begin{column}{.5\linewidth}
         \centering
         \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-normal.png}\\
-        \footnotesize $\theta\sim\mathcal{N}(0,1)$\\[0.3em]
+        \footnotesize $\thetav\sim\mathcal{N}(0,1)$\\[0.3em]
         \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-he.png}\\
-        \footnotesize He: $\theta\sim\mathcal{N}(0,2/n)$
+        \footnotesize He: $\thetav\sim\mathcal{N}(0,2/n)$
       \end{column}
     \end{columns}
   \end{frame}

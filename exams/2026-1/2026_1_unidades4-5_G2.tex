@@ -69,7 +69,7 @@ Nome: \rule{12cm}{0.4pt}
 \begin{enumerate}[1)]
 
 %% ---------- Q1 (U4): numeric — LoRA trainable parameters ----------
-\item (1{,}0) No LoRA, uma matriz congelada $W_0 \in \mathbb{R}^{d \times k}$ recebe a correção \textit{low rank} $h = W_0 x + \frac{\alpha}{r} B A x$, com $B \in \mathbb{R}^{d \times r}$ e $A \in \mathbb{R}^{r \times k}$; apenas $B$ e $A$ são treináveis. Você aplica LoRA com $r = 8$ às projeções $W_Q$ e $W_V$ (ambas $1024 \times 1024$) de \textbf{cada uma} das $12$ camadas de um \textit{transformer}. Quantos parâmetros treináveis o ajuste introduz no total?
+\item (1{,}0) No LoRA, uma matriz congelada $\mathbf{W}_0 \in \mathbb{R}^{d \times k}$ recebe a correção \textit{low rank} $\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} \mathbf{B} \mathbf{A} \mathbf{x}$, com $\mathbf{B} \in \mathbb{R}^{d \times r}$ e $\mathbf{A} \in \mathbb{R}^{r \times k}$; apenas $\mathbf{B}$ e $\mathbf{A}$ são treináveis. Você aplica LoRA com $r = 8$ às projeções $\mathbf{W}_Q$ e $\mathbf{W}_V$ (ambas $1024 \times 1024$) de \textbf{cada uma} das $12$ camadas de um \textit{transformer}. Quantos parâmetros treináveis o ajuste introduz no total?
 
 \begin{enumerate}[a)]
     \item $16\,384$
@@ -141,7 +141,7 @@ Nome: \rule{12cm}{0.4pt}
 \textbf{1.} \textit{PE} sinusoidal & \textbf{(i)} tabela de \textit{embeddings} treináveis somada à entrada, limitada ao comprimento máximo $L_{\text{max}}$ visto no treino. \\
 \textbf{2.} \textit{PE} absoluto aprendido & \textbf{(ii)} função fixa e determinística da posição, somada à entrada, sem nenhum parâmetro treinável. \\
 \textbf{3.} RoPE & \textbf{(iii)} não altera a entrada: subtrai do \textit{score} de atenção uma penalidade proporcional à distância $|i - j|$, com inclinação própria por cabeça. \\
-\textbf{4.} ALiBi & \textbf{(iv)} rotaciona os vetores $q$ e $k$ dentro da atenção, fazendo o \textit{score} depender apenas do deslocamento relativo $j - i$. \\
+\textbf{4.} ALiBi & \textbf{(iv)} rotaciona os vetores $\mathbf{q}$ e $\mathbf{k}$ dentro da atenção, fazendo o \textit{score} depender apenas do deslocamento relativo $j - i$. \\
 \end{tabular}
 \end{center}
 
@@ -157,7 +157,7 @@ Nome: \rule{12cm}{0.4pt}
 \end{enumerate}
 
 %% ---------- Q5 (U5): numeric — saturating vs non-saturating generator loss gradients ----------
-\item (1{,}0) Em uma GAN, seja $d = f[g[z,\thetav],\phi]$ o \textit{logit} do discriminador para uma amostra gerada; a \textit{loss} original do gerador contribui com $L = \ln(1 - \sigma(d))$ e a \textit{non-saturating} com $L_{\text{ns}} = -\ln \sigma(d)$. No início do treino o discriminador rejeita as amostras geradas: $\sigma(d) = 0{,}05$. Sabendo que $\sigma'(d) = \sigma(d)\,(1 - \sigma(d))$, quais os módulos de $\left|\partial L / \partial d\right|$ e $\left|\partial L_{\text{ns}} / \partial d\right|$, e qual \textit{loss} fornece sinal útil ao gerador?
+\item (1{,}0) Em uma GAN, seja $d = f[g[\mathbf{z},\thetav],\phi]$ o \textit{logit} do discriminador para uma amostra gerada; a \textit{loss} original do gerador contribui com $L = \ln(1 - \sigma(d))$ e a \textit{non-saturating} com $L_{\text{ns}} = -\ln \sigma(d)$. No início do treino o discriminador rejeita as amostras geradas: $\sigma(d) = 0{,}05$. Sabendo que $\sigma'(d) = \sigma(d)\,(1 - \sigma(d))$, quais os módulos de $\left|\partial L / \partial d\right|$ e $\left|\partial L_{\text{ns}} / \partial d\right|$, e qual \textit{loss} fornece sinal útil ao gerador?
 
 \begin{enumerate}[a)]
     \item $0{,}05$ e $0{,}95$; a \textit{loss} original fornece o maior sinal de aprendizado.
@@ -177,7 +177,7 @@ Nome: \rule{12cm}{0.4pt}
 
 \begin{center}\textbf{PORQUE}\end{center}
 
-\textbf{II.} Desse modo uma única rede aprende tanto a predição condicional $g_t[z_t, c]$ quanto a incondicional $g_t[z_t, \varnothing]$, que são combinadas na amostragem como $\tilde{g}_t = (1+w)\,g_t[z_t, c] - w\,g_t[z_t, \varnothing]$, com $w \geq 0$.
+\textbf{II.} Desse modo uma única rede aprende tanto a predição condicional $\mathbf{g}_t[\mathbf{z}_t, c]$ quanto a incondicional $\mathbf{g}_t[\mathbf{z}_t, \varnothing]$, que são combinadas na amostragem como $\tilde{\mathbf{g}}_t = (1+w)\,\mathbf{g}_t[\mathbf{z}_t, c] - w\,\mathbf{g}_t[\mathbf{z}_t, \varnothing]$, com $w \geq 0$.
 
 Assinale a alternativa correta:
 \begin{enumerate}[a)]
@@ -195,10 +195,10 @@ Assinale a alternativa correta:
 \item (1{,}0) Considere os passos abaixo de \textbf{uma} iteração de treinamento de um modelo difusor (DDPM), conforme o algoritmo visto em aula:
 
 \begin{itemize}
-    \item[\textbf{I.}] Amostrar uma instância $x$ do conjunto de treinamento.
-    \item[\textbf{II.}] Amostrar $t \sim \mathrm{Uniforme}\{1, \dots, T\}$ e $\epsilon \sim \mathcal{N}(0, \mathbf{I})$.
-    \item[\textbf{III.}] Computar $z_t = \sqrt{\alpha_t}\,x + \sqrt{1 - \alpha_t}\,\epsilon$ (kernel de difusão).
-    \item[\textbf{IV.}] Computar a perda $\lVert g_t[z_t, \thetav_t] - \epsilon\rVert^{2}$.
+    \item[\textbf{I.}] Amostrar uma instância $\mathbf{x}$ do conjunto de treinamento.
+    \item[\textbf{II.}] Amostrar $t \sim \mathrm{Uniforme}\{1, \dots, T\}$ e $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$.
+    \item[\textbf{III.}] Computar $\mathbf{z}_t = \sqrt{\alpha_t}\,\mathbf{x} + \sqrt{1 - \alpha_t}\,\boldsymbol{\epsilon}$ (kernel de difusão).
+    \item[\textbf{IV.}] Computar a perda $\lVert \mathbf{g}_t[\mathbf{z}_t, \thetav_t] - \boldsymbol{\epsilon}\rVert^{2}$.
     \item[\textbf{V.}] Atualizar os parâmetros por descida de gradiente.
 \end{itemize}
 

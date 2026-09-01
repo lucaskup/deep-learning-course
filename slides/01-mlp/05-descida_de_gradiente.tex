@@ -110,9 +110,9 @@
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item Queremos achar uma atualização $A$ tal que
-            $\mathcal{L}(\thetav+A) < \mathcal{L}(\thetav)$.
-          \item A pergunta é: \alert{qual atualização $A$ escolher?}
+          \item Queremos achar uma atualização $\Delta\thetav$ tal que
+            $\mathcal{L}(\thetav+\Delta\thetav) < \mathcal{L}(\thetav)$.
+          \item A pergunta é: \alert{qual atualização $\Delta\thetav$ escolher?}
         \end{itemize}
         \vspace{.5em}
         {\footnotesize\color{gray!50!black}Aqui $\thetav\in\mathbb{R}^{n}$ é o vetor com todos os $n$ parâmetros do modelo empilhados: cada matriz de pesos e cada vetor de viés entram vetorizados nesse único vetor coluna.}
@@ -123,12 +123,12 @@
           \begin{tikzpicture}[>=Latex]
             % theta
             \draw[->,thick] (0,0) -- (0.9,2.4) node[midway,above left] {$\thetav$};
-            % update A from origin
+            % update \Delta\thetav from origin
             \draw[->,very thick,red] (0,0) -- (1.4,0);
-            \node[red,anchor=north] at (0.7,-0.05) {$A$};
-            % new theta = theta + A
+            \node[red,anchor=north] at (0.7,-0.05) {$\Delta\thetav$};
+            % new theta = theta + \Delta\thetav
             \draw[->,thick] (0,0) -- (2.3,2.4) node[midway,below right=-1pt] {$\thetav_{\text{new}}$};
-            % dashed copy of A translated to tip of theta, completing the parallelogram
+            % dashed copy of \Delta\thetav translated to tip of theta, completing the parallelogram
             \draw[dashed,thick,red] (0.9,2.4) -- (2.3,2.4);
           \end{tikzpicture}
         }
@@ -188,46 +188,46 @@
 
   %--- Slide: Taylor aplicado à loss ---
   \begin{frame}{Aplicando Taylor à Loss}
-    Na série de Taylor, expandimos em torno de $\thetav_0=\thetav$ e avaliamos no ponto atualizado $\thetav+A$:
+    Na série de Taylor, expandimos em torno de $\thetav_0=\thetav$ e avaliamos no ponto atualizado $\thetav+\Delta\thetav$:
     {\small
     \[
-      \mathcal{L}(\thetav+A) =
+      \mathcal{L}(\thetav+\Delta\thetav) =
         \mathcal{L}(\thetav)
-        + (\thetav+A-\thetav)^\top\nabla_{\thetav}\mathcal{L}(\thetav)
-        + \frac{1}{2!}(\thetav+A-\thetav)^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,(\thetav+A-\thetav)
+        + (\thetav+\Delta\thetav-\thetav)^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+        + \frac{1}{2!}(\thetav+\Delta\thetav-\thetav)^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,(\thetav+\Delta\thetav-\thetav)
         + \cdots
     \]}
     \begin{itemize}
-      \item Em todos os termos, $\thetav-\thetav$ se anula: o deslocamento é simplesmente $A$.
+      \item Em todos os termos, $\thetav-\thetav$ se anula: o deslocamento é simplesmente $\Delta\thetav$.
     \end{itemize}
     \[
-      \mathcal{L}(\thetav+A) =
+      \mathcal{L}(\thetav+\Delta\thetav) =
         \mathcal{L}(\thetav)
-        + A^\top\nabla_{\thetav}\mathcal{L}(\thetav)
-        + \frac{1}{2!}A^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,A
+        + \Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+        + \frac{1}{2!}\Delta\thetav^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,\Delta\thetav
         + \cdots
     \]
     \begin{itemize}
-      \item O termo quadrático em $A$ só é desprezível se o passo for \alert{pequeno}.
+      \item O termo quadrático em $\Delta\thetav$ só é desprezível se o passo for \alert{pequeno}.
     \end{itemize}
   \end{frame}
 
   %--- Slide: passo pequeno via taxa de aprendizado ---
   \begin{frame}{Aplicando Taylor à Loss}
     \begin{itemize}
-      \item Ideia: controlar o tamanho do passo com um escalar, atualizando por $\eta A$
+      \item Ideia: controlar o tamanho do passo com um escalar, atualizando por $\eta \Delta\thetav$
         com $\eta>0$ pequeno, a \textit{taxa de aprendizado} (\textit{learning rate}):
         \[
-          \mathcal{L}(\thetav+\eta A) =
+          \mathcal{L}(\thetav+\eta \Delta\thetav) =
             \mathcal{L}(\thetav)
-            + \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav)
-            + \frac{\eta^{2}}{2!}A^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,A
+            + \eta\,\Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav)
+            + \frac{\eta^{2}}{2!}\Delta\thetav^\top\nabla^{2}_{\thetav}\mathcal{L}(\thetav)\,\Delta\thetav
             + \cdots
         \]
       \item Para $\eta$ suficientemente pequeno, $\eta^{2},\eta^{3},\ldots$ são
         desprezíveis e ficamos com a aproximação de primeira ordem:
         \[
-          \mathcal{L}(\thetav+\eta A)\approx \mathcal{L}(\thetav) + \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav).
+          \mathcal{L}(\thetav+\eta \Delta\thetav)\approx \mathcal{L}(\thetav) + \eta\,\Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav).
         \]
     \end{itemize}
   \end{frame}
@@ -236,15 +236,15 @@
   \begin{frame}{Critério de melhoria}
     Queremos que a atualização reduza a loss, ou seja
     \[
-      \mathcal{L}(\thetav+\eta A) - \mathcal{L}(\thetav) < 0.
+      \mathcal{L}(\thetav+\eta \Delta\thetav) - \mathcal{L}(\thetav) < 0.
     \]
     Substituindo a aproximação de primeira ordem:
     \[
-      \eta\,A^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0.
+      \eta\,\Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0.
     \]
     \vfill
     \begin{itemize}
-      \item Como $\eta>0$, basta exigir $A^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0$.
+      \item Como $\eta>0$, basta exigir $\Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav) < 0$.
       \item Isto é, o produto escalar entre a direção de atualização e o gradiente
         deve ser \alert{negativo}.
     \end{itemize}
@@ -252,20 +252,20 @@
 
   %--- Slide: produto escalar e cosseno (vetores corretos) ---
   \begin{frame}{Quando o produto escalar é negativo?}
-    Seja $\alpha$ o ângulo entre $A$ e $\nabla_{\thetav}\mathcal{L}(\thetav)$.
+    Seja $\alpha$ o ângulo entre $\Delta\thetav$ e $\nabla_{\thetav}\mathcal{L}(\thetav)$.
     \[
-      A^\top\nabla_{\thetav}\mathcal{L}(\thetav) =
-        \|A\|\,\|\nabla_{\thetav}\mathcal{L}(\thetav)\|\,\cos(\alpha).
+      \Delta\thetav^\top\nabla_{\thetav}\mathcal{L}(\thetav) =
+        \|\Delta\thetav\|\,\|\nabla_{\thetav}\mathcal{L}(\thetav)\|\,\cos(\alpha).
     \]
     \vfill
     \begin{columns}
       \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item $\|A\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
+          \item $\|\Delta\thetav\|\ge 0$ e $\|\nabla\mathcal{L}\|\ge 0$ sempre.
           \item Logo, o sinal vem inteiramente de $\cos(\alpha)$.
           \item Negativo para $\alpha\in(90^{\circ},180^{\circ})$.
           \item \alert{``Mais negativo''} para $\alpha=180^{\circ}$, ou seja
-            $A=-\nabla_{\thetav}\mathcal{L}$.
+            $\Delta\thetav=-\nabla_{\thetav}\mathcal{L}$.
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
@@ -275,9 +275,9 @@
             % Gradient pointing right
             \draw[->,thick,blue] (0,0) -- (3,0) node[right] {$\nabla\mathcal{L}$};
             % -gradient pointing exactly opposite (180 degrees)
-            \draw[->,thick,red] (0,0) -- (-3,0) node[left] {$A^{*}=-\nabla\mathcal{L}$};
-            % a generic A making angle beta with gradient
-            \draw[->,thick,Green!70!black] (0,0) -- ({3*cos(135)},{3*sin(135)}) node[above left] {$A$};
+            \draw[->,thick,red] (0,0) -- (-3,0) node[left] {$\Delta\thetav^{\,*}=-\nabla\mathcal{L}$};
+            % a generic \Delta\thetav making angle beta with gradient
+            \draw[->,thick,Green!70!black] (0,0) -- ({3*cos(135)},{3*sin(135)}) node[above left] {$\Delta\thetav$};
             % arc for alpha
             \draw[thick] (0.9,0) arc (0:135:0.9);
             \node[font=\small] at (0.6,0.6) {$\alpha$};
@@ -292,11 +292,11 @@
     \begin{block}{Direção ótima}
       A escolha que minimiza o produto escalar é
       \(
-        A = -\nabla_{\thetav}\mathcal{L}(\thetav).
+        \Delta\thetav = -\nabla_{\thetav}\mathcal{L}(\thetav).
       \)
     \end{block}
     \vfill
-    Substituindo na atualização $\thetav_{t+1}=\thetav_{t}+\eta\,A$:
+    Substituindo na atualização $\thetav_{t+1}=\thetav_{t}+\eta\,\Delta\thetav$:
     \[
       \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})}
     \]
@@ -312,12 +312,12 @@
   \begin{frame}{Exemplo numérico: descida de gradiente}
     \begin{block}{Cenário}
       \[
-        \eta = 0.1,\qquad \theta_t = \cvec{3}{5},\qquad
-        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2}.
+        \eta = 0.1,\qquad \thetav_t = \cvec{3}{5},\qquad
+        \nabla_{\thetav}\mathcal{L}(\thetav_t) = \cvec{1}{2}.
       \]
     \end{block}
     \[
-      \theta_{t+1} = \theta_t - \eta\,\nabla_{\theta}\mathcal{L}(\theta_t)
+      \thetav_{t+1} = \thetav_t - \eta\,\nabla_{\thetav}\mathcal{L}(\thetav_t)
       = \cvec{3}{5} - 0.1\,\cvec{1}{2} = \cvec{2.9}{4.8}.
     \]
     \begin{itemize}
@@ -588,20 +588,20 @@
   \begin{frame}{\textit{Momentum}\footfullcite{polyak1964momentum}}
     \begin{block}{Atualização com momentum}
       \[
-        v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
+        \mathbf{v}_{t+1} = \beta\,\mathbf{v}_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
       \]
       \[
-        \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}
+        \thetav_{t+1} = \thetav_{t} - \eta\,\mathbf{v}_{t+1}
       \]
     \end{block}
     \begin{itemize}
       \item $\beta\in[0,1)$ controla quanto da memória é considerado.
-      \item $v_t$ é uma \textbf{média móvel exponencial} dos gradientes anteriores.
+      \item $\mathbf{v}_t$ é uma \textbf{média móvel exponencial} dos gradientes anteriores.
       \item Para $\beta=0$, recuperamos a descida de gradiente padrão.
       \item Valores típicos: $\beta\in[0.9\,;\,0.99]$.
     \end{itemize}
     \vspace{0.4em}
-    {\footnotesize\color{gray!50!black}Convenção sem $(1-\beta)$: PyTorch e o paper original de Polyak escrevem $v_{t+1} = \beta\,v_t + \nabla_{\thetav}\mathcal{L}$. A diferença é absorvível em $\eta$.}
+    {\footnotesize\color{gray!50!black}Convenção sem $(1-\beta)$: PyTorch e o paper original de Polyak escrevem $\mathbf{v}_{t+1} = \beta\,\mathbf{v}_t + \nabla_{\thetav}\mathcal{L}$. A diferença é absorvível em $\eta$.}
   \end{frame}
 
   %--- Slide: comparação visual momentum (figura limpa) ---
@@ -619,18 +619,18 @@
   \begin{frame}{Exemplo numérico: \textit{Momentum}}
     \begin{block}{Cenário}
       \[
-        \eta = 0.1,\quad \beta = 0.9,\quad \theta_t = \cvec{3}{5},\quad
-        \nabla_{\theta}\mathcal{L}(\theta_t) = \cvec{1}{2},\quad v_t = \cvec{2}{1}.
+        \eta = 0.1,\quad \beta = 0.9,\quad \thetav_t = \cvec{3}{5},\quad
+        \nabla_{\thetav}\mathcal{L}(\thetav_t) = \cvec{1}{2},\quad \mathbf{v}_t = \cvec{2}{1}.
       \]
     \end{block}
     \[
       \begin{aligned}
-        v_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{1}{2} = \cvec{1.9}{1.1}\\[4pt]
-        \theta_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.9}{1.1} = \cvec{2.81}{4.89}
+        \mathbf{v}_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{1}{2} = \cvec{1.9}{1.1}\\[4pt]
+        \thetav_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.9}{1.1} = \cvec{2.81}{4.89}
       \end{aligned}
     \]
     \begin{itemize}
-      \item A memória $v_t$ empurra o passo além do gradiente atual: 0.19 na primeira coordenada, contra 0.1 do SGD.
+      \item A memória $\mathbf{v}_t$ empurra o passo além do gradiente atual: 0.19 na primeira coordenada, contra 0.1 do SGD.
     \end{itemize}
   \end{frame}
 
@@ -644,10 +644,10 @@
     \vfill
     \begin{block}{Regra de Nesterov}
       \[
-        v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t} - \eta\,\beta\,v_{t})
+        \mathbf{v}_{t+1} = \beta\,\mathbf{v}_{t} + (1-\beta)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t} - \eta\,\beta\,\mathbf{v}_{t})
       \]
       \[
-        \thetav_{t+1} = \thetav_{t} - \eta\,v_{t+1}
+        \thetav_{t+1} = \thetav_{t} - \eta\,\mathbf{v}_{t+1}
       \]
     \end{block}
     \begin{itemize}
@@ -675,22 +675,22 @@
   \begin{frame}{Exemplo numérico: Nesterov}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\quad \beta=0.9,\quad \theta_t=\cvec{3}{5},\quad v_t=\cvec{2}{1}.
+        \eta=0.1,\quad \beta=0.9,\quad \thetav_t=\cvec{3}{5},\quad \mathbf{v}_t=\cvec{2}{1}.
       \]
     \end{block}
     Ponto adiantado pelo momentum e gradiente avaliado nele:
     \[
-      \theta_t - \eta\beta\,v_t = \cvec{3}{5} - 0.09\,\cvec{2}{1} = \cvec{2.82}{4.91},
-      \qquad \nabla_{\theta}\mathcal{L}\!\left(\cvec{2.82}{4.91}\right) = \cvec{0.8}{1.6}.
+      \thetav_t - \eta\beta\,\mathbf{v}_t = \cvec{3}{5} - 0.09\,\cvec{2}{1} = \cvec{2.82}{4.91},
+      \qquad \nabla_{\thetav}\mathcal{L}\!\left(\cvec{2.82}{4.91}\right) = \cvec{0.8}{1.6}.
     \]
     \[
       \begin{aligned}
-        v_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{0.8}{1.6} = \cvec{1.88}{1.06}\\[4pt]
-        \theta_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.88}{1.06} = \cvec{2.812}{4.894}
+        \mathbf{v}_{t+1} &= 0.9\,\cvec{2}{1} + 0.1\,\cvec{0.8}{1.6} = \cvec{1.88}{1.06}\\[4pt]
+        \thetav_{t+1} &= \cvec{3}{5} - 0.1\,\cvec{1.88}{1.06} = \cvec{2.812}{4.894}
       \end{aligned}
     \]
     \begin{itemize}
-      \item O gradiente é medido já no ponto deslocado pelo momentum, não em $\theta_t$.
+      \item O gradiente é medido já no ponto deslocado pelo momentum, não em $\thetav_t$.
     \end{itemize}
   \end{frame}
 
@@ -713,12 +713,12 @@
   \begin{frame}{Normalização do gradiente}
     Para tornar o passo independente da magnitude do gradiente, podemos definir
     \[
-      m_{t+1}=\nabla_{\thetav}\mathcal{L}(\thetav_t),\qquad
-      v_{t+1}=\big(\nabla_{\thetav}\mathcal{L}(\thetav_t)\big)^{2}
+      \mathbf{m}_{t+1}=\nabla_{\thetav}\mathcal{L}(\thetav_t),\qquad
+      \mathbf{v}_{t+1}=\big(\nabla_{\thetav}\mathcal{L}(\thetav_t)\big)^{2}
     \]
     e atualizar com
     \[
-      \thetav_{t+1}=\thetav_{t}-\eta\,\frac{m_{t+1}}{\sqrt{v_{t+1}}+\epsilon}.
+      \thetav_{t+1}=\thetav_{t}-\eta\,\frac{\mathbf{m}_{t+1}}{\sqrt{\mathbf{v}_{t+1}}+\epsilon}.
     \]
     \begin{itemize}
       \item Com a normalização, o termo que multiplica $\eta$ tem magnitude próxima de 1.
@@ -731,14 +731,14 @@
   \begin{frame}{Exemplo numérico: normalização do gradiente}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad \epsilon\approx 0.
+        \eta=0.1,\quad \thetav_t=\cvec{3}{5},\quad \nabla_{\thetav}\mathcal{L}(\thetav_t)=\cvec{1}{2},\quad \epsilon\approx 0.
       \]
     \end{block}
     \[
-      m_{t+1} = \cvec{1}{2},\qquad v_{t+1} = \cvec{1^2}{2^2} = \cvec{1}{4}.
+      \mathbf{m}_{t+1} = \cvec{1}{2},\qquad \mathbf{v}_{t+1} = \cvec{1^2}{2^2} = \cvec{1}{4}.
     \]
     \[
-      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}}
+      \thetav_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}}
       = \cvec{3}{5} - 0.1\,\cvec{1}{1} = \cvec{2.9}{4.9}.
     \]
     \begin{itemize}
@@ -750,20 +750,20 @@
   \begin{frame}{AdaGrad: \textit{Adaptive (per-parameter) Gradient}\footfullcite{duchi2011adagrad}}
     \begin{block}{Atualização}
       \[
-        G_{t+1} = G_{t} + \big(\nabla_{\thetav}\mathcal{L}\big)^{2}
+        \mathbf{G}_{t+1} = \mathbf{G}_{t} + \big(\nabla_{\thetav}\mathcal{L}\big)^{2}
       \]
       \[
-        \thetav_{t+1} = \thetav_{t} - \frac{\eta}{\sqrt{G_{t+1}}+\epsilon}\,\nabla_{\thetav}\mathcal{L}
+        \thetav_{t+1} = \thetav_{t} - \frac{\eta}{\sqrt{\mathbf{G}_{t+1}}+\epsilon}\,\nabla_{\thetav}\mathcal{L}
       \]
     \end{block}
     \begin{itemize}
-      \item Cada parâmetro tem sua própria taxa efetiva, baseada em $G_{t}$, a soma
+      \item Cada parâmetro tem sua própria taxa efetiva, baseada em $\mathbf{G}_{t}$, a soma
         acumulada dos gradientes ao quadrado.
       \item Gradientes consistentemente grandes recebem passos menores; parâmetros
         raros recebem passos maiores.
     \end{itemize}
     \begin{alertblock}{Limitação}
-      $G_{t}$ é monotonamente crescente, logo $\eta/(\sqrt{G_{t}}+\epsilon)$ decai sempre:
+      $\mathbf{G}_{t}$ é monotonamente crescente, logo $\eta/(\sqrt{\mathbf{G}_{t}}+\epsilon)$ decai sempre:
       a taxa efetiva tende a zero e o aprendizado para.
     \end{alertblock}
   \end{frame}
@@ -772,18 +772,18 @@
   \begin{frame}{Exemplo numérico: AdaGrad}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad G_t=\cvec{24}{12}.
+        \eta=0.1,\quad \thetav_t=\cvec{3}{5},\quad \nabla_{\thetav}\mathcal{L}(\thetav_t)=\cvec{1}{2},\quad \mathbf{G}_t=\cvec{24}{12}.
       \]
     \end{block}
     \[
-      G_{t+1} = \cvec{24}{12} + \cvec{1^2}{2^2} = \cvec{25}{16}.
+      \mathbf{G}_{t+1} = \cvec{24}{12} + \cvec{1^2}{2^2} = \cvec{25}{16}.
     \]
     \[
-      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{25}}{2/\sqrt{16}}
+      \thetav_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{25}}{2/\sqrt{16}}
       = \cvec{3}{5} - 0.1\,\cvec{0.2}{0.5} = \cvec{2.98}{4.95}.
     \]
     \begin{itemize}
-      \item $G_t$ acumula os quadrados dos gradientes e só cresce. Cada coordenada ganha uma taxa efetiva própria $\eta/\sqrt{G_{t+1}}$, então o passo $(0.02,\ 0.05)$ difere entre os parâmetros: fica menor onde $G$ acumulou mais.
+      \item $\mathbf{G}_t$ acumula os quadrados dos gradientes e só cresce. Cada coordenada ganha uma taxa efetiva própria $\eta/\sqrt{\mathbf{G}_{t+1}}$, então o passo $(0.02,\ 0.05)$ difere entre os parâmetros: fica menor onde $\mathbf{G}$ acumulou mais.
     \end{itemize}
   \end{frame}
 
@@ -812,14 +812,14 @@
   \begin{frame}{Exemplo numérico: RMSProp}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\quad \rho=0.9,\quad \theta_t=\cvec{3}{5},\quad \nabla_{\theta}\mathcal{L}(\theta_t)=\cvec{1}{2},\quad \mathbb{E}[g^2]_t=\cvec{1}{4}.
+        \eta=0.1,\quad \rho=0.9,\quad \thetav_t=\cvec{3}{5},\quad \nabla_{\thetav}\mathcal{L}(\thetav_t)=\cvec{1}{2},\quad \mathbb{E}[g^2]_t=\cvec{1}{4}.
       \]
     \end{block}
     \[
       \mathbb{E}[g^2]_{t+1} = 0.9\,\cvec{1}{4} + 0.1\,\cvec{1}{4} = \cvec{1}{4}.
     \]
     \[
-      \theta_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
+      \thetav_{t+1} = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
     \]
     \begin{itemize}
       \item Neste cenário o passo coincide com o da normalização simples. A diferença para o AdaGrad (média móvel contra soma acumulada) aparece ao longo das iterações.
@@ -839,33 +839,33 @@
   \begin{frame}{Adam: as duas médias móveis}
     \begin{block}{Estimativas dos momentos}
       \[
-        m_{t+1} = \beta_1\,m_{t} + (1-\beta_1)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
+        \mathbf{m}_{t+1} = \beta_1\,\mathbf{m}_{t} + (1-\beta_1)\,\nabla_{\thetav}\mathcal{L}(\thetav_{t})
       \]
       \[
-        v_{t+1} = \beta_2\,v_{t} + (1-\beta_2)\,\big(\nabla_{\thetav}\mathcal{L}(\thetav_{t})\big)^{2}
+        \mathbf{v}_{t+1} = \beta_2\,\mathbf{v}_{t} + (1-\beta_2)\,\big(\nabla_{\thetav}\mathcal{L}(\thetav_{t})\big)^{2}
       \]
     \end{block}
     \begin{itemize}
-      \item $\beta_1\in[0,1)$, $\beta_2\in[0,1)$, com $m_0=0$ e $v_0=0$.
-      \item $m$ acompanha o primeiro momento (média) do gradiente, $v$ acompanha o segundo
+      \item $\beta_1\in[0,1)$, $\beta_2\in[0,1)$, com $\mathbf{m}_0=0$ e $\mathbf{v}_0=0$.
+      \item $\mathbf{m}$ acompanha o primeiro momento (média) do gradiente, $\mathbf{v}$ acompanha o segundo
         momento (média do gradiente ao quadrado).
     \end{itemize}
     \vspace{0.4em}
-    {\footnotesize\color{gray!50!black}Atenção à notação: aqui $v$ é a média móvel do gradiente ao quadrado, não a velocidade do \textit{momentum}.}
+    {\footnotesize\color{gray!50!black}Atenção à notação: aqui $\mathbf{v}$ é a média móvel do gradiente ao quadrado, não a velocidade do \textit{momentum}.}
   \end{frame}
 
   %--- Slide: Adam correção de viés ---
   \begin{frame}{Adam: correção de viés inicial}
     \begin{itemize}
-      \item Com $m_0=v_0=0$, as primeiras iterações subestimam fortemente $m$ e $v$.
+      \item Com $\mathbf{m}_0=\mathbf{v}_0=0$, as primeiras iterações subestimam fortemente $\mathbf{m}$ e $\mathbf{v}$.
       \item Correção de viés (\textit{bias correction}):
         \[
-          \widetilde{m}_{t+1}=\frac{m_{t+1}}{1-\beta_1^{t+1}},\qquad
-          \widetilde{v}_{t+1}=\frac{v_{t+1}}{1-\beta_2^{t+1}}.
+          \widetilde{\mathbf{m}}_{t+1}=\frac{\mathbf{m}_{t+1}}{1-\beta_1^{t+1}},\qquad
+          \widetilde{\mathbf{v}}_{t+1}=\frac{\mathbf{v}_{t+1}}{1-\beta_2^{t+1}}.
         \]
       \item A regra final é
         \[
-          \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}+\epsilon}}
+          \boxed{\thetav_{t+1}=\thetav_{t}-\eta\,\frac{\widetilde{\mathbf{m}}_{t+1}}{\sqrt{\widetilde{\mathbf{v}}_{t+1}}+\epsilon}}
         \]
       \item Hiperparâmetros padrão: $\beta_1{=}0.9$, $\beta_2{=}0.999$, $\epsilon{=}10^{-8}$.
     \end{itemize}
@@ -875,19 +875,19 @@
   \begin{frame}{Exemplo numérico: Adam (primeiro passo)}
     \begin{block}{Cenário}
       \[
-        \eta=0.1,\ \beta_1=0.9,\ \beta_2=0.999,\ \theta_0=\cvec{3}{5},\ \nabla_{\theta}\mathcal{L}(\theta_0)=\cvec{1}{2},\ m_0=v_0=0.
+        \eta=0.1,\ \beta_1=0.9,\ \beta_2=0.999,\ \thetav_0=\cvec{3}{5},\ \nabla_{\thetav}\mathcal{L}(\thetav_0)=\cvec{1}{2},\ \mathbf{m}_0=\mathbf{v}_0=0.
       \]
     \end{block}
     \[
-      m_1 = 0.1\,\cvec{1}{2} = \cvec{0.1}{0.2},\qquad v_1 = 0.001\,\cvec{1}{4} = \cvec{0.001}{0.004}.
+      \mathbf{m}_1 = 0.1\,\cvec{1}{2} = \cvec{0.1}{0.2},\qquad \mathbf{v}_1 = 0.001\,\cvec{1}{4} = \cvec{0.001}{0.004}.
     \]
     Correção de viés ($t=1$):
     \[
-      \widetilde{m}_1 = \frac{1}{1-0.9}\cvec{0.1}{0.2} = \cvec{1}{2},\qquad
-      \widetilde{v}_1 = \frac{1}{1-0.999}\cvec{0.001}{0.004} = \cvec{1}{4}.
+      \widetilde{\mathbf{m}}_1 = \frac{1}{1-0.9}\cvec{0.1}{0.2} = \cvec{1}{2},\qquad
+      \widetilde{\mathbf{v}}_1 = \frac{1}{1-0.999}\cvec{0.001}{0.004} = \cvec{1}{4}.
     \]
     \[
-      \theta_1 = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
+      \thetav_1 = \cvec{3}{5} - 0.1\,\cvec{1/\sqrt{1}}{2/\sqrt{4}} = \cvec{2.9}{4.9}.
     \]
     \begin{itemize}
       \item A correção de viés desfaz a subestimativa inicial: o passo por parâmetro fica $\approx \eta$.
@@ -935,13 +935,13 @@
         pesos de magnitude alta.
       \item No SGD, basta somar $\lambda\,\thetav_t$ ao gradiente: o efeito é o decaimento
         multiplicativo $(1-\eta\lambda)\,\thetav_t$.
-      \item No Adam, esse termo entraria em $m$ e $v$ e passaria pela divisão por
-        $\sqrt{\widetilde{v}}$: pesos com histórico de gradientes grandes quase não decairiam.
+      \item No Adam, esse termo entraria em $\mathbf{m}$ e $\mathbf{v}$ e passaria pela divisão por
+        $\sqrt{\widetilde{\mathbf{v}}}$: pesos com histórico de gradientes grandes quase não decairiam.
       \item O \textbf{AdamW} desacopla o decaimento, aplicando-o fora da parte adaptativa:
     \end{itemize}
     \begin{block}{Atualização do AdamW}
       \[
-        \thetav_{t+1}=\thetav_{t}-\eta\left(\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}+\epsilon}
+        \thetav_{t+1}=\thetav_{t}-\eta\left(\frac{\widetilde{\mathbf{m}}_{t+1}}{\sqrt{\widetilde{\mathbf{v}}_{t+1}}+\epsilon}
         + \lambda\,\thetav_{t}\right)
       \]
     \end{block}
@@ -965,7 +965,7 @@
 
   %--- Slide: valores singulares (conceito) ---
   \begin{frame}{Valores singulares: os fatores de esticamento da matriz}
-    Uma matriz $M$ transforma o círculo unitário, o conjunto dos vetores de norma 1, em uma \alert{elipse}.
+    Uma matriz $\mathbf{M}$ transforma o círculo unitário, o conjunto dos vetores de norma 1, em uma \alert{elipse}.
     \vfill
     \centering
     \begin{tikzpicture}[scale=0.72]
@@ -975,7 +975,7 @@
         \draw[very thick,NavyBlue] (0,0) circle (1);
         \node[below] at (0,-1.8) {\small vetores de norma 1};
       \end{scope}
-      \draw[->,very thick] (-1.6,0) -- node[above]{$M$} (0.4,0);
+      \draw[->,very thick] (-1.6,0) -- node[above]{$\mathbf{M}$} (0.4,0);
       \begin{scope}[shift={(3.6,0)}]
         \draw[gray!40,->] (-2.3,0)--(2.3,0);
         \draw[gray!40,->] (0,-1.5)--(0,1.5);
@@ -995,7 +995,7 @@
 
   %--- Slide: matrizes ortogonais (conceito) ---
   \begin{frame}{Ortogonalizar: transformar a elipse em círculo}
-    Uma matriz $O$ é \textbf{ortogonal} quando $O^{\top}O=I$, ou seja, suas colunas têm norma 1 \alert{e} são ortogonais entre si.
+    Uma matriz $\mathbf{O}$ é \textbf{ortogonal} quando $\mathbf{O}^{\top}\mathbf{O}=\mathbf{I}$, ou seja, suas colunas têm norma 1 \alert{e} são ortogonais entre si.
     \vfill
     \centering
     \begin{tikzpicture}[scale=0.72]
@@ -1021,7 +1021,7 @@
     \raggedright
     \begin{itemize}
       \item Uma matriz ortogonal preserva comprimentos e ângulos: o círculo unitário continua um círculo unitário.
-      \item \textbf{Ortogonalizar} $M$ é trocá-la pela matriz ortogonal mais próxima, mantendo as direções singulares e igualando todos os $\sigma$ a 1.
+      \item \textbf{Ortogonalizar} $\mathbf{M}$ é trocá-la pela matriz ortogonal mais próxima, mantendo as direções singulares e igualando todos os $\sigma$ a 1.
     \end{itemize}
   \end{frame}
 
@@ -1041,16 +1041,16 @@
 
   %--- Slide: steepest descent depende da norma (formulação) ---
   \begin{frame}{\textit{Steepest descent}: o passo mais íngreme depende da norma}
-    Qual atualização $\Delta W$ mais reduz a loss, dado um tamanho máximo de passo?
-    Com $G=\nabla_{W}L$, a aproximação linear da loss é
+    Qual atualização $\Delta \mathbf{W}$ mais reduz a loss, dado um tamanho máximo de passo?
+    Com $\mathbf{G}=\nabla_{\mathbf{W}}L$, a aproximação linear da loss é
     \[
-      L(W+\Delta W)\;\approx\;L(W)+\langle G,\,\Delta W\rangle,
+      L(\mathbf{W}+\Delta \mathbf{W})\;\approx\;L(\mathbf{W})+\langle \mathbf{G},\,\Delta \mathbf{W}\rangle,
       \qquad
-      \langle G,\,\Delta W\rangle=\textstyle\sum_{ij}G_{ij}\,\Delta W_{ij}.
+      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle=\textstyle\sum_{ij}G_{ij}\,\Delta W_{ij}.
     \]
     O passo mais íngreme minimiza essa aproximação com o tamanho do passo limitado:
     \[
-      \Delta W^{*}=\operatorname*{arg\,min}_{\|\Delta W\|\le \eta}\;\langle G,\,\Delta W\rangle.
+      \Delta \mathbf{W}^{*}=\operatorname*{arg\,min}_{\|\Delta \mathbf{W}\|\le \eta}\;\langle \mathbf{G},\,\Delta \mathbf{W}\rangle.
     \]
     \begin{itemize}
       \item A restrição é essencial: na aproximação linear, sem limite de tamanho o valor
@@ -1063,15 +1063,15 @@
   %--- Slide: solução sob Frobenius ---
   \begin{frame}{Solução sob a norma de Frobenius: o gradiente}
     A norma de Frobenius trata a matriz como um vetor longo:
-    $\|\Delta W\|_{F}=\sqrt{\sum_{ij}\Delta W_{ij}^{2}}$.
+    $\|\Delta \mathbf{W}\|_{F}=\sqrt{\sum_{ij}\Delta W_{ij}^{2}}$.
     Pela desigualdade de Cauchy--Schwarz,
     \[
-      \langle G,\,\Delta W\rangle \;\ge\; -\,\|G\|_{F}\,\|\Delta W\|_{F} \;\ge\; -\,\eta\,\|G\|_{F}.
+      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle \;\ge\; -\,\|\mathbf{G}\|_{F}\,\|\Delta \mathbf{W}\|_{F} \;\ge\; -\,\eta\,\|\mathbf{G}\|_{F}.
     \]
-    A igualdade acontece quando $\Delta W$ aponta no sentido oposto a $G$ e usa todo o
+    A igualdade acontece quando $\Delta \mathbf{W}$ aponta no sentido oposto a $\mathbf{G}$ e usa todo o
     tamanho permitido:
     \[
-      \Delta W^{*}=-\,\eta\,\frac{G}{\|G\|_{F}}.
+      \Delta \mathbf{W}^{*}=-\,\eta\,\frac{\mathbf{G}}{\|\mathbf{G}\|_{F}}.
     \]
     \begin{itemize}
       \item O passo mais íngreme sob Frobenius é o \alert{gradiente} (normalizado): a descida
@@ -1082,48 +1082,48 @@
 
   %--- Slide: solução sob a norma espectral ---
   \begin{frame}{Solução sob a norma espectral: a ortogonalização}
-    A SVD escreve $G$ como uma soma de matrizes de \textit{rank} 1: cada parcela pega a
-    direção singular de entrada $v_{i}$, leva na direção de saída $u_{i}$ e estica por $\sigma_{i}$:
+    A SVD escreve $\mathbf{G}$ como uma soma de matrizes de \textit{rank} 1: cada parcela pega a
+    direção singular de entrada $\mathbf{v}_{i}$, leva na direção de saída $\mathbf{u}_{i}$ e estica por $\sigma_{i}$:
     \[
-      G=\sum_{i}\sigma_{i}\,u_{i}v_{i}^{\top}
+      \mathbf{G}=\sum_{i}\sigma_{i}\,\mathbf{u}_{i}\mathbf{v}_{i}^{\top}
       \qquad\Longrightarrow\qquad
-      \langle G,\,\Delta W\rangle=\sum_{i}\sigma_{i}\,\big(u_{i}^{\top}\Delta W\,v_{i}\big).
+      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle=\sum_{i}\sigma_{i}\,\big(\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\big).
     \]
-    A norma espectral é o maior fator de esticamento: se $\|\Delta W\|_{2}=\sigma_{1}(\Delta W)\le\eta$,
+    A norma espectral é o maior fator de esticamento: se $\|\Delta \mathbf{W}\|_{2}=\sigma_{1}(\Delta \mathbf{W})\le\eta$,
     nenhum vetor unitário é esticado além de $\eta$. Cada parcela então obedece
-    $u_{i}^{\top}\Delta W\,v_{i}\ge-\eta$, logo
+    $\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\ge-\eta$, logo
     \[
-      \langle G,\,\Delta W\rangle\;\ge\;-\,\eta\sum_{i}\sigma_{i}.
+      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle\;\ge\;-\,\eta\sum_{i}\sigma_{i}.
     \]
-    A igualdade exige $\Delta W\,v_{i}=-\eta\,u_{i}$ em \alert{todas} as direções singulares
+    A igualdade exige $\Delta \mathbf{W}\,\mathbf{v}_{i}=-\eta\,\mathbf{u}_{i}$ em \alert{todas} as direções singulares
     ao mesmo tempo:
     \[
-      \Delta W^{*}=-\,\eta\sum_{i}u_{i}v_{i}^{\top}=-\,\eta\,UV^{\top},
+      \Delta \mathbf{W}^{*}=-\,\eta\sum_{i}\mathbf{u}_{i}\mathbf{v}_{i}^{\top}=-\,\eta\,\mathbf{U}\mathbf{V}^{\top},
     \]
-    uma matriz ortogonal escalada por $\eta$, exatamente a \alert{ortogonalização} de $G$.
+    uma matriz ortogonal escalada por $\eta$, exatamente a \alert{ortogonalização} de $\mathbf{G}$.
     \vfill
-    {\footnotesize\color{gray!50!black}Supomos todos os $\sigma_{i}>0$; $U$ e $V$ empilham os
-    $u_{i}$ e $v_{i}$ como colunas; usamos $\langle u_{i}v_{i}^{\top},\,\Delta W\rangle
-    =u_{i}^{\top}\Delta W\,v_{i}$ e $\|u_{i}\|=\|v_{i}\|=1$.}
+    {\footnotesize\color{gray!50!black}Supomos todos os $\sigma_{i}>0$; $\mathbf{U}$ e $\mathbf{V}$ empilham os
+    $\mathbf{u}_{i}$ e $\mathbf{v}_{i}$ como colunas; usamos $\langle \mathbf{u}_{i}\mathbf{v}_{i}^{\top},\,\Delta \mathbf{W}\rangle
+    =\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}$ e $\|\mathbf{u}_{i}\|=\|\mathbf{v}_{i}\|=1$.}
   \end{frame}
 
   %--- Slide: pseudocódigo Muon ---
   \begin{frame}{Pseudocódigo do Muon}
-    \begin{block}{Atualização (matriz $G$ do gradiente)}
+    \begin{block}{Atualização (matriz $\mathbf{G}$ do gradiente)}
       \begin{algorithmic}[1]
-        \State $M_{t+1} \gets \beta M_{t} + G_{t}$ \Comment{momentum (acumulador de gradientes)}
-        \State $\widehat{M}_{t+1} \gets M_{t+1}/\|M_{t+1}\|_{F}$ \Comment{normaliza pela norma de Frobenius}
-        \State $O_{t+1} \gets \mathrm{NewtonSchulz5}(\widehat{M}_{t+1})$ \Comment{aproxima a matriz ortogonal mais próxima}
-        \State $W_{t+1} \gets W_{t} - \eta\,O_{t+1}$
+        \State $\mathbf{M}_{t+1} \gets \beta \mathbf{M}_{t} + \mathbf{G}_{t}$ \Comment{momentum (acumulador de gradientes)}
+        \State $\widehat{\mathbf{M}}_{t+1} \gets \mathbf{M}_{t+1}/\|\mathbf{M}_{t+1}\|_{F}$ \Comment{normaliza pela norma de Frobenius}
+        \State $\mathbf{O}_{t+1} \gets \mathrm{NewtonSchulz5}(\widehat{\mathbf{M}}_{t+1})$ \Comment{aproxima a matriz ortogonal mais próxima}
+        \State $\mathbf{W}_{t+1} \gets \mathbf{W}_{t} - \eta\,\mathbf{O}_{t+1}$
       \end{algorithmic}
     \end{block}
     \begin{itemize}
-      \item Newton-Schulz aproxima a parte ortogonal de $\widehat{M}$ com polinômios
+      \item Newton-Schulz aproxima a parte ortogonal de $\widehat{\mathbf{M}}$ com polinômios
         matriciais, sem calcular SVD; com 5 passos, roda bem em \textit{tensor cores} de GPU.
       \item A normalização da linha 2 existe só para trazer os valores singulares à região
         de convergência do Newton-Schulz: a matriz ortogonal mais próxima não muda com a escala.
-      \item Quem é ortogonalizado é o momentum $M_{t+1}$, não o gradiente instantâneo:
-        na derivação do passo mais íngreme, $M_{t+1}$ assume o papel de $G$.
+      \item Quem é ortogonalizado é o momentum $\mathbf{M}_{t+1}$, não o gradiente instantâneo:
+        na derivação do passo mais íngreme, $\mathbf{M}_{t+1}$ assume o papel de $\mathbf{G}$.
     \end{itemize}
     {\footnotesize\color{gray!50!black}Na implementação de referência, a normalização fica
     dentro do \texttt{NewtonSchulz5} e o momentum é Nesterov; o passo de uma matriz $m\times n$
@@ -1136,40 +1136,40 @@
     \begin{block}{Cenário: parâmetro 2D, como o Muon exige}
       \[
         \eta=0.1,\quad \beta=0.9,\quad
-        W_t=\begin{bmatrix}3&5\\2&4\end{bmatrix},\quad
-        M_t=\begin{bmatrix}2&-3\\5&2\end{bmatrix},\quad
-        G_t=\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}.
+        \mathbf{W}_t=\begin{bmatrix}3&5\\2&4\end{bmatrix},\quad
+        \mathbf{M}_t=\begin{bmatrix}2&-3\\5&2\end{bmatrix},\quad
+        \mathbf{G}_t=\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}.
       \]
     \end{block}
     Passo 1, momentum (elemento a elemento):
     \[
-      M_{t+1}=0.9\begin{bmatrix}2&-3\\5&2\end{bmatrix}+\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}
+      \mathbf{M}_{t+1}=0.9\begin{bmatrix}2&-3\\5&2\end{bmatrix}+\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}
       =\begin{bmatrix}3&-1\\7&3\end{bmatrix}.
     \]
     Passo 2, normalização pela norma de Frobenius:
     \[
-      \|M_{t+1}\|_{F}=\sqrt{9+1+49+9}=\sqrt{68}\approx 8.25,
+      \|\mathbf{M}_{t+1}\|_{F}=\sqrt{9+1+49+9}=\sqrt{68}\approx 8.25,
       \qquad
-      \widehat{M}_{t+1}\approx\begin{bmatrix}0.36&-0.12\\0.85&0.36\end{bmatrix}.
+      \widehat{\mathbf{M}}_{t+1}\approx\begin{bmatrix}0.36&-0.12\\0.85&0.36\end{bmatrix}.
     \]
     \begin{itemize}
-      \item Falta o passo 3, a ortogonalização. Antes dele, vejamos quanto $M_{t+1}$ estica cada direção singular.
+      \item Falta o passo 3, a ortogonalização. Antes dele, vejamos quanto $\mathbf{M}_{t+1}$ estica cada direção singular.
     \end{itemize}
   \end{frame}
 
   %--- Slide: calculo dos valores singulares ---
-  \begin{frame}{Os valores singulares de $M_{t+1}$}
-    Os valores singulares de $M$ são as raízes quadradas dos autovalores de $M^{\top}M$:
+  \begin{frame}{Os valores singulares de $\mathbf{M}_{t+1}$}
+    Os valores singulares de $\mathbf{M}$ são as raízes quadradas dos autovalores de $\mathbf{M}^{\top}\mathbf{M}$:
     \[
-      M_{t+1}^{\top}M_{t+1}
+      \mathbf{M}_{t+1}^{\top}\mathbf{M}_{t+1}
       =\begin{bmatrix}3&7\\-1&3\end{bmatrix}\begin{bmatrix}3&-1\\7&3\end{bmatrix}
       =\begin{bmatrix}58&18\\18&10\end{bmatrix}.
     \]
     Com traço e determinante
     \[
-      \operatorname{tr}\!\big(M^{\top}M\big)=58+10=68,
+      \operatorname{tr}\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=58+10=68,
       \qquad
-      \det\!\big(M^{\top}M\big)=58\cdot 10-18\cdot 18=580-324=256,
+      \det\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=58\cdot 10-18\cdot 18=580-324=256,
     \]
     a equação característica fica
     \[
@@ -1189,7 +1189,7 @@
 
   %--- Slide: exemplo numérico Muon (parte 2) ---
   \begin{frame}{Exemplo numérico: Muon (a tentativa ingênua)}
-    As colunas de $M_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ não são ortogonais entre si:
+    As colunas de $\mathbf{M}_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ não são ortogonais entre si:
     \[
       (3,\,7)\cdot(-1,\,3) = -3+21 = 18 \neq 0.
     \]
@@ -1206,41 +1206,41 @@
 
   %--- Slide: forma fechada da ortogonalização 2x2 ---
   \begin{frame}{Ortogonalização em forma fechada para matrizes $2\times 2$}
-    Quando $\det M>0$, a matriz ortogonal mais próxima de $M$ é uma \alert{rotação}:
+    Quando $\det \mathbf{M}>0$, a matriz ortogonal mais próxima de $\mathbf{M}$ é uma \alert{rotação}:
     \[
-      R(\phi)=\begin{bmatrix}\cos\phi&-\sin\phi\\ \sin\phi&\cos\phi\end{bmatrix}.
+      \mathbf{R}(\phi)=\begin{bmatrix}\cos\phi&-\sin\phi\\ \sin\phi&\cos\phi\end{bmatrix}.
     \]
-    Minimizar a distância $\|M-R(\phi)\|_{F}^{2}$ equivale a maximizar o produto interno
+    Minimizar a distância $\|\mathbf{M}-\mathbf{R}(\phi)\|_{F}^{2}$ equivale a maximizar o produto interno
     \[
-      \langle M,\,R(\phi)\rangle
+      \langle \mathbf{M},\,\mathbf{R}(\phi)\rangle
       =\underbrace{(a+d)}_{p}\cos\phi+\underbrace{(c-b)}_{q}\sin\phi,
-      \qquad M=\begin{bmatrix}a&b\\c&d\end{bmatrix},
+      \qquad \mathbf{M}=\begin{bmatrix}a&b\\c&d\end{bmatrix},
     \]
     e o máximo ocorre quando $(\cos\phi,\,\sin\phi)$ aponta na direção do vetor $(p,\,q)$:
     \[
-      O=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}.
+      \mathbf{O}=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}.
     \]
-    {\footnotesize\color{gray!50!black}É o $UV^{\top}$ da derivação anterior, calculado sem SVD. Se $\det M<0$, a ortogonal mais próxima é uma reflexão e a forma muda; em dimensões maiores não há fórmula tão simples, e é aí que entra o Newton-Schulz.}
+    {\footnotesize\color{gray!50!black}É o $\mathbf{U}\mathbf{V}^{\top}$ da derivação anterior, calculado sem SVD. Se $\det \mathbf{M}<0$, a ortogonal mais próxima é uma reflexão e a forma muda; em dimensões maiores não há fórmula tão simples, e é aí que entra o Newton-Schulz.}
   \end{frame}
 
   %--- Slide: exemplo numérico Muon (parte 3) ---
   \begin{frame}{Exemplo numérico: Muon (ortogonalização e atualização)}
-    Passo 3, ortogonalização de $M_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ pela forma fechada:
+    Passo 3, ortogonalização de $\mathbf{M}_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ pela forma fechada:
     \[
-      \det M_{t+1}=3\cdot 3-(-1)\cdot 7=16>0,\quad
+      \det \mathbf{M}_{t+1}=3\cdot 3-(-1)\cdot 7=16>0,\quad
       p=3+3=6,\quad q=7-(-1)=8,\quad \sqrt{p^{2}+q^{2}}=10,
     \]
     \[
-      O_{t+1}=\frac{1}{10}\begin{bmatrix}6&-8\\8&6\end{bmatrix}=\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}.
+      \mathbf{O}_{t+1}=\frac{1}{10}\begin{bmatrix}6&-8\\8&6\end{bmatrix}=\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}.
     \]
     Passo 4, atualização dos pesos:
     \[
-      W_{t+1}=\begin{bmatrix}3&5\\2&4\end{bmatrix}-0.1\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}
+      \mathbf{W}_{t+1}=\begin{bmatrix}3&5\\2&4\end{bmatrix}-0.1\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}
       =\begin{bmatrix}2.94&5.08\\1.92&3.94\end{bmatrix}.
     \]
     \begin{itemize}
       \item Os valores singulares passaram de $(8,\,2)$ para $(1,\,1)$: a atualização estica todas as direções singulares igualmente.
-      \item Aplicamos a forma fechada a $M_{t+1}$, não a $\widehat{M}_{t+1}$: as duas têm a mesma
+      \item Aplicamos a forma fechada a $\mathbf{M}_{t+1}$, não a $\widehat{\mathbf{M}}_{t+1}$: as duas têm a mesma
         ortogonal mais próxima. A normalização do passo 2 só importa para a convergência do Newton-Schulz.
     \end{itemize}
   \end{frame}
@@ -1250,13 +1250,13 @@
     \begin{block}{Cenário: mesmo primeiro momento para os dois otimizadores}
       \[
         \epsilon\approx 0,\quad
-        \widetilde{m}_{t+1}=M_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix},\quad
-        \widetilde{v}_{t+1}=\begin{bmatrix}1&4\\36&49\end{bmatrix}.
+        \widetilde{\mathbf{m}}_{t+1}=\mathbf{M}_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix},\quad
+        \widetilde{\mathbf{v}}_{t+1}=\begin{bmatrix}1&4\\36&49\end{bmatrix}.
       \]
     \end{block}
-    O Adam normaliza entrada por entrada (aqui $\widetilde{v}=\widetilde{m}^{2}$, um histórico de gradientes estável). A direção da sua atualização é
+    O Adam normaliza entrada por entrada (aqui $\widetilde{\mathbf{v}}=\widetilde{\mathbf{m}}^{2}$, um histórico de gradientes estável). A direção da sua atualização é
     \[
-      D_{\text{Adam}}=\frac{\widetilde{m}_{t+1}}{\sqrt{\widetilde{v}_{t+1}}}
+      \mathbf{D}_{\text{Adam}}=\frac{\widetilde{\mathbf{m}}_{t+1}}{\sqrt{\widetilde{\mathbf{v}}_{t+1}}}
       =\begin{bmatrix}1/1&-2/2\\6/6&-7/7\end{bmatrix}
       =\begin{bmatrix}1&-1\\1&-1\end{bmatrix}.
     \]
@@ -1268,9 +1268,9 @@
 
   %--- Slide: Adam e Muon no mesmo cenário (passo do Muon e comparação) ---
   \begin{frame}{Comparando as atualizações de Adam e Muon}
-    Com a forma fechada da ortogonalização ($\det M_{t+1}=-7+12=5>0$):
+    Com a forma fechada da ortogonalização ($\det \mathbf{M}_{t+1}=-7+12=5>0$):
     \[
-      D_{\text{Muon}}=O_{t+1}=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}
+      \mathbf{D}_{\text{Muon}}=\mathbf{O}_{t+1}=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}
       =\frac{1}{10}\begin{bmatrix}-6&-8\\8&-6\end{bmatrix}
       =\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}.
     \]
@@ -1284,7 +1284,7 @@
           \draw[gray!50,dashed] (0,0) circle (1);
           \draw[->,very thick,BrickRed] (0,0) -- (1,1) node[above right,inner sep=1pt] {\footnotesize $(1,\,1)$};
           \draw[->,very thick,NavyBlue] (0,0) -- (-1,-1) node[below left,inner sep=1pt] {\footnotesize $(-1,\,-1)$};
-          \node[below] at (0,-1.85) {\small colunas de $D_{\text{Adam}}$: paralelas (\textit{rank} 1)};
+          \node[below] at (0,-1.85) {\small colunas de $\mathbf{D}_{\text{Adam}}$: paralelas (\textit{rank} 1)};
         \end{tikzpicture}
       \end{column}
       \begin{column}{.5\linewidth}
@@ -1295,7 +1295,7 @@
           \draw[gray!50,dashed] (0,0) circle (1);
           \draw[->,very thick,BrickRed] (0,0) -- (-0.6,0.8) node[above left,inner sep=1pt] {\footnotesize $(-0.6,\,0.8)$};
           \draw[->,very thick,NavyBlue] (0,0) -- (-0.8,-0.6) node[below left,inner sep=1pt] {\footnotesize $(-0.8,\,-0.6)$};
-          \node[below] at (0,-1.85) {\small colunas de $D_{\text{Muon}}$: ortonormais};
+          \node[below] at (0,-1.85) {\small colunas de $\mathbf{D}_{\text{Muon}}$: ortonormais};
         \end{tikzpicture}
       \end{column}
     \end{columns}
@@ -1321,7 +1321,7 @@
         \draw[->,thick,BrickRed] (0,0) -- (76.7:1.184) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
         \draw[thick,BrickRed] (0,0) -- (-13.3:0.066);
         \node[font=\scriptsize,BrickRed] at (-13.3:0.38) {$\sigma_2$};
-        \node[below] at (0,-1.42) {\small $M_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix}$};
+        \node[below] at (0,-1.42) {\small $\mathbf{M}_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix}$};
       \end{scope}
       \begin{scope}
         \draw[gray!40,->] (-1.35,0)--(1.35,0);
@@ -1332,7 +1332,7 @@
         \draw[<->,very thick,BrickRed] (225:0.8333) -- (45:0.8333);
         \node[font=\scriptsize,BrickRed,above,inner sep=3pt] at (45:0.8333) {$\sigma_1$};
         \node[font=\scriptsize,BrickRed] at (-45:0.55) {$\sigma_2=0$};
-        \node[below] at (0,-1.42) {\small $D_{\text{Adam}}=\begin{bmatrix}1&-1\\1&-1\end{bmatrix}$};
+        \node[below] at (0,-1.42) {\small $\mathbf{D}_{\text{Adam}}=\begin{bmatrix}1&-1\\1&-1\end{bmatrix}$};
       \end{scope}
       \begin{scope}[shift={(2.9,0)}]
         \draw[gray!40,->] (-1.35,0)--(1.35,0);
@@ -1342,7 +1342,7 @@
         \draw[very thick,NavyBlue] (0,0) circle (0.4167);
         \draw[->,thick,NavyBlue] (0,0) -- (76.7:0.4167) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
         \draw[->,thick,NavyBlue] (0,0) -- (-13.3:0.4167) node[above right,inner sep=1pt] {\scriptsize $\sigma_2$};
-        \node[below] at (0,-1.42) {\small $D_{\text{Muon}}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}$};
+        \node[below] at (0,-1.42) {\small $\mathbf{D}_{\text{Muon}}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}$};
       \end{scope}
     \end{tikzpicture}
     \vfill

@@ -1361,19 +1361,19 @@
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         O \textbf{mecanismo de atenção padrão} materializa a matriz
-        $S = QK^\top \in \mathbb{R}^{N\times N}$ inteira na HBM:
+        $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top \in \mathbb{R}^{N\times N}$ inteira na HBM:
         \[
-          \text{Attn}(Q,K,V) =
-          \text{softmax}\!\left(\tfrac{QK^\top}{\sqrt{d}}\right)\!V
+          \text{Attn}(\mathbf{Q},\mathbf{K},\mathbf{V}) =
+          \text{softmax}\!\left(\tfrac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}}\right)\!\mathbf{V}
         \]
 
         \begin{alertblock}{Problema de IO}
-          Para $N=4096$, fp16: $S \approx \textbf{32 MB/camada}$.
+          Para $N=4096$, fp16: $\mathbf{S} \approx \textbf{32 MB/camada}$.
           Com 32 camadas: \textbf{GBs de transfers HBM}, que é lenta.
         \end{alertblock}
 
         O bottleneck \textbf{não é computação, é memória}:
-        cada elemento de $S$ deve ser escrito e relido da HBM
+        cada elemento de $\mathbf{S}$ deve ser escrito e relido da HBM
         pelo menos 2 vezes (forward + backward).
       \end{column}
       \begin{column}{0.45\textwidth}
@@ -1403,7 +1403,7 @@
           \node[draw=DarkRed, fill=LightOrange, rounded corners,
                 font=\scriptsize, text width=1.5cm, align=center,
                 right=0.3cm of hbm] (std)
-                {Atenção\\padrão:\\escreve $S$};
+                {Atenção\\padrão:\\escreve $\mathbf{S}$};
           \draw[->, DarkRed, dashed, thin] (std) -- (hbm.east);
 
           \node[draw=DarkGreen, fill=PastelGreen!40, rounded corners,
@@ -1417,8 +1417,8 @@
   \note{
     \textbf{Por que o IO domina?}
     \begin{itemize}
-      \item \textbf{Atenção padrão:} (1) lê Q, K da HBM; (2) computa $S=QK^\top$ e escreve $S$ na HBM; (3) lê $S$ para softmax, escreve $P=\text{softmax}(S)$ na HBM; (4) lê $P$ e $V$ para calcular saída, escreve $O$ na HBM. Cada round-trip à HBM ($\sim$2 TB/s) é caro.
-      \item Para $N=4096$: $S$ em fp16 = $32\text{MB}$. Com $\sim$2 TB/s: $32\text{MB}/2\text{TB/s} = 16\,\mu\text{s}$ por leitura/escrita. Multiplicando por cabeças de atenção, camadas e passos de treino: segundos de tempo desperdiçado em IO puro.
+      \item \textbf{Atenção padrão:} (1) lê $\mathbf{Q}$, $\mathbf{K}$ da HBM; (2) computa $\mathbf{S}=\mathbf{Q}\mathbf{K}^\top$ e escreve $\mathbf{S}$ na HBM; (3) lê $\mathbf{S}$ para softmax, escreve $\mathbf{P}=\text{softmax}(\mathbf{S})$ na HBM; (4) lê $\mathbf{P}$ e $\mathbf{V}$ para calcular saída, escreve $\mathbf{O}$ na HBM. Cada round-trip à HBM ($\sim$2 TB/s) é caro.
+      \item Para $N=4096$: $\mathbf{S}$ em fp16 = $32\text{MB}$. Com $\sim$2 TB/s: $32\text{MB}/2\text{TB/s} = 16\,\mu\text{s}$ por leitura/escrita. Multiplicando por cabeças de atenção, camadas e passos de treino: segundos de tempo desperdiçado em IO puro.
       \item \textbf{Dao et al. (2022):} a SRAM on-chip ($\sim$20MB numa A100) é $\sim$10$\times$ mais rápida que a HBM. A insight chave: se o bloco de atenção couber na SRAM, podemos evitar os round-trips à HBM.
     \end{itemize}
   }
@@ -1428,9 +1428,9 @@
   \begin{frame}{\textit{Flash Attention}: Tiling na SRAM}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        \textbf{Ideia central:} dividir Q, K, V em \textbf{blocos}
+        \textbf{Ideia central:} dividir $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ em \textbf{blocos}
         que cabem na SRAM e processar atenção bloco a bloco,
-        sem materializar $S = QK^\top$ na HBM.
+        sem materializar $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top$ na HBM.
 
         \vspace{0.3em}
         \begin{block}{\textit{Online Softmax}}
@@ -1446,7 +1446,7 @@
           Matematicamente equivalente ao softmax global.
         \end{block}
 
-        \textcolor{DarkGreen}{\small \textbf{Resultado:} memória $O(N^2)\!\to\!O(N)$;
+        \textcolor{DarkGreen}{\small \textbf{Resultado:} memória $\mathcal{O}(N^2)\!\to\!\mathcal{O}(N)$;
         2--4$\times$ mais rápido; contextos longos viáveis \cite{dao2022flashattention}.}
       \end{column}
       \begin{column}{0.47\textwidth}
@@ -1478,11 +1478,11 @@
 
           % ---- Q_i tile ----
           \node[qbox] (qi) at (-1.00, 4.10)
-            {$Q_i$\\\tiny \textit{query}};
+            {$\mathbf{Q}_i$\\\tiny \textit{query}};
 
           % ---- K_j, V_j tile ----
           \node[kvbox] (kj) at (1.00, 4.10)
-            {$K_j,\,V_j$\\\tiny \textit{key/value}};
+            {$\mathbf{K}_j,\,\mathbf{V}_j$\\\tiny \textit{key/value}};
 
           % ---- SRAM region (background tint) ----
           \fill[DarkOrange!7, rounded corners=4pt]
@@ -1492,16 +1492,16 @@
 
           % ---- Compute S_ij box ----
           \node[sbox] (compute) at (0, 2.55)
-            {$S_{ij} = Q_i K_j^\top /\!\sqrt{d}$};
+            {$\mathbf{S}_{ij} = \mathbf{Q}_i \mathbf{K}_j^\top /\!\sqrt{d}$};
 
           % ---- Online softmax box ----
           \node[sfbox] (softmax) at (0, 1.50)
             {softmax online:\\
-             atualiza $m_i,\,\ell_i,\,O_i$};
+             atualiza $m_i,\,\ell_i,\,\mathbf{O}_i$};
 
           % ---- Output box ----
           \node[outbox] (out) at (0, 0.30)
-            {escreve $O_i$ na HBM};
+            {escreve $\mathbf{O}_i$ na HBM};
 
           % ---- Arrows: HBM tiles -> compute ----
           \draw[arr, DarkBlue]  (qi.south) -- (qi.south  |- compute.north);
@@ -1522,10 +1522,10 @@
   \note{
     \textbf{Como o Flash Attention funciona:}
     \begin{itemize}
-      \item \textbf{Loop externo:} itera sobre blocos de Q. Para cada $Q_i$: carrega na SRAM.
-      \item \textbf{Loop interno:} itera sobre blocos de K e V. Para cada $(Q_i, K_j)$: (1) computa $s_{ij} = Q_i K_j^\top / \sqrt{d}$ na SRAM; (2) atualiza softmax online ($m_i, \ell_i$); (3) acumula $O_i$.
-      \item \textbf{Online softmax:} ao encontrar um score maior em um bloco novo, recalibra o acumulador $O_i$ multiplicando pelo fator de correção $e^{m_i^{\text{old}} - m_i^{\text{new}}}$. Matematicamente idêntico ao softmax global, sem revisitar blocos anteriores.
-      \item \textbf{Resultado:} apenas Q, K, V e O são transferidos HBM$\leftrightarrow$SRAM. A matriz $S$ nunca existe na HBM. IO reduzido de $O(N^2)$ para $O(N)$.
+      \item \textbf{Loop externo:} itera sobre blocos de $\mathbf{Q}$. Para cada $\mathbf{Q}_i$: carrega na SRAM.
+      \item \textbf{Loop interno:} itera sobre blocos de $\mathbf{K}$ e $\mathbf{V}$. Para cada $(\mathbf{Q}_i, \mathbf{K}_j)$: (1) computa $\mathbf{S}_{ij} = \mathbf{Q}_i \mathbf{K}_j^\top / \sqrt{d}$ na SRAM; (2) atualiza softmax online ($m_i, \ell_i$); (3) acumula $\mathbf{O}_i$.
+      \item \textbf{Online softmax:} ao encontrar um score maior em um bloco novo, recalibra o acumulador $\mathbf{O}_i$ multiplicando pelo fator de correção $e^{m_i^{\text{old}} - m_i^{\text{new}}}$. Matematicamente idêntico ao softmax global, sem revisitar blocos anteriores.
+      \item \textbf{Resultado:} apenas $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ e $\mathbf{O}$ são transferidos HBM$\leftrightarrow$SRAM. A matriz $\mathbf{S}$ nunca existe na HBM. IO reduzido de $\mathcal{O}(N^2)$ para $\mathcal{O}(N)$.
     \end{itemize}
   }
   \end{frame}
@@ -1535,7 +1535,7 @@
     \begin{columns}[T,onlytextwidth]
       \begin{column}{0.56\textwidth}
         \small
-        \textbf{Scores:} $s = [3,\,1,\,2,\,4]$ em dois blocos:
+        \textbf{Scores:} $\mathbf{s} = [3,\,1,\,2,\,4]$ em dois blocos:
         $B_1 = [3,\,1]$, $B_2 = [2,\,4]$
 
         \vspace{0.3em}
@@ -1563,9 +1563,9 @@
         \begin{alertblock}{Por que isso importa?}
           \small Sem subtração do máximo:
           \[
-            s = [1000,\,1001] \;\Rightarrow\; e^{1000} = \infty
+            \mathbf{s} = [1000,\,1001] \;\Rightarrow\; e^{1000} = \infty
           \]
-          Online: $s - m = [-1,\,0]$\\
+          Online: $\mathbf{s} - m = [-1,\,0]$\\
           $\Rightarrow e^{-1} + e^{0} = 1{.}368$
           \textcolor{DarkGreen}{\checkmark} sem overflow
         \end{alertblock}
@@ -1623,7 +1623,7 @@
     \textbf{Impacto prático do Flash Attention:}
     \begin{itemize}
       \item FA não reduz FLOPs de computação (o número de multiplicações é o mesmo). Ele reduz o custo de IO, que é o bottleneck em GPUs modernas para $N \geq 512$.
-      \item \textbf{Contextos longos:} FA tornou praticável treinar com $N = 32$k, 128k ou até 1M tokens. Sem FA, o custo $O(N^2)$ em memória limita $N$ a poucos milhares.
+      \item \textbf{Contextos longos:} FA tornou praticável treinar com $N = 32$k, 128k ou até 1M tokens. Sem FA, o custo $\mathcal{O}(N^2)$ em memória limita $N$ a poucos milhares.
       \item \textbf{PyTorch 2.0:} \texttt{F.scaled\_dot\_product\_attention} usa FA2 automaticamente quando detecta hardware compatível. Basta atualizar o código para usar essa função.
     \end{itemize}
   }
