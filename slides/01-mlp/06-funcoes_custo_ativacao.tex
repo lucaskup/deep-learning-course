@@ -3,6 +3,12 @@
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
 
+% Cores das caixas do diagrama SwiGLU (mesma paleta da aula de decoder-only)
+\definecolor{CellGreen}{HTML}{C8E6C9}
+\definecolor{CellYellow}{HTML}{FFF9C4}
+\definecolor{CellRed}{HTML}{FFCDD2}
+\definecolor{CellBlue}{HTML}{BBDEFB}
+
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
 %----------------------------------------------------------------------------------------
@@ -97,7 +103,7 @@
   \end{frame}
 
   %--- Slide: requisitos ---
-  \begin{frame}{O que esperamos de uma boa ativação}
+  \begin{frame}{O que esperamos de uma função de ativação}
     \begin{itemize}
       \item Contínua e diferenciável (quase em todo lugar): a descida de gradiente exige $\varphi'$.
       \item $\varphi'(z)$ não nula em uma faixa ampla, para que o gradiente não se anule.
@@ -161,7 +167,7 @@
         \]
         \begin{itemize}
           \item Imagem em $(-1,1)$, centrada em zero.
-          \item Mais simétrica que a sigmoid.
+          \item Função ímpar: $\tanh(-z)=-\tanh(z)$.
           \item Sofre do mesmo problema de saturação.
         \end{itemize}
       \end{column}
@@ -207,9 +213,10 @@
             \begin{axis}[
               width=7cm,height=4.5cm,
               xlabel={$z$}, ylabel={$\varphi'(z)$},
+              ylabel style={at={(axis description cs:0.5,1.02)},anchor=south},
               axis lines=middle,
               domain=-6:6, samples=120,
-              ymin=0, ymax=1.05,
+              ymin=0, ymax=1.15,
               legend style={font=\tiny,at={(1.05,1)},anchor=north west}
             ]
               \addplot[thick,blue]    {exp(-x)/((1+exp(-x))^2)};
@@ -271,10 +278,10 @@
   %--- Slide: dying ReLU ---
   \begin{frame}{O problema do \textit{dying ReLU}}
     \begin{itemize}
-      \item Se uma unidade entra em $z<0$ para todos os exemplos do dataset, $\mathrm{ReLU}'(z)=0$
+      \item Se uma unidade tem $z<0$ para todos os exemplos do dataset, $\mathrm{ReLU}'(z)=0$
         sempre.
       \item Sem gradiente passando, os pesos não atualizam: a unidade fica \alert{morta}.
-      \item Em redes muito largas, é comum uma fração significativa das unidades estar morta
+      \item Em redes muito profundas, é comum uma fração significativa das unidades estar morta
         em algum momento do treinamento.
       \item Causas usuais: taxa de aprendizado muito alta, inicialização ruim.
     \end{itemize}
@@ -422,7 +429,6 @@
           \item Limite $\beta\to 0$: $\varphi(z)\approx z/2$ (linear).
           \item Limite $\beta\to\infty$: $\varphi(z)\to\mathrm{ReLU}(z)$.
           \item Com $\beta=1$ é a \textbf{SiLU} (\textit{Sigmoid Linear Unit}), \texttt{nn.SiLU} no PyTorch.
-          \item Descoberta por busca automática de ativações.
         \end{itemize}
       \end{column}
       \begin{column}{.55\linewidth}
@@ -455,13 +461,14 @@
     \begin{columns}
       \begin{column}{.5\linewidth}
         \[
-          \varphi(z) = z\,\Phi(z),\quad \Phi(z)=\Pr(Z\le z),\;Z\sim\mathcal{N}(0,1)
+          \varphi(z) = z\,\Phi(z),\qquad \Phi(z)=\Pr(Z\le z)
         \]
         \begin{itemize}
           \item \textit{Gaussian Error Linear Unit}.
-          \item Multiplica $z$ pela probabilidade acumulada gaussiana $\Phi(z)$.
+          \item Multiplica $z$ pela probabilidade acumulada gaussiana $\Phi(z)$,
+            com $Z\sim\mathcal{N}(0,1)$.
           \item Aproximação prática: $\varphi(z)\approx z\,\sigma(1.702\,z)$ (próxima de Swish).
-          \item Padrão em \textit{transformers} modernos (BERT, GPT-2/3, ViT).
+          \item Padrão em alguns \textit{transformers}(BERT, GPT-2/3, ViT).
         \end{itemize}
       \end{column}
       \begin{column}{.5\linewidth}
@@ -490,27 +497,96 @@
   %--- Slide: SwiGLU ---
   \begin{frame}{SwiGLU\footfullcite{shazeer2020swiglu}}
     \begin{itemize}
-      \item Não é uma ativação ponto-a-ponto: combina duas projeções lineares com gating.
+      \item Não é uma ativação ponto-a-ponto: combina duas projeções lineares da mesma entrada
+        com \textit{gating}.
       \[
         \mathrm{SwiGLU}(\mathbf{x})
-          = \mathrm{Swish}_{\beta}(\mathbf{x}\mathbf{W}_1+\mathbf{b}_1)\;\odot\;(\mathbf{x}\mathbf{W}_2+\mathbf{b}_2)
+          = \mathrm{Swish}(\mathbf{x}\mathbf{W}_1)\;\odot\;(\mathbf{x}\mathbf{W}_3)
       \]
-      \item $\odot$ é o produto elemento a elemento; uma das projeções faz \textit{gating} sobre a outra.
-      \item Substitui o bloco \textit{feed-forward} típico em arquiteturas modernas como
-        LLaMA, Mistral e PaLM.
-      \item Empiricamente: melhora qualidade do modelo com mesmo orçamento de parâmetros e cálculo.
+      \item $\odot$ é o produto elemento a elemento: o ramo $\mathbf{x}\mathbf{W}_3$ funciona como
+        um \textit{portão} que decide quanto de cada dimensão do ramo ativado passa adiante.
+      \item Um portão em $0$ desliga a dimensão; um portão negativo inverte o sinal.
+        A rede aprende \textit{quais} dimensões ativar para cada entrada.
+      \item Substitui o bloco \textit{feed-forward} de arquiteturas modernas como
+        LLaMA, Mistral e PaLM, seguido de uma projeção de saída $\mathbf{W}_2$.
+      \item Empiricamente supera ReLU e GELU com o mesmo orçamento de parâmetros.
     \end{itemize}
-    \vfill
-    \begin{exampleblock}{Custo}
-      Adiciona uma terceira projeção ao bloco FFN (duas projeções de entrada em vez de uma),
-      cerca de $50\%$ mais parâmetros; na prática reduz-se a dimensão oculta para manter o orçamento.
-    \end{exampleblock}
+  \end{frame}
+
+  %--- Slide: SwiGLU diagrama (copiado e adaptado da aula de decoder-only) ---
+  \begin{frame}{SwiGLU: diagrama computacional}
+    \begin{columns}[T]
+      \begin{column}{0.55\textwidth}
+        \centering
+        \resizebox{0.88\linewidth}{!}{%
+        \begin{tikzpicture}[
+          vec/.style={draw, rounded corners, minimum width=3.0cm, minimum height=0.52cm,
+                      fill=CellBlue, align=center, font=\small},
+          lin/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.52cm,
+                      fill=CellYellow, align=center, font=\small},
+          gate/.style={draw, rounded corners, minimum width=2.6cm, minimum height=0.52cm,
+                       fill=CellGreen, align=center, font=\small},
+          act/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.52cm,
+                      fill=CellRed, align=center, font=\small},
+          mul/.style={draw, circle, minimum size=0.52cm, fill=PastelOrange,
+                      inner sep=0pt, font=\normalsize, thick},
+          arr/.style={->, >=Stealth, thick},
+          ann/.style={font=\scriptsize, gray},
+        ]
+          \node[vec]  (x)    at (1.6, 6.2) {$\mathbf{x} \in \mathbb{R}^{d}$};
+          \node[lin]  (w1)   at (0.0, 4.9) {$\mathbf{x} \mathbf{W}_1$};
+          \node[gate] (w3)   at (3.2, 4.9) {$\mathbf{x} \mathbf{W}_3$\;\textit{(portão)}};
+          \node[act]  (silu) at (0.0, 3.6) {$\mathrm{Swish}(\mathbf{x} \mathbf{W}_1)$};
+          \node[mul]  (mul)  at (1.6, 2.4) {$\odot$};
+          \node[lin]  (w2)   at (1.6, 1.2) {$(\cdots)\,\mathbf{W}_2$};
+          \node[vec]  (y)    at (1.6, 0.0) {$\mathbf{y} \in \mathbb{R}^{d}$};
+
+          \draw[arr] (x.south) -- ++(0,-0.42) -| (w1.north);
+          \draw[arr] (x.south) -- ++(0,-0.42) -| (w3.north);
+          \draw[arr] (w1) -- (silu);
+          \draw[arr] (silu.south) -- ++(0,-0.35) -| (mul.west);
+          \draw[arr] (w3.south) -- ++(0,-1.1) -| (mul.east);
+          \draw[arr] (mul) -- (w2);
+          \draw[arr] (w2)  -- (y);
+
+          \node[ann, left=0.08cm of w1]  {$d \to d_h$};
+          \node[ann, right=0.08cm of w3] {$d \to d_h$};
+          \node[ann, right=0.08cm of w2] {$d_h \to d$};
+        \end{tikzpicture}}
+      \end{column}
+
+      \begin{column}{0.41\textwidth}
+        \footnotesize\textbf{Exemplo numérico}\\[0.1em]
+        \scriptsize$d=3,\quad d_h=8$\\[0.5em]
+
+        {\setlength{\fboxsep}{3pt}%
+        \colorbox{CellBlue}{$\mathbf{x} = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
+        \colorbox{CellYellow}{$\mathbf{x}\mathbf{W}_1 = [\,2.0,\;{-1.0},\;0.5,\;1.2,\;\ldots\,]$}\\[0.15em]
+        \colorbox{CellRed}{$\mathrm{Swish}(\mathbf{x}\mathbf{W}_1) \approx [\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$}\\[0.45em]
+        \colorbox{CellGreen}{$\mathbf{x}\mathbf{W}_3 = [\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\;\textit{(portão)}}\\[0.6em]
+        }%
+
+        \colorbox{PastelOrange}{%
+          \begin{minipage}{0.88\linewidth}
+            \scriptsize
+            $[\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$\\
+            $\odot\;[\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\\[0.15em]
+            $=[\,1.41,\;\mathbf{0.00},\;0.37,\;0.46,\;\ldots\,]$\\[0.2em]
+            \textcolor{red!70!black}{\tiny$\Rightarrow$ portão \textbf{0.0} suprime a dimensão 2}
+          \end{minipage}%
+        }\\[0.6em]
+
+        {\setlength{\fboxsep}{3pt}%
+        \colorbox{CellYellow}{$[\,\cdots\,]\mathbf{W}_2\;\approx\;\mathbf{y} = [\,0.7,\;{-0.2},\;0.4\,]$}
+        }
+      \end{column}
+    \end{columns}
   \end{frame}
 
   %--- Slide: Linear ---
   \begin{frame}{Identity (Linear)}
     \begin{columns}
-      \begin{column}{.55\linewidth}
+      \begin{column}{.45\linewidth}
         \[
           \varphi(z) = z,\qquad \varphi'(z) = 1.
         \]
@@ -521,18 +597,23 @@
             restrição de sinal.
         \end{itemize}
       \end{column}
-      \begin{column}{.45\linewidth}
+      \begin{column}{.55\linewidth}
         \centering
         \resizebox{\linewidth}{!}{
           \begin{tikzpicture}
             \begin{axis}[
-              width=7cm,height=4.5cm,
+              width=8cm,height=6.5cm,
               xlabel={$z$},
               axis lines=middle,
               domain=-3:3, samples=2,
-              ymin=-3.2, ymax=3.2
+              ymin=-3.2, ymax=3.2,
+              ytick={-3,-2,-1,1,2,3},
+              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
             ]
               \addplot[thick,blue] {x};
+              \addlegendentry{$\varphi(z)=z$}
+              \addplot[thick,Green!70!black,dashed] {1};
+              \addlegendentry{$\varphi'(z)=1$}
             \end{axis}
           \end{tikzpicture}
         }
@@ -578,7 +659,7 @@
     \begin{itemize}
       \item Combinada com BCE (binary cross-entropy) na função de custo.
       \item Domínio do alvo: $y\in\{0,1\}$.
-      \item Saída: $\hat y = \sigma(z) = \Pr(y=1\mid x)$.
+      \item Saída: $\hat y = \sigma(z) = \Pr(y=1\mid \mathbf{x})$.
       \item Para multilabel basta uma sigmoid por classe; cada uma se comporta como
         um classificador binário independente.
     \end{itemize}
@@ -594,26 +675,18 @@
         \begin{itemize}
           \item Cada saída $i$ depende de todas as pré-ativações, não só de $z_i$.
           \item Saídas são positivas e somam 1: distribuição de probabilidade.
-          \item Combina com a \textit{categorical cross-entropy} na loss.
+          \item Combina com a \textit{categorical cross-entropy} na função de custo.
         \end{itemize}
       \end{column}
       \begin{column}{.45\linewidth}
         \centering
-        \begin{tabular}{cc}
-          \toprule
-          $z_i$ & $\mathrm{softmax}(\mathbf{z})_i$ \\
-          \midrule
-          $1.8$  & $0.7500$ \\
-          $0.7$  & $0.2497$ \\
-          $-6.0$ & $0.0003$ \\
-          \bottomrule
-        \end{tabular}
-        \vspace{0.4em}
+        \textbf{Exemplo} ($K=3$):
         \[
           \mathrm{softmax}\!\begin{pmatrix}1.8\\0.7\\-6.0\end{pmatrix}
           \approx
           \begin{pmatrix}0.7500\\0.2497\\0.0003\end{pmatrix}
         \]
+        {\footnotesize O logit mais alto domina, mas nenhuma saída é exatamente zero.}
       \end{column}
     \end{columns}
   \end{frame}
@@ -626,9 +699,9 @@
   \begin{frame}{Mudança de paradigma}
     \begin{itemize}
       \item Até aqui: a rede $f(\mathbf{x};\thetav)$ produz uma saída $\hat y$.
-      \item A partir de agora: a rede produz \alert{parâmetros $\phi$ de uma distribuição
+      \item A partir de agora: a rede produz \alert{parâmetros $\bm{\eta}$ de uma distribuição
         de probabilidade} sobre $y$.
-      \item Loss vai medir o quão bem essa distribuição predita explica os dados observados.
+      \item A função de custo mede o quão bem essa distribuição predita explica os dados observados.
       \item Esse é o ponto de partida da família de \textit{maximum likelihood estimators}.
     \end{itemize}
   \end{frame}
@@ -691,7 +764,7 @@
         \begin{itemize}
           \item $\log$ é monotônica crescente: preserva o ponto de máximo.
           \item Transforma produto em soma, que é estável numericamente.
-          \item Soma de log-probabilidades $\le 0$, fácil de manipular.
+          \item Para distribuições discretas, cada termo $\log\Pr(\cdot)\le 0$.
         \end{itemize}
       \end{column}
       \begin{column}{.6\linewidth}
@@ -728,11 +801,11 @@
   \end{frame}
 
   %--- Slide: receita geral ---
-  \begin{frame}{Receita geral para construir uma loss}
+  \begin{frame}{Receita geral para construir uma função de custo}
     \begin{enumerate}
-      \item Escolher uma distribuição $\Pr(y\mid \phi)$ apropriada ao domínio de $y$.
-      \item Fazer a rede $f(\mathbf{x};\thetav)$ predizer os parâmetros $\phi$ dessa distribuição.
-      \item Substituir e simplificar a NLL para obter uma loss $\mathcal{L}(\thetav)$.
+      \item Escolher uma distribuição $\Pr(y\mid \bm{\eta})$ apropriada ao domínio de $y$.
+      \item Fazer a rede $f(\mathbf{x};\thetav)$ predizer os parâmetros $\bm{\eta}$ dessa distribuição.
+      \item Substituir e simplificar a NLL para obter uma função de custo $\mathcal{L}(\thetav)$.
       \item Treinar minimizando $\mathcal{L}$ via descida de gradiente.
     \end{enumerate}
     \vfill
@@ -793,7 +866,7 @@
       \boxed{\hat\thetav = \argmin_{\thetav}\;\sum_{i=1}^{N}\big(y^{(i)}-f(\mathbf{x}^{(i)};\thetav)\big)^{2}}
     \]
     \begin{itemize}
-      \item Esta é a \textbf{$L_2$ loss} (também chamada de MSE quando dividida por $N$).
+      \item Esta é a \textbf{função de custo $L_2$} (também chamada de MSE quando dividida por $N$).
       \item Sai naturalmente de duas hipóteses: instâncias \textit{i.i.d.} amostradas de uma
         gaussiana univariada com variância fixa.
     \end{itemize}
@@ -830,10 +903,10 @@
          \propto \sum_{i=1}^{N}\big|y^{(i)}-f(\mathbf{x}^{(i)};\thetav)\big|
     \end{align*}
     \begin{itemize}
-      \item O resultado é a \textbf{$L_1$ loss} (MAE): penaliza desvios linearmente,
+      \item O resultado é a \textbf{função de custo $L_1$} (MAE): penaliza desvios linearmente,
         não quadraticamente.
       \item A Laplace tem caudas mais pesadas que a gaussiana: erros grandes são menos
-        surpreendentes, logo a loss é mais \alert{robusta a outliers}.
+        surpreendentes, logo a função de custo é mais \alert{robusta a outliers}.
     \end{itemize}
   \end{frame}
 
@@ -885,6 +958,7 @@
         \boxed{\mathcal{L}_{\text{BCE}}(\thetav) = -\sum_{i=1}^{N}
           \Big[ y^{(i)}\log\hat\lambda^{(i)} + (1-y^{(i)})\log\!\big(1-\hat\lambda^{(i)}\big) \Big]}
       \]
+      \centering com $\hat\lambda^{(i)} = \sigma\!\big(f(\mathbf{x}^{(i)};\thetav)\big)$.
     \end{block}
   \end{frame}
 
@@ -921,36 +995,36 @@
     \vspace{0.4em}
     \begin{itemize}
       \item A pré-ativação da camada de saída é uma função \textit{piecewise} linear.
-      \item Após a sigmoid, a saída fica em $[0,1]$ e oscila como uma probabilidade.
+      \item Após a sigmoid, a saída fica em $[0,1]$ e pode ser lida como uma probabilidade.
     \end{itemize}
   \end{frame}
 
   %--- Slide: por que não MSE em classificação ---
   \begin{frame}{Por que não usar MSE em classificação?}
+    Para um exemplo $(\mathbf{x}, y)$ com saída $\hat y=\sigma(z)$:
+    \vspace{-0.4em}
+    \begin{align*}
+      \mathcal{L}_{\text{MSE}} &= \big(\sigma(z)-y\big)^{2}
+        & \frac{\partial \mathcal{L}_{\text{MSE}}}{\partial z} &= 2\big(\sigma(z)-y\big)\,\alert{\sigma'(z)} \\
+      \mathcal{L}_{\text{BCE}} &= -\big[y\log\sigma(z) + (1-y)\log\big(1-\sigma(z)\big)\big]
+        & \frac{\partial \mathcal{L}_{\text{BCE}}}{\partial z} &= \sigma(z)-y
+    \end{align*}
+    \vspace{-0.6em}
     \begin{columns}
-      \begin{column}{.5\linewidth}
-        Com saída $\hat y = \sigma(z)$:
-        \[
-          \frac{\partial}{\partial z}\big(\sigma(z)-y\big)^{2}
-            = 2\big(\sigma(z)-y\big)\,\alert{\sigma'(z)}
-        \]
-        \[
-          \frac{\partial \mathcal{L}_{\text{BCE}}}{\partial z} = \sigma(z)-y
-        \]
+      \begin{column}{.55\linewidth}
         \begin{itemize}
-          \item Na BCE, o $\sigma'$ cancela: gradiente proporcional ao erro.
-          \item No MSE, $\sigma'(z)$ sobrevive: se o modelo erra com confiança,
-            o gradiente \alert{morre} onde a correção é mais necessária.
-          \item MSE embute a hipótese gaussiana; para $y\in\{0,1\}$,
-            a Bernoulli leva à BCE.
+          \item Na BCE o $\sigma'$ cancela: gradiente proporcional ao erro.
+          \item No MSE, $\sigma'(z)$ sobrevive: errar com confiança \alert{mata} o gradiente.
+          \item MSE embute a hipótese gaussiana; $y\in\{0,1\}$ pede Bernoulli, logo BCE.
+          \item $\mathcal{L}_{\text{MSE}}$ não é convexa em $z$; $\mathcal{L}_{\text{BCE}}$ é.
         \end{itemize}
       \end{column}
-      \begin{column}{.5\linewidth}
+      \begin{column}{.45\linewidth}
         \centering
-        \resizebox{\linewidth}{!}{
+        \resizebox{.9\linewidth}{!}{
           \begin{tikzpicture}
             \begin{axis}[
-              width=8cm,height=5.5cm,
+              width=8cm,height=5cm,
               xlabel={$z$}, ylabel={$\left|\partial \mathcal{L}/\partial z\right|$},
               axis lines=middle,
               domain=-6:6, samples=120,
@@ -1026,83 +1100,165 @@
     \]
     \begin{itemize}
       \item $\log\sum e^{z_j}$ é o \textit{log-sum-exp}, calculado de forma estável em \textit{frameworks}.
+      \item A softmax é invariante a deslocamentos de todos os logits por um escalar $c$:
+        \[
+          \mathrm{softmax}(\mathbf{z}) = \mathrm{softmax}\big(\mathbf{z}-c\,\mathbf{1}\big),
+          \qquad \mathbf{1} = (1,\ldots,1)^{\top},
+          \quad c\,\mathbf{1} = (c,\ldots,c)^{\top}.
+        \]
+        Usa-se $c=\max_j z_j$ para que nenhum $e^{z_j - c}$ estoure.
     \end{itemize}
   \end{frame}
 
   %--- Slide: derivada da softmax, preparação ---
   \begin{frame}{Derivada da softmax: preparação}
-    Escrevendo $S = \sum_{j=1}^{K} e^{z_j}$, cada saída da softmax é um quociente:
+    Escrevendo $S = \sum_{j=1}^{K} e^{z_j}$, cada saída da softmax é um produto de dois fatores:
     \[
-      \lambda_k = \frac{e^{z_k}}{S}.
+      \lambda_k = \frac{e^{z_k}}{S} = e^{z_k}\cdot S^{-1}.
     \]
     \begin{itemize}
-      \item Como $S$ soma todos os logits, $\lambda_k$ depende de \alert{todos} os $z_j$:
+      \item Como $S$ soma todos os $e^{z_j}$, $\lambda_k$ depende de \alert{todos} os $z_j$:
         a derivada completa é uma matriz (Jacobiano) $K\times K$ de termos
         $\partial\lambda_k/\partial z_j$.
-      \item Ferramenta: regra do quociente,
-        $\left(\dfrac{u}{v}\right)' = \dfrac{u'v - u\,v'}{v^{2}}$.
+      \item Ferramentas: regra do produto, $(u\,v)' = u'v + u\,v'$, e regra da cadeia
+        para a potência, $\dfrac{\partial S^{-1}}{\partial z_j} = -S^{-2}\,\dfrac{\partial S}{\partial z_j}$.
       \item Há duas situações distintas: derivar em relação ao \textbf{próprio} logit
         ($j = k$) ou em relação a \textbf{outro} logit ($j \ne k$).
     \end{itemize}
   \end{frame}
 
   %--- Slide: derivada da softmax, caso j = k ---
-  \begin{frame}{Derivada da softmax: caso $j = k$}
-    Com $u = e^{z_k}$ e $v = S$, temos $\dfrac{\partial u}{\partial z_k} = e^{z_k}$
-    e $\dfrac{\partial S}{\partial z_k} = e^{z_k}$:
+  \begin{frame}{Derivada da softmax: caso $j = k$, passo a passo}
+    Identificando os dois fatores: $u = e^{z_k}$, $v = S^{-1}$ com $S = \sum_{j} e^{z_j}$.
     \begin{align*}
+      \frac{\partial u}{\partial z_k} &= e^{z_k}
+        &&\text{(derivada da exponencial)} \\
+      \frac{\partial S}{\partial z_k} &= \frac{\partial}{\partial z_k}\big(e^{z_1}+\cdots+e^{z_k}+\cdots+e^{z_K}\big) = e^{z_k}
+        &&\text{(só um termo da soma depende de $z_k$)} \\
+      \frac{\partial v}{\partial z_k} &= -S^{-2}\,\frac{\partial S}{\partial z_k} = -S^{-2}\,e^{z_k}
+        &&\text{(regra da cadeia na potência)} \\[0.4em]
       \frac{\partial \lambda_k}{\partial z_k}
-        &= \frac{e^{z_k}\,S - e^{z_k}\,e^{z_k}}{S^{2}}
-         = \frac{e^{z_k}}{S}\cdot\frac{S - e^{z_k}}{S} \\
+        &= u'v + u\,v'
+         = e^{z_k}\,S^{-1} - e^{z_k}\,S^{-2}\,e^{z_k}
+        &&\text{(regra do produto)} \\
+        &= \frac{e^{z_k}}{S} - \frac{e^{z_k}}{S}\cdot\frac{e^{z_k}}{S}
+        &&\text{(reescrever as potências como frações)} \\
+        &= \lambda_k - \lambda_k^{2}
+        &&\text{(reconhecer $\lambda_k = e^{z_k}/S$)} \\
         &= \lambda_k\,(1-\lambda_k)
+        &&\text{(fatorar $\lambda_k$)}
     \end{align*}
+  \end{frame}
+
+  %--- Slide: interpretação do caso j = k ---
+  \begin{frame}{Derivada da softmax: lendo o caso $j = k$}
+    \[
+      \frac{\partial \lambda_k}{\partial z_k} = \lambda_k\,(1-\lambda_k)
+    \]
     \begin{itemize}
       \item Mesma forma da derivada da sigmoid: aumentar $z_k$ aumenta $\lambda_k$,
         com efeito máximo quando $\lambda_k = 1/2$.
-      \item Satura quando $\lambda_k \to 0$ ou $\lambda_k \to 1$.
+      \item Satura quando $\lambda_k \to 0$ ou $\lambda_k \to 1$: logits muito confiantes
+        respondem pouco a mudanças.
+      \item Sempre não negativa: um logit nunca diminui a própria probabilidade.
     \end{itemize}
   \end{frame}
 
   %--- Slide: derivada da softmax, caso j != k ---
-  \begin{frame}{Derivada da softmax: caso $j \ne k$}
-    Agora o numerador $e^{z_k}$ não depende de $z_j$
-    ($\partial u/\partial z_j = 0$), mas $S$ sim ($\partial S/\partial z_j = e^{z_j}$):
+  \begin{frame}{Derivada da softmax: caso $j \ne k$, passo a passo}
+    Mesmo produto $\lambda_k = u\,v$, mas agora derivando em relação a \textbf{outro} logit $z_j$.
     \begin{align*}
+      \frac{\partial u}{\partial z_j} &= \frac{\partial}{\partial z_j}\,e^{z_k} = 0
+        &&\text{($e^{z_k}$ não depende de $z_j$)} \\
+      \frac{\partial S}{\partial z_j} &= \frac{\partial}{\partial z_j}\big(e^{z_1}+\cdots+e^{z_j}+\cdots+e^{z_K}\big) = e^{z_j}
+        &&\text{(só o termo $e^{z_j}$ sobrevive)} \\
+      \frac{\partial v}{\partial z_j} &= -S^{-2}\,\frac{\partial S}{\partial z_j} = -S^{-2}\,e^{z_j}
+        &&\text{(regra da cadeia na potência)} \\[0.4em]
       \frac{\partial \lambda_k}{\partial z_j}
-        &= \frac{0\cdot S - e^{z_k}\,e^{z_j}}{S^{2}}
-         = -\frac{e^{z_k}}{S}\cdot\frac{e^{z_j}}{S} \\
+        &= u'v + u\,v'
+         = 0\cdot S^{-1} - e^{z_k}\,S^{-2}\,e^{z_j}
+        &&\text{(regra do produto)} \\
+        &= -\frac{e^{z_k}}{S}\cdot\frac{e^{z_j}}{S}
+        &&\text{(reescrever $S^{-2}$ como duas frações)} \\
         &= -\lambda_k\,\lambda_j
+        &&\text{(reconhecer as duas softmax)}
     \end{align*}
+    \vspace{-0.7em}
     \begin{itemize}
       \item Sinal negativo: aumentar outro logit \alert{rouba} massa de probabilidade de $\lambda_k$.
-      \item Os dois casos se unificam com o colchete de Iverson (delta de Kronecker):
     \end{itemize}
-    \[
-      \boxed{\frac{\partial \lambda_k}{\partial z_j} = \lambda_k\big([k=j] - \lambda_j\big)}
-    \]
+  \end{frame}
+
+  %--- Slide: unificação com Kronecker ---
+  \begin{frame}{Derivada da softmax: unificando os dois casos}
+    \begin{columns}
+      \begin{column}{.5\linewidth}
+        \[
+          \frac{\partial \lambda_k}{\partial z_j} =
+            \begin{cases}
+              \lambda_k\,(1-\lambda_k) & j = k \\
+              -\lambda_k\,\lambda_j    & j \ne k
+            \end{cases}
+        \]
+      \end{column}
+      \begin{column}{.5\linewidth}
+        \[
+          \boxed{\frac{\partial \lambda_k}{\partial z_j} = \lambda_k\big([k=j] - \lambda_j\big)}
+        \]
+      \end{column}
+    \end{columns}
+    \vspace{0.6em}
+    \begin{itemize}
+      \item O colchete de Iverson $[k=j]$ (delta de Kronecker $\delta_{kj}$) vale $1$ quando
+        $j=k$ e $0$ caso contrário.
+      \item Verificação: com $j=k$, $[k=j]=1$ e sobra $\lambda_k(1-\lambda_k)$;
+        com $j\ne k$, $[k=j]=0$ e sobra $-\lambda_k\lambda_j$.
+      \item Em forma matricial, o Jacobiano $\mathbf{J}\in\mathbb{R}^{K\times K}$ com
+        $J_{kj} = \partial\lambda_k/\partial z_j$ é
+        \[
+          \mathbf{J} = \mathrm{diag}(\bm{\lambda}) - \bm{\lambda}\bm{\lambda}^{\top}.
+        \]
+    \end{itemize}
   \end{frame}
 
   %--- Slide: por que derivar a loss direto nos logits ---
-  \begin{frame}{Por que derivar a loss direto nos logits?}
-    \textbf{Caminho 1}: regra da cadeia atravessando o Jacobiano da softmax, com
+  \begin{frame}{Por que derivar a função de custo direto nos logits?}
+    Regra da cadeia atravessando o Jacobiano da softmax, com
     $\dfrac{\partial \mathcal{L}}{\partial \lambda_k} = -\dfrac{y_k}{\lambda_k}$:
-    \[
+    \begin{align*}
       \frac{\partial \mathcal{L}}{\partial z_j}
-        = \sum_{k=1}^{K} \left(-\frac{y_k}{\lambda_k}\right)\lambda_k\big([k=j]-\lambda_j\big)
-        = -y_j + \lambda_j\underbrace{\sum_{k=1}^{K} y_k}_{=\,1}
-        = \lambda_j - y_j.
-    \]
-    \textbf{Caminho 2}: derivar a forma log-softmax do slide anterior, direto em $z_j$:
+        &= \sum_{k=1}^{K} \frac{\partial \mathcal{L}}{\partial \lambda_k}\,
+           \frac{\partial \lambda_k}{\partial z_j}
+         = \sum_{k=1}^{K} \left[\left(-\frac{y_k}{\lambda_k}\right)\lambda_k\big([k=j]-\lambda_j\big)\right]
+         = \sum_{k=1}^{K} \Big[-y_k\big([k=j]-\lambda_j\big)\Big] \\
+        &= -y_j + \lambda_j\underbrace{\textstyle\sum_{k} y_k}_{=\,1}
+         = \lambda_j - y_j.
+    \end{align*}
+    \begin{itemize}
+      \item O gradiente nos logits é simplesmente \alert{softmax menos one-hot}:
+        a divisão por $\lambda_k$, que explode quando $\lambda_k \to 0$, desaparece.
+      \item O resultado é limitado, $\lambda_j - y_j \in [-1, 1]$, e se anula apenas quando a
+        predição coincide com o alvo.
+      \item Por isso \textit{frameworks} calculam a cross-entropy direto sobre os logits,
+        sem passar pela softmax como camada separada.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: label smoothing ---
+  \begin{frame}{Variante: \textit{label smoothing}}
+    Substitui o alvo \textit{one-hot} por uma mistura com a distribuição
+    uniforme\footfullcite{szegedy2016rethinking}, com $\varepsilon\in(0,1)$ pequeno:
     \[
-      \frac{\partial}{\partial z_j}\left[-z_{k^{*}} + \log S\right]
-        = -[j=k^{*}] + \frac{e^{z_j}}{S}
-        = \lambda_j - y_j.
+      \tilde y_k = (1-\varepsilon)\,[y=k] + \frac{\varepsilon}{K},
+      \qquad
+      \mathcal{L}_{\text{LS}} = -\sum_{k=1}^{K}\tilde y_k\,\log\lambda_k.
     \]
     \begin{itemize}
-      \item Mesmo resultado, mas o caminho 2 dispensa o Jacobiano inteiro e evita a divisão
-        por $\lambda_k$, que explode quando $\lambda_k \to 0$.
-      \item O gradiente nos logits é simplesmente \alert{softmax menos one-hot}:
-        por isso \textit{frameworks} calculam a cross-entropy direto sobre os logits.
+      \item Com \textit{one-hot}, o mínimo exige $\lambda_{k^{*}}\to 1$, ou seja, logit da classe
+        correta $\to\infty$: o gradiente $\lambda_j - y_j$ nunca se anula.
+      \item Com $\tilde{\mathbf{y}}$, o ótimo é atingido em probabilidades finitas: penaliza
+        excesso de confiança e melhora calibração\footfullcite{muller2019labelsmoothing}.
+      \item Em PyTorch: \texttt{nn.CrossEntropyLoss(label\_smoothing=0.1)}.
     \end{itemize}
   \end{frame}
 
@@ -1136,7 +1292,7 @@
         \begin{itemize}
           \item Recebe \alert{probabilidades} (saída já passada por sigmoid).
           \item Mais propenso a instabilidade numérica em logits extremos.
-          \item Falha silenciosamente se a entrada não está em $(0,1)$.
+          \item Lança erro se a entrada sai de $[0,1]$; internamente limita $\log$ em $-100$ para evitar $\infty$.
         \end{itemize}
       \end{column}
       \begin{column}{.55\linewidth}
@@ -1186,7 +1342,7 @@
   \end{frame}
 
   %--- Slide: tabela de combinações ---
-  \begin{frame}{Cheat sheet: tarefa $\to$ camada $\to$ loss}
+  \begin{frame}{Cheat sheet: tarefa $\to$ camada $\to$ função de custo}
     \centering
     \begin{tabular}{@{}llll@{}}
       \toprule
@@ -1200,10 +1356,10 @@
     \end{tabular}
     \vfill
     \begin{itemize}
-      \item Em PyTorch: \texttt{BCEWithLogitsLoss} (binária e multilabel) e
-        \texttt{CrossEntropyLoss} (multiclasse) já incorporam softmax/sigmoid.
-      \item Para regressão com restrições (ex.: $\hat y\ge 0$), pode-se trocar a Linear
-        por uma SoftPlus na saída e usar uma Poisson.
+      \item Em PyTorch, \texttt{BCEWithLogitsLoss} (binária e multilabel) e
+        \texttt{CrossEntropyLoss} (multiclasse) já incluem a sigmoid e a softmax.
+      \item A receita se estende a outros domínios: para contagens $y\in\{0,1,2,\ldots\}$,
+        a saída passa por $\exp(\cdot)$ (taxa $\mu>0$) e a distribuição é uma Poisson.
     \end{itemize}
   \end{frame}
 
@@ -1218,7 +1374,7 @@
         e numericamente estável.
       \item A métrica é interpretável pelo usuário final; pode ser não diferenciável
         (acurácia, F1) ou dependente de um \textit{threshold}.
-      \item Quase sempre, a loss é uma \alert{aproximação suave} do que de fato queremos
+      \item Quase sempre, a função de custo é uma \alert{aproximação suave} do que de fato queremos
         otimizar (a métrica).
     \end{itemize}
   \end{frame}
@@ -1248,17 +1404,15 @@
       \end{column}
       \begin{column}{.45\linewidth}
         \centering
-        \resizebox{\linewidth}{!}{
-          \begin{tabular}{ll|cc}
-            \toprule
-              & & \multicolumn{2}{c}{\textbf{Predito}} \\
-              & & Sim & Não \\
-            \midrule
-            \textbf{Real} & Sim & TP & FN \\
-                          & Não & FP & TN \\
-            \bottomrule
-          \end{tabular}
-        }
+        \begin{tabular}{ll|cc}
+          \toprule
+            & & \multicolumn{2}{c}{\textbf{Predito}} \\
+            & & Sim & Não \\
+          \midrule
+          \textbf{Real} & Sim & TP & FN \\
+                        & Não & FP & TN \\
+          \bottomrule
+        \end{tabular}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1308,7 +1462,7 @@
   \begin{frame}{Leituras Recomendadas}
     \leiturasize
     \begin{itemize}
-      \item Capítulos 5 e 6 de \fullcite{prince2023understanding}
+      \item Capítulos 3, 5 e 8 de \fullcite{prince2023understanding}
       \item Capítulo 6 de \fullcite{goodfellow2016deep}
       \item ReLU: \fullcite{nair2010relu}
       \item GELU: \fullcite{hendrycks2016gelu}
