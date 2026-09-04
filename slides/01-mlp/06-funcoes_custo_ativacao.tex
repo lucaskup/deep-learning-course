@@ -468,7 +468,7 @@
           \item Multiplica $z$ pela probabilidade acumulada gaussiana $\Phi(z)$,
             com $Z\sim\mathcal{N}(0,1)$.
           \item Aproximação prática: $\varphi(z)\approx z\,\sigma(1.702\,z)$ (próxima de Swish).
-          \item Padrão em alguns \textit{transformers}(BERT, GPT-2/3, ViT).
+          \item Padrão em alguns \textit{transformers} (BERT, GPT-2/3, ViT).
         \end{itemize}
       \end{column}
       \begin{column}{.5\linewidth}
@@ -497,13 +497,13 @@
   %--- Slide: SwiGLU ---
   \begin{frame}{SwiGLU\footfullcite{shazeer2020swiglu}}
     \begin{itemize}
-      \item Não é uma ativação ponto-a-ponto: combina duas projeções lineares da mesma entrada
+      \item Não é uma ativação ponto-a-ponto: combina duas projeções lineares da mesma pré-ativação $\mathbf{z}$
         com \textit{gating}.
       \[
-        \mathrm{SwiGLU}(\mathbf{x})
-          = \mathrm{Swish}(\mathbf{x}\mathbf{W}_1)\;\odot\;(\mathbf{x}\mathbf{W}_3)
+        \mathrm{SwiGLU}(\mathbf{z})
+          = \mathrm{Swish}(\mathbf{z}\mathbf{W}_1)\;\odot\;(\mathbf{z}\mathbf{W}_3)
       \]
-      \item $\odot$ é o produto elemento a elemento: o ramo $\mathbf{x}\mathbf{W}_3$ funciona como
+      \item $\odot$ é o produto elemento a elemento: o ramo $\mathbf{z}\mathbf{W}_3$ funciona como
         um \textit{portão} que decide quanto de cada dimensão do ramo ativado passa adiante.
       \item Um portão em $0$ desliga a dimensão; um portão negativo inverte o sinal.
         A rede aprende \textit{quais} dimensões ativar para cada entrada.
@@ -533,10 +533,10 @@
           arr/.style={->, >=Stealth, thick},
           ann/.style={font=\scriptsize, gray},
         ]
-          \node[vec]  (x)    at (1.6, 6.2) {$\mathbf{x} \in \mathbb{R}^{d}$};
-          \node[lin]  (w1)   at (0.0, 4.9) {$\mathbf{x} \mathbf{W}_1$};
-          \node[gate] (w3)   at (3.2, 4.9) {$\mathbf{x} \mathbf{W}_3$\;\textit{(portão)}};
-          \node[act]  (silu) at (0.0, 3.6) {$\mathrm{Swish}(\mathbf{x} \mathbf{W}_1)$};
+          \node[vec]  (x)    at (1.6, 6.2) {$\mathbf{z} \in \mathbb{R}^{d}$};
+          \node[lin]  (w1)   at (0.0, 4.9) {$\mathbf{z} \mathbf{W}_1$};
+          \node[gate] (w3)   at (3.2, 4.9) {$\mathbf{z} \mathbf{W}_3$\;\textit{(portão)}};
+          \node[act]  (silu) at (0.0, 3.6) {$\mathrm{Swish}(\mathbf{z} \mathbf{W}_1)$};
           \node[mul]  (mul)  at (1.6, 2.4) {$\odot$};
           \node[lin]  (w2)   at (1.6, 1.2) {$(\cdots)\,\mathbf{W}_2$};
           \node[vec]  (y)    at (1.6, 0.0) {$\mathbf{y} \in \mathbb{R}^{d}$};
@@ -560,10 +560,10 @@
         \scriptsize$d=3,\quad d_h=8$\\[0.5em]
 
         {\setlength{\fboxsep}{3pt}%
-        \colorbox{CellBlue}{$\mathbf{x} = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
-        \colorbox{CellYellow}{$\mathbf{x}\mathbf{W}_1 = [\,2.0,\;{-1.0},\;0.5,\;1.2,\;\ldots\,]$}\\[0.15em]
-        \colorbox{CellRed}{$\mathrm{Swish}(\mathbf{x}\mathbf{W}_1) \approx [\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$}\\[0.45em]
-        \colorbox{CellGreen}{$\mathbf{x}\mathbf{W}_3 = [\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\;\textit{(portão)}}\\[0.6em]
+        \colorbox{CellBlue}{$\mathbf{z} = [\,1.0,\;0.5,\;{-0.5}\,]$}\\[0.35em]
+        \colorbox{CellYellow}{$\mathbf{z}\mathbf{W}_1 = [\,2.0,\;{-1.0},\;0.5,\;1.2,\;\ldots\,]$}\\[0.15em]
+        \colorbox{CellRed}{$\mathrm{Swish}(\mathbf{z}\mathbf{W}_1) \approx [\,1.76,\;{-0.27},\;0.31,\;0.92,\;\ldots\,]$}\\[0.45em]
+        \colorbox{CellGreen}{$\mathbf{z}\mathbf{W}_3 = [\,0.8,\;\mathbf{0.0},\;1.2,\;0.5,\;\ldots\,]$\;\textit{(portão)}}\\[0.6em]
         }%
 
         \colorbox{PastelOrange}{%
@@ -584,14 +584,14 @@
   \end{frame}
 
   %--- Slide: Linear ---
-  \begin{frame}{Identity (Linear)}
+  \begin{frame}{Identidade (Linear)}
     \begin{columns}
       \begin{column}{.45\linewidth}
         \[
           \varphi(z) = z,\qquad \varphi'(z) = 1.
         \]
         \begin{itemize}
-          \item Sem domínio limitado: $\varphi(z)\in\mathbb{R}$.
+          \item Imagem ilimitada: $\varphi(z)\in\mathbb{R}$.
           \item Não adiciona não-linearidade: usar Linear em camadas ocultas faz a rede colapsar.
           \item Faz sentido apenas na \textbf{camada de saída}, em tarefas de regressão sem
             restrição de sinal.
@@ -687,6 +687,65 @@
           \begin{pmatrix}0.7500\\0.2497\\0.0003\end{pmatrix}
         \]
         {\footnotesize O logit mais alto domina, mas nenhuma saída é exatamente zero.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: instabilidade numérica da softmax ---
+  \begin{frame}{Softmax na prática: $e^{z}$ estoura rápido}
+    \begin{columns}[T]
+      \begin{column}{.45\linewidth}
+        \begin{itemize}
+          \item A exponencial cresce mais rápido do que o ponto flutuante acompanha:
+            $e^{z}$ vira $\infty$ em \texttt{float32} já para $z > 88.7$ e em
+            \texttt{float16} para $z > 11.1$.
+          \item Logits dessa ordem aparecem com facilidade: pesos mal inicializados,
+            taxa de aprendizado alta, ausência de normalização.
+          \item Basta um termo estourar: $\infty/\infty = \texttt{nan}$, e o gradiente também.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.55\linewidth}
+        \centering
+        \textbf{Exemplo}: $\mathbf{z} = (1000,\, 999,\, 998)^{\top}$
+        \[
+          \mathrm{softmax}(\mathbf{z})_1 = \frac{e^{1000}}{e^{1000}+e^{999}+e^{998}}
+          \;\to\; \frac{\infty}{\infty} = \texttt{nan}
+        \]
+        {\footnotesize Matematicamente a resposta é $\approx 0.665$: os logits são grandes,
+        mas as diferenças entre eles são pequenas. O problema é só de representação.}
+      \end{column}
+    \end{columns}
+  \end{frame}
+
+  %--- Slide: truque do log-sum-exp ---
+  \begin{frame}{Truque do log-sum-exp: fatorar $c = \max_j z_j$}
+    Multiplicar numerador e denominador por $e^{-c}$ não altera a fração:
+    \[
+      \frac{e^{z_i}}{\sum_{j} e^{z_j}}
+      = \frac{e^{-c}\,e^{z_i}}{e^{-c}\sum_{j} e^{z_j}}
+      = \frac{e^{z_i - c}}{\sum_{j} e^{z_j - c}},
+      \qquad
+      \log\sum_{j} e^{z_j} = c + \log\sum_{j} e^{z_j - c}.
+    \]
+    \begin{columns}[T]
+      \begin{column}{.47\linewidth}
+        Escolhendo $c = \max_j z_j$:
+        \begin{itemize}
+          \item o maior expoente passa a ser \alert{exatamente zero};
+          \item numerador em $(0,1]$ e denominador em $[1,K]$: nada estoura;
+          \item termos muito negativos viram $0$ por \textit{underflow}, o que é
+            inofensivo porque o denominador nunca fica abaixo de $1$.
+        \end{itemize}
+      \end{column}
+      \begin{column}{.53\linewidth}
+        \centering
+        \textbf{Mesmo exemplo}, com $c = 1000$:
+        \[
+          \frac{e^{0}}{e^{0}+e^{-1}+e^{-2}}
+          \approx \frac{1}{1 + 0.368 + 0.135}
+          \approx 0.665
+        \]
+        {\footnotesize Todo \textit{framework} implementa a softmax e a log-softmax assim.}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1099,14 +1158,14 @@
         = -\sum_{i=1}^{N}\!\left[z_{k^{*}}^{(i)} - \log\!\sum_{j=1}^{K} e^{z_{j}^{(i)}}\right].
     \]
     \begin{itemize}
-      \item $\log\sum e^{z_j}$ é o \textit{log-sum-exp}, calculado de forma estável em \textit{frameworks}.
-      \item A softmax é invariante a deslocamentos de todos os logits por um escalar $c$:
+      \item $\log\sum e^{z_j}$ é o \textit{log-sum-exp}: os \textit{frameworks} o calculam
+        com o truque de fatorar $c=\max_j z_j$, visto na seção de ativações.
+      \item O truque funciona porque a softmax é invariante a deslocamentos de todos os logits por um escalar $c$:
         \[
           \mathrm{softmax}(\mathbf{z}) = \mathrm{softmax}\big(\mathbf{z}-c\,\mathbf{1}\big),
           \qquad \mathbf{1} = (1,\ldots,1)^{\top},
           \quad c\,\mathbf{1} = (c,\ldots,c)^{\top}.
         \]
-        Usa-se $c=\max_j z_j$ para que nenhum $e^{z_j - c}$ estoure.
     \end{itemize}
   \end{frame}
 
@@ -1318,25 +1377,27 @@
     \begin{columns}
       \begin{column}{.5\linewidth}
         \centering
+        \resizebox{.95\linewidth}{!}{%
         \begin{tikzpicture}
           \node[draw,inner sep=0pt] {\includegraphics[height=2.4cm]{slides/img/02-cnn/mlp_dog.jpeg}};
-          \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
-          \node[anchor=west,font=\small] at (2.4,0.15) {2. Gato};
-          \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
-          \node[anchor=west,font=\small] at (2.4,-0.65) {4. Humano};
-          \node[font=\small] at (0,-1.7) {\textbf{Multiclasse}: única label correta};
-        \end{tikzpicture}
+          \node[anchor=west,font=\small] at (2.3,0.55) {\textbf{1. Cachorro}};
+          \node[anchor=west,font=\small] at (2.3,0.15) {2. Gato};
+          \node[anchor=west,font=\small] at (2.3,-0.25) {3. Rato};
+          \node[anchor=west,font=\small] at (2.3,-0.65) {4. Humano};
+          \node[font=\small] at (0,-1.7) {\textbf{Multiclasse}: um único rótulo correto};
+        \end{tikzpicture}}
       \end{column}
       \begin{column}{.5\linewidth}
         \centering
+        \resizebox{.95\linewidth}{!}{%
         \begin{tikzpicture}
           \node[draw,inner sep=0pt] {\includegraphics[height=2.4cm]{slides/img/02-cnn/det_cat_dog.jpg}};
-          \node[anchor=west,font=\small] at (2.4,0.55) {\textbf{1. Cachorro}};
-          \node[anchor=west,font=\small] at (2.4,0.15) {\textbf{2. Gato}};
-          \node[anchor=west,font=\small] at (2.4,-0.25) {3. Rato};
-          \node[anchor=west,font=\small] at (2.4,-0.65) {4. Humano};
-          \node[font=\small] at (0,-1.7) {\textbf{Multilabel}: várias labels possíveis};
-        \end{tikzpicture}
+          \node[anchor=west,font=\small] at (2.3,0.55) {\textbf{1. Cachorro}};
+          \node[anchor=west,font=\small] at (2.3,0.15) {\textbf{2. Gato}};
+          \node[anchor=west,font=\small] at (2.3,-0.25) {3. Rato};
+          \node[anchor=west,font=\small] at (2.3,-0.65) {4. Humano};
+          \node[font=\small] at (0,-1.7) {\textbf{Multilabel}: vários rótulos possíveis};
+        \end{tikzpicture}}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1344,6 +1405,7 @@
   %--- Slide: tabela de combinações ---
   \begin{frame}{Cheat sheet: tarefa $\to$ camada $\to$ função de custo}
     \centering
+    \small
     \begin{tabular}{@{}llll@{}}
       \toprule
       Tarefa & Saída esperada & Camada de saída & Função de custo \\

@@ -1,0 +1,188 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.4em}
+
+% Cabeçalho de bloco temático
+\newcommand{\bloco}[1]{%
+  \par\vspace{0.3em}%
+  {\bfseries\large #1}\par%
+  \vspace{-0.4em}{\color{gray!60}\rule{\linewidth}{0.4pt}}\par%
+}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Formulário, Unidade 4}\\
+Prof. Lucas S. Kupssinskü \hfill Transformers e LLMs (Prova 2026/2)
+
+\rule{\linewidth}{0.8pt}
+
+\textit{Notação: matrizes em negrito maiúsculo ($\mathbf{X}$), vetores em negrito minúsculo ($\mathbf{x}$), escalares sem negrito; $\mathbf{x}^{\top}$ é o transposto; $n$ é o comprimento da sequência e $|V|$ o tamanho do vocabulário.}
+
+%% =============================================================
+%%  Matemática básica
+%% =============================================================
+\bloco{Matemática Básica}
+
+\textbf{Produto matricial} ($\mathbf{A} \in \mathbb{R}^{m \times p}$, $\mathbf{B} \in \mathbb{R}^{p \times q}$) \textbf{e produto escalar:}
+\[
+  (\mathbf{A}\mathbf{B})_{ij} = \sum_{k=1}^{p} A_{ik}\, B_{kj},
+  \qquad
+  \mathbf{a}^{\top}\mathbf{b} = \sum_{k} a_k\, b_k,
+  \qquad
+  (\mathbf{A}\mathbf{B})^{\top} = \mathbf{B}^{\top}\mathbf{A}^{\top}.
+\]
+
+\textbf{Softmax} (sobre \textit{logits} $\mathbf{z} \in \mathbb{R}^{K}$, com temperatura $T > 0$; $T = 1$ recupera a forma padrão):
+\[
+  \mathrm{softmax}(\mathbf{z}/T)_i = \frac{e^{z_i/T}}{\sum_{j=1}^{K} e^{z_j/T}},
+  \qquad
+  \mathrm{softmax}(\mathbf{z} + c\mathbf{1}) = \mathrm{softmax}(\mathbf{z}) \ \text{para todo escalar } c.
+\]
+
+\textbf{Logaritmos e exponenciais:}
+\[
+  \ln(ab) = \ln a + \ln b, \qquad
+  \ln\frac{a}{b} = \ln a - \ln b, \qquad
+  \ln a^{b} = b \ln a, \qquad
+  e^{a+b} = e^{a}\,e^{b}, \qquad
+  e^{0} = 1.
+\]
+
+\textbf{Valores úteis:} $\sqrt{2} \approx 1.414$, \quad $\sqrt{3} \approx 1.732$, \quad $e \approx 2.718$, \quad $\ln 2 \approx 0.693$, \quad $e^{-1} \approx 0.368$.
+
+%% =============================================================
+%%  Atenção e bloco transformer
+%% =============================================================
+\bloco{Atenção e Bloco Transformer}
+
+\textbf{Projeções} (entrada $\mathbf{X} \in \mathbb{R}^{n \times d_\text{model}}$ com um \textit{token} por linha):
+\[
+  \mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \qquad
+  \mathbf{K} = \mathbf{X}\mathbf{W}_K, \qquad
+  \mathbf{V} = \mathbf{X}\mathbf{W}_V,
+  \qquad
+  \mathbf{W}_Q, \mathbf{W}_K \in \mathbb{R}^{d_\text{model} \times d_k}, \quad
+  \mathbf{W}_V \in \mathbb{R}^{d_\text{model} \times d_v}.
+\]
+
+\textbf{Scaled dot-product attention} (o \textit{softmax} é aplicado linha a linha; a linha $i$ da saída é o vetor de contexto do \textit{token} $i$):
+\[
+  \mathrm{attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}}\right)\mathbf{V},
+  \qquad
+  \text{score}_{ij} = \frac{\mathbf{q}_i^{\top}\mathbf{k}_j}{\sqrt{d_k}}.
+\]
+
+\textbf{Máscara causal} (aplicada aos \textit{scores} antes do \textit{softmax}; posições com $-\infty$ recebem peso $0$):
+\[
+  \text{score}_{ij} \leftarrow -\infty \quad \text{se } j > i.
+\]
+
+\textbf{Multi-head attention} ($H$ cabeças em paralelo, cada uma com $d_k = d_v = d_\text{model}/H$; concatenação seguida da projeção de saída $\mathbf{W}_O$):
+\[
+  \mathrm{MultiHead}(\mathbf{X}) = \mathrm{Concat}\bigl(\mathbf{H}_1, \dots, \mathbf{H}_H\bigr)\,\mathbf{W}_O,
+  \qquad
+  \mathbf{H}_i = \mathrm{attention}\bigl(\mathbf{X}\mathbf{W}_Q^{(i)},\, \mathbf{X}\mathbf{W}_K^{(i)},\, \mathbf{X}\mathbf{W}_V^{(i)}\bigr).
+\]
+
+\textbf{Complexidade da \textit{self-attention} completa} no comprimento de sequência $n$: $\mathcal{O}(n^{2} d)$ em tempo e $\mathcal{O}(n^{2})$ em memória para a matriz de \textit{scores}.
+
+\textbf{Feed-Forward Network} (duas camadas lineares com não linearidade $\phi$, tipicamente ReLU ou GELU; $d_\text{ff}$ é a dimensão interna):
+\[
+  \mathrm{FFN}(\mathbf{x}) = \mathbf{W}_2\,\phi\bigl(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1\bigr) + \mathbf{b}_2,
+  \qquad
+  \mathbf{W}_1 \in \mathbb{R}^{d_\text{ff} \times d_\text{model}}, \quad
+  \mathbf{W}_2 \in \mathbb{R}^{d_\text{model} \times d_\text{ff}}.
+\]
+
+\textbf{Layer normalization e padrão \textit{Add \& Norm}} (média $\mu$ e desvio padrão $\sigma$ sobre a dimensão das \textit{features}; $\boldsymbol{\gamma}$ e $\boldsymbol{\beta}$ treináveis):
+\[
+  \mathrm{LayerNorm}(\mathbf{x}) = \boldsymbol{\gamma} \odot \frac{\mathbf{x} - \mu}{\sigma + \epsilon} + \boldsymbol{\beta},
+  \qquad
+  \text{output} = \mathrm{LayerNorm}\bigl(\mathbf{x} + \mathrm{Subblock}(\mathbf{x})\bigr).
+\]
+
+%% =============================================================
+%%  Tokenização e embeddings
+%% =============================================================
+\bloco{Tokenização e Embeddings}
+
+\textbf{BPE, treinamento} (a cada iteração, o par adjacente mais frequente no corpus é mesclado em um novo \textit{token} e adicionado à tabela de \textit{merges}, até completar $k$ \textit{merges}):
+\[
+  (x, y)^{*} = \arg\max_{(x,\,y)\ \text{adjacentes}} \mathrm{freq}(xy).
+\]
+
+\textbf{BPE, inferência:} a palavra é separada em caracteres (com o marcador de fim de palavra) e as regras da tabela são aplicadas \textbf{na ordem em que foram aprendidas}; cada regra é aplicada em todas as ocorrências do par antes de passar à seguinte, e pares ausentes da tabela permanecem separados.
+
+\textbf{Tabela de embedding e LM head} ($\mathbf{h}_t \in \mathbb{R}^{d_\text{model}}$ é a saída do último bloco na posição $t$; sem \textit{bias}):
+\[
+  \mathbf{e}_i = \mathbf{W}_\text{emb}[i,:], \quad \mathbf{W}_\text{emb} \in \mathbb{R}^{|V| \times d_\text{model}},
+  \qquad
+  \mathbf{z}_t = \mathbf{W}_\text{LM}^{\top}\,\mathbf{h}_t, \quad \mathbf{W}_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}.
+\]
+Número de parâmetros de uma matriz $\mathbf{W} \in \mathbb{R}^{a \times b}$: $a \cdot b$. \textit{Weight tying}: $\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^{\top}$.
+
+%% =============================================================
+%%  Treinamento e inferência
+%% =============================================================
+\bloco{Treinamento e Inferência de LLMs}
+
+\textbf{Loss de modelagem de linguagem} (entropia cruzada autorregressiva sobre uma sequência $x_1, \dots, x_n$; $P$ é a \textit{softmax} dos \textit{logits}):
+\[
+  \mathcal{L} = -\sum_{t=1}^{n-1} \log P\bigl(x_{t+1} \mid x_{1}, \dots, x_{t}\bigr).
+\]
+
+\textbf{Probabilidade de uma sequência gerada} $y_1, \dots, y_m$ dado o \textit{prompt} $\mathbf{x}$ (regra da cadeia):
+\[
+  P(y_1, \dots, y_m \mid \mathbf{x}) = \prod_{t=1}^{m} P\bigl(y_t \mid \mathbf{x}, y_{<t}\bigr),
+  \qquad
+  \log P(y_1, \dots, y_m \mid \mathbf{x}) = \sum_{t=1}^{m} \log P\bigl(y_t \mid \mathbf{x}, y_{<t}\bigr).
+\]
+
+\textbf{Decodificação greedy} (um \textit{token} por passo):
+\[
+  y_t = \arg\max_{v \in V} P\bigl(v \mid \mathbf{x}, y_{<t}\bigr).
+\]
+
+\textbf{Beam search} com largura $B$: a cada passo, cada uma das $B$ hipóteses correntes é expandida com todos os candidatos, e apenas as $B$ sequências de maior probabilidade conjunta acumulada (soma dos $\log P$) são mantidas; ao final, retorna-se a hipótese de maior probabilidade conjunta.
+
+\textbf{Amostragem truncada} (renormaliza a \textit{softmax} sobre um subconjunto $S \subseteq V$ e amostra de $S$):
+\begin{align*}
+  \text{top-}k:\quad &S = \{\,k \text{ \textit{tokens} de maior } P\,\}; \\
+  \text{top-}p:\quad &S = \text{menor conjunto de \textit{tokens}, tomados em ordem decrescente de } P, \text{ tal que } \textstyle\sum_{v \in S} P(v) \ge p; \\
+  &\tilde{P}(v) = \frac{P(v)}{\sum_{u \in S} P(u)} \ \text{ para } v \in S, \qquad \tilde{P}(v) = 0 \ \text{ caso contrário}.
+\end{align*}
+
+\textbf{Decodificação especulativa} (modelo \textit{draft} $q$ propõe $\gamma$ \textit{tokens}, verificados em paralelo pelo modelo \textit{target} $p$; $u_t \sim \mathcal{U}(0,1)$):
+\[
+  \text{aceita } \tilde{x}_t \iff u_t \le \min\!\left(1,\ \frac{p(\tilde{x}_t)}{q(\tilde{x}_t)}\right);
+  \qquad
+  \text{se rejeitado, reamostrar de } p'(x) = \frac{\max\bigl(0,\, p(x) - q(x)\bigr)}{\sum_{x'} \max\bigl(0,\, p(x') - q(x')\bigr)}.
+\]
+No primeiro \textit{token} rejeitado, o restante do rascunho é descartado.
+Se todos os $\gamma$ \textit{tokens} forem aceitos, um \textit{token} adicional é amostrado de $p$ na posição $\gamma + 1$.
+
+\end{document}
