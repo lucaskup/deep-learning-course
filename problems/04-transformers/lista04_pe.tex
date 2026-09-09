@@ -356,18 +356,15 @@
 %R: b
 
 \begin{enumerate}[a)]
-    \item Não, pois as funções seno e cosseno são periódicas com período $2\pi$;
-          posições separadas por um múltiplo inteiro de $2\pi$ teriam o mesmo encoding,
-          causando colisões inevitáveis já para posições inteiras pequenas.
-    \item Sim, para posições práticas ($i \ll 10^4$): as frequências
-          $\omega_k = 10000^{2k/d}$ crescem geometricamente e as combinações
-          $(\sin(i/\omega_k),\,\cos(i/\omega_k))$ são virtualmente distintas
-          para posições inteiras dentro do intervalo de uso típico,
-          tornando o mapeamento $i \mapsto \mathbf{PE}(i)$ injetivo nesse domínio.
-    \item Não, pois a norma de $\mathbf{PE}(i)$ é constante igual a $\sqrt{d/2}$
-          para todo $i$, tornando impossível distinguir posições distintas.
-    \item Sim, mas somente utilizando a primeira dimensão $\mathrm{PE}(i,0) = \sin(i)$,
-          que determina a posição de forma única para qualquer inteiro não negativo.
+    \item Não, pois seno e cosseno são periódicas com período $2\pi$, e posições
+          inteiras distintas cujos argumentos coincidem módulo $2\pi$ recebem o
+          mesmo vetor.
+    \item Sim, o mapeamento $i \mapsto \mathbf{PE}(i)$ é injetivo para todo inteiro
+          $i \geq 0$, sem restrição de faixa.
+    \item Não, pois a norma de $\mathbf{PE}(i)$ é a mesma para todo $i$, o que
+          impede distinguir posições distintas.
+    \item Sim, mas apenas para $i$ menor que o período da dimensão mais lenta,
+          $\approx 2\pi \cdot 10000$; a partir daí o vetor se repete.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -376,7 +373,7 @@
 \item \emoji{skull-and-crossbones} Um modelo com positional encoding absoluto
       \textbf{aprendido} (estilo BERT), treinado com comprimento máximo $L_{\max} = 512$,
       recebe na inferência uma sequência de comprimento $L = 600$.
-      O que ocorre com os tokens nas posições $513$ a $600$?
+      O que ocorre com os tokens nas posições $512$ a $599$ (indexação a partir de $0$)?
 %R: b
 
 \begin{enumerate}[a)]
@@ -386,8 +383,8 @@
           lançará um erro de índice (\textit{index out of bounds}) ou, se o índice
           for truncado, reutilizará vetores de posições iniciais, gerando representações
           completamente fora da distribuição de treinamento.
-    \item O modelo truncará silenciosamente a entrada para os primeiros 512 tokens e
-          ignorará os demais sem erro.
+    \item A camada posicional gera os embeddings faltantes pela fórmula senoidal,
+          usada como \textit{fallback} padrão para índices fora da tabela.
     \item Os embeddings posicionais para $i > 512$ serão automaticamente inicializados
           com vetores nulos, preservando o processamento sem degradação de desempenho.
 \end{enumerate}
@@ -451,6 +448,7 @@
 
 
 % ============================================================
+\clearpage
 \section*{Gabarito}
 % ============================================================
 
@@ -506,7 +504,7 @@ máscara causal muda, e ela o faz de forma previsível e suave.
 \subsection*{VI, Resposta:(d)}
 O positional encoding absoluto aprendido (usado no BERT e nos primeiros GPTs) armazena
 uma matriz treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$. Uma posição $i > L_{\max}$
-simplesmente não tem linha em $E$: o embedding não existe. O encoding senoidal possui
+simplesmente não tem linha em $\mathbf{E}$: o embedding não existe. O encoding senoidal possui
 fórmula fechada para qualquer posição; RoPE e ALiBi são relativos e escalam naturalmente.
 % ---
 
@@ -649,18 +647,22 @@ Portanto $\tilde{\mathbf{q}}_1 = [0.540,\; 0.841,\; 1.000,\; 0.010]$.
   = (-0.141,\; -0.990)
 \]
 \[
+  \begin{aligned}
   \text{Bloco } k=1 \;(j\theta_1 = 0.03\,\text{rad}):\;
-  (\cos(0.03)\cdot0 - \sin(0.03)\cdot1,\; \sin(0.03)\cdot0 + \cos(0.03)\cdot1)
-  \approx (-0.030,\; 1.000)
+  &(\cos(0.03)\cdot0 - \sin(0.03)\cdot1,\; \sin(0.03)\cdot0 + \cos(0.03)\cdot1) \\
+  &\approx (-0.030,\; 1.000)
+  \end{aligned}
 \]
 Portanto $\tilde{\mathbf{k}}_3 = [-0.141,\; -0.990,\; -0.030,\; 1.000]$.
 
 \textbf{Passo 3: Produto interno:}
 \[
+  \begin{aligned}
   \mathrm{score}(1,3)
-  = 0.540\cdot(-0.141) + 0.841\cdot(-0.990)
-    + 1.000\cdot(-0.030) + 0.010\cdot1.000
-  \approx -0.076 - 0.832 - 0.030 + 0.010 = -0.929.
+  &= 0.540\cdot(-0.141) + 0.841\cdot(-0.990)
+    + 1.000\cdot(-0.030) + 0.010\cdot1.000 \\
+  &\approx -0.076 - 0.832 - 0.030 + 0.010 = -0.929.
+  \end{aligned}
 \]
 % ---
 
@@ -720,19 +722,20 @@ ao mesmo tempo atenção local e global com diferentes cabeças.
 
 % --- Solução Q24 ---
 \subsection*{XXII, Resposta:(b)}
-A primeira dimensão de seno usa frequência $\omega_0 = 1$, com período $2\pi \approx 6.28$.
-Para que dois inteiros $i \neq j$ produzam o mesmo $\mathbf{PE}$, seria necessário que
-$(j-i)/\omega_k$ fosse múltiplo de $2\pi$ para \emph{todos} os $k$ simultaneamente.
-Como $2\pi$ é irracional e as frequências $\omega_k = 10000^{2k/d}$ são
-multiplicativamente incomenssuráveis (para $k$ distintos), isso não acontece para
-nenhum par de inteiros na faixa de uso prático ($i < 10^4$): o mapeamento é injetivo.
-A opção (a) erra ao afirmar que inteiros próximos colidem — $2\pi$ é irracional,
-portanto $\lfloor i \rfloor$ nunca repete o seno de $\lfloor j \rfloor$ para $i,j$
-inteiros com $|i-j| < 2\pi$.
-A opção (c) erra ao afirmar norma constante: em geral $\|\mathbf{PE}(i)\| \neq \sqrt{d/2}$
-exatamente para inteiros finitos.
-A opção (d) erra porque $\sin(i)$ repete com período irracional; entre inteiros, não
-há repetição, mas tampouco unicidade garantida por uma única dimensão.
+Basta olhar a dimensão $k = 0$, cujo argumento é o próprio $i$. Dois inteiros
+$i \neq j$ produziriam o mesmo par $(\sin i, \cos i) = (\sin j, \cos j)$ apenas se
+$i - j$ fosse um múltiplo inteiro não nulo de $2\pi$, o que é impossível porque
+$2\pi$ é irracional. Logo a primeira dimensão já separa quaisquer duas posições
+inteiras e o mapeamento $i \mapsto \mathbf{PE}(i)$ é injetivo em todo
+$\mathbb{Z}_{\geq 0}$.
+A opção (a) supõe que existam inteiros distintos congruentes módulo $2\pi$, o que
+nunca ocorre.
+A opção (c) afirma um fato verdadeiro (a norma vale $\sqrt{d/2}$ para todo $i$),
+mas a norma é irrelevante: posições distintas diferem na direção do vetor, não no
+comprimento.
+A opção (d) inventa um limite de faixa: a dimensão mais lenta tem período
+$\approx 2\pi \cdot 10000$, mas o vetor completo não se repete em nenhum inteiro,
+pois a dimensão $k = 0$ nunca repete.
 % ---
 
 % --- Solução Q25 ---
@@ -742,8 +745,8 @@ O positional encoding aprendido é implementado tipicamente como
 Consultar o índice $i \geq L_{\max}$ é equivalente a acessar uma linha inexistente:
 \begin{itemize}
   \item Em frameworks como PyTorch, isso gera \texttt{IndexError: index out of range}.
-  \item Em implementações que truncam o índice (\textit{clamping}), a posição 600
-        receberia o embedding da posição 511, repetindo-o para todos os tokens
+  \item Em implementações que truncam o índice (\textit{clamping}), as posições 512
+        a 599 receberiam o embedding da posição 511, repetindo-o para todos os tokens
         além de $L_{\max}$: o modelo passa a ver múltiplos tokens com a mesma
         ``posição 511'', produzindo representações incoerentes e fora de distribuição.
 \end{itemize}
@@ -755,14 +758,14 @@ naturalmente sem consultar tabelas.
 % --- Solução Q26 ---
 \subsection*{XXIV, Resposta:(b)}
 O PE senoidal e o RoPE compartilham o espectro $\theta_k = 10000^{-2k/d}$ por
-design — ambos precisam de frequências variadas para distinguir um amplo intervalo
+design: ambos precisam de frequências variadas para distinguir um amplo intervalo
 de posições. Contudo as operações realizadas são fundamentalmente distintas:
 \begin{itemize}
   \item \textbf{PE senoidal}: adiciona $\mathbf{PE}(i)$ ao token embedding
         \emph{antes} das projeções $\mathbf{W}_Q$, $\mathbf{W}_K$. O score de atenção contém termos
         cruzados conteúdo-posição e termos de posição absoluta.
   \item \textbf{RoPE}: aplica $\mathbf{R}_\theta(i)$ \emph{após} a projeção $\mathbf{W}_Q\mathbf{x}_i$,
-        resultando em $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$ — dependência
+        resultando em $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$, dependência
         exclusivamente relativa, sem termos de posição absoluta no score.
 \end{itemize}
 Mesmo com $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois scores diferem: o PE senoidal ainda gera termos
@@ -778,8 +781,8 @@ Aplicando a definição dos vetores rotacionados:
   = \bigl(\mathbf{R}(i)\,\mathbf{q}\bigr)^\top\bigl(\mathbf{R}(j)\,\mathbf{k}\bigr)
   = \mathbf{q}^\top \mathbf{R}(i)^\top \mathbf{R}(j)\,\mathbf{k}.
 \]
-Usando $\mathbf{R}(i)^\top = \mathbf{R}(-i)$ (matrizes de rotação são ortogonais) e
-a propriedade de composição $\mathbf{R}(-i)\,\mathbf{R}(j) = \mathbf{R}(j-i)$:
+Usando $\mathbf{R}(i)^\top = \mathbf{R}(-i)$ (rotações são ortogonais) e a
+composição $\mathbf{R}(-i)\,\mathbf{R}(j) = \mathbf{R}(j-i)$:
 \[
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
   = \mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}.
@@ -795,7 +798,7 @@ $\delta$, não dependendo de uma tabela de embeddings pré-treinada.
 
 % ============================================================
 \clearpage
-\section*{Gabarito Detalhado — Questões Difíceis de Positional Encoding}
+\section*{Gabarito Detalhado: Questões Difíceis de Positional Encoding}
 % ============================================================
 
 \paragraph{Sobre este apêndice.}
@@ -807,19 +810,19 @@ passos intermediários.
 Os temas centrais são:
 \begin{itemize}
   \item Prova algébrica da propriedade de posição relativa do \textbf{RoPE}
-        (questões XIX, XX e XXVI);
-  \item Cálculo dos \textit{slopes} e das penalidades do \textbf{ALiBi} (questão XXII);
-  \item Argumento de injetividade do \textbf{positional encoding senoidal} (questão XXIII);
+        (questões XVIII, XIX e XXV);
+  \item Cálculo dos \textit{slopes} e das penalidades do \textbf{ALiBi} (questão XXI);
+  \item Argumento de injetividade do \textbf{positional encoding senoidal} (questão XXII);
   \item Análise das consequências da compressão uniforme no \textbf{Position Interpolation}
-        (questão XXI);
-  \item Comportamento do PE aprendido além de $L_{\max}$ (questão XXIV);
-  \item Comparação matemática entre RoPE e PE senoidal (questão XXV).
+        (questão XX);
+  \item Comportamento do PE aprendido além de $L_{\max}$ (questão XXIII);
+  \item Comparação matemática entre RoPE e PE senoidal (questão XXIV).
 \end{itemize}
 
 % ------------------------------------------------------------------
-% Q19 — Derivação Detalhada
+% Q18: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XIX \emoji{skull-and-crossbones} — Cálculo Numérico do Score RoPE}
+\subsection*{XVIII \emoji{skull-and-crossbones}: Cálculo Numérico do Score RoPE}
 
 \paragraph{Enunciado.}
 Considere o RoPE com $d = 4$ e frequências $\theta_0 = 1.0$, $\theta_1 = 0.01$.
@@ -841,7 +844,7 @@ O RoPE com $d = 4$ opera em dois blocos 2D independentes, um para cada par de
 dimensões $(2k, 2k+1)$.
 
 \bigskip
-\textbf{Bloco $k=0$ — ângulo de rotação $\alpha = i\,\theta_0 = 1 \times 1.0 = 1.0\;\mathrm{rad}$:}
+\textbf{Bloco $k=0$, ângulo de rotação $\alpha = i\,\theta_0 = 1 \times 1.0 = 1.0\;\mathrm{rad}$:}
 
 A rotação no plano $[q_0, q_1]$ aplica a matriz
 \[
@@ -865,7 +868,7 @@ Como $\mathbf{q}_{[0:2]} = [1, 0]^\top$:
 \]
 
 \bigskip
-\textbf{Bloco $k=1$ — ângulo de rotação $\alpha = i\,\theta_1 = 1 \times 0.01 = 0.01\;\mathrm{rad}$:}
+\textbf{Bloco $k=1$, ângulo de rotação $\alpha = i\,\theta_1 = 1 \times 0.01 = 0.01\;\mathrm{rad}$:}
 
 Para ângulos pequenos, $\cos(0.01) \approx 1.000$ e $\sin(0.01) \approx 0.010$.
 Como $\mathbf{q}_{[2:4]} = [1, 0]^\top$:
@@ -880,7 +883,7 @@ Como $\mathbf{q}_{[2:4]} = [1, 0]^\top$:
 $\tilde{\mathbf{q}}_1 = [0.540,\; 0.841,\; 1.000,\; 0.010]$.
 
 \bigskip
-\textbf{Bloco $k=0$ para key — ângulo de rotação $\beta = j\,\theta_0 = 3 \times 1.0 = 3.0\;\mathrm{rad}$:}
+\textbf{Bloco $k=0$ para key, ângulo de rotação $\beta = j\,\theta_0 = 3 \times 1.0 = 3.0\;\mathrm{rad}$:}
 
 \[
   \mathbf{R}(j\theta_0) =
@@ -898,7 +901,7 @@ Como $\mathbf{k}_{[0:2]} = [0, 1]^\top$:
 \]
 
 \bigskip
-\textbf{Bloco $k=1$ para key — ângulo de rotação $\beta = j\,\theta_1 = 3 \times 0.01 = 0.03\;\mathrm{rad}$:}
+\textbf{Bloco $k=1$ para key, ângulo de rotação $\beta = j\,\theta_1 = 3 \times 0.01 = 0.03\;\mathrm{rad}$:}
 
 $\cos(0.03) \approx 1.000$, $\sin(0.03) \approx 0.030$.
 Como $\mathbf{k}_{[2:4]} = [0, 1]^\top$:
@@ -938,9 +941,9 @@ O bloco $k=1$ contribui com valor próximo de zero (ângulo muito pequeno):
 Soma: $-0.909 + (-0.020) \approx -0.929$ \checkmark
 
 % ------------------------------------------------------------------
-% Q20 — Derivação Detalhada
+% Q19: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XX \emoji{skull-and-crossbones} — Expansão Algébrica do Score RoPE e Posição Relativa}
+\subsection*{XIX \emoji{skull-and-crossbones}: Expansão Algébrica do Score RoPE e Posição Relativa}
 
 \paragraph{Enunciado.}
 No RoPE, o produto interno dos vetores de query e key rotacionados para um único
@@ -1017,9 +1020,9 @@ funções trigonométricas. Portanto:
 \end{enumerate}
 
 % ------------------------------------------------------------------
-% Q21 — Derivação Detalhada
+% Q20: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXI \emoji{skull-and-crossbones} — Compressão Uniforme no Position Interpolation}
+\subsection*{XX \emoji{skull-and-crossbones}: Compressão Uniforme no Position Interpolation}
 
 \paragraph{Enunciado.}
 O Position Interpolation reescala posições como
@@ -1083,9 +1086,9 @@ de curto alcance (dependente das dimensões de alta frequência) enquanto estend
 alcance global.
 
 % ------------------------------------------------------------------
-% Q23 — Derivação Detalhada
+% Q22: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXII \emoji{skull-and-crossbones} — Cálculo dos Slopes e Penalidades ALiBi}
+\subsection*{XXI \emoji{skull-and-crossbones}: Cálculo dos Slopes e Penalidades ALiBi}
 
 \paragraph{Enunciado.}
 No ALiBi com $n = 8$ cabeças de atenção, a fórmula dos slopes é
@@ -1099,7 +1102,7 @@ Alternativa \textbf{(a)}: Penalidade em 128: $64$;\quad penalidade em 512: $256$
 
 \paragraph{Derivação detalhada.}
 
-\textbf{Passo 1 — Tabela completa de slopes.}
+\textbf{Passo 1: Tabela completa de slopes.}
 
 Para $n = 8$ cabeças, $m_h = 2^{-8h/n} = 2^{-8h/8} = 2^{-h}$:
 
@@ -1126,7 +1129,7 @@ penalidade por unidade de distância: essa cabeça é a \emph{mais local} do con
 A cabeça $h = 8$ tem o menor slope ($m_8 \approx 0.0039$) e é a \emph{mais global}.
 
 \bigskip
-\textbf{Passo 2 — Cálculo das penalidades para $h = 1$.}
+\textbf{Passo 2: Cálculo das penalidades para $h = 1$.}
 
 \[
   \text{Penalidade}(|i-j|) = m_1 \times |i-j| = \frac{1}{2} \times |i-j|.
@@ -1142,7 +1145,7 @@ A cabeça $h = 8$ tem o menor slope ($m_8 \approx 0.0039$) e é a \emph{mais glo
 \]
 
 \bigskip
-\textbf{Passo 3 — Interpretação no logit de atenção.}
+\textbf{Passo 3: Interpretação no logit de atenção.}
 
 O logit pré-softmax com ALiBi é:
 \[
@@ -1164,9 +1167,9 @@ globais (semântica de longo alcance) simultaneamente, sem nenhum parâmetro adi
 além dos já existentes em cada cabeça de atenção.
 
 % ------------------------------------------------------------------
-% Q24 — Derivação Detalhada
+% Q23: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXIII \emoji{skull-and-crossbones} — Injetividade do Positional Encoding Senoidal}
+\subsection*{XXII \emoji{skull-and-crossbones}: Injetividade do Positional Encoding Senoidal}
 
 \paragraph{Enunciado.}
 Considere o positional encoding senoidal $\mathbf{PE}(i) \in \mathbb{R}^d$ com
@@ -1174,9 +1177,8 @@ $d = 512$ para posições inteiras $i \geq 0$. É possível recuperar univocamen
 posição $i$ a partir do vetor $\mathbf{PE}(i)$?
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: Sim, para posições práticas ($i \ll 10^4$): as frequências
-crescem geometricamente e as combinações $(\sin(i/\omega_k),\cos(i/\omega_k))$ são
-virtualmente distintas para posições inteiras dentro do intervalo de uso típico.
+Alternativa \textbf{(b)}: Sim, o mapeamento $i \mapsto \mathbf{PE}(i)$ é injetivo
+para todo inteiro $i \geq 0$, sem restrição de faixa.
 \end{respostabox}
 
 \paragraph{Argumento formal de injetividade.}
@@ -1208,23 +1210,21 @@ que nenhuma colisão existe entre posições inteiras não-negativas distintas q
 O mapeamento $i \mapsto \mathbf{PE}(i)$ é \textbf{estritamente injetivo} para todo
 $i, j \in \mathbb{Z}_{\geq 0}$ com $i \neq j$.
 
-\paragraph{Por que a alternativa (b) diz ``para posições práticas''?}
-A formulação ``para posições práticas ($i \ll 10^4$)'' na alternativa (b) é
-conservadora e reflete a abordagem do artigo original (Vaswani et al., 2017), que
-usou bases de frequência $\omega_k = 10000^{2k/d}$ esperando que posições
-$i \lesssim 10^4$ fossem suficientes para aplicações de NLP. O argumento acima
-mostra que a injetividade é, na verdade, \emph{universal} sobre os inteiros
-não-negativos — a irracionalidade de $2\pi$ garante isso matematicamente.
+\paragraph{Observação.}
+Na prática, com aritmética de ponto flutuante, posições muito distantes podem
+produzir vetores numericamente próximos, mas o argumento acima é exato: a
+irracionalidade de $2\pi$ garante a injetividade sobre todos os inteiros
+não negativos.
 
 \paragraph{Análise das alternativas incorretas.}
 
 \begin{itemize}
-  \item \textbf{(a) — Errada.} A alternativa afirma que posições separadas por um
-        múltiplo inteiro de $2\pi$ teriam o mesmo encoding. Contudo, $2\pi$ é
-        irracional, então nenhum múltiplo não-nulo de $2\pi$ é inteiro. A premissa
-        da opção (a) nunca é satisfeita para posições inteiras.
+  \item \textbf{(a) Errada.} A alternativa supõe que existam posições inteiras
+        distintas congruentes módulo $2\pi$. Contudo, $2\pi$ é irracional, então
+        nenhum múltiplo não nulo de $2\pi$ é inteiro. A premissa da opção (a) nunca
+        é satisfeita para posições inteiras.
 
-  \item \textbf{(c) — Errada.} A norma de $\mathbf{PE}(i)$ é:
+  \item \textbf{(c) Errada.} A norma de $\mathbf{PE}(i)$ é:
         \[
           \|\mathbf{PE}(i)\|^2 = \sum_{k=0}^{d/2-1}
           \!\left[\sin^2\!\!\left(\frac{i}{\omega_k}\right)
@@ -1237,25 +1237,22 @@ não-negativos — a irracionalidade de $2\pi$ garante isso matematicamente.
         de $j$ é a \emph{direção} do vetor $\mathbf{PE}(i)$, não sua magnitude.
         Dois vetores podem ter a mesma norma e ainda assim ser distintos.
 
-  \item \textbf{(d) — Errada.} $\sin(i)$ é periódica em $i \in \mathbb{R}$ com
-        período $2\pi$ irracional; portanto, para inteiros $i, j$, $\sin(i) \neq \sin(j)$
-        sempre que $i \neq j$ e $|i-j| < 2\pi$, mas é possível que $\sin(i) = \sin(j)$
-        para inteiros distantes — a única dimensão não é suficiente por si só para
-        toda a faixa de inteiros.
-        Contudo, \emph{o par} $(\sin(i), \cos(i))$ identifica $i \bmod 2\pi$
-        univocamente, e como $2\pi$ é irracional, nenhum inteiro positivo tem a mesma
-        representação que $i = 0$.
+  \item \textbf{(d) Errada.} A dimensão mais lenta ($k = d/2 - 1$) tem período
+        $2\pi\,\omega_{d/2-1} \approx 2\pi \cdot 10000 \approx 62\,832$ posições, mas
+        a injetividade do vetor completo não depende dela. A dimensão $k = 0$ já
+        distingue todos os inteiros, então não existe faixa além da qual
+        $\mathbf{PE}(i)$ se repita.
 \end{itemize}
 
 % ------------------------------------------------------------------
-% Q25 — Derivação Detalhada
+% Q24: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXIV \emoji{skull-and-crossbones} — PE Aprendido Além de $L_{\max}$}
+\subsection*{XXIII \emoji{skull-and-crossbones}: PE Aprendido Além de $L_{\max}$}
 
 \paragraph{Enunciado.}
 Um modelo com positional encoding absoluto aprendido (estilo BERT), treinado com
 $L_{\max} = 512$, recebe na inferência uma sequência de comprimento $L = 600$.
-O que ocorre com os tokens nas posições $513$ a $600$?
+O que ocorre com os tokens nas posições $512$ a $599$ (indexação a partir de $0$)?
 
 \begin{respostabox}
 Alternativa \textbf{(b)}: Essas posições não possuem embeddings treinados; a
@@ -1273,21 +1270,22 @@ O positional encoding aprendido é implementado como uma tabela de consulta
 \texttt{position\_embeddings = nn.Embedding(L\_max, d)}
 \end{center}
 
-Essa camada armazena uma matriz treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$,
-com uma linha por posição $i \in \{0, 1, \ldots, L_{\max}-1\}$.
+Essa camada armazena uma matriz treinável $\mathbf{E} \in \mathbb{R}^{L_{\max} \times d}$
+com uma linha para cada posição $i \in \{0, \ldots, L_{\max}-1\}$.
 
-\textbf{Cenário 1 — Erro de índice.}
-Em frameworks padrão como PyTorch, consultar \texttt{position\_embeddings[512]}
-(com \texttt{L\_max=512}) acessa o índice 512 de uma tabela com 512 linhas
-(índices 0–511), produzindo:
+\textbf{Cenário 1: Erro de índice.}
+Em frameworks padrão como PyTorch, consultar o índice 512 dessa tabela
+(com \texttt{L\_max=512}, ela tem 512 linhas, de índice 0 a 511) produz:
 \begin{center}
 \texttt{IndexError: index out of range in self}
 \end{center}
 
-\textbf{Cenário 2 — Clamping de índice.}
+\textbf{Cenário 2: Clamping de índice.}
 Algumas implementações aplicam
-\texttt{position\_ids = position\_ids.clamp(max=L\_max-1)},
-que força qualquer posição $i \geq L_{\max}$ a usar o vetor treinado para
+\begin{center}
+\texttt{position\_ids = position\_ids.clamp(max=L\_max-1)}
+\end{center}
+o que força qualquer posição $i \geq L_{\max}$ a usar o vetor treinado para
 $i = L_{\max} - 1 = 511$. Os tokens nas posições 512 a 599 recebem todos o
 \emph{mesmo} embedding posicional (o da posição 511), resultando em:
 \begin{itemize}
@@ -1298,18 +1296,13 @@ $i = L_{\max} - 1 = 511$. Os tokens nas posições 512 a 599 recebem todos o
         modelo nunca viu dois tokens simultâneos com posição 511.
 \end{itemize}
 
-\textbf{Cenário 3 — Truncamento silencioso (alternativa (c)).}
-Bibliotecas como Hugging Face Transformers, ao tokenizar com
-\texttt{tokenizer(..., truncation=True, max\_length=L\_max)} sem o usuário pedir
-\textit{warnings}, podem cortar a entrada para os primeiros $L_{\max}$ \textit{tokens}
-antes mesmo de chegar ao modelo (geralmente acompanhado de um \textit{warning}
-discreto). Isso não é o que a alternativa (c) descreve estritamente
-(\emph{``sem erro''} e \emph{``preservando o processamento''}), mas ilustra que o
-comportamento exato depende muito do \textit{wrapper} usado, em produção é comum
-ver truncamento silencioso em vez do \texttt{IndexError} do PyTorch puro. Em todos
-os cenários, dados ou representações são degradados, por isso (b) continua sendo
-a resposta que captura o \textbf{problema fundamental} do PE aprendido fora do
-intervalo de treino.
+\textbf{Alternativas (a), (c) e (d).}
+Nenhuma descreve um mecanismo existente: \texttt{nn.Embedding} não interpola entre
+linhas, não possui \textit{fallback} senoidal para índices ausentes e não cria
+vetores nulos sob demanda. Qualquer um desses comportamentos teria de ser
+implementado explicitamente, e nenhum deles reproduziria a distribuição vista no
+treino. A alternativa (b) é a única que descreve o que a tabela de consulta
+realmente faz.
 
 \textbf{Contraste com outros métodos.}
 \begin{itemize}
@@ -1321,9 +1314,9 @@ intervalo de treino.
 \end{itemize}
 
 % ------------------------------------------------------------------
-% Q26 — Derivação Detalhada
+% Q25: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXV \emoji{skull-and-crossbones} — Relação Matemática entre RoPE e PE Senoidal}
+\subsection*{XXIV \emoji{skull-and-crossbones}: Relação Matemática entre RoPE e PE Senoidal}
 
 \paragraph{Enunciado.}
 Tanto o RoPE quanto o PE senoidal utilizam frequências da forma
@@ -1397,9 +1390,9 @@ estruturalmente distintos e os dois métodos não são equivalentes para nenhuma
 escolha de pesos.
 
 % ------------------------------------------------------------------
-% Q27 — Derivação Detalhada
+% Q26: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXVI \emoji{skull-and-crossbones} — Prova da Propriedade de Posição Relativa do RoPE}
+\subsection*{XXV \emoji{skull-and-crossbones}: Prova da Propriedade de Posição Relativa do RoPE}
 
 \paragraph{Enunciado.}
 Para o RoPE com $d = 2$ e parâmetro $\theta$, a matriz de rotação é
@@ -1421,7 +1414,7 @@ score depende apenas do offset relativo $(j-i)$.
 
 \paragraph{Prova completa em três partes.}
 
-\textbf{Parte 1 — Ortogonalidade de $\mathbf{R}(i)$.}
+\textbf{Parte 1: Ortogonalidade de $\mathbf{R}(i)$.}
 
 $\mathbf{R}(i)$ é uma matriz de rotação plana e, portanto, ortogonal:
 \[
@@ -1434,7 +1427,7 @@ Verificação explícita:
   = \mathbf{R}(-i).
 \]
 
-\textbf{Parte 2 — Propriedade de composição $\mathbf{R}(a) \mathbf{R}(b) = \mathbf{R}(a+b)$.}
+\textbf{Parte 2: Propriedade de composição $\mathbf{R}(a) \mathbf{R}(b) = \mathbf{R}(a+b)$.}
 
 \begin{align*}
   \mathbf{R}(a) \mathbf{R}(b)
@@ -1453,7 +1446,7 @@ Verificação explícita:
   = \mathbf{R}(a+b).
 \end{align*}
 
-\textbf{Parte 3 — Reescrita do score de atenção.}
+\textbf{Parte 3: Reescrita do score de atenção.}
 
 \begin{align*}
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
@@ -1488,7 +1481,7 @@ Para $d = 2M$ (dimensão geral), o RoPE aplica:
   \tilde{\mathbf{q}}_i^\top \tilde{\mathbf{k}}_j
   = \sum_{k=0}^{M-1}
     \left[\mathbf{q}_{[2k:2k+2]}\right]^\top
-    R_k(j-i)\,
+    \mathbf{R}_k(j-i)\,
     \left[\mathbf{k}_{[2k:2k+2]}\right],
 \]
 onde $\mathbf{R}_k(\delta) = \mathbf{R}(\delta\theta_k)$ usa a frequência $\theta_k = 10000^{-2k/d}$.
