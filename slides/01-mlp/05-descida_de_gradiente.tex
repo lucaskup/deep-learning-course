@@ -156,7 +156,7 @@
               axis lines=middle, xtick=\empty, ytick=\empty,
               ymin=0, ymax=2.6,
               domain=-1.5:1.5, samples=120,
-              legend style={font=\tiny,at={(1.05,1)},anchor=north west}
+              legend style={font=\tiny,at={(0.03,0.97)},anchor=north west}
             ]
               % function: e^{0.6 x} -- has nonzero second derivative at 0
               \addplot[thick,red] {exp(0.6*x)};
@@ -174,6 +174,7 @@
         }
       \end{column}
     \end{columns}
+    \vspace{.6em}
     Para $\theta$ escalar:
     \[
       \mathcal{L}(\theta)=\mathcal{L}(\theta_{0})
@@ -343,7 +344,7 @@
       \end{column}
       \begin{column}{.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/gd-convex-4panel.png}
+        \includegraphics[width=\linewidth,height=0.78\textheight,keepaspectratio]{slides/img/01-mlp/gd-convex-4panel.png}
       \end{column}
     \end{columns}
   \end{frame}
@@ -439,7 +440,8 @@
               width=8cm, height=5cm,
               xlabel={$x$}, ylabel={$\hat{y}$},
               xmin=-15, xmax=15, ymin=-1.1, ymax=1.1,
-              axis lines=middle,
+              axis lines=middle, ytick=\empty,
+              ylabel style={at={(current axis.above origin)},anchor=south east,inner sep=1pt},
               samples=200,
               legend style={font=\tiny,at={(0.98,0.98)},anchor=north east,legend columns=1}
             ]
@@ -1041,7 +1043,9 @@
 
   %--- Slide: steepest descent depende da norma (formulação) ---
   \begin{frame}{\textit{Steepest descent}: o passo mais íngreme depende da norma\footfullcite{bernstein2024anthology}}
-    Qual atualização $\Delta \mathbf{W}$ mais reduz a loss, dado um tamanho máximo de passo?
+    Qual atualização $\Delta \mathbf{W}$\footnote{Nesta seção, $\mathbf{W}$ é a matriz de pesos de
+    \emph{uma} camada, não o vetor $\thetav$ de todos os parâmetros: o Muon usa a estrutura 2D
+    da matriz, perdida ao vetorizar.} mais reduz a loss, dado um tamanho máximo de passo?
     Com $\mathbf{G}=\nabla_{\mathbf{W}}L$, a aproximação linear da loss é
     \[
       L(\mathbf{W}+\Delta \mathbf{W})\;\approx\;L(\mathbf{W})+\langle \mathbf{G},\,\Delta \mathbf{W}\rangle,
@@ -1052,6 +1056,7 @@
     \[
       \Delta \mathbf{W}^{*}=\operatorname*{arg\,min}_{\|\Delta \mathbf{W}\|\le \eta}\;\langle \mathbf{G},\,\Delta \mathbf{W}\rangle.
     \]
+    \vspace{-0.6\baselineskip}
     \begin{itemize}
       \item A restrição é essencial: na aproximação linear, sem limite de tamanho o valor
         desceria sem fim.
@@ -1060,18 +1065,43 @@
     \end{itemize}
   \end{frame}
 
-  %--- Slide: solução sob Frobenius ---
-  \begin{frame}{Solução sob a norma de Frobenius: o gradiente}
-    A norma de Frobenius trata a matriz como um vetor longo:
-    $\|\Delta \mathbf{W}\|_{F}=\sqrt{\sum_{ij}\Delta W_{ij}^{2}}$.
-    Pela desigualdade de Cauchy--Schwarz,
+  %--- Slide: solução sob Frobenius (parte 1: o menor valor possível) ---
+  \begin{frame}{Solução sob a norma de Frobenius: o menor valor possível}
+    A norma de Frobenius trata a matriz como um vetor longo,
+    $\|\Delta \mathbf{W}\|_{F}=\sqrt{\sum_{ij}\Delta W_{ij}^{2}}$, e $\langle \mathbf{G},\,\Delta \mathbf{W}\rangle$ é o
+    produto interno usual desses vetores. Vale então a desigualdade de Cauchy--Schwarz,
+    $|\langle \mathbf{A},\,\mathbf{B}\rangle|\le\|\mathbf{A}\|_{F}\,\|\mathbf{B}\|_{F}$ para matrizes de mesma
+    dimensão, com igualdade se, e somente se, uma é múltiplo escalar da outra.
+    Aplicando a $\mathbf{G}$ e $\Delta \mathbf{W}$ e lendo só o lado negativo,
     \[
-      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle \;\ge\; -\,\|\mathbf{G}\|_{F}\,\|\Delta \mathbf{W}\|_{F} \;\ge\; -\,\eta\,\|\mathbf{G}\|_{F}.
+      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle \;\ge\; -\,\|\mathbf{G}\|_{F}\,\|\Delta \mathbf{W}\|_{F}.
     \]
-    A igualdade acontece quando $\Delta \mathbf{W}$ aponta no sentido oposto a $\mathbf{G}$ e usa todo o
-    tamanho permitido:
+    \begin{itemize}
+      \item Até aqui a restrição não foi usada: o lado direito ainda não é um número fixo, ele
+        muda com o tamanho de $\Delta \mathbf{W}$ e, sem limite, pode diminuir indefinidamente.
+      \item Agora entra a restrição $\|\Delta \mathbf{W}\|_{F}\le\eta$. Multiplicar os dois lados da restrição por
+        $-\|\mathbf{G}\|_{F}$ inverte o sentido:
+        $-\,\|\mathbf{G}\|_{F}\,\|\Delta \mathbf{W}\|_{F}\;\ge\;-\,\eta\,\|\mathbf{G}\|_{F}$.
+      \item Encadeando as duas desigualdades, nenhum passo admissível fica abaixo de
+        \[
+          \langle \mathbf{G},\,\Delta \mathbf{W}\rangle \;\ge\; -\,\|\mathbf{G}\|_{F}\,\|\Delta \mathbf{W}\|_{F} \;\ge\; -\,\eta\,\|\mathbf{G}\|_{F}.
+        \]
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: solução sob Frobenius (parte 2: atingindo o menor valor) ---
+  \begin{frame}{Solução sob a norma de Frobenius: o gradiente}
+    O valor $-\eta\,\|\mathbf{G}\|_{F}$ só é atingido quando as \alert{duas} desigualdades viram igualdades ao mesmo tempo:
+    \begin{enumerate}
+      \item Cauchy--Schwarz com igualdade e sinal negativo: $\Delta \mathbf{W}=-\,c\,\mathbf{G}$ para algum
+        $c>0$, ou seja, $\Delta \mathbf{W}$ aponta no sentido oposto a $\mathbf{G}$.
+      \item Restrição ativa: $\|\Delta \mathbf{W}\|_{F}=\eta$, ou seja, o passo usa todo o tamanho permitido.
+    \end{enumerate}
+    Combinando as duas condições, $\|{-c}\,\mathbf{G}\|_{F}=c\,\|\mathbf{G}\|_{F}=\eta$ fixa $c=\eta/\|\mathbf{G}\|_{F}$, logo
     \[
-      \Delta \mathbf{W}^{*}=-\,\eta\,\frac{\mathbf{G}}{\|\mathbf{G}\|_{F}}.
+      \Delta \mathbf{W}^{*}=-\,\eta\,\frac{\mathbf{G}}{\|\mathbf{G}\|_{F}},
+      \qquad
+      \langle \mathbf{G},\,\Delta \mathbf{W}^{*}\rangle=-\,\eta\,\frac{\langle \mathbf{G},\,\mathbf{G}\rangle}{\|\mathbf{G}\|_{F}}=-\,\eta\,\|\mathbf{G}\|_{F}.
     \]
     \begin{itemize}
       \item O passo mais íngreme sob Frobenius é o \alert{gradiente} (normalizado): a descida
@@ -1080,8 +1110,8 @@
     \end{itemize}
   \end{frame}
 
-  %--- Slide: solução sob a norma espectral ---
-  \begin{frame}{Solução sob a norma espectral: a ortogonalização}
+  %--- Slide: solução sob a norma espectral (parte 1: uma parcela de cada vez) ---
+  \begin{frame}{Solução sob a norma espectral: uma parcela de cada vez}
     A SVD escreve $\mathbf{G}$ como uma soma de matrizes de \textit{rank} 1: cada parcela pega a
     direção singular de entrada $\mathbf{v}_{i}$, leva na direção de saída $\mathbf{u}_{i}$ e estica por $\sigma_{i}$:
     \[
@@ -1089,22 +1119,69 @@
       \qquad\Longrightarrow\qquad
       \langle \mathbf{G},\,\Delta \mathbf{W}\rangle=\sum_{i}\sigma_{i}\,\big(\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\big).
     \]
-    A norma espectral é o maior fator de esticamento: se $\|\Delta \mathbf{W}\|_{2}=\sigma_{1}(\Delta \mathbf{W})\le\eta$,
-    nenhum vetor unitário é esticado além de $\eta$. Cada parcela então obedece
-    $\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\ge-\eta$, logo
+    A norma espectral $\|\Delta \mathbf{W}\|_{2}=\sigma_{1}(\Delta \mathbf{W})$ é o maior fator de esticamento:
+    para todo vetor unitário $\mathbf{v}$, $\|\Delta \mathbf{W}\,\mathbf{v}\|\le\|\Delta \mathbf{W}\|_{2}$.
+    Com Cauchy--Schwarz para vetores, cada parcela obedece
     \[
-      \langle \mathbf{G},\,\Delta \mathbf{W}\rangle\;\ge\;-\,\eta\sum_{i}\sigma_{i}.
+      \mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}
+      \;\ge\;-\,\|\mathbf{u}_{i}\|\,\|\Delta \mathbf{W}\,\mathbf{v}_{i}\|
+      \;\ge\;-\,\|\Delta \mathbf{W}\|_{2}.
     \]
-    A igualdade exige $\Delta \mathbf{W}\,\mathbf{v}_{i}=-\eta\,\mathbf{u}_{i}$ em \alert{todas} as direções singulares
-    ao mesmo tempo:
-    \[
-      \Delta \mathbf{W}^{*}=-\,\eta\sum_{i}\mathbf{u}_{i}\mathbf{v}_{i}^{\top}=-\,\eta\,\mathbf{U}\mathbf{V}^{\top},
-    \]
-    uma matriz ortogonal escalada por $\eta$, exatamente a \alert{ortogonalização} de $\mathbf{G}$.
+    \begin{itemize}
+      \item Até aqui a restrição não foi usada: o lado direito ainda não é um número fixo, ele
+        muda com o tamanho de $\Delta \mathbf{W}$ e, sem limite, pode diminuir indefinidamente.
+    \end{itemize}
     \vfill
-    {\footnotesize\color{gray!50!black}Supomos todos os $\sigma_{i}>0$; $\mathbf{U}$ e $\mathbf{V}$ empilham os
-    $\mathbf{u}_{i}$ e $\mathbf{v}_{i}$ como colunas; usamos $\langle \mathbf{u}_{i}\mathbf{v}_{i}^{\top},\,\Delta \mathbf{W}\rangle
+    {\footnotesize\color{gray!50!black}Usamos $\langle \mathbf{u}_{i}\mathbf{v}_{i}^{\top},\,\Delta \mathbf{W}\rangle
     =\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}$ e $\|\mathbf{u}_{i}\|=\|\mathbf{v}_{i}\|=1$.}
+  \end{frame}
+
+  %--- Slide: solução sob a norma espectral (parte 2: o menor valor possível) ---
+  \begin{frame}{Solução sob a norma espectral: o menor valor possível}
+    \begin{itemize}
+      \item Agora entra a restrição $\|\Delta \mathbf{W}\|_{2}\le\eta$. Multiplicar os dois lados da restrição
+        por $-1$ inverte o sentido, $-\|\Delta \mathbf{W}\|_{2}\ge-\eta$, e cada parcela passa a obedecer
+        \[
+          \mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\;\ge\;-\,\|\Delta \mathbf{W}\|_{2}\;\ge\;-\,\eta
+          \qquad\text{para todo } i.
+        \]
+      \item Multiplicar por $\sigma_{i}>0$ preserva o sentido. Somando as parcelas, nenhum passo
+        admissível fica abaixo de
+        \[
+          \langle \mathbf{G},\,\Delta \mathbf{W}\rangle
+          =\sum_{i}\sigma_{i}\,\big(\mathbf{u}_{i}^{\top}\Delta \mathbf{W}\,\mathbf{v}_{i}\big)
+          \;\ge\;\sum_{i}\sigma_{i}\,(-\eta)
+          \;=\;-\,\eta\sum_{i}\sigma_{i}.
+        \]
+      \item Compare com Frobenius: lá o menor valor era $-\eta\,\|\mathbf{G}\|_{F}$, um único número que
+        depende de $\mathbf{G}$ inteira; aqui é $-\eta\sum_{i}\sigma_{i}$, e cada direção singular
+        contribui com a mesma folga $\eta$, independentemente do seu $\sigma_{i}$.
+    \end{itemize}
+  \end{frame}
+
+  %--- Slide: solução sob a norma espectral (parte 3: a ortogonalização) ---
+  \begin{frame}{Solução sob a norma espectral: a ortogonalização}
+    O valor $-\eta\sum_{i}\sigma_{i}$ só é atingido quando, em \alert{todas} as parcelas ao mesmo tempo,
+    as duas desigualdades viram igualdades:
+    \begin{enumerate}
+      \item Cauchy--Schwarz com igualdade e sinal negativo: $\Delta \mathbf{W}\,\mathbf{v}_{i}$ aponta no sentido
+        oposto a $\mathbf{u}_{i}$ e tem o maior comprimento $\|\Delta \mathbf{W}\|_{2}$ possível.
+      \item Restrição ativa: $\|\Delta \mathbf{W}\|_{2}=\eta$, ou seja, o passo usa todo o tamanho permitido.
+    \end{enumerate}
+    Juntas, as condições dizem $\Delta \mathbf{W}\,\mathbf{v}_{i}=-\,\eta\,\mathbf{u}_{i}$ para todo $i$, isto é,
+    $\Delta \mathbf{W}\,\mathbf{V}=-\,\eta\,\mathbf{U}$. Como $\mathbf{V}$ é ortogonal,
+    \[
+      \Delta \mathbf{W}^{*}=-\,\eta\,\mathbf{U}\mathbf{V}^{\top}=-\,\eta\sum_{i}\mathbf{u}_{i}\mathbf{v}_{i}^{\top},
+      \qquad
+      \langle \mathbf{G},\,\Delta \mathbf{W}^{*}\rangle=\sum_{i}\sigma_{i}\,\mathbf{u}_{i}^{\top}(-\eta\,\mathbf{u}_{i})=-\,\eta\sum_{i}\sigma_{i}.
+    \]
+    \begin{itemize}
+      \item $\mathbf{U}\mathbf{V}^{\top}$ é uma matriz ortogonal com as direções singulares de $\mathbf{G}$ e todos
+        os $\sigma$ iguais a 1: exatamente a \alert{ortogonalização} de $\mathbf{G}$, escalada por $\eta$.
+    \end{itemize}
+    \vfill
+    {\footnotesize\color{gray!50!black}Supomos $\mathbf{G}$ quadrada com todos os $\sigma_{i}>0$, de modo que
+    $\mathbf{U}$ e $\mathbf{V}$, que empilham os $\mathbf{u}_{i}$ e $\mathbf{v}_{i}$ como colunas, são ortogonais.}
   \end{frame}
 
   %--- Slide: pseudocódigo Muon ---
@@ -1137,20 +1214,20 @@
       \[
         \eta=0.1,\quad \beta=0.9,\quad
         \mathbf{W}_t=\begin{bmatrix}3&5\\2&4\end{bmatrix},\quad
-        \mathbf{M}_t=\begin{bmatrix}2&-3\\5&2\end{bmatrix},\quad
-        \mathbf{G}_t=\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}.
+        \mathbf{M}_t=\begin{bmatrix}-1&-2\\3&-4\end{bmatrix},\quad
+        \mathbf{G}_t=\begin{bmatrix}1.9&-2.2\\1.3&-3.4\end{bmatrix}.
       \]
     \end{block}
     Passo 1, momentum (elemento a elemento):
     \[
-      \mathbf{M}_{t+1}=0.9\begin{bmatrix}2&-3\\5&2\end{bmatrix}+\begin{bmatrix}1.2&1.7\\2.5&1.2\end{bmatrix}
-      =\begin{bmatrix}3&-1\\7&3\end{bmatrix}.
+      \mathbf{M}_{t+1}=0.9\begin{bmatrix}-1&-2\\3&-4\end{bmatrix}+\begin{bmatrix}1.9&-2.2\\1.3&-3.4\end{bmatrix}
+      =\begin{bmatrix}1&-4\\4&-7\end{bmatrix}.
     \]
     Passo 2, normalização pela norma de Frobenius:
     \[
-      \|\mathbf{M}_{t+1}\|_{F}=\sqrt{9+1+49+9}=\sqrt{68}\approx 8.25,
+      \|\mathbf{M}_{t+1}\|_{F}=\sqrt{1+16+16+49}=\sqrt{82}\approx 9.06,
       \qquad
-      \widehat{\mathbf{M}}_{t+1}\approx\begin{bmatrix}0.36&-0.12\\0.85&0.36\end{bmatrix}.
+      \widehat{\mathbf{M}}_{t+1}\approx\begin{bmatrix}0.11&-0.44\\0.44&-0.77\end{bmatrix}.
     \]
     \begin{itemize}
       \item Falta o passo 3, a ortogonalização. Antes dele, vejamos quanto $\mathbf{M}_{t+1}$ estica cada direção singular.
@@ -1162,45 +1239,45 @@
     Os valores singulares de $\mathbf{M}$ são as raízes quadradas dos autovalores de $\mathbf{M}^{\top}\mathbf{M}$:
     \[
       \mathbf{M}_{t+1}^{\top}\mathbf{M}_{t+1}
-      =\begin{bmatrix}3&7\\-1&3\end{bmatrix}\begin{bmatrix}3&-1\\7&3\end{bmatrix}
-      =\begin{bmatrix}58&18\\18&10\end{bmatrix}.
+      =\begin{bmatrix}1&4\\-4&-7\end{bmatrix}\begin{bmatrix}1&-4\\4&-7\end{bmatrix}
+      =\begin{bmatrix}17&-32\\-32&65\end{bmatrix}.
     \]
     Com traço e determinante
     \[
-      \operatorname{tr}\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=58+10=68,
+      \operatorname{tr}\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=17+65=82,
       \qquad
-      \det\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=58\cdot 10-18\cdot 18=580-324=256,
+      \det\!\big(\mathbf{M}^{\top}\mathbf{M}\big)=17\cdot 65-32\cdot 32=1105-1024=81,
     \]
     a equação característica fica
     \[
-      \lambda^{2}-68\lambda+256=0,
+      \lambda^{2}-82\lambda+81=0,
       \qquad
-      \lambda=\frac{68\pm\sqrt{4624-1024}}{2}=\frac{68\pm 60}{2}.
+      \lambda=\frac{82\pm\sqrt{6724-324}}{2}=\frac{82\pm 80}{2}.
     \]
     \[
-      \lambda_1=64,\quad \lambda_2=4
+      \lambda_1=81,\quad \lambda_2=1
       \qquad\Longrightarrow\qquad
-      \sigma_1=8,\quad \sigma_2=2.
+      \sigma_1=9,\quad \sigma_2=1.
     \]
     \begin{itemize}
-      \item Vetores em uma direção singular saem amplificados 4 vezes mais que na outra: é essa assimetria que o Muon vai corrigir.
+      \item Vetores em uma direção singular saem amplificados 9 vezes mais que na outra: é essa assimetria que o Muon vai corrigir.
     \end{itemize}
   \end{frame}
 
   %--- Slide: exemplo numérico Muon (parte 2) ---
   \begin{frame}{Exemplo numérico: Muon (a tentativa ingênua)}
-    As colunas de $\mathbf{M}_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ não são ortogonais entre si:
+    As colunas de $\mathbf{M}_{t+1}=\begin{bmatrix}1&-4\\4&-7\end{bmatrix}$ não são ortogonais entre si:
     \[
-      (3,\,7)\cdot(-1,\,3) = -3+21 = 18 \neq 0.
+      (1,\,4)\cdot(-4,\,-7) = -4-28 = -32 \neq 0.
     \]
     A tentativa ingênua seria normalizar cada coluna separadamente:
     \[
-      \frac{(3,\,7)}{\sqrt{58}}=(0.39,\,0.92),
+      \frac{(1,\,4)}{\sqrt{17}}=(0.24,\,0.97),
       \qquad
-      \frac{(-1,\,3)}{\sqrt{10}}=(-0.32,\,0.95).
+      \frac{(-4,\,-7)}{\sqrt{65}}=(-0.50,\,-0.87).
     \]
     \begin{alertblock}{Normalizar as colunas não basta}
-      Cada coluna ficou com norma 1, mas o produto interno entre elas é $0.75$, ainda longe de zero. A matriz resultante não é ortogonal.
+      Cada coluna ficou com norma 1, mas o produto interno entre elas é $-0.96$, quase paralelas. A matriz resultante não é ortogonal.
     \end{alertblock}
   \end{frame}
 
@@ -1225,21 +1302,21 @@
 
   %--- Slide: exemplo numérico Muon (parte 3) ---
   \begin{frame}{Exemplo numérico: Muon (ortogonalização e atualização)}
-    Passo 3, ortogonalização de $\mathbf{M}_{t+1}=\begin{bmatrix}3&-1\\7&3\end{bmatrix}$ pela forma fechada:
+    Passo 3, ortogonalização de $\mathbf{M}_{t+1}=\begin{bmatrix}1&-4\\4&-7\end{bmatrix}$ pela forma fechada:
     \[
-      \det \mathbf{M}_{t+1}=3\cdot 3-(-1)\cdot 7=16>0,\quad
-      p=3+3=6,\quad q=7-(-1)=8,\quad \sqrt{p^{2}+q^{2}}=10,
+      \det \mathbf{M}_{t+1}=-7+16=9>0,\qquad
+      p=1-7=-6,\qquad q=4+4=8,\qquad \sqrt{p^{2}+q^{2}}=10,
     \]
     \[
-      \mathbf{O}_{t+1}=\frac{1}{10}\begin{bmatrix}6&-8\\8&6\end{bmatrix}=\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}.
+      \mathbf{O}_{t+1}=\frac{1}{10}\begin{bmatrix}-6&-8\\8&-6\end{bmatrix}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}.
     \]
     Passo 4, atualização dos pesos:
     \[
-      \mathbf{W}_{t+1}=\begin{bmatrix}3&5\\2&4\end{bmatrix}-0.1\begin{bmatrix}0.6&-0.8\\0.8&0.6\end{bmatrix}
-      =\begin{bmatrix}2.94&5.08\\1.92&3.94\end{bmatrix}.
+      \mathbf{W}_{t+1}=\begin{bmatrix}3&5\\2&4\end{bmatrix}-0.1\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}
+      =\begin{bmatrix}3.06&5.08\\1.92&4.06\end{bmatrix}.
     \]
     \begin{itemize}
-      \item Os valores singulares passaram de $(8,\,2)$ para $(1,\,1)$: a atualização estica todas as direções singulares igualmente.
+      \item Os valores singulares passaram de $(9,\,1)$ para $(1,\,1)$: a atualização estica todas as direções singulares igualmente.
       \item Aplicamos a forma fechada a $\mathbf{M}_{t+1}$, não a $\widehat{\mathbf{M}}_{t+1}$: as duas têm a mesma
         ortogonal mais próxima. A normalização do passo 2 só importa para a convergência do Newton-Schulz.
     \end{itemize}
@@ -1247,17 +1324,17 @@
 
   %--- Slide: Adam e Muon no mesmo cenário (passo do Adam) ---
   \begin{frame}{Comparando as atualizações de Adam e Muon}
-    \begin{block}{Cenário: mesmo primeiro momento para os dois otimizadores}
+    \begin{block}{Cenário: o mesmo momentum $\mathbf{M}_{t+1}$ do exemplo, agora também no Adam}
       \[
         \epsilon\approx 0,\quad
-        \widetilde{\mathbf{m}}_{t+1}=\mathbf{M}_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix},\quad
-        \widetilde{\mathbf{v}}_{t+1}=\begin{bmatrix}1&4\\36&49\end{bmatrix}.
+        \widetilde{\mathbf{m}}_{t+1}=\mathbf{M}_{t+1}=\begin{bmatrix}1&-4\\4&-7\end{bmatrix},\quad
+        \widetilde{\mathbf{v}}_{t+1}=\begin{bmatrix}1&16\\16&49\end{bmatrix}.
       \]
     \end{block}
     O Adam normaliza entrada por entrada (aqui $\widetilde{\mathbf{v}}=\widetilde{\mathbf{m}}^{2}$, um histórico de gradientes estável). A direção da sua atualização é
     \[
       \mathbf{D}_{\text{Adam}}=\frac{\widetilde{\mathbf{m}}_{t+1}}{\sqrt{\widetilde{\mathbf{v}}_{t+1}}}
-      =\begin{bmatrix}1/1&-2/2\\6/6&-7/7\end{bmatrix}
+      =\begin{bmatrix}1/1&-4/4\\4/4&-7/7\end{bmatrix}
       =\begin{bmatrix}1&-1\\1&-1\end{bmatrix}.
     \]
     \begin{itemize}
@@ -1268,7 +1345,7 @@
 
   %--- Slide: Adam e Muon no mesmo cenário (passo do Muon e comparação) ---
   \begin{frame}{Comparando as atualizações de Adam e Muon}
-    Com a forma fechada da ortogonalização ($\det \mathbf{M}_{t+1}=-7+12=5>0$):
+    A ortogonalização já foi feita no exemplo ($p=-6$, $q=8$):
     \[
       \mathbf{D}_{\text{Muon}}=\mathbf{O}_{t+1}=\frac{1}{\sqrt{p^{2}+q^{2}}}\begin{bmatrix}p&-q\\q&p\end{bmatrix}
       =\frac{1}{10}\begin{bmatrix}-6&-8\\8&-6\end{bmatrix}
@@ -1306,48 +1383,146 @@
     \end{itemize}
   \end{frame}
 
+  %--- Slide: SVD de M_{t+1} no cenário de comparação (parte 1: valores singulares) ---
+  \begin{frame}{A SVD completa de $\mathbf{M}_{t+1}$: os valores singulares}
+    Já sabemos que $\mathbf{M}_{t+1}=\begin{bmatrix}1&-4\\4&-7\end{bmatrix}$ tem $\sigma_1=9$ e $\sigma_2=1$, raízes de
+    \[
+      \mathbf{M}_{t+1}^{\top}\mathbf{M}_{t+1}=\begin{bmatrix}17&-32\\-32&65\end{bmatrix},
+      \qquad
+      \lambda^{2}-82\lambda+81=0
+      \qquad\Longrightarrow\qquad
+      \lambda_1=81,\quad \lambda_2=1.
+    \]
+    Para desenhar o que cada otimizador faz com o círculo unitário, faltam as \alert{direções}:
+    \begin{itemize}
+      \item As direções de \textbf{entrada} $\mathbf{v}_i$ são os autovetores de $\mathbf{M}^{\top}\mathbf{M}$.
+      \item As direções de \textbf{saída} $\mathbf{u}_i$ são os autovetores de $\mathbf{M}\mathbf{M}^{\top}$, com os mesmos autovalores.
+      \item As duas famílias estão ligadas por $\mathbf{M}\,\mathbf{v}_i=\sigma_i\,\mathbf{u}_i$: a entrada $\mathbf{v}_i$
+        sai na direção $\mathbf{u}_i$ esticada por $\sigma_i$.
+    \end{itemize}
+    Com $\sigma_1/\sigma_2=9$, quase toda a magnitude do momentum vive em uma direção: é a assimetria que
+    a ortogonalização vai desfazer.
+  \end{frame}
+
+  %--- Slide: SVD de M_{t+1} no cenário de comparação (parte 2: direções singulares) ---
+  \begin{frame}{A SVD completa de $\mathbf{M}_{t+1}$: as direções singulares}
+    As direções de saída $\mathbf{u}_i$ são os autovetores de $\mathbf{M}_{t+1}\mathbf{M}_{t+1}^{\top}$:
+    \[
+      \mathbf{M}_{t+1}\mathbf{M}_{t+1}^{\top}=\begin{bmatrix}17&32\\32&65\end{bmatrix},
+      \qquad
+      (17-81)\,x+32\,y=0
+      \;\Longrightarrow\;
+      \frac{y}{x}=2.
+    \]
+    Logo $\mathbf{u}_1=\tfrac{1}{\sqrt{5}}(1,\,2)$, a $63.4^{\circ}$, e $\mathbf{u}_2=\tfrac{1}{\sqrt{5}}(2,\,-1)$, a $-26.6^{\circ}$.
+    As direções de entrada vêm de $\mathbf{v}_i=\mathbf{M}_{t+1}^{\top}\mathbf{u}_i/\sigma_i$:
+    \[
+      \mathbf{v}_1=\frac{1}{9}\begin{bmatrix}1&4\\-4&-7\end{bmatrix}\frac{1}{\sqrt{5}}\begin{bmatrix}1\\2\end{bmatrix}
+      =\frac{1}{\sqrt{5}}\begin{bmatrix}1\\-2\end{bmatrix},
+      \qquad
+      \mathbf{v}_2=\frac{1}{1}\begin{bmatrix}1&4\\-4&-7\end{bmatrix}\frac{1}{\sqrt{5}}\begin{bmatrix}2\\-1\end{bmatrix}
+      =\frac{1}{\sqrt{5}}\begin{bmatrix}-2\\-1\end{bmatrix}.
+    \]
+    Juntando tudo:
+    \[
+      \mathbf{U}=\frac{1}{\sqrt{5}}\begin{bmatrix}1&2\\2&-1\end{bmatrix},
+      \qquad
+      \boldsymbol{\Sigma}=\begin{bmatrix}9&0\\0&1\end{bmatrix},
+      \qquad
+      \mathbf{V}=\frac{1}{\sqrt{5}}\begin{bmatrix}1&-2\\-2&-1\end{bmatrix}.
+    \]
+  \end{frame}
+
+  %--- Slide: SVDs das três matrizes lado a lado ---
+  \begin{frame}{As SVDs das três matrizes lado a lado}
+    Cada linha é $\mathbf{U}\,\boldsymbol{\Sigma}\,\mathbf{V}^{\top}$: direções de saída à esquerda, valores
+    singulares no meio, direções de entrada (transpostas) à direita.
+    \small
+    \begin{align*}
+      \mathbf{M}_{t+1}
+        &=\tfrac{1}{\sqrt{5}}\begin{bmatrix}1&2\\2&-1\end{bmatrix}
+          \begin{bmatrix}9&0\\0&1\end{bmatrix}
+          \tfrac{1}{\sqrt{5}}\begin{bmatrix}1&-2\\-2&-1\end{bmatrix}
+        &&\sigma_1\gg\sigma_2\\
+      \mathbf{D}_{\text{Adam}}
+        &=\tfrac{1}{\sqrt{2}}\begin{bmatrix}1&1\\1&-1\end{bmatrix}
+          \begin{bmatrix}2&0\\0&0\end{bmatrix}
+          \tfrac{1}{\sqrt{2}}\begin{bmatrix}1&-1\\1&1\end{bmatrix}
+        &&\text{outros } \mathbf{U},\,\mathbf{V};\ \sigma_2=0\\
+      \mathbf{D}_{\text{Muon}}
+        &=\tfrac{1}{\sqrt{5}}\begin{bmatrix}1&2\\2&-1\end{bmatrix}
+          \begin{bmatrix}1&0\\0&1\end{bmatrix}
+          \tfrac{1}{\sqrt{5}}\begin{bmatrix}1&-2\\-2&-1\end{bmatrix}
+        &&\text{mesmos } \mathbf{U},\,\mathbf{V};\ \sigma_1=\sigma_2=1
+    \end{align*}
+    \normalsize
+    \begin{itemize}
+      \item Adam troca as duas bases: $\mathbf{u}_1$ gira de $63.4^{\circ}$ para $45^{\circ}$, e $\sigma_2=0$
+        reduz a atualização a \textit{rank} 1.
+      \item Muon é o passo mais íngreme sob a norma espectral em ação: mesmos $\mathbf{U}$ e $\mathbf{V}$,
+        $\boldsymbol{\Sigma}$ trocado pela identidade, reproduzindo a forma fechada
+        $\frac{1}{10}\left[\begin{smallmatrix}-6&-8\\8&-6\end{smallmatrix}\right]$.
+    \end{itemize}
+    \vfill
+    {\footnotesize\color{gray!50!black}Os sinais de cada par $(\mathbf{u}_i,\mathbf{v}_i)$ são convenção: trocar
+    os dois ao mesmo tempo não altera a decomposição.}
+  \end{frame}
+
   %--- Slide: Adam e Muon, visão das elipses ---
   \begin{frame}{Comparando as atualizações: a visão das direções singulares}
-    A elipse imagem do círculo unitário e as direções singulares com comprimento $\sigma$:
+    Imagem do círculo unitário por cada matriz, com as direções singulares de saída $\sigma_{i}\mathbf{u}_{i}$.
     \vfill
     \centering
-    \begin{tikzpicture}[>=Latex,scale=1.65]
-      \begin{scope}[shift={(-2.9,0)}]
+    \begin{tikzpicture}[>=Latex,scale=1.3]
+      \begin{scope}[shift={(-3.4,0)}]
+        \node[font=\scriptsize,gray!60!black] at (0,1.4) {imagem do círculo por $\mathbf{M}_{t+1}$};
         \draw[gray!40,->] (-1.35,0)--(1.35,0);
-        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!40,->] (0,-1.28)--(0,1.28);
         \draw[gray!60] (0.625,0.04)--(0.625,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {5};
         \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {10};
-        \draw[very thick,BrickRed,rotate=76.7] (0,0) ellipse (1.184 and 0.066);
-        \draw[->,thick,BrickRed] (0,0) -- (76.7:1.184) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
-        \draw[thick,BrickRed] (0,0) -- (-13.3:0.066);
-        \node[font=\scriptsize,BrickRed] at (-13.3:0.38) {$\sigma_2$};
-        \node[below] at (0,-1.42) {\small $\mathbf{M}_{t+1}=\begin{bmatrix}1&-2\\6&-7\end{bmatrix}$};
+        \draw[line width=2.2pt,BrickRed!35,rotate=63.4] (0,0) ellipse (1.125 and 0.125);
+        \draw[->,thick,BrickRed] (0,0) -- (63.4:1.125) node[right,inner sep=2pt] {\scriptsize $\sigma_1\mathbf{u}_1$};
+        \fill[BrickRed] (0,0) circle (0.9pt);
+        \draw[->,thick,BrickRed] (0,0) -- (-26.6:0.125);
+        \node[font=\scriptsize,BrickRed,below right,inner sep=1pt,xshift=-6pt,yshift=-1pt] at (-26.6:0.125) {$\sigma_2\mathbf{u}_2$};
+        \node[below] at (0,-1.3) {\small $\mathbf{M}_{t+1}=\begin{bmatrix}1&-4\\4&-7\end{bmatrix}$};
       \end{scope}
       \begin{scope}
+        \node[font=\scriptsize,gray!60!black] at (0,1.4) {imagem do círculo por $\mathbf{D}_{\text{Adam}}$};
         \draw[gray!40,->] (-1.35,0)--(1.35,0);
-        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!40,->] (0,-1.28)--(0,1.28);
         \draw[gray!60] (0.4167,0.04)--(0.4167,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {1};
         \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {3};
         \draw[gray!50,dashed] (0,0) circle (0.4167);
-        \draw[<->,very thick,BrickRed] (225:0.8333) -- (45:0.8333);
-        \node[font=\scriptsize,BrickRed,above,inner sep=3pt] at (45:0.8333) {$\sigma_1$};
+        \draw[line width=2.2pt,BrickRed!35] (225:0.8333) -- (45:0.8333);
+        \draw[->,thick,BrickRed] (0,0) -- (45:0.8333) node[above,inner sep=3pt] {\scriptsize $\sigma_1\mathbf{u}_1$};
+        \fill[BrickRed] (0,0) circle (0.9pt);
         \node[font=\scriptsize,BrickRed] at (-45:0.55) {$\sigma_2=0$};
-        \node[below] at (0,-1.42) {\small $\mathbf{D}_{\text{Adam}}=\begin{bmatrix}1&-1\\1&-1\end{bmatrix}$};
+        \node[below] at (0,-1.3) {\small $\mathbf{D}_{\text{Adam}}=\begin{bmatrix}1&-1\\1&-1\end{bmatrix}$};
       \end{scope}
-      \begin{scope}[shift={(2.9,0)}]
+      \begin{scope}[shift={(3.4,0)}]
+        \node[font=\scriptsize,gray!60!black] at (0,1.4) {imagem do círculo por $\mathbf{D}_{\text{Muon}}$};
         \draw[gray!40,->] (-1.35,0)--(1.35,0);
-        \draw[gray!40,->] (0,-1.35)--(0,1.35);
+        \draw[gray!40,->] (0,-1.28)--(0,1.28);
         \draw[gray!60] (0.4167,0.04)--(0.4167,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {1};
         \draw[gray!60] (1.25,0.04)--(1.25,-0.04) node[below,font=\tiny,gray!60!black,inner sep=1.5pt] {3};
-        \draw[very thick,NavyBlue] (0,0) circle (0.4167);
-        \draw[->,thick,NavyBlue] (0,0) -- (76.7:0.4167) node[above,inner sep=2pt] {\scriptsize $\sigma_1$};
-        \draw[->,thick,NavyBlue] (0,0) -- (-13.3:0.4167) node[above right,inner sep=1pt] {\scriptsize $\sigma_2$};
-        \node[below] at (0,-1.42) {\small $\mathbf{D}_{\text{Muon}}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}$};
+        \draw[line width=2.2pt,BrickRed!35] (0,0) circle (0.4167);
+        \draw[->,thick,BrickRed] (0,0) -- (63.4:0.4167) node[above,inner sep=2pt] {\scriptsize $\mathbf{u}_1$};
+        \draw[->,thick,BrickRed] (0,0) -- (-26.6:0.4167) node[right,inner sep=1pt] {\scriptsize $\mathbf{u}_2$};
+        \fill[BrickRed] (0,0) circle (0.9pt);
+        \node[below] at (0,-1.3) {\small $\mathbf{D}_{\text{Muon}}=\begin{bmatrix}-0.6&-0.8\\0.8&-0.6\end{bmatrix}$};
       \end{scope}
     \end{tikzpicture}
     \vfill
     \raggedright
-    {\footnotesize\color{gray!50!black}Adam e Muon compartilham a mesma escala; o painel do momentum tem escala própria. O círculo tracejado é o círculo unitário.}
+    \begin{itemize}\small
+      \item Adam \alert{não preserva} as direções singulares do momentum: gira $\mathbf{u}_1$ de $63.4^{\circ}$
+        para $45^{\circ}$ e apaga a segunda direção ($\sigma_2=0$), deixando a atualização com \textit{rank} 1.
+      \item Muon mantém $\mathbf{u}_1$, $\mathbf{u}_2$ (e $\mathbf{v}_1$, $\mathbf{v}_2$) exatamente onde estavam e
+        só iguala $\sigma_1=\sigma_2=1$.
+    \end{itemize}
+    \vfill
+    {\footnotesize\color{gray!50!black}As setas são as direções singulares de saída $\sigma_{i}\mathbf{u}_{i}$, não as colunas das matrizes. O painel do momentum tem escala própria; o tracejado é o círculo unitário.}
   \end{frame}
 
   %--- Slide: resultados Muon ---
