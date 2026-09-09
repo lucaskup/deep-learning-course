@@ -100,7 +100,7 @@
       \begin{column}{0.32\textwidth}
         \begin{block}{\textit{Relative PE}}
           \begin{itemize}
-            \item Codifica distância $|i - j|$
+            \item Codifica a posição relativa $j - i$
             \item RoPE: rotação no espaço
             \item ALiBi: \textit{bias} linear
             \item NoPE: máscara causal
@@ -124,11 +124,11 @@
   \begin{frame}{Comprimento de Contexto e o Custo Quadrático}
     \begin{columns}
       \begin{column}{0.5\textwidth}
-        A atenção computa \textcolor{DarkBlue}{\textbf{todos os $L \times L$ pares}} $\to$ memória e computação escalam como $\mathbf{O(L^2)}$.
+        A atenção computa \textcolor{DarkBlue}{\textbf{todos os $L \times L$ pares}} $\to$ memória e computação escalam como $O(L^2)$.
 
         \begin{itemize}
           \item Dobrar $L$ $\to$ 4$\times$ mais memória para a matriz de atenção
-          \item \textcolor{DarkRed}{Um contexto de 100K \textit{tokens} em um modelo 7B requer dezenas de GB só de atenção (em \textit{fp16}, 2 bytes por valor)}
+          \item \textcolor{DarkRed}{Uma única matriz de atenção $100\text{K} \times 100\text{K}$ em \textit{fp16} (2 bytes por valor) ocupa 20 GB por \textit{head} e por camada, se materializada}
           \item Maioria dos modelos treina com $L = \text{2K--8K}$ \textit{tokens}
           \item Contextos longos desaceleram cada \textit{forward pass} quadraticamente
         \end{itemize}
@@ -144,7 +144,7 @@
             ytick={0,200,400,600,800,1000},
             ymajorgrids=true,
             grid style=dashed,
-            width=\linewidth,
+            width=0.95\linewidth,
             height=5cm,
             mark=*,
             thick,
@@ -164,10 +164,10 @@
 
     \vspace{0.3em}
     \begin{itemize}
-      \item \textbf{O custo de treinamento é dominado pela atenção quadrática}
+      \item \textbf{O termo de atenção no custo de treinamento cresce quadraticamente com $L$}
         \begin{itemize}
-          \item Treinar com $L = \text{2K}$ custa $4\times$ menos que $L = \text{4K}$
-          \item Treinar com $L = \text{8K}$ custa $16\times$ menos que $L = \text{32K}$
+          \item Por sequência, a matriz de atenção de $L = \text{4K}$ tem $4\times$ mais entradas que a de $L = \text{2K}$
+          \item Projeções e MLP crescem linearmente em $L$: para $L$ da ordem de $d$, os dois termos pesam de forma comparável
         \end{itemize}
       \item \textbf{Se o PE puder extrapolar para sequências mais longas:}
         \begin{itemize}
@@ -185,9 +185,9 @@
   \begin{frame}{O Desafio da Extrapolação}
     Um modelo treinado com $L_{\text{train}} = \text{2K}$ encontra índices de posição \textbf{nunca vistos} quando $\textcolor{DarkRed}{L_{\text{test}} > L_{\text{train}}}$.
 
-    \begin{columns}
+    \vspace{0.3em}
+    \begin{columns}[T]
       \begin{column}{0.55\textwidth}
-        \vspace{0.3em}
         Perplexidade dispara além do horizonte de treino:
         \begin{tikzpicture}
           \begin{axis}[
@@ -247,7 +247,7 @@
   %======================================================================================
   % SECTION 1: ABSOLUTE POSITIONAL ENCODING
   %======================================================================================
-  \section{Absolute Positional Encoding}
+  \section{\textit{Positional Encoding} Absoluto}
 
   %--- Slide: Sinusoidal Paper ---
   \begin{frame}{PE Sinusoidal: Artigo}
@@ -285,7 +285,7 @@
           \textbf{Período} (comprimento de onda) $=2\pi/\omega$: a distância para a onda se repetir.
         \end{exampleblock}
         \vspace{0.2em}
-        {\small Por que seno \emph{e} cosseno? Um deslocamento de $\delta$ vira uma \textbf{rotação} do par $(\sin,\cos)$, é isso que deixa a atenção ler \textit{offsets} relativos (próximos slides).}
+        {\small Por que seno \emph{e} cosseno? Um deslocamento de $\delta$ vira uma \textbf{rotação} do par $(\sin,\cos)$, é isso que deixa a atenção ler \textit{offsets} relativos.}
       \end{column}
     \end{columns}
   \end{frame}
@@ -345,7 +345,7 @@
         }
 
         \vspace{0.5em}
-        $\mathbf{PE}(i+\delta)$ pode ser expresso como função linear de $\mathbf{PE}(i)$, permitindo ao modelo aprender \textit{offsets} relativos a partir de PEs absolutos \textit{(é a propriedade-chave; veja o slide de Propriedades)}.
+        $\mathbf{PE}(i+\delta)$ pode ser expresso como função linear de $\mathbf{PE}(i)$, permitindo ao modelo aprender \textit{offsets} relativos a partir de PEs absolutos \textit{(é a propriedade-chave)}.
       \end{column}
     \end{columns}
   \end{frame}
@@ -409,7 +409,7 @@
     \vspace{0.5em}
     \flushleft
     Dimensões 0--1 ($\omega_0{=}1$) variam rapidamente com $i$; dimensões 2--3 ($\omega_1{=}0.01$) quase não mudam nessa faixa.\\
-    \textcolor{DarkBlue}{\textbf{Os próximos slides mostram passo a passo de onde vêm esses números.}}
+    \textcolor{DarkBlue}{\textbf{A seguir, o cálculo passo a passo de onde vêm esses números.}}
   \end{frame}
 
   %--- Slide: Hand Computation Step 1 ---
@@ -455,16 +455,15 @@
     \end{tabular}}
 
     \vspace{0.5em}
-    Os valores reproduzem exatamente a matriz prevista no slide anterior. As dimensões 2 e 3 quase não mudam: o modelo usa essas dimensões para codificar posição \textbf{grosseira} (milhares de passos).
+    Os valores reproduzem exatamente a matriz PE completa da frase. As dimensões 2 e 3 quase não mudam: o modelo usa essas dimensões para codificar posição \textbf{grosseira} (milhares de passos).
   \end{frame}
 
   %--- Slide: Hand Computation Step 3 ---
   \begin{frame}{Cálculo Manual, Passo 3: Somar PE ao \textit{Embedding}}
-    {\footnotesize \textit{Token embeddings} de ``O gato sentou no tapete'':}
+    {\small \textit{Token embeddings} de ``O gato sentou no tapete'':}
 
-    \vspace{0.1em}
-    {\scriptsize
-    \centering
+    \begin{center}
+    \small
     \begin{tabular}{ccccc}
       \toprule
       $i$ (token) & $x[0]$ & $x[1]$ & $x[2]$ & $x[3]$ \\
@@ -475,12 +474,12 @@
       3 (``no'')     &  0.600 & $-$0.500 &  0.200 &  0.100 \\
       4 (``tapete'') & $-$0.200 &  0.300 & $-$0.600 &  0.500 \\
       \bottomrule
-    \end{tabular}}
+    \end{tabular}
+    \end{center}
+
+    {\small Após somar o PE sinusoidal:}
 
     \vspace{0.2em}
-    {\footnotesize Após somar o PE sinusoidal:}
-
-    \vspace{0.1em}
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{ccccc}
       \toprule
@@ -494,8 +493,8 @@
       \bottomrule
     \end{tabular}}
 
-    \vspace{0.2em}
-    {\scriptsize \textcolor{DarkBlue}{$\checkmark$ A mesma rede processa os 5 \textit{tokens}; a posição fica codificada nos valores.}}
+    \vspace{0.4em}
+    {\small \textcolor{DarkBlue}{$\checkmark$ A mesma rede processa os 5 \textit{tokens}; a posição fica codificada nos valores.}}
   \end{frame}
 
   %--- Slide: Properties ---
@@ -510,7 +509,7 @@
         \end{itemize}
       \item \textcolor{DarkBlue}{\textbf{Teoricamente generalizável}}: posições além do treino existem na mesma curva
         \begin{itemize}
-          \item \textcolor{DarkRed}{Na prática, a generalização é limitada $\to$ ver próximo slide}
+          \item \textcolor{DarkRed}{Na prática, a generalização é limitada: posições além de $L_{\text{train}}$ ficam fora da distribuição de treino}
         \end{itemize}
     \end{itemize}
   \end{frame}
@@ -559,7 +558,7 @@
 
     \begin{itemize}
       \item O \textit{score} de atenção depende apenas do \textit{offset} relativo $j - i$, não de $i$ ou $j$ individualmente
-      \item Modelos treinados com comprimento $L$ podem generalizar para qualquer comprimento
+      \item Em princípio, um modelo treinado com comprimento $L$ pode generalizar para comprimentos maiores; na prática, cada método consegue isso em grau diferente
       \item Três estratégias: \textbf{RoPE} (rotação), \textbf{ALiBi} (\textit{bias} aditivo), \textbf{NoPE} (implícito)
     \end{itemize}
   \end{frame}
@@ -567,7 +566,7 @@
   %======================================================================================
   % SECTION 2: RELATIVE POSITIONAL ENCODING
   %======================================================================================
-  \section{Relative Positional Encoding}
+  \section{\textit{Positional Encoding} Relativo}
 
   %--- Slide: Key Idea ---
   \begin{frame}{Ideia Central: \textit{Positional Encodings} Relativos}
@@ -654,7 +653,7 @@
 
   %--- Slide: RoPE Core Idea ---
   \begin{frame}{RoPE: Ideia Central}
-    Em vez de somar PE ao \textit{embedding}, \textbf{rotacionar Q e K}:
+    Em vez de somar PE ao \textit{embedding}, \textbf{rotacionar $\mathbf{Q}$ e $\mathbf{K}$}:
 
     \begin{block}{Rotação e \textit{Score}}
       \vspace{-0.5em}
@@ -690,7 +689,7 @@
     \textcolor{DarkBlue}{\textbf{O produto escalar equivale a uma rotação por $(j{-}i) \cdot \theta$, depende só do \textit{offset}.}}
 
     \begin{exampleblock}{Expansão}
-      Somando os dois produtos componente a componente, os termos cruzados de $\sin$/$\cos$ recombinam-se em $\cos((j{-}i)\theta)$ e $\sin((j{-}i)\theta)$ $\to$ depende apenas de $(j-i)$. \textit{Derivação completa no próximo slide.}
+      Somando os dois produtos componente a componente, os termos cruzados de $\sin$/$\cos$ recombinam-se em $\cos((j{-}i)\theta)$ e $\sin((j{-}i)\theta)$ $\to$ depende apenas de $(j-i)$. \textit{Derivação completa a seguir.}
     \end{exampleblock}
   \end{frame}
 
@@ -708,9 +707,9 @@
 
     \begin{itemize}
       \item Mesma base $10000$ do PE sinusoidal: frequências cobrem muitas ordens de magnitude
-      \item \textit{Low-k} ($\theta_k \approx 1$): rotação rápida $\to$ posição relativa fina
-      \item \textit{High-k} ($\theta_k \approx 0$): rotação lenta $\to$ posição relativa grosseira
-      \item Eficiente: tabelas cos/sin pré-computadas; fundido com projeção Q$\cdot$K
+      \item \textit{low-k} ($\theta_k \approx 1$): rotação rápida $\to$ posição relativa fina
+      \item \textit{high-k} ($\theta_k \approx 0$): rotação lenta $\to$ posição relativa grosseira
+      \item Eficiente: tabelas cos/sin pré-computadas; fundido com as projeções de $\mathbf{Q}$ e $\mathbf{K}$
     \end{itemize}
   \end{frame}
 
@@ -918,12 +917,14 @@
     {\small
     \begin{tabular}{ccccc}
       \toprule
-      $n$ \textit{heads} & $h{=}1$ (mais íngreme) & $h{=}2$ & $h{=}3$ & $h{=}4$ (mais plano) \\
+      $n$ \textit{heads} & $h{=}1$ (mais íngreme) & $h{=}2$ & $h{=}3$ & $h{=}4$ \\
       \midrule
       4 & $2^{-2} = 0.2500$ & $2^{-4} = 0.0625$ & $2^{-6} = 0.0156$ & $2^{-8} = 0.0039$ \\
       8 & $2^{-1} = 0.5000$ & $2^{-2} = 0.2500$ & $2^{-3} = 0.1250$ & $2^{-4} = 0.0625$ \\
       \bottomrule
     \end{tabular}}
+
+    {\scriptsize Para $n{=}4$, $h{=}4$ é o mais plano; para $n{=}8$ a sequência continua até $m_8 = 2^{-8}$.}
 
     \flushleft
     \begin{itemize}
@@ -1048,7 +1049,7 @@
       \toprule
       \textit{Head} & \textit{Scores} brutos & \textit{Bias} ALiBi & Após \textit{bias} & $\text{softmax} \approx$ \\
       \midrule
-      \rowcolor{CellGreen} $h_1$ ($m{=}0.25$) & $[2.0,\; 1.5,\; 3.0]$ & $[-0.50,\; -0.25,\; 0]$ & $[1.50,\; 1.25,\; 3.0]$ & $[0.16,\; 0.13,\; 0.71]$ \\
+      \rowcolor{CellGreen} $h_1$ ($m{=}0.25$) & $[2.0,\; 1.5,\; 3.0]$ & $[-0.50,\; -0.25,\; 0]$ & $[1.50,\; 1.25,\; 3.0]$ & $[0.16,\; 0.12,\; 0.72]$ \\
       \rowcolor{CellGreen} $h_2$ ($m{=}0.0625$) & $[2.0,\; 1.5,\; 3.0]$ & $[-0.125,\; -0.063,\; 0]$ & $[1.88,\; 1.44,\; 3.0]$ & $[0.21,\; 0.14,\; 0.65]$ \\
       \bottomrule
     \end{tabular}}
@@ -1099,12 +1100,12 @@
       \item Em um \textit{decoder} autorregressivo, a máscara de atenção é estritamente triangular inferior
       \item \textit{Token} na posição $i$ só pode atender a posições $j \le i$
       \item \textcolor{DarkBlue}{\textbf{O padrão de quais \textit{tokens} podem ser atendidos é, em si, informação posicional}}
-      \item Cada camada vê um ``horizonte de histórico'' diferente
+      \item Cada posição vê um ``horizonte de histórico'' diferente
       \item Como a máscara muda suavemente com o comprimento, sequências mais longas não são OOD
     \end{itemize}
 
     \begin{block}{Por que isso não contradiz o início da aula}
-      A invariância a permutação vale para a atenção \textbf{bidirecional}. A \textbf{máscara causal} já quebra essa simetria (cada posição $i$ vê um conjunto diferente de \textit{tokens}), então o \textit{decoder-only} carrega um sinal de ordem mesmo sem PE. Não vale para \textit{encoder-only} (BERT).
+      A invariância a permutação vale para a atenção \textbf{bidirecional}. A \textbf{máscara causal} já quebra essa simetria (cada posição $i$ vê um conjunto diferente de \textit{tokens}), então o \textit{decoder-only} carrega informação posicional mesmo sem PE. 
     \end{block}
   \end{frame}
 
@@ -1236,7 +1237,7 @@
       \midrule
       Sinusoidal     & Não & \textit{Input embedding} & Pobre (OOD)           & Nenhum \\
       \textit{Learned Abs.} & Sim & \textit{Input embedding} & Falha (sem novos pos.) & $L \times d$ parâmetros \\
-      RoPE           & Não & Rotações Q, K            & Moderada              & Tabela cos/sin \\
+      RoPE           & Não & Rotações de $\mathbf{Q}$, $\mathbf{K}$ & Fraca sem ajuste & Tabela cos/sin \\
       ALiBi          & Não & \textit{Logits} de atenção & Boa (\textit{zero-shot}) & Desprezível \\
       NoPE           & Não & Nada                     & Boa (apenas máscara)  & Nenhum \\
       \bottomrule
@@ -1260,7 +1261,7 @@
       \toprule
       \textbf{Método} & \textbf{Fórmula do \textit{score}} & \textbf{Efeito em $|i{-}j|$ grande} \\
       \midrule
-      Sinusoidal & $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ (\textit{rotated embed}) & Imprevisível (absoluto) \\
+      Sinusoidal & $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ (PE somado ao \textit{embedding}) & Imprevisível (absoluto) \\
       RoPE       & $f(\mathbf{q}_i, \mathbf{k}_j, j{-}i)$ via rotação & Decaimento suave (dependente de freq.) \\
       ALiBi      & $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d} - m \cdot |i{-}j|$ & Decaimento linear garantido por \textit{head} \\
       NoPE       & $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ (sem PE) & Aprendido pelo modelo via contexto \\
@@ -1344,7 +1345,7 @@
         thick,
       ]
         \addplot[color=MidGray, mark=square*] coordinates {(512,12)(1K,12.5)(2K,13)(3K,22)(4K,60)(6K,150)(8K,400)};
-        \addplot[color=DarkBlue, mark=*] coordinates {(512,12)(1K,12.4)(2K,12.8)(3K,14)(4K,17)(6K,28)(8K,55)};
+        \addplot[color=DarkBlue, mark=*] coordinates {(512,12)(1K,12.4)(2K,12.8)(3K,17)(4K,35)(6K,90)(8K,200)};
         \addplot[color=DarkRed, mark=triangle*] coordinates {(512,12)(1K,12.4)(2K,12.9)(3K,13.2)(4K,13.5)(6K,14)(8K,14.5)};
         \addplot[color=ForestGreen, mark=diamond*] coordinates {(512,12)(1K,12.4)(2K,12.9)(3K,13.1)(4K,13.4)(6K,13.7)(8K,14)};
         \legend{Sinusoidal, RoPE, ALiBi, NoPE}
@@ -1417,15 +1418,13 @@
       Um modelo com \textbf{PPL baixa} pode \textbf{ignorar completamente} o contexto distante, e ainda assim parecer ``bom''.
     \end{alertblock}
 
-    \vspace{0.3em}
     \textbf{Por quê?}
     \begin{itemize}
       \item A maioria dos tokens é prevista corretamente a partir de contexto \textbf{local} (bigramas, padrões sintáticos)
       \item PPL \textit{dilui} falhas de longo alcance na média global
-      \item Um modelo com PPL = 14 a 8K tokens pode \textbf{nunca usar} o que foi dito nos primeiros 6K
+      \item Um modelo com PPL baixa a 8K \textit{tokens} pode \textbf{nunca usar} os primeiros 6K
     \end{itemize}
 
-    \vspace{0.3em}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{block}{O que PPL mede}
@@ -1439,7 +1438,7 @@
       \end{column}
     \end{columns}
 
-    \vspace{0.3em}
+    \vspace{0.1em}
     \textcolor{DarkRed}{$\Rightarrow$ Precisamos de avaliações baseadas em tarefas de recuperação de longo alcance.}
   \end{frame}
 
@@ -1501,7 +1500,7 @@
           \item Mesmo sem decaimento explícito de PE, padrões de atenção aprendidos tendem a ser locais
         \end{itemize}
       \item \textcolor{DarkRed}{\textbf{O alcance efetivo de atenção do modelo é menor que sua janela de contexto}}
-      \item \textcolor{DarkBlue}{\textbf{Nota:} GPT-4, Claude e LLaMA-2 usam RoPE ou variantes, o fenômeno \textbf{não} é resolvido trocando o PE. É um padrão aprendido de atenção, não uma propriedade do \textit{encoding}.}
+      \item \textcolor{DarkBlue}{\textbf{Nota:} o fenômeno aparece tanto em modelos com RoPE (LongChat-13B) quanto com ALiBi (MPT-30B), além dos modelos fechados; trocar o PE \textbf{não} resolve. É um padrão aprendido de atenção, não uma propriedade do \textit{encoding}.}
     \end{itemize}
   \end{frame}
 
@@ -1534,7 +1533,7 @@
       \item Teste de estresse sintético para recuperação em contextos longos
       \item \textcolor{DarkBlue}{\textbf{\textit{Needle}:}} fato curto e específico inserido em posição controlada
         \begin{itemize}
-          \item Ex: ``\texttt{A melhor pizzaria de Redmond é a Giovanni's.}''
+          \item Ex.\ (original de Kamradt, traduzido): ``\texttt{A melhor coisa para fazer em São Francisco é comer um sanduíche e sentar no Dolores Park em um dia de sol.}''
         \end{itemize}
       \item \textbf{\textit{Haystack}:} texto irrelevante e longo preenchendo o contexto
       \item \textbf{\textit{Depth} \%:} fração do contexto antes da \textit{needle} (0\% = início, 100\% = fim)
@@ -1587,12 +1586,12 @@
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{lccc}
       \toprule
-      \textbf{Modelo / PE} & \textbf{Contexto} & \textbf{Meio a 64K} & \textbf{Padrão geral} \\
+      \textbf{Modelo} & \textbf{Contexto} & \textbf{Meio a 64K} & \textbf{Padrão geral} \\
       \midrule
-      GPT-4 / RoPE     & 128K   & $\approx$ 90--100\%  & Quase perfeito \\
-      GPT-3.5 / RoPE   & 16K    & 50--70\%             & Falha em longo+meio \\
-      LLaMA-2 / RoPE   & 4K     & $<$ 20\% a 16K+      & Colapsa além de $L$ \\
-      Claude-2 / RoPE  & 100K   & $\approx$ 80\%       & Maioria verde, lacunas no meio \\
+      GPT-4 Turbo      & 128K   & $\approx$ 90--100\%  & Quase perfeito \\
+      GPT-3.5 Turbo    & 16K    & 50--70\%             & Falha em longo+meio \\
+      LLaMA-2 (RoPE)   & 4K     & $<$ 20\% a 16K+      & Colapsa além de $L$ \\
+      Claude 2         & 100K   & $\approx$ 80\%       & Maioria verde, lacunas no meio \\
       Modelos fracos    & varia  & $<$ 50\% meio        & Zona de falha em U \\
       \bottomrule
     \end{tabular}}
@@ -1604,7 +1603,7 @@
       \item \textcolor{DarkRed}{\textbf{Estender $L$ sem corrigir o formato U não é suficiente para tarefas reais de contexto longo}}
     \end{itemize}
 
-    {\scriptsize\textit{Valores aproximados de avaliações publicadas de Needle-in-a-Haystack}}
+    {\scriptsize\textit{Valores aproximados, compilados de avaliações públicas de Needle-in-a-Haystack (2023--2024)}}
   \end{frame}
 
   %--- Slide: Takeaway ---
@@ -1635,7 +1634,7 @@
     \textcolor{DarkRed}{\textbf{Por que RoPE falha além de $L_{\text{train}}$?}}
 
     \begin{itemize}
-      \item As frequências $\theta_k$ do RoPE são calibradas para que em $L_{\text{train}}$ todos os ângulos de rotação sejam visitados
+      \item Durante o treino, cada dimensão $k$ só percorre os ângulos $i \cdot \theta_k$ com $i < L_{\text{train}}$
       \item Dims de alta frequência (\textit{low-k}): ângulo $i \cdot \theta_k$ dá muitas voltas mesmo para $L_{\text{train}}$
       \item Dims de baixa frequência (\textit{high-k}): ângulo $i \cdot \theta_k$ quase não se move
       \item \textcolor{DarkRed}{\textbf{Além de $L_{\text{train}}$: dims de baixa freq. atingem ângulos NUNCA vistos $\to$ OOD}}
@@ -1687,10 +1686,10 @@
   %--- Slide: LongRoPE Paper ---
   \begin{frame}{LongRoPE: Artigo}
     \begin{block}{Referência}
-      Ding, Y. et al. ``LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens.'' arXiv 2024.\footfullcite{ding2024longrope}
+      Ding, Y. et al. ``LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens.'' ICML 2024.\footfullcite{ding2024longrope}
     \end{block}
     \begin{itemize}
-      \item Alvo: estender contexto para 2\,048K \textit{tokens} (2M+) usando LLaMA-2 7B/13B
+      \item Alvo: estender contexto para 2\,048K \textit{tokens} (2M+) a partir de LLaMA-2 7B e Mistral 7B
       \item Inovação: fatores de reescalonamento não-uniformes por dimensão via busca evolucionária
       \item \textit{Fine-tuning} em dois estágios para alcançar 2M preservando qualidade em contexto curto
       \item \textcolor{DarkBlue}{\textbf{Em 2M \textit{tokens}: ainda competitivo em \textit{Needle-in-a-Haystack}}}
@@ -1704,14 +1703,14 @@
 
     \vspace{0.3em}
     \centering
-    {\small
+    \resizebox{\linewidth}{!}{%
     \begin{tabular}{cccc}
       \toprule
-      \textbf{Índice dim $k$} & $\theta_k$ (freq.) & \textbf{Problema c/ escala uniforme} & \textbf{Tratamento ideal} \\
+      \textbf{Índice dim $k$} ($d{=}128$) & $\theta_k$ (freq.) & \textbf{Problema c/ escala uniforme} & \textbf{Tratamento ideal} \\
       \midrule
-      Low $k$ (0--15)  & $\approx 1$ (rápida) & Dá muitas voltas $\to$ OK      & Manter inalterado ($s{=}1$) \\
-      Mid $k$ (16--55) & $\approx 0.1$        & Parcial $\to$ OOD leve          & Escala pequena \\
-      High $k$ (56--63)& $\approx 0.01$ (lenta) & OOD, problema principal    & Escala grande \\
+      \textit{low-k} (0--15)  & $1$ a $\approx 0.12$ (rápida) & Dá muitas voltas $\to$ OK      & Manter inalterado ($s{=}1$) \\
+      \textit{mid-k} (16--55) & $\approx 0.1$ a $\approx 4{\cdot}10^{-4}$ & Parcial $\to$ OOD leve          & Escala pequena \\
+      \textit{high-k} (56--63)& $\approx 3{\cdot}10^{-4}$ a $10^{-4}$ (lenta) & OOD, problema principal    & Escala grande \\
       \bottomrule
     \end{tabular}}
 
@@ -1729,9 +1728,9 @@
     \begin{itemize}
       \item \textbf{Objetivo: encontrar fatores de escala por dimensão} $\boldsymbol{\lambda} = [\lambda_0, \lambda_1, \ldots, \lambda_{d/2-1}]$
       \item Função objetivo: minimizar perplexidade em $L_{\text{test}}$ mantendo $\lambda$ em faixa viável
-      \item \textcolor{DarkBlue}{\textbf{Método: busca evolucionária (\textbf{CMA-ES}, \textit{Covariance Matrix Adaptation Evolution Strategy}) sobre o vetor $\boldsymbol{\lambda}$}}
+      \item \textcolor{DarkBlue}{\textbf{Método: busca evolucionária sobre o vetor $\boldsymbol{\lambda}$ (população de 64 candidatos, mutação e \textit{crossover}, 40 iterações), com restrição de monotonicidade $\lambda_k \le \lambda_{k+1}$}}
       \item População de vetores $\boldsymbol{\lambda}$ candidatos avaliados por métrica de perplexidade
-      \item Converge em poucas centenas de gerações, viável na prática
+      \item População inicial semeada com as soluções de PI, NTK e YaRN; converge em poucas dezenas de iterações
       \item \textcolor{DarkBlue}{\textbf{Resultado: dims \textit{low-k} recebem $\lambda \approx 1$ (inalteradas); dims \textit{high-k} recebem $\lambda$ grande}}
       \item O vetor $\boldsymbol{\lambda}$ final é fixo na inferência, zero custo em tempo de execução
     \end{itemize}
@@ -1830,7 +1829,7 @@
       \item \textcolor{DarkBlue}{Valores $\lambda$ diferentes para inferência curta vs.\ longa $\to$ chaveamento dinâmico}
     \end{itemize}
 
-    {\scriptsize\textit{Adaptado de Ding et al., LongRoPE (arXiv 2024)}}
+    {\scriptsize\textit{Adaptado de Ding et al., LongRoPE (ICML 2024)}}
   \end{frame}
 
   %--- Slide: LongRoPE Results ---
@@ -1839,23 +1838,23 @@
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{lcccc}
       \toprule
-      \textbf{Método} & \textbf{Ctx máx.} & \textbf{PPL em 2M} & \textbf{PPL 4K} & \textbf{NiH 1M meio} \\
+      \textbf{Método (base LLaMA-2 7B)} & \textbf{Ctx máx.} & \textbf{PPL 64K} & \textbf{PPL 128K} & \textbf{PPL 2048K} \\
       \midrule
-      LLaMA-2 original & 4K    & $\gg$100 (falha)    & 5.5 & $<$ 10\% \\
-      PI               & 32K   & $>$50 (degrada)     & 5.6 & 30--50\% \\
-      YaRN             & 128K  & $\sim$18            & 5.7 & 65--75\% \\
-      LongRoPE         & 2048K & $\sim$9             & 5.6 & $\approx$ 90\% \\
+      LLaMA-2 original       & 4K    & $\gg 10^3$ & $\gg 10^3$ & $\gg 10^4$ \\
+      PI (LongLoRA-100K)     & 100K  & 6.59       & 20.57      & $\gg 10^4$ \\
+      YaRN-128K              & 128K  & 6.11       & 6.12       & $\gg 10^4$ \\
+      LongRoPE-2048K         & 2048K & 6.27       & 6.21       & 7.08 \\
       \bottomrule
     \end{tabular}}
 
     \flushleft
     \begin{itemize}
-      \item \textcolor{DarkBlue}{\textbf{LongRoPE alcança 2M com qualidade comparável em contexto curto}}
-      \item \textcolor{DarkBlue}{\textbf{\textit{Needle-in-a-Haystack}: 90\%+ de acurácia em 1M, \textit{depth} 50\%}}
-      \item Abordagem em dois estágios adiciona custo modesto de \textit{fine-tuning} vs.\ treino completo em 2M
+      \item \textcolor{DarkBlue}{\textbf{Só o LongRoPE mantém perplexidade finita em 2M; os demais colapsam além do próprio limite}}
+      \item \textcolor{DarkBlue}{\textbf{\textit{Passkey retrieval}: acurácia $\ge$ 90\% de 4K até 2048K}}
+      \item \textcolor{DarkRed}{Custo em contexto curto: MMLU cai de 46.6 (original) para 39.6 após a extensão a 2M}
     \end{itemize}
 
-    {\scriptsize\textit{Dados de Ding et al., LongRoPE (arXiv 2024)}}
+    {\scriptsize\textit{Perplexidade em Books3; dados de Ding et al., LongRoPE (ICML 2024)}}
   \end{frame}
 
   %--- Slide: Comparison ---
@@ -1866,7 +1865,7 @@
       \toprule
       \textbf{Método} & \textbf{Base PE} & \textbf{Tipo de escala} & \textbf{Ctx máx.} & \textbf{Custo de FT} & \textbf{Qual.\ ctx curto} \\
       \midrule
-      PI       & RoPE & Uniforme             & 32K--64K & Baixo ($\sim$1K passos)  & Moderada \\
+      PI       & RoPE & Uniforme             & 32K--100K & Baixo ($\sim$1K passos)  & Moderada \\
       YaRN     & RoPE & Não-uniforme (NTK)   & 128K     & Baixo ($\sim$400 passos) & Boa \\
       LongRoPE & RoPE & Por dim (evoluída)   & 2M+      & Médio (2 estágios)       & Excelente \\
       \bottomrule
@@ -1898,10 +1897,10 @@
       \midrule
       PE Sinusoidal        & Absoluto     & Frequências sin/cos fixas         & Pobre          & Nenhum \\
       \textit{Learned} PE  & Absoluto     & Matriz de \textit{embeddings} treinável & Nenhuma   & $L \!\times\! d$ parâm. \\
-      RoPE                 & Relativo     & Rotacionar Q, K por $i \cdot \theta_k$ & Moderada  & Tabela cos/sin \\
+      RoPE                 & Relativo     & Rotacionar $\mathbf{Q}$, $\mathbf{K}$ por $i \cdot \theta_k$ & Fraca sem ajuste & Tabela cos/sin \\
       ALiBi                & Relativo     & \textit{Bias} linear $-m \!\cdot\! |i{-}j|$ & Boa      & Desprezível \\
       NoPE                 & Rel./Implíc. & Apenas máscara causal             & Boa            & Nenhum \\
-      PI                   & Extensão     & Escalonamento uniforme            & 32K--64K       & FT baixo \\
+      PI                   & Extensão     & Escalonamento uniforme            & 32K--100K      & FT baixo \\
       YaRN                 & Extensão     & Escala não-uniforme NTK           & 128K           & FT baixo \\
       LongRoPE             & Extensão     & Escala por dim evoluída           & 2M+            & FT médio \\
       \bottomrule
