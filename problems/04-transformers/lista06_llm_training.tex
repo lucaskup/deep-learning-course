@@ -40,12 +40,12 @@
       Qual o valor de $\eta_t$ na metade do treinamento ($t = 5\,000$)?
 
 \begin{enumerate}[a)]
-    \item $5.5 \times 10^{-4}$.
     \item $1.0 \times 10^{-3}$.
     \item $4.5 \times 10^{-4}$.
+    \item $5.5 \times 10^{-4}$.
     \item $1.0 \times 10^{-4}$.
 \end{enumerate}
-% R: a
+% R: c
 
 % ------------------------------------------------------------------
 % Q2 — Fácil (memória de fine-tuning completo em mixed precision)
@@ -63,12 +63,12 @@
       Qual o total de VRAM requerido por esses componentes (sem contar ativações)?
 
 \begin{enumerate}[a)]
-    \item $32$ \texttt{GB}.
     \item $4$ \texttt{GB}.
+    \item $32$ \texttt{GB}.
     \item $8$ \texttt{GB}.
     \item $24$ \texttt{GB}.
 \end{enumerate}
-% R: a
+% R: b
 
 % ------------------------------------------------------------------
 % Q3 — Médio (SFT: papel da máscara do prompt)
@@ -84,18 +84,18 @@
       principal falha desse raciocínio?
 
 \begin{enumerate}[a)]
-    \item O gradiente passa a incluir contribuições dos tokens de
-          instrução, que seguem formatos repetitivos em todos os exemplos;
-          o modelo gastaria capacidade aprendendo a \emph{gerar
-          instruções} em vez de aprender a \emph{responder} a elas.
     \item A perda ficaria numericamente indefinida porque os tokens do prompt
           não pertencem ao vocabulário do modelo.
     \item O \textit{teacher forcing} falharia, pois tokens especiais como
           \texttt{<|im\_start|>} não podem ser previstos.
     \item A normalização por $|\mathcal{R}|$ resultaria em divisão por zero,
           já que todos os tokens passariam a contar.
+    \item O gradiente passa a incluir contribuições dos tokens de
+          instrução, que seguem formatos repetitivos em todos os exemplos;
+          o modelo gastaria capacidade aprendendo a \emph{gerar
+          instruções} em vez de aprender a \emph{responder} a elas.
 \end{enumerate}
-% R: a
+% R: d
 
 % ------------------------------------------------------------------
 % Q4 — Médio (BF16 vs. FP16: faixa dinâmica)
@@ -135,12 +135,12 @@
       qual o valor de $\mathcal{L}_{\text{RM}}$?
 
 \begin{enumerate}[a)]
-    \item $\approx 0.201$.
     \item $\approx 1.702$.
+    \item $\approx 0.201$.
     \item $\approx 0.693$.
     \item $\approx 1.5$.
 \end{enumerate}
-% R: a
+% R: b
 
 % ------------------------------------------------------------------
 % Q6 — Médio (DPO vs. PPO: contabilidade de memória)
@@ -155,12 +155,12 @@
       do DPO?
 
 \begin{enumerate}[a)]
-    \item PPO $\approx 156$ \texttt{GB}, DPO $\approx 128$ \texttt{GB} (economia $\approx 28$ \texttt{GB}).
     \item PPO $\approx 114$ \texttt{GB}, DPO $\approx 114$ \texttt{GB} (economia $\approx 0$).
     \item PPO $\approx 56$ \texttt{GB}, DPO $\approx 28$ \texttt{GB} (economia $\approx 28$ \texttt{GB}).
+    \item PPO $\approx 156$ \texttt{GB}, DPO $\approx 128$ \texttt{GB} (economia $\approx 28$ \texttt{GB}).
     \item PPO $\approx 28$ \texttt{GB}, DPO $\approx 14$ \texttt{GB} (economia $\approx 14$ \texttt{GB}).
 \end{enumerate}
-% R: a
+% R: c
 
 % ------------------------------------------------------------------
 % Q7 — Médio (LoRA: contagem de parâmetros)
@@ -174,12 +174,12 @@
       fração representam dos pesos originais de atenção?
 
 \begin{enumerate}[a)]
-    \item $262\,144$ params ($\approx 1.56\%$ dos $16.78\,$M originais).
     \item $131\,072$ params ($\approx 0.78\%$).
     \item $524\,288$ params ($\approx 3.12\%$).
     \item $65\,536$ params ($\approx 0.39\%$).
+    \item $262\,144$ params ($\approx 1.56\%$ dos $16.78\,$M originais).
 \end{enumerate}
-% R: a
+% R: d
 
 % ------------------------------------------------------------------
 % Q8 — Médio (LoRA: por que $B = 0$ na inicialização?)
@@ -223,12 +223,12 @@
       $e^{-3} \approx 0.050$.)
 
 \begin{enumerate}[a)]
-    \item $\approx 1.553$.
     \item $\approx 2.418$.
     \item $\approx 1.368$.
+    \item $\approx 1.553$.
     \item $\approx 1.050$.
 \end{enumerate}
-% R: a
+% R: c
 
 % ------------------------------------------------------------------
 % Q10 — Médio (SFT com LR de pré-treinamento: forgetting)
@@ -240,18 +240,18 @@
       Qual diagnóstico e correção são adequados?
 
 \begin{enumerate}[a)]
+    \item Comportamento esperado: SFT sempre descarta conhecimento do
+          pré-treinamento; a correção é treinar do zero com os dados SFT.
     \item \textit{Catastrophic forgetting}: LR alto por muitas épocas
           sobrescreve representações adquiridas no pré-treinamento, mesmo
           com a perda SFT em queda. Correção: reduzir LR para
           $10^{-6}$--$2\times 10^{-5}$ e limitar a $1$--$3$ épocas.
-    \item Comportamento esperado: SFT sempre descarta conhecimento do
-          pré-treinamento; a correção é treinar do zero com os dados SFT.
     \item \textit{Overfitting} nos próprios \textit{benchmarks}; a correção
           é adicionar mais \textit{benchmarks} ao conjunto de avaliação.
     \item Explosão de gradiente causada pelo LR alto; a correção é
           aumentar o \textit{weight decay} para $1.0$.
 \end{enumerate}
-% R: a
+% R: b
 
 % ------------------------------------------------------------------
 % Q11 — Difícil (GRPO: vantagem normalizada por grupo)
@@ -268,16 +268,16 @@
       incorretas?
 
 \begin{enumerate}[a)]
-    \item $\hat{A}_{\text{correto}} \approx +0.707$;
-          $\hat{A}_{\text{errado}} \approx -1.414$.
     \item $\hat{A}_{\text{correto}} = +1.000$;
           $\hat{A}_{\text{errado}} = -1.000$.
     \item $\hat{A}_{\text{correto}} = +1/3$;
           $\hat{A}_{\text{errado}} = -2/3$.
     \item $\hat{A}_{\text{correto}} = +0.500$;
           $\hat{A}_{\text{errado}} = 0$.
+    \item $\hat{A}_{\text{correto}} \approx +0.707$;
+          $\hat{A}_{\text{errado}} \approx -1.414$.
 \end{enumerate}
-% R: a
+% R: d
 
 % ------------------------------------------------------------------
 % Q12 — Difícil (DPO: cálculo numérico da perda)
@@ -312,7 +312,7 @@
 % ============================================================
 
 % --- Solução Q1 ---
-\subsection*{I — Resposta: (a)}
+\subsection*{I — Resposta: (c)}
 Em $t = T/2$: $\cos(\pi \cdot 0.5) = \cos(\pi/2) = 0$, logo
 $1 + \cos(\pi/2) = 1$. Portanto,
 \[
@@ -320,33 +320,33 @@ $1 + \cos(\pi/2) = 1$. Portanto,
              = 10^{-4} + 4.5\times 10^{-4}
              = 5.5\times 10^{-4}.
 \]
-A opção~(b) ignora totalmente o termo com cosseno.
-A opção~(c) omite a parcela $\eta_{\min}$ da fórmula.
+A opção~(a) ignora totalmente o termo com cosseno.
+A opção~(b) omite a parcela $\eta_{\min}$ da fórmula.
 A opção~(d) confunde $\cos(\pi/2) = 0$ com $\cos(\pi) = -1$, obtendo
 $\eta_{\min}$, valor correto apenas no fim do treino ($t = T$).
 
 % --- Solução Q2 ---
-\subsection*{II — Resposta: (a)}
+\subsection*{II — Resposta: (b)}
 Somando os componentes em bytes por parâmetro:
 $2 + 2 + 4 + 4 + 4 = 16$ \texttt{B}/par.
 Aplicando a $N = 2\times 10^9$:
 $2\times 10^9 \times 16 = 3.2\times 10^{10}$ bytes $= 32$ \texttt{GB}.
-As opções~(b), (c) e (d) ignoram subconjuntos dos componentes: somente pesos,
+As opções~(a), (c) e (d) ignoram subconjuntos dos componentes: somente pesos,
 pesos+gradientes e um dos momentos do Adam, respectivamente.
 
 % --- Solução Q3 ---
-\subsection*{III — Resposta: (a)}
+\subsection*{III — Resposta: (d)}
 Os tokens de instrução seguem padrões repetitivos (\texttt{<|im\_start|>user},
 ``Explique...'', etc.). Se forem incluídos na perda, o gradiente é dominado
 por eles e o modelo gasta capacidade modelando a \emph{distribuição das
 instruções} em vez de aprender a gerar boas respostas. Mascarar o prompt
 garante que o aprendizado se concentre em $P(\text{resposta} \mid \text{instrução})$,
 não em $P(\text{instrução})$.
-A opção~(b) é falsa: tokens de prompt estão no vocabulário (caso contrário,
+A opção~(a) é falsa: tokens de prompt estão no vocabulário (caso contrário,
 não poderiam sequer ser alimentados como entrada).
-A opção~(c) confunde mascaramento de \emph{loss} com ausência do token no
+A opção~(b) confunde mascaramento de \emph{loss} com ausência do token no
 vocabulário.
-A opção~(d) é falsa: a normalização é por $|\mathcal{R}|$ (tokens da resposta),
+A opção~(c) é falsa: a normalização é por $|\mathcal{R}|$ (tokens da resposta),
 e incluir os tokens do prompt apenas aumentaria $|\mathcal{R}|$, não o zeraria.
 
 % --- Solução Q4 ---
@@ -363,11 +363,11 @@ A opção~(c) é falsa: ambos são lossy.
 A opção~(d) é falsa: ambos ocupam $16$ bits.
 
 % --- Solução Q5 ---
-\subsection*{V — Resposta: (a)}
+\subsection*{V — Resposta: (b)}
 $\Delta r = r_\phi(x,y_w) - r_\phi(x,y_l) = 1.8 - 0.3 = 1.5$.
 $\sigma(1.5) \approx 0.818$, portanto
 $\mathcal{L}_{\text{RM}} = -\ln(0.818) \approx 0.201$.
-A opção~(b) inverte o sinal da diferença, aplicando $\sigma(-1.5) \approx 0.182$
+A opção~(a) inverte o sinal da diferença, aplicando $\sigma(-1.5) \approx 0.182$
 ($-\ln(0.182) \approx 1.702$): seria a perda se o RM ordenasse
 \emph{incorretamente}.
 A opção~(c) usa $\sigma(0) = 0.5$, equivalente a ignorar totalmente
@@ -376,20 +376,20 @@ A opção~(d) retorna o \textit{logit} sem passá-lo pelo $\sigma$ nem aplicar
 $-\ln$.
 
 % --- Solução Q6 ---
-\subsection*{VI — Resposta: (a)}
+\subsection*{VI — Resposta: (c)}
 \textbf{PPO:} 4 cópias em \texttt{bf16} $+$ estado do otimizador da política
 $= 4\cdot 14 + 100 = 56 + 100 = 156$ \texttt{GB}.\\
 \textbf{DPO:} 2 cópias em \texttt{bf16} $+$ estado do otimizador da política
 $= 2\cdot 14 + 100 = 28 + 100 = 128$ \texttt{GB}.\\
 \textbf{Economia:} $156 - 128 = 28$ \texttt{GB}, exatamente o custo das duas
 cópias que o DPO dispensa (\textit{reward model} e \textit{value function}).
-A opção~(b) é falsa: o PPO \emph{inclui} duas cópias adicionais frozen,
+A opção~(a) é falsa: o PPO \emph{inclui} duas cópias adicionais frozen,
 portanto sua memória é maior.
-A opção~(c) ignora o estado do otimizador da política ($100$ \texttt{GB}).
+A opção~(b) ignora o estado do otimizador da política ($100$ \texttt{GB}).
 A opção~(d) reduz incorretamente cada método a uma única cópia.
 
 % --- Solução Q7 ---
-\subsection*{VII — Resposta: (a)}
+\subsection*{VII — Resposta: (d)}
 Cada projeção LoRA adiciona $|\mathbf{B}| + |\mathbf{A}| = d\cdot r + r\cdot k = 2\cdot d\cdot r$
 parâmetros (como $d = k = 2\,048$). Para quatro projeções:
 \[
@@ -397,9 +397,9 @@ parâmetros (como $d = k = 2\,048$). Para quatro projeções:
 \]
 Pesos originais: $4 \times 2\,048^2 = 16\,777\,216 \approx 16.78\,$M.
 Fração: $262\,144 / 16\,777\,216 \approx 1.56\%$.
-A opção~(b) conta apenas $d \cdot r$ por projeção, esquecendo a segunda matriz.
-A opção~(c) duplica erroneamente o resultado.
-A opção~(d) considera apenas uma das quatro projeções.
+A opção~(a) conta apenas $d \cdot r$ por projeção, esquecendo a segunda matriz.
+A opção~(b) duplica erroneamente o resultado.
+A opção~(c) considera apenas uma das quatro projeções.
 
 % --- Solução Q8 ---
 \subsection*{VIII — Resposta: (a)}
@@ -417,7 +417,7 @@ A opção~(d) confunde o papel de $\alpha/r$ (fator de escala constante, não
 amplificador de gradiente).
 
 % --- Solução Q9 ---
-\subsection*{IX — Resposta: (a)}
+\subsection*{IX — Resposta: (c)}
 \textbf{Processando $\mathbf{s}^{(1)} = [1,\,2]$:}
 \begin{align*}
   m^{(1)} &= \max(1,\,2) = 2 \\
@@ -433,20 +433,20 @@ amplificador de gradiente).
 \end{align*}
 Conferência (softmax global): $e^{1-3}+e^{2-3}+e^{0-3}+e^{3-3}
 = 0.135 + 0.368 + 0.050 + 1 = 1.553$. \checkmark
-A opção~(b) omite o fator de rescala $e^{m^{\text{old}}-m^{\text{new}}}$,
+A opção~(a) omite o fator de rescala $e^{m^{\text{old}}-m^{\text{new}}}$,
 tratando $\ell^{(1)}$ como se já estivesse normalizado para $m^{(2)}$.
-A opção~(c) ignora $\mathbf{s}^{(2)}$.
+A opção~(b) ignora $\mathbf{s}^{(2)}$.
 A opção~(d) ignora o histórico $\ell^{(1)}$.
 
 % --- Solução Q10 ---
-\subsection*{X — Resposta: (a)}
+\subsection*{X — Resposta: (b)}
 O padrão é clássico de \textit{catastrophic forgetting}: a perda SFT
 decresce porque o modelo aprende o \emph{formato} dos dados de ajuste,
 mas as muitas atualizações com LR alto modificam significativamente os
 pesos, apagando representações úteis para tarefas gerais. O remédio
 canônico é LR muito menor que no pré-treinamento ($10^{-6}$–$2\times 10^{-5}$)
 e apenas $1$–$3$ épocas.
-A opção~(b) contradiz a hipótese do alinhamento superficial (LIMA):
+A opção~(a) contradiz a hipótese do alinhamento superficial (LIMA):
 o SFT ensina formato e estilo, não substitui o pré-treinamento.
 A opção~(c) é implausível: \textit{benchmarks} não estão no conjunto
 de treino, então \textit{overfitting} neles não faz sentido.
@@ -456,7 +456,7 @@ A opção~(d) descreve um sintoma diferente: explosão de gradiente geraria
 \textit{forgetting}.
 
 % --- Solução Q11 ---
-\subsection*{XI — Resposta: (a)}
+\subsection*{XI — Resposta: (d)}
 Com rewards $[1,1,0,1,0,1]$ e $G = 6$:
 \begin{align*}
   \overline{r} &= \tfrac{4}{6} = \tfrac{2}{3} \approx 0.667, \\
@@ -475,11 +475,11 @@ Portanto,
 \]
 A magnitude maior para as respostas erradas (minoritárias) é esperada: o
 z-score pesa mais a cauda menos populosa.
-A opção~(b) usa os valores do slide, que valem apenas quando \emph{metade}
+A opção~(a) usa os valores do slide, que valem apenas quando \emph{metade}
 do grupo acerta ($G = 4$, 2 corretos, 2 errados), situação em que
 $\sigma_r = 0.5$.
-A opção~(c) esquece a normalização por $\sigma_r$.
-A opção~(d) substitui a \textit{baseline} correta (média) por $\max(r) = 1$.
+A opção~(b) esquece a normalização por $\sigma_r$.
+A opção~(c) substitui a \textit{baseline} correta (média) por $\max(r) = 1$.
 
 % --- Solução Q12 ---
 \subsection*{XII — Resposta: (a)}

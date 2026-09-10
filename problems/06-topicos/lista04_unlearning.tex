@@ -33,19 +33,19 @@
     \item Considere a distinção entre \textit{unlearning} exato e aproximado discutida em aula. Onde se situa o retreino do zero apenas em $D_r$ e por que os métodos práticos para LLMs não o utilizam?
     \begin{enumerate}[(a)]
         \item É um método aproximado, pois nunca reproduz exatamente o comportamento desejado, e é evitado por ser numericamente instável.
-        \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo proibitivo de \textit{compute}.
         \item É um método aproximado de baixo custo, preferido em produção por rodar em uma única GPU-hora por pedido.
+        \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo proibitivo de \textit{compute}.
         \item É um método exato e barato, raramente usado apenas por falta de bibliotecas que o automatizem.
-        %b
+        %c
     \end{enumerate}
 
     \item No caso \textit{Harry Potter}, deseja-se que o modelo deixe de reproduzir o parágrafo de abertura do livro mas continue capaz de dizer que ``Hogwarts é uma escola fictícia de magia''. Como esse requisito se reflete na escolha de $D_f$ e $D_r$?
     \begin{enumerate}[(a)]
-        \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material sobre o universo, como FanWiki e resenhas.
         \item $D_f$ recebe tanto o texto literal quanto o material sobre o universo, e $D_r$ fica vazio.
         \item $D_f$ recebe apenas os nomes próprios da saga e $D_r$ recebe os parágrafos completos dos livros.
         \item $D_f$ e $D_r$ recebem cópias idênticas do corpus, deixando a separação para a função de perda.
-        %a
+        \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material sobre o universo, como FanWiki e resenhas.
+        %d
     \end{enumerate}
 
     \item Em uma pergunta de \textit{forget set} sobre HP, a paráfrase da resposta correta $\tilde{a}$ tem probabilidade por \textit{token} $0{,}40$ e as três paráfrases erradas têm $\{0{,}30,\, 0{,}45,\, 0{,}60\}$. Calcule o \textit{truth ratio} $R_{\text{truth}}$ e interprete o resultado quanto ao esquecimento.
@@ -69,10 +69,10 @@
     \item Aplicando \textit{Gradient Ascent} puro sobre $D_f$, sem o termo $\lambda\,\mathcal{L}_{\text{NLL}}(D_r,\theta)$, observa-se que após poucas épocas o modelo passa a gerar texto incoerente até para entradas de $D_r$. Qual mecanismo explica esse comportamento?
     \begin{enumerate}[(a)]
         \item A sigmoide da perda satura cedo demais, anulando o gradiente antes do esquecimento.
-        \item A perda $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente, então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e degrada todo o modelo.
         \item O termo de \textit{retain} ausente faria a perda divergir para $-\infty$ apenas nas entradas de $D_r$.
         \item O modelo de referência $p_{\text{ref}}$ deixa de calibrar o gradiente quando $D_r$ não é usado.
-        %b
+        \item A perda $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente, então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e degrada todo o modelo.
+        %d
     \end{enumerate}
 
     \item A NPO foi proposta a partir da DPO descartando um de seus termos. Qual termo é descartado e por que isso é coerente com o objetivo de \textit{unlearning}?
@@ -86,11 +86,11 @@
 
     \item A vantagem central da NPO sobre o \textit{Gradient Ascent} é que a sigmoide $\sigma$ na perda satura quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$. Que consequência prática essa saturação produz durante o \textit{fine-tuning}?
     \begin{enumerate}[(a)]
-        \item O gradiente das amostras já esquecidas tende a zero, evitando o \textit{catastrophic collapse}.
         \item O gradiente cresce indefinidamente nas amostras já esquecidas, acelerando a convergência.
         \item A perda passa a depender apenas de $D_r$, dispensando o conjunto de esquecimento.
         \item A utility é maximizada porque a sigmoide ignora as amostras de $D_f$ desde o início.
-        %a
+        \item O gradiente das amostras já esquecidas tende a zero, evitando o \textit{catastrophic collapse}.
+        %d
     \end{enumerate}
 
     \item Em um \textit{forget set} heterogêneo, a NPO atribui peso de gradiente proporcional a $1/p_{\text{ref}}(y\mid x)$ a cada amostra. Considere dois trechos a esquecer: $A$, típico do corpus, com $p_{\text{ref}} = 0{,}40$; e $B$, raro, com $p_{\text{ref}} = 0{,}02$. Qual é o efeito desse \textit{reference-model bias}?
@@ -178,19 +178,19 @@
 
     \item \textbf{(a)} O objetivo é tornar $\theta_u$ comportamentalmente indistinguível de $\theta^\star$ nas distribuições de saída sobre consultas relacionadas a $D_f$, e o \textit{oracle}, que nunca viu $D_f$, também não acerta essas perguntas. A alternativa (b) exige igualdade em parâmetros, que não é requerida; (c) descreve o oposto do esquecimento; (d) descreve uma política de recusa, não o objetivo distribucional.
 
-    \item \textbf{(b)} O retreino em $D_r$ é o \textit{oracle}: exato por construção, pois nunca viu $D_f$. Os métodos práticos o evitam apenas pelo custo de \textit{compute}, não por instabilidade. A alternativa (a) o chama de aproximado; (c) o trata como barato; (d) afirma que é barato e só falta automação.
+    \item \textbf{(c)} O retreino em $D_r$ é o \textit{oracle}: exato por construção, pois nunca viu $D_f$. Os métodos práticos o evitam apenas pelo custo de \textit{compute}, não por instabilidade. A alternativa (a) o chama de aproximado; (b) o trata como barato; (d) afirma que é barato e só falta automação.
 
-    \item \textbf{(a)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (b) coloca o universo em $D_f$, o que apagaria também o conceito; (c) e (d) invertem ou anulam a separação.
+    \item \textbf{(d)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (a) coloca o universo em $D_f$, o que apagaria também o conceito; (b) e (c) invertem ou anulam a separação.
 
     \item \textbf{(b)} A média das paráfrases erradas é $(0{,}30 + 0{,}45 + 0{,}60)/3 = 0{,}45$, e $R_{\text{truth}} = 0{,}45/0{,}40 \approx 1{,}13$. Como $R_{\text{truth}} \to 1$ indica esquecimento compatível com o \textit{oracle}, o valor é bom. A alternativa (a) usa só a probabilidade da resposta correta; (c) usa só a média do numerador; (d) inverte numerador e denominador.
 
     \item \textbf{(a)} \textit{Forget Quality} alta significa não distinguir $\theta_u$ de $\theta^\star$, ou seja, $D$ pequeno e $p$-valor alto (não rejeitar $H_0$). A alternativa (b) inverte a leitura do $p$-valor; (c) confunde rejeitar $H_0$ com sucesso de esquecimento; (d) ignora que a métrica é distribucional, não de acurácia.
 
-    \item \textbf{(b)} A $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente (quando $p_\theta(y\mid x)\to 0$ ela vai a $+\infty$), então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e o modelo desmorona para todas as entradas: o \textit{catastrophic collapse}. A alternativa (a) descreve a NPO, não o GA puro; (c) erra o sinal e o conjunto; (d) cita $p_{\text{ref}}$, que não faz parte do GA.
+    \item \textbf{(d)} A $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente (quando $p_\theta(y\mid x)\to 0$ ela vai a $+\infty$), então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e o modelo desmorona para todas as entradas: o \textit{catastrophic collapse}. A alternativa (a) descreve a NPO, não o GA puro; (b) erra o sinal e o conjunto; (c) cita $p_{\text{ref}}$, que não faz parte do GA.
 
     \item \textbf{(c)} A DPO usa pares $(y_w, y_l)$; em \textit{unlearning} só há negativos, então a NPO descarta o termo da resposta positiva $y_w$, coerente com o objetivo de rebaixar negativos e não elevar positivos. A alternativa (a) inverte qual termo é descartado; (b) descreve a SimNPO; (d) cita a normalização por comprimento, ausente na NPO.
 
-    \item \textbf{(a)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o método ``para sozinho'' e evita o \textit{catastrophic collapse}. A alternativa (b) inverte o efeito da saturação; (c) e (d) descrevem comportamentos que a NPO não tem.
+    \item \textbf{(d)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o método ``para sozinho'' e evita o \textit{catastrophic collapse}. A alternativa (a) inverte o efeito da saturação; (b) e (c) descrevem comportamentos que a NPO não tem.
 
     \item \textbf{(c)} O peso é proporcional a $1/p_{\text{ref}}$, logo $B$ ($1/0{,}02 = 50$) recebe peso vinte e cinco vezes maior que $A$ ($1/0{,}40 = 2{,}5$), e os trechos raros dominam o gradiente em vez dos típicos que de fato queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
 

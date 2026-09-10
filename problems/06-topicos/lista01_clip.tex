@@ -32,11 +32,11 @@
 
     \item Em um \textit{batch} de $N$ pares (imagem, texto) durante o treino do CLIP, quantos pares são tratados como positivos e quantos como negativos na matriz $\mathbf{S} \in \mathbb{R}^{N \times N}$?
     \begin{enumerate}[(a)]
-        \item $N$ positivos e $N$ negativos, um par positivo e um negativo por linha.
         \item $N$ positivos (na diagonal) e $N(N-1)$ negativos (fora da diagonal).
+        \item $N$ positivos e $N$ negativos, um par positivo e um negativo por linha.
         \item $N(N-1)/2$ positivos e $N(N-1)/2$ negativos, distribuídos simetricamente.
         \item $1$ positivo e $N^2 - 1$ negativos, escolhidos por amostragem aleatória.
-        %b
+        %a
     \end{enumerate}
 
     \item Antes de compor a matriz $\mathbf{S}$ usada na \textit{InfoNCE}, o CLIP projeta as saídas dos \textit{encoders} em um espaço comum e normaliza os vetores. Qual operação de similaridade entre um vetor de imagem $\mathbf{u}$ e um vetor de texto $\mathbf{v}$ é efetivamente computada após essa normalização?
@@ -83,18 +83,18 @@
     \begin{enumerate}[(a)]
         \item Os \textit{encoders} de imagem e de texto compartilham pesos e formam um único \textit{transformer} multimodal.
         \item O \textit{encoder} de texto recebe como entrada o vetor de saída do \textit{encoder} de imagem para então gerar a representação textual.
-        \item Os \textit{encoders} são independentes, treinados conjuntamente, e se conectam apenas no espaço de projeção onde a similaridade é calculada.
         \item Apenas o \textit{encoder} de imagem é treinado; o \textit{encoder} de texto é congelado a partir de um BERT pré-treinado.
-        %c
+        \item Os \textit{encoders} são independentes, treinados conjuntamente, e se conectam apenas no espaço de projeção onde a similaridade é calculada.
+        %d
     \end{enumerate}
 
     \item Para realizar classificação \textit{zero-shot} com CLIP em um problema com $K$ classes, qual pipeline descreve corretamente o procedimento de inferência?
     \begin{enumerate}[(a)]
-        \item Treinar uma camada linear sobre o \textit{encoder} de imagem usando exemplos rotulados das $K$ classes antes da inferência.
         \item Codificar a imagem de teste e cada uma das $K$ classes como texto, calcular a similaridade entre os vetores e tomar o $\arg\max$ das similaridades.
+        \item Treinar uma camada linear sobre o \textit{encoder} de imagem usando exemplos rotulados das $K$ classes antes da inferência.
         \item Submeter a imagem a uma busca por vizinhos mais próximos no \texttt{ImageNet} e propagar o rótulo majoritário.
         \item Gerar legendas candidatas com um \textit{decoder} autoregressivo e selecionar aquela com maior probabilidade.
-        %b
+        %a
     \end{enumerate}
 
     \item Estudos com CLIP mostram que utilizar \textit{prompts} como ``\textit{a photo of a \{classe\}}'' produz acurácia maior do que usar apenas o nome da classe (``\textit{\{classe\}}''). Qual é a explicação mais consistente com o modo como o modelo foi treinado?
@@ -118,10 +118,10 @@
     \item Sobre as limitações conhecidas do CLIP, qual alternativa identifica corretamente um cenário em que o modelo apresenta desempenho notavelmente fraco?
     \begin{enumerate}[(a)]
         \item Recuperação semântica em grandes coleções de imagens a partir de consultas textuais curtas.
-        \item Contagem precisa do número de objetos presentes em uma cena complexa.
         \item Classificação \textit{zero-shot} de classes amplas presentes em \texttt{ImageNet}.
         \item Discriminação entre imagens fotográficas e desenhos esquemáticos da mesma categoria.
-        %b
+        \item Contagem precisa do número de objetos presentes em uma cena complexa.
+        %d
     \end{enumerate}
 
 \end{enumerate}
@@ -173,7 +173,7 @@
 
     \item \textbf{(c)} A supervisão vem da co-ocorrência natural entre imagem e legenda em páginas web, sem rótulos humanos explícitos. Esse é o mecanismo que viabiliza o conjunto WIT-400M.
 
-    \item \textbf{(b)} A diagonal contém os $N$ pares verdadeiros, enquanto as $N^2 - N = N(N-1)$ entradas fora da diagonal funcionam como negativos ``de graça'' obtidos do próprio \textit{batch}.
+    \item \textbf{(a)} A diagonal contém os $N$ pares verdadeiros, enquanto as $N^2 - N = N(N-1)$ entradas fora da diagonal funcionam como negativos ``de graça'' obtidos do próprio \textit{batch}.
 
     \item \textbf{(c)} Após a normalização L2 das projeções, o produto interno coincide com a similaridade do cosseno. Sem essa normalização a temperatura $\tau$ teria que absorver a escala dos vetores.
 
@@ -183,15 +183,15 @@
 
     \item \textbf{(b)} Cada modalidade pode ser usada como consulta, então é desejável que recuperar texto a partir de imagem e recuperar imagem a partir de texto produzam gradientes simétricos. Sem a simetrização, o modelo poderia ficar enviesado a uma direção.
 
-    \item \textbf{(c)} Os \textit{encoders} são independentes (uma CNN ou ViT para imagens, um \textit{transformer} para texto), treinados conjuntamente, e só interagem no espaço de projeção comum onde se calcula a similaridade. Não há compartilhamento de pesos.
+    \item \textbf{(d)} Os \textit{encoders} são independentes (uma CNN ou ViT para imagens, um \textit{transformer} para texto), treinados conjuntamente, e só interagem no espaço de projeção comum onde se calcula a similaridade. Não há compartilhamento de pesos.
 
-    \item \textbf{(b)} O procedimento padrão é codificar a imagem, codificar as $K$ descrições de classe como texto, calcular as similaridades e tomar $\arg\max$. Esse é o pipeline mostrado no exemplo trabalhado III da aula.
+    \item \textbf{(a)} O procedimento padrão é codificar a imagem, codificar as $K$ descrições de classe como texto, calcular as similaridades e tomar $\arg\max$. Esse é o pipeline mostrado no exemplo trabalhado III da aula.
 
     \item \textbf{(b)} As legendas vistas em treino são frases completas, então frases construídas com \textit{templates} ficam mais próximas dessa distribuição que palavras isoladas. As demais alternativas invocam mecanismos que não correspondem ao treino do modelo.
 
     \item \textbf{(d)} LoRA insere produtos de baixo posto $\mathbf{A}\mathbf{B}^{\top}$ em camadas de atenção ou \textit{feed-forward}, treinando apenas $\mathbf{A}$ e $\mathbf{B}$ e mantendo o resto congelado. O \textit{linear probe} treina apenas a camada final, \textit{adapters} adicionam blocos não lineares completos, e \textit{full fine-tuning} ajusta todos os pesos.
 
-    \item \textbf{(b)} Contagem precisa de objetos é uma falha conhecida do CLIP, junto com leitura de texto em imagens, tarefas de granularidade fina e raciocínio espacial. Recuperação semântica e classificação \textit{zero-shot} em classes amplas estão entre seus pontos fortes.
+    \item \textbf{(d)} Contagem precisa de objetos é uma falha conhecida do CLIP, junto com leitura de texto em imagens, tarefas de granularidade fina e raciocínio espacial. Recuperação semântica e classificação \textit{zero-shot} em classes amplas estão entre seus pontos fortes.
 \end{enumerate}
 
 \paragraph{Dissertativas.}

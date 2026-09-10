@@ -86,19 +86,19 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
       dessa simplificação?
 
 \begin{enumerate}[a)]
+    \item A perda MLM fica indefinida porque \texttt{[MASK]} não faz
+          parte do vocabulário padrão do modelo.
     \item O modelo nunca aprende a representar \textit{tokens} reais
           durante o pré-treino; ao fazer \textit{fine-tuning}, jamais
           encontra \texttt{[MASK]}, criando um desalinhamento entre
           as duas fases.
-    \item A perda MLM fica indefinida porque \texttt{[MASK]} não faz
-          parte do vocabulário padrão do modelo.
     \item Os gradientes da posição \texttt{[MASK]} se anulam quando
           todas as posições selecionadas recebem o mesmo \textit{token}.
     \item O modelo aprende a ignorar a posição dos \textit{tokens}, pois
           \texttt{[MASK]} é sempre o mesmo símbolo, independentemente
           da posição.
 \end{enumerate}
-% R: a
+% R: b
 
 % ------------------------------------------------------------------
 % Q4 — Médio (BERT: segment embeddings e tarefas par-de-sentença)
@@ -202,8 +202,6 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} mascarado?
 
 \begin{enumerate}[a)]
-    \item $[1,\;1]$:
-          média dos tokens reais $w_1$ e $w_2$, excluindo o \texttt{[PAD]}.
     \item $\bigl[1,\;\tfrac{5}{3}\bigr] \approx [1.00,\;1.67]$:
           inclui $\mathbf{h}_3$ do \texttt{[PAD]} no numerador e usa $L = 3$
           no denominador.
@@ -212,8 +210,10 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
     \item $\bigl[\tfrac{2}{3},\;\tfrac{2}{3}\bigr] \approx [0.67,\;0.67]$:
           exclui o \texttt{[PAD]} do numerador, mas divide por $L = 3$
           em vez de $\sum m_i = 2$.
+    \item $[1,\;1]$:
+          média dos tokens reais $w_1$ e $w_2$, excluindo o \texttt{[PAD]}.
 \end{enumerate}
-% R: a
+% R: d
 
 % ------------------------------------------------------------------
 % Q8 — Médio (bi-encoder vs. cross-encoder: latência de consulta)
@@ -281,15 +281,15 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
       Qual é o valor de $\mathcal{L}_{\text{triplet}}$?
 
 \begin{enumerate}[a)]
-    \item $0$ (a margem já é satisfeita: o positivo está suficientemente
-          mais próximo que o negativo).
     \item $0.50$ (a perda iguala exatamente a margem $\alpha$ quando
           as duas distâncias são iguais).
     \item $1.90$ (diferença das distâncias quadráticas,
           sem aplicar o $\max(0, \cdot)$).
     \item $-1.90$ (resultado antes do truncamento por zero).
+    \item $0$ (a margem já é satisfeita: o positivo está suficientemente
+          mais próximo que o negativo).
 \end{enumerate}
-% R: a
+% R: d
 
 % ------------------------------------------------------------------
 % Q11 — Difícil (MLM loss: cálculo numérico)
@@ -350,7 +350,7 @@ cabeças de volta à dimensão $d$ e é tão grande quanto as demais.
 A opção~(d) duplica o resultado correto (erro de dupla contagem).
 
 % --- Solução Q3 ---
-\subsection*{III — Resposta: (a)}
+\subsection*{III — Resposta: (b)}
 O \texttt{[MASK]} é um token \textbf{exclusivo do pré-treino}: ele nunca aparece
 na fase de \textit{fine-tuning} nem na inferência. Se todos os tokens selecionados
 fossem substituídos por \texttt{[MASK]}, o modelo \textbf{nunca aprenderia a
@@ -358,7 +358,7 @@ representar tokens reais}; ao encontrá-los no \textit{fine-tuning}, suas
 representações seriam subótimas. A regra $80/10/10$ mitiga esse desalinhamento
 ao forçar o modelo a lidar com tokens reais (intactos ou aleatórios) mesmo durante
 o pré-treino.
-A opção~(b) é falsa: \texttt{[MASK]} é um token do vocabulário do BERT.
+A opção~(a) é falsa: \texttt{[MASK]} é um token do vocabulário do BERT.
 A opção~(c) é falsa: posições com o mesmo \textit{token} ainda produzem gradiente
 distinto, pois os estados ocultos dependem do contexto.
 A opção~(d) confunde mascaramento com ignorância de posição; a \textit{position
@@ -405,7 +405,7 @@ A opção~(d) é falsa: o BERT original foi pré-treinado em inglês, assim como
 GloVe mais comum, e o STS-Benchmark é predominantemente em inglês.
 
 % --- Solução Q7 ---
-\subsection*{VII — Resposta: (a)}
+\subsection*{VII — Resposta: (d)}
 A máscara zera a contribuição de $w_3$; o numerador é
 $m_1\mathbf{h}_1 + m_2\mathbf{h}_2 + m_3\mathbf{h}_3
  = [2,\,0] + [0,\,2] + \mathbf{0} = [2,\,2]$
@@ -413,11 +413,11 @@ e o denominador é $\sum m_i = 1 + 1 + 0 = 2$:
 \[
   \mathbf{u} = \frac{[2,\,2]}{2} = [1,\,1].
 \]
-A opção~(b) inclui $\mathbf{h}_3 = [1,\,3]$ do \texttt{[PAD]} no numerador e usa $L = 3$:
+A opção~(a) inclui $\mathbf{h}_3 = [1,\,3]$ do \texttt{[PAD]} no numerador e usa $L = 3$:
 $([2,0]+[0,2]+[1,3])/3 = [3,5]/3 = [1,\,\tfrac{5}{3}]$: resultado distorcido pela posição de \textit{padding}.
-A opção~(c) aplica corretamente a máscara ao numerador, mas omite a divisão por $\sum m_i$,
+A opção~(b) aplica corretamente a máscara ao numerador, mas omite a divisão por $\sum m_i$,
 produzindo a soma bruta $[2,\,2]$.
-A opção~(d) exclui o \texttt{[PAD]} do numerador (correto), mas divide por $L = 3$ em vez
+A opção~(c) exclui o \texttt{[PAD]} do numerador (correto), mas divide por $L = 3$ em vez
 de $\sum m_i = 2$, gerando $[2,\,2]/3 = [\tfrac{2}{3},\,\tfrac{2}{3}]$: erro de normalização.
 
 % --- Solução Q8 ---
@@ -460,7 +460,7 @@ nos negativos mais difíceis, não o zera.
 A opção~(d) erra: mais negativos melhoram a qualidade, não apenas a eficiência.
 
 % --- Solução Q10 ---
-\subsection*{X — Resposta: (a)}
+\subsection*{X — Resposta: (d)}
 \textbf{Cálculo das distâncias quadráticas:}
 \begin{align*}
   \|\mathbf{f}(x) - \mathbf{f}(x^+)\|_2^2
@@ -480,10 +480,10 @@ A opção~(d) erra: mais negativos melhoram a qualidade, não apenas a eficiênc
 O positivo ($d^2 = 0.80$) já está $2.40$ unidades mais próximo que o negativo
 ($d^2 = 3.20$), excedendo a margem $\alpha = 0.50$: o par não viola a
 restrição e não gera gradiente.
-A opção~(b) ocorreria se as duas distâncias fossem iguais ($d^+ = d^-$); nesse
+A opção~(a) ocorreria se as duas distâncias fossem iguais ($d^+ = d^-$); nesse
 caso $\mathcal{L} = \alpha = 0.50$.
-A opção~(c) é o argumento antes do $\max(0, \cdot)$.
-A opção~(d) é o mesmo sem o valor absoluto.
+A opção~(b) é o argumento antes do $\max(0, \cdot)$.
+A opção~(c) é o mesmo sem o valor absoluto.
 
 % --- Solução Q11 ---
 \subsection*{XI — Resposta: (b)}

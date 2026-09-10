@@ -44,11 +44,11 @@
 
     \item Na forma matricial do GCN, $\mathbf{H}^{(k)} = \sigma(\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)})$, o fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ é calculado uma única vez e reaproveitado a cada camada e a cada época. Qual característica do problema justifica esse reaproveitamento?
     \begin{enumerate}[(a)]
-        \item Esse fator não contém parâmetros aprendíveis e depende somente da estrutura fixa do grafo.
         \item Esse fator é recalculado por \textit{backpropagation} mas converge nas primeiras épocas.
         \item Esse fator depende de $\mathbf{W}^{(k)}$, que permanece congelado durante todo o treino.
         \item Esse fator muda a cada camada porque incorpora a não-linearidade $\sigma$.
-        %a
+        \item Esse fator não contém parâmetros aprendíveis e depende somente da estrutura fixa do grafo.
+        %d
     \end{enumerate}
 
     \item Considere a aresta entre os nós $2$ e $3$ do grafo da questão I. No GCN, o peso aplicado à mensagem que viaja por essa aresta é $1/\sqrt{\tilde d_v \tilde d_u}$, onde $\tilde d$ é o grau no grafo com auto-laços. Qual é, aproximadamente, esse peso?
@@ -99,10 +99,10 @@
     \item Uma equipe empilha $12$ camadas de GCN para classificação de nós em um grafo de citações de diâmetro pequeno e observa que a acurácia de validação cai em relação a um modelo de $3$ camadas. Qual fenômeno explica essa queda e qual intervenção o ataca diretamente?
     \begin{enumerate}[(a)]
         \item \textit{Overfitting} de parâmetros, mitigado por aumentar a taxa de aprendizado.
-        \item \textit{Oversmoothing} dos embeddings, mitigado por \textit{skip connections} entre camadas.
         \item \textit{Vanishing gradient} na entrada, mitigado por remover a normalização de grau.
         \item Desbalanceamento de classes, mitigado por reamostrar os nós de treino.
-        %b
+        \item \textit{Oversmoothing} dos embeddings, mitigado por \textit{skip connections} entre camadas.
+        %d
     \end{enumerate}
 
     \item \emoji{skull-and-crossbones} Considere dois grafos não isomorfos, ambos com todos os nós de grau $2$ e atributos iniciais idênticos: $G_1$ é um ciclo de seis nós e $G_2$ são dois triângulos disjuntos. Sobre a capacidade de uma GNN de \textit{message passing} de distinguir esses dois grafos, qual afirmação é correta?
@@ -162,7 +162,7 @@
 
     \item \textbf{(a)} A vizinhança de $2$ é $\{1,3,4\}$, então $\mathcal{N}(2) \cup \{2\} = \{1,2,3,4\}$ com os quatro valores $(1,2,3,4)$. A média é $(1+2+3+4)/4 = 10/4 = 2{,}5$. A opção $3{,}0$ ignora o próprio nó na contagem, $4{,}5$ usa apenas alguns vizinhos e $2{,}0$ não corresponde a nenhuma agregação coerente.
 
-    \item \textbf{(a)} O fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ depende apenas de $\tilde{\mathbf{A}}$ e $\tilde{\mathbf{D}}$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não é produzido por \textit{backpropagation}, não depende de $\mathbf{W}^{(k)}$ e não incorpora $\sigma$, que é aplicada fora dele.
+    \item \textbf{(d)} O fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ depende apenas de $\tilde{\mathbf{A}}$ e $\tilde{\mathbf{D}}$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não é produzido por \textit{backpropagation}, não depende de $\mathbf{W}^{(k)}$ e não incorpora $\sigma$, que é aplicada fora dele.
 
     \item \textbf{(b)} Com auto-laços, os graus são $\tilde d_2 = 4$ e $\tilde d_3 = 3$, então o peso é $1/\sqrt{4 \cdot 3} = 1/\sqrt{12} \approx 0{,}29$. O valor $0{,}41 = 1/\sqrt{6}$ usaria graus $2$ e $3$, $0{,}50$ ignoraria a normalização cruzada e $0{,}33$ corresponderia a uma média simples por grau.
 
@@ -174,7 +174,7 @@
 
     \item \textbf{(a)} No GCN o peso de cada vizinho é $1/\sqrt{\tilde d_v \tilde d_u}$, fixado pelos graus e idêntico para qualquer tarefa. No GAT o coeficiente $\alpha_{vu}$ é obtido de $e_{vu} = \mathrm{LeakyReLU}(\mathbf{a}^\top [\mathbf{W} \mathbf{h}_v \Vert \mathbf{W} \mathbf{h}_u])$, ou seja, depende do conteúdo dos embeddings e se ajusta à tarefa. As demais opções trocam os papéis ou descrevem ambos como fixos.
 
-    \item \textbf{(b)} Empilhar muitas camadas em um grafo de diâmetro pequeno leva ao \textit{oversmoothing}: após poucas camadas cada nó já vê quase todo o grafo e os embeddings convergem para vetores quase idênticos, perdendo poder discriminativo. \textit{Skip connections} atacam isso preservando a informação da camada anterior em cada passo. As outras opções diagnosticam fenômenos que não explicam a queda observada com mais camadas.
+    \item \textbf{(d)} Empilhar muitas camadas em um grafo de diâmetro pequeno leva ao \textit{oversmoothing}: após poucas camadas cada nó já vê quase todo o grafo e os embeddings convergem para vetores quase idênticos, perdendo poder discriminativo. \textit{Skip connections} atacam isso preservando a informação da camada anterior em cada passo. As outras opções diagnosticam fenômenos que não explicam a queda observada com mais camadas.
 
     \item \textbf{(c)} Ambos os grafos têm todos os nós de grau $2$, então cada nó sempre computa o mesmo $\mathrm{HASH}(c, \{\!\!\{c, c\}\!\!\})$ e os \textit{multisets} de rótulos coincidem em toda iteração do 1-WL. Como toda MPNN é no máximo tão poderosa quanto o 1-WL, nenhuma camada de \textit{message passing} separa $G_1$ de $G_2$. A soma não ajuda aqui, pois os \textit{multisets} de entrada já são idênticos; ter o mesmo número de arestas é consequência, não a causa.
 \end{enumerate}

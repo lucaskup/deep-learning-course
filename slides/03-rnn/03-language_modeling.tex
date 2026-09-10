@@ -622,9 +622,10 @@
     \end{equation*}
     \item Perplexidade:
     \begin{equation*}
-        \text{Perplexidade}(y_{1:m}) = 2^{-\frac{1}{m} L(y_{1:m})}, \qquad \text{Perplexidade} \in [1, |V|]
+        \text{Perplexidade}(y_{1:m}) = 2^{-\frac{1}{m} L(y_{1:m})}, \qquad \text{Perplexidade} \in [1, \infty)
     \end{equation*}
-    \item É $2$ elevado à \textit{cross-entropy} média por \textit{token} (em bits), por isso varia entre $1$ e $|V|$.
+    \item É $2$ elevado à \textit{cross-entropy} média por \textit{token} (em bits), medida entre os \textit{tokens} observados e a distribuição do modelo.
+    \item O piso $1$ vale sempre, porque $p \le 1$ implica $\log_2 p \le 0$. Não há teto: se o modelo atribui probabilidade baixa a um \textit{token} que de fato ocorreu, a perplexidade cresce sem limite.
 \end{itemize}
 \end{frame}
 
@@ -636,6 +637,8 @@
         \item Perplexidade $= 1$: o modelo é determinístico e está sempre certo.
         \item Perplexidade $= |V|$: o modelo é equivalente a uma distribuição uniforme sobre o vocabulário.
     \end{itemize}
+    \item $|V|$ é a perplexidade de quem não aprendeu nada, e serve como \textbf{referencial}, não como teto. Passar de $|V|$ significa que o modelo é pior que o chute uniforme, sinal de tokenizador trocado, distribuição de avaliação errada ou erro no cálculo.
+    \item A leitura como ``número efetivo de \textit{tokens}'' vale nessa faixa: ela descreve a incerteza do modelo, enquanto a perplexidade mede o erro do modelo contra os dados observados.
     \item A perplexidade só é \textbf{comparável} entre modelos com o \textbf{mesmo tamanho de vocabulário} (idealmente o mesmo tokenizador).
 \end{itemize}
 \end{frame}

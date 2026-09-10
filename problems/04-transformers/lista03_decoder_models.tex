@@ -240,14 +240,14 @@ KV-cache \textbf{por token} com GQA e quantas vezes menor é que o MHA?
 \begin{enumerate}[a)]
     \item \textbf{Overfitting} do router: o router memoriza os tokens de treino;
           solução: aumentar o número de especialistas $N_E$.
-    \item \textbf{Expert collapse}: ciclo de reforço positivo em que o especialista
-          mais ativo recebe mais tokens, melhora mais e atrai ainda mais tokens;
-          solução: perda auxiliar de balanceamento
-          $\mathcal{L}_{\text{aux}} = \alpha\,N_E\sum_{i=1}^{N_E} f_i\,P_i$.
     \item \textbf{Vanishing gradients}: gradientes desaparecem nos especialistas
           inativos; solução: conexões residuais no router.
     \item \textbf{Mode collapse}: todos os especialistas convergem para a mesma
           função; solução: inicialização diversificada dos pesos.
+    \item \textbf{Expert collapse}: ciclo de reforço positivo em que o especialista
+          mais ativo recebe mais tokens, melhora mais e atrai ainda mais tokens;
+          solução: perda auxiliar de balanceamento
+          $\mathcal{L}_{\text{aux}} = \alpha\,N_E\sum_{i=1}^{N_E} f_i\,P_i$.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -322,15 +322,15 @@ token substituto?
     \item O modelo foi treinado de forma ótima ($D = 10N$ é a
           regra do Chinchilla); a segunda rodada não trará nenhuma melhoria
           pois a perda já saturou em $2.22$.
-    \item O modelo foi sub-treinado em dados ($D^* = 20N = 160\text{B} > D$);
-          a segunda rodada ainda reduzirá a perda, mas com
-          \emph{retornos decrescentes}.
     \item O modelo foi super-treinado em dados ($D = 80\text{B} > D^* = N = 8\text{B}$);
           a segunda rodada causará sobreajuste e a perda de validação
           aumentará.
     \item O modelo foi treinado de forma ótima ($D = 10N$);
           a segunda rodada melhorará a perda linearmente com os tokens
           adicionados.
+    \item O modelo foi sub-treinado em dados ($D^* = 20N = 160\text{B} > D$);
+          a segunda rodada ainda reduzirá a perda, mas com
+          \emph{retornos decrescentes}.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -369,10 +369,10 @@ token substituto?
 
 \begin{enumerate}[a)]
     \item $16\,384$ floats/token; $2\times$ menor que MHA.
-    \item $4\,096$ floats/token; $8\times$ menor que MHA.
     \item $8\,192$ floats/token; $4\times$ menor que MHA
           (mesmo resultado do GQA com $G{=}2$).
     \item $4\,096$ floats/token; $4\times$ menor que MHA.
+    \item $4\,096$ floats/token; $8\times$ menor que MHA.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -400,11 +400,11 @@ Com \textbf{top-p = 0.90} (nucleus sampling), qual é o conjunto
 será amostrado?
 
 \begin{enumerate}[a)]
+    \item \texttt{o}, \texttt{um}, \texttt{este}
+          (probabilidade acumulada = 0.90 $\ge$ 0.90).
     \item Apenas \texttt{o} (probabilidade acumulada = 0.45).
     \item \texttt{o}, \texttt{um}
           (probabilidade acumulada = 0.75 $<$ 0.90).
-    \item \texttt{o}, \texttt{um}, \texttt{este}
-          (probabilidade acumulada = 0.90 $\ge$ 0.90).
     \item \texttt{o}, \texttt{um}, \texttt{este}, \texttt{seu}
           (probabilidade acumulada = 0.97 $>$ 0.90).
 \end{enumerate}
@@ -539,7 +539,7 @@ a opção~(d) divide pela média $\mu = 3.5$.
 % ---
 
 % --- Solução Q6 ---
-\subsection*{VI — Resposta: (b)}
+\subsection*{VI — Resposta: (d)}
 O \textbf{expert collapse} é um ciclo de reforço positivo: o especialista mais
 capaz recebe mais tokens $\to$ acumula mais gradiente $\to$ torna-se ainda melhor
 $\to$ atrai ainda mais tokens. Os demais especialistas recebem gradiente próximo
@@ -594,7 +594,7 @@ probabilidade~1.
 % ---
 
 % --- Solução Q9 ---
-\subsection*{IX — Resposta: (b)}
+\subsection*{IX — Resposta: (d)}
 A regra prática do Chinchilla estabelece $D^* \approx 20N$.
 Para $N = 8 \times 10^9$ parâmetros:
 \[
@@ -611,9 +611,9 @@ treinado em ${\approx}15$T tokens (${\approx}1900 \times N^*$): do ponto de
 vista de \emph{inferência}, vale gastar mais no treinamento para obter
 um modelo menor e mais barato de implantar.
 
-As opções~(a) e~(d) erram a regra ($10N$ em vez de $20N$).
+As opções~(a) e~(c) erram a regra ($10N$ em vez de $20N$).
 A opção~(a) agrava o erro ao afirmar que a perda satura exatamente em $20 \times$, ela apenas \emph{diminui mais lentamente}, mas não para.
-A opção~(c) inverte a direção: com $D^* = 20N = 160$B, o modelo com
+A opção~(b) inverte a direção: com $D^* = 20N = 160$B, o modelo com
 $D = 80$B está \emph{abaixo}, não acima, do ótimo; além disso, LLMs
 não sofrem sobreajuste por excesso de dados, tipicamente quanto mais dados melhor.
 % ---
@@ -634,7 +634,7 @@ melhorar o desempenho até a janela de contexto ser atingida.
 % ---
 
 % --- Solução Q11 ---
-\subsection*{XI — Resposta: (b)}
+\subsection*{XI — Resposta: (d)}
 Com MQA há apenas $G = 1$ par $K,V$, compartilhado pelas $H = 8$ cabeças de query.
 O tamanho do KV-cache por token é $2 \times G \times d_k \times L$:
 \[
@@ -651,7 +651,7 @@ a qualidade, ver questão~IV).
 % ---
 
 % --- Solução Q12 ---
-\subsection*{XII — Resposta: (c)}
+\subsection*{XII — Resposta: (a)}
 O \textbf{nucleus sampling} (Holtzman et al., 2020) define o núcleo como o menor
 conjunto de tokens cuja probabilidade acumulada atinge ou supera o limiar $p$.
 Com $p = 0.90$:
@@ -662,7 +662,7 @@ Com $p = 0.90$:
 \end{itemize}
 O núcleo é $\{\texttt{o},\,\texttt{um},\,\texttt{este}\}$; suas probabilidades são
 re-normalizadas e o próximo token é amostrado desse conjunto. A opção~(d) inclui
-\texttt{seu} desnecessariamente, pois o limiar já foi satisfeito. A opção~(b) é o
+\texttt{seu} desnecessariamente, pois o limiar já foi satisfeito. A opção~(c) é o
 top-p com $p{=}0.75$. A diferença-chave entre top-$k$ e top-$p$ é que o nucleus
 adapta o tamanho do conjunto ao \emph{formato} da distribuição: se a distribuição
 for concentrada (e.g., $p_1 = 0.95$), o núcleo terá poucos tokens; se for difusa,

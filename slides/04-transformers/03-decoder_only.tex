@@ -292,7 +292,7 @@
       \midrule
       \textbf{Entrada} & \cellcolor{CellBlue}\texttt{<s>} & \cellcolor{CellBlue}\texttt{O} & \cellcolor{CellBlue}\texttt{rato} & \cellcolor{CellBlue}\texttt{roeu} & \cellcolor{CellBlue}\texttt{a} \\
       \textbf{Alvo}    & \cellcolor{CellGreen}\texttt{O} & \cellcolor{CellGreen}\texttt{rato} & \cellcolor{CellGreen}\texttt{roeu} & \cellcolor{CellGreen}\texttt{a} & \cellcolor{CellGreen}\texttt{rolha} \\
-      \textbf{Perda}   & $-\log P(\texttt{O})$ & $-\log P(\texttt{rato})$ & $-\log P(\texttt{roeu})$ & $-\log P(\texttt{a})$ & $-\log P(\texttt{rolha})$ \\
+      \textbf{Perda}   & $-\ln P(\texttt{O})$ & $-\ln P(\texttt{rato})$ & $-\ln P(\texttt{roeu})$ & $-\ln P(\texttt{a})$ & $-\ln P(\texttt{rolha})$ \\
       \bottomrule
     \end{tabular}}
     \end{center}
@@ -327,7 +327,7 @@
         \vspace{0.3em}
         \textbf{Objetivo de pré-treino}: modelagem de linguagem causal
         \[
-          \mathcal{L} = -\sum_{t} \log P(x_t \mid x_1,\ldots,x_{t-1};\,\Theta)
+          \mathcal{L} = -\sum_{t} \ln P(x_t \mid x_1,\ldots,x_{t-1};\,\Theta)
         \]
       \end{column}
       \begin{column}{0.44\textwidth}
@@ -2174,14 +2174,14 @@
     \textbf{Definição}: mede o quão ``surpreso'' o modelo fica ao ver o texto.
     \[
       \mathrm{PPL}(w_1,\ldots,w_N)
-        = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i \mid w_1,\ldots,w_{i-1})\right)
+        = \exp\!\left(-\frac{1}{N}\sum_{i=1}^{N}\ln P(w_i \mid w_1,\ldots,w_{i-1})\right)
     \]
-    \begin{itemize}
+    \begin{itemize}\small
       \item Menor PPL $\to$ modelo estima melhor a distribuição do corpus
-      \item PPL = 1: certeza absoluta; PPL = $|V|$: uniforme sobre o vocabulário
+      \item $\mathrm{PPL} \in [1, \infty)$: vale $1$ na certeza absoluta e $|V|$ no modelo aleatório (uniforme sobre o vocabulário)
+      \item $|V|$ é referencial, não teto: um modelo ruim e \textbf{confiante} fica arbitrariamente pior, e $P \to 0$ em um \textit{token} observado dá $\mathrm{PPL} \to \infty$
       \item Diretamente ligada à \textit{cross-entropy loss} do treino
     \end{itemize}
-    \vspace{0.4em}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         \begin{exampleblock}{Exemplo numérico (3 tokens)}
@@ -2204,6 +2204,7 @@
         \item \textbf{Raciocínio}: baixa surpresa no texto não implica capacidade de resolver problemas
         \item \textbf{Seguimento de instruções}: não captura se o modelo obedece comandos do usuário
         \item \textbf{Desempenho em tarefas reais}: PPL não prediz bem resultados em downstream tasks
+        \item \textbf{Comparação entre modelos}: o valor depende do tokenizador, então PPL de modelos com vocabulários diferentes não é comparável
       \end{itemize}
     \end{alertblock}
     \vspace{0.5em}
