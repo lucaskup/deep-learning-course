@@ -153,7 +153,7 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
       oculto final do \texttt{[CLS]}) de um BERT pré-treinado
       \textbf{sem fine-tuning} para medir a similaridade semântica entre
       sentenças via cosseno. No experimento de Reimers \& Gurevych (2019),
-      esse método obtém $20.29$ de correlação de Spearman no
+      esse método obtém $16.50$ de correlação de Spearman no
       STS-Benchmark, abaixo do GloVe ($58.02$). Qual raciocínio
       explica corretamente esse fenômeno?
 
@@ -283,8 +283,7 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
 \begin{enumerate}[a)]
     \item $0.50$ (a perda iguala exatamente a margem $\alpha$ quando
           as duas distâncias são iguais).
-    \item $1.90$ (diferença das distâncias quadráticas,
-          sem aplicar o $\max(0, \cdot)$).
+    \item $1.90$ (inverte a ordem das distâncias no argumento).
     \item $-1.90$ (resultado antes do truncamento por zero).
     \item $0$ (a margem já é satisfeita: o positivo está suficientemente
           mais próximo que o negativo).
@@ -482,8 +481,11 @@ O positivo ($d^2 = 0.80$) já está $2.40$ unidades mais próximo que o negativo
 restrição e não gera gradiente.
 A opção~(a) ocorreria se as duas distâncias fossem iguais ($d^+ = d^-$); nesse
 caso $\mathcal{L} = \alpha = 0.50$.
-A opção~(b) é o argumento antes do $\max(0, \cdot)$.
-A opção~(c) é o mesmo sem o valor absoluto.
+A opção~(c), $-1.90$, é o argumento $d^+ - d^- + \alpha$ antes do $\max(0,\cdot)$;
+como ele é negativo, o truncamento por zero é justamente o que leva à resposta correta.
+A opção~(b), $+1.90$, é o mesmo valor com o sinal trocado, $d^- - d^+ - \alpha$, erro de
+quem inverte a ordem das distâncias no argumento. Note que a diferença das distâncias
+sozinha é $d^- - d^+ = 2.40$, e não $1.90$.
 
 % --- Solução Q11 ---
 \subsection*{XI — Resposta: (b)}

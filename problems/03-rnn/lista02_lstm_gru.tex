@@ -14,7 +14,7 @@
 % ------------------------------------------------------------------
 \item Uma célula LSTM recebe entradas de dimensão $is = 10$ e mantém um estado oculto de
 dimensão $hs = 20$. Cada uma das quatro camadas densas internas tem pesos
-$\mathbf{\Theta}_\bullet \in \mathbb{R}^{(hs + is) \times hs}$ e \textit{bias}
+$\mathbf{\Theta}_\bullet \in \mathbb{R}^{hs \times (hs + is)}$ e \textit{bias}
 $\mathbf{b}_\bullet \in \mathbb{R}^{hs}$. Quantos parâmetros treináveis (pesos e \textit{bias})
 a célula possui no total?
 
@@ -130,7 +130,7 @@ Calcule, passo a passo (use 4 casas decimais):
     pelo \emph{caminho direto} no tempo, $\dfrac{\partial \mathbf{c}_t}{\partial \mathbf{c}_{t-1}} = \mathbf{f}_t$.
     Explique por que isso evita o desaparecimento do gradiente, comparando com a RNN
     \textit{vanilla}, cujo gradiente acumula o produto
-    $\prod_k \mathbf{\Theta}_{hh}\,(1 - \tanh^2(\mathbf{z}_k))$.
+    $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$, escrito no caso escalar.
     \item \emoji{skull-and-crossbones} A GRU não mantém um estado de memória $\mathbf{c}_t$ separado;
     o estado é atualizado por $\mathbf{h}_t = (1 - \mathbf{z}_t)\, \mathbf{h}_{t-1} + \mathbf{z}_t\, \tilde{\mathbf{h}}_t$. Identifique qual
     termo desempenha, na GRU, o papel análogo ao do \textit{forget gate} da LSTM na preservação
@@ -181,9 +181,10 @@ Calcule, passo a passo (use 4 casas decimais):
     $\prod_k \mathbf{f}_k$: são multiplicações por portas aprendidas e \textbf{somas}, sem $\tanh'$
     repetido. Quando o \textit{forget gate} aprende $\mathbf{f}_k \approx 1$, o produto permanece
     $\approx 1$ e o gradiente é preservado (\textit{constant error carousel}). Na RNN
-    \textit{vanilla}, cada passo multiplica por $\mathbf{\Theta}_{hh}\,(1 - \tanh^2(\mathbf{z}_k))$; como
-    $1 - \tanh^2 \le 1$, o produto tende a $0$ (\textit{vanishing}) ou, com $|\mathbf{\Theta}_{hh}|$
-    grande, explode.
+    \textit{vanilla}, cada passo multiplica por $\theta_{hh}\,(1 - \tanh^2(z_k))$ no caso escalar; como
+    $1 - \tanh^2 \le 1$, o produto tende a $0$ (\textit{vanishing}) ou, com $|\theta_{hh}|$
+    grande, explode. No caso vetorial o que importa é o raio espectral de $\mathbf{\Theta}_{hh}$: abaixo
+    de $1$ o produto se dissipa, acima de $1$ ele explode.
     \item Na GRU, o fator $(1 - \mathbf{z}_t)$ multiplica $\mathbf{h}_{t-1}$ no caminho direto, então
     $\partial \mathbf{h}_t / \partial \mathbf{h}_{t-1} = (1 - \mathbf{z}_t)$ por esse caminho, papel análogo ao $\mathbf{f}_t$ da
     LSTM. Quando $\mathbf{z}_t \approx 0$ (\textit{update gate} ``fechado''), tem-se $(1 - \mathbf{z}_t) \approx 1$

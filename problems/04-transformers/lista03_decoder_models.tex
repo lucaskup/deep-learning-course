@@ -465,9 +465,13 @@ Durante a fase de \emph{decode}, o KV-cache armazena os pares $\mathbf{k}_j, \ma
 os tokens já processados. Para gerar o token na posição~4, o modelo computa $\mathbf{k}_4$
 e $\mathbf{v}_4$ aplicando as projeções $\mathbf{W}^K$ e $\mathbf{W}^V$ ao embedding do novo token; os pares
 $\mathbf{k}_1,\mathbf{v}_1$, $\mathbf{k}_2,\mathbf{v}_2$ e $\mathbf{k}_3,\mathbf{v}_3$ são lidos diretamente do cache sem recálculo.
-Isso reduz o custo por passo de decodificação de $\mathcal{O}(n^2 d)$ (sem cache)
-para $\mathcal{O}(n d)$ (com cache), sendo essencial para geração eficiente em
-sequências longas.
+Vale separar as duas contas. \emph{Por passo} de decodificação, sem cache é preciso
+reprojetar os $n$ tokens já vistos, o que custa $\mathcal{O}(n\,d^2)$, mais
+$\mathcal{O}(n\,d)$ da atenção propriamente dita; com cache resta apenas o
+$\mathcal{O}(n\,d)$ da atenção, porque as projeções antigas não são refeitas.
+Somando sobre os $n$ passos, o custo \emph{total} da geração cai de
+$\mathcal{O}(n^2 d^2)$ para $\mathcal{O}(n^2 d)$. É essa economia que torna viável a
+geração em sequências longas.
 % ---
 
 % --- Solução Q2 ---
@@ -550,7 +554,7 @@ balanceamento à loss principal:
 \]
 onde $f_i$ é a fração de tokens roteados ao especialista $i$ e $P_i$ é o score
 médio do router para esse especialista. Minimizar $\mathcal{L}_{\text{aux}}$
-incentiva distribuição uniforme entre especialistas (o Mixtral usa $\alpha=0.01$).
+incentiva distribuição uniforme entre especialistas (o Switch Transformer usa $\alpha=0.01$).
 % ---
 
 % --- Solução Q7 ---
@@ -607,12 +611,15 @@ Continuar até $D = 800$B ainda melhorará o modelo:
 a perda segue uma \textbf{lei de potência} $L(D) \propto D^{-\alpha_D}$
 ($\alpha_D \approx 0.095$), de modo que ganhos existem além de $D^*$,
 mas são cada vez menores. Essa é a motivação por trás de modelos como o Llama~3 8B,
-treinado em ${\approx}15$T tokens (${\approx}1900 \times N^*$): do ponto de
+treinado em ${\approx}15$T tokens, ou seja ${\approx}1875$ tokens por parâmetro e
+${\approx}94 \times D^*$: do ponto de
 vista de \emph{inferência}, vale gastar mais no treinamento para obter
 um modelo menor e mais barato de implantar.
 
 As opções~(a) e~(c) erram a regra ($10N$ em vez de $20N$).
-A opção~(a) agrava o erro ao afirmar que a perda satura exatamente em $20 \times$, ela apenas \emph{diminui mais lentamente}, mas não para.
+A opção~(a) agrava o erro ao afirmar que a perda já saturou em $2.22$ e que a segunda
+rodada não traria melhoria alguma: além de $D^*$ a perda apenas \emph{diminui mais
+lentamente}, mas não para de diminuir.
 A opção~(b) inverte a direção: com $D^* = 20N = 160$B, o modelo com
 $D = 80$B está \emph{abaixo}, não acima, do ótimo; além disso, LLMs
 não sofrem sobreajuste por excesso de dados, tipicamente quanto mais dados melhor.

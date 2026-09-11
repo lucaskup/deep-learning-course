@@ -24,20 +24,18 @@
        \label{fig:batch-norm}
    \end{figure}
 
-As equações abaixo detalham o grafo computacional:
+As equações abaixo detalham o grafo computacional (o deslocamento, que a figura escreve como $\delta$, aparece aqui como $\beta$, seguindo a notação usada em aula):
 
-   \begin{equation*}
-       f_1=\mathbb{E}[z_i]\\
-       f_{2i}=x_i-f_1\\
-       f_{3i}=f_{2i}^2\\
-       f_4=\mathbb{E}[f_{3i}]
-    \end{equation*}
-    \begin{equation*}
-           f_5=\sqrt{f_4+\epsilon}\\
-           f_6=\frac{1}{f_5}\\
-           f_{7i}=f_{2i}\times f_6 \\
-           z_i'=f_{7i}\times \gamma + \delta
-    \end{equation*}
+   \begin{align*}
+       f_1 &= \mathbb{E}[z_i] &
+       f_{2i} &= z_i - f_1 \\
+       f_{3i} &= f_{2i}^2 &
+       f_4 &= \mathbb{E}[f_{3i}] \\
+       f_5 &= \sqrt{f_4+\epsilon} &
+       f_6 &= \frac{1}{f_5} \\
+       f_{7i} &= f_{2i}\, f_6 &
+       z_i' &= f_{7i}\,\gamma + \beta
+    \end{align*}
    \begin{enumerate}[a)]
        \item Escreva código em Python para implementar o \textit{forward pass}.
        \item Descubra as derivadas de cada nodo do grafo.
@@ -76,13 +74,41 @@ As equações abaixo detalham o grafo computacional:
 
 \begin{enumerate}[I)]
 
-   \item Como um dos ramos de uma conexão residual passa por uma multiplicação por um vetor de pesos seguido de uma função de ativação não-linear, as correlações lineares são perdidas.
+   \item A rigor os dois ramos \textbf{não} são descorrelacionados em geral: uma transformação linear de $X$ é perfeitamente correlacionada com $X$, e a ReLU não elimina correlação. O que justifica a hipótese é o \textbf{momento da inicialização}: com pesos aleatórios de média zero e independentes da entrada, a saída do ramo processado não tem alinhamento sistemático com a entrada, e a covariância entre os dois ramos é aproximadamente nula. Durante o treinamento os pesos se ajustam à entrada, a covariância deixa de ser nula, e a hipótese vale apenas como motivação para a variância crescente.
+
+   Sob essa hipótese, escrevendo $\mathrm{Var}[X] = \mathbb{E}[(X - \mathbb{E}[X])^2]$:
+   \begin{align*}
+       \mathrm{Var}[X+Y] &= \mathbb{E}\bigl[\bigl((X+Y) - \mathbb{E}[X+Y]\bigr)^2\bigr] \\
+                          &= \mathbb{E}\bigl[(X - \mathbb{E}[X])^2\bigr] + 2\,\mathbb{E}\bigl[(X - \mathbb{E}[X])(Y - \mathbb{E}[Y])\bigr] + \mathbb{E}\bigl[(Y - \mathbb{E}[Y])^2\bigr] \\
+                          &= \mathrm{Var}[X] + 2\,\mathrm{Cov}(X,Y) + \mathrm{Var}[Y].
+   \end{align*}
+   Com $\mathrm{Cov}(X,Y) = 0$ o termo cruzado desaparece e $\mathrm{Var}[X+Y] = \mathrm{Var}[X] + \mathrm{Var}[Y]$. Como os dois ramos têm variância $\sigma_\text{in}^2$, a saída do bloco tem $\sigma_\text{out}^2 = 2\,\sigma_\text{in}^2$, ou seja a variância dobra a cada bloco residual.
 
    \item Para não causar explosão das ativações nem dos gradientes devido ao aumento da variância.
 
-   \item 2 $\gamma$ e $\delta$
+   \item Dois: o fator de escala $\gamma$ e o deslocamento $\beta$. A contagem, porém, é \textbf{por unidade}: em uma camada densa com $H$ unidades ocultas são $2H$ parâmetros treináveis, e em uma camada convolucional existe um par $(\gamma, \beta)$ por \textbf{canal}, ou seja $2C$ parâmetros. A média $\mu$ e o desvio $\sigma$ também são um por unidade ou canal, mas não são treinados por \textit{backprop}: são estimados a partir do \textit{mini batch} e mantidos como médias móveis para uso em inferência.
 
-   \item \href{https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html}{Ver aqui}
+   \item Derivadas locais de cada nodo do grafo, com $N$ o tamanho do \textit{mini batch}:
+   \begin{align*}
+       \frac{\partial f_1}{\partial z_i} &= \frac{1}{N} &
+       \frac{\partial f_{2i}}{\partial z_i} &= 1, \quad \frac{\partial f_{2i}}{\partial f_1} = -1 \\
+       \frac{\partial f_{3i}}{\partial f_{2i}} &= 2 f_{2i} &
+       \frac{\partial f_4}{\partial f_{3i}} &= \frac{1}{N} \\
+       \frac{\partial f_5}{\partial f_4} &= \frac{1}{2\sqrt{f_4+\epsilon}} &
+       \frac{\partial f_6}{\partial f_5} &= -\frac{1}{f_5^2} \\
+       \frac{\partial f_{7i}}{\partial f_{2i}} &= f_6, \quad \frac{\partial f_{7i}}{\partial f_6} = f_{2i} &
+       \frac{\partial z_i'}{\partial f_{7i}} &= \gamma, \quad \frac{\partial z_i'}{\partial \gamma} = f_{7i}, \quad \frac{\partial z_i'}{\partial \beta} = 1
+   \end{align*}
+
+   Note que $z_i$ influencia $z_i'$ por três caminhos: diretamente por $f_{2i}$, pela média $f_1$ e pela variância $f_4$. Somando os três, e escrevendo $\sigma = \sqrt{f_4+\epsilon}$ e $\hat{z}_i = f_{2i}/\sigma$ para a ativação normalizada, obtemos
+   \begin{equation*}
+       \frac{\partial z_i'}{\partial z_j} = \frac{\gamma}{\sigma}\left(\delta_{ij} - \frac{1}{N} - \frac{\hat{z}_i\,\hat{z}_j}{N}\right),
+   \end{equation*}
+   em que $\delta_{ij}$ é 1 quando $i = j$ e 0 caso contrário. Em particular, o caso pedido no item (c) é a diagonal:
+   \begin{equation*}
+       \frac{\partial z_i'}{\partial z_i} = \frac{\gamma}{\sigma}\left(1 - \frac{1}{N} - \frac{\hat{z}_i^{\,2}}{N}\right).
+   \end{equation*}
+   O ponto pedagógico é que a derivada de uma ativação depende de \textbf{todo} o \textit{mini batch}, e não só da própria ativação, porque $\mu$ e $\sigma$ são estatísticas do lote. Para uma implementação de referência do \textit{forward} e do \textit{backward} em Python, itens (a) e (d), ver \href{https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html}{este texto}.
 
         \item Cálculo de $\mathbf{F}(\mathbf{X})$ (Convolução de $\mathbf{X}$ com $\mathbf{\Theta}_1$):
 

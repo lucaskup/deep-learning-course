@@ -118,7 +118,7 @@
 
     \item Quais são os quatro passos realizados para fazer o treinamento de um MLP?
 
-    \item Considerando a rede da Figura \ref{fig:mlp}, resolva os itens abaixo:
+    \item Considerando a rede da Figura \ref{fig:mlp}, na qual todas as unidades (inclusive a de saída) usam ReLU como função de ativação, e adotando $\eta = 0.1$, resolva os itens abaixo:
 
     \begin{figure}[H]
         \centering
@@ -218,8 +218,8 @@
 	\begin{enumerate}[(a)]
 	    \item Aparentemente isso é um problema dos dados, obter uma quantidade maior de dados para efetuar o treinamento é uma alternativa razoável.
 	    \item Aumentar o valor hiperparâmetro \textit{learning rate} pode ajudar pois o processo de otimização vai chegar a um mínimo mais rápido.
-	    \item Diminuir o valor hiperparâmetro \textit{learning rate} pode ajudar pois o processo de otimização para garantir que um mínimo local seja encontrado e não ``pulado''.
-	    \item Aumentar o hiperparâmetro \textit{batch size} pode ajudar pois vai introduzir maior variabilidade em cada \textit{mini-batch}. Assim as chances de cada um dos passos da otimização gerar uma diminuição no loss aumenta.
+	    \item Diminuir o valor do hiperparâmetro \textit{learning rate} pode ajudar pois passos menores evitam que o processo de otimização ``pule'' o mínimo em vez de assentar nele.
+	    \item Aumentar o hiperparâmetro \textit{batch size} pode ajudar pois cada estimativa do gradiente passa a usar mais exemplos. Assim a variância da estimativa diminui e os passos da otimização ficam mais estáveis.
 	\end{enumerate}
     %c, d
 
@@ -236,15 +236,6 @@
 	    \item $10^{-8}$
     \end{enumerate}
     %b
-
-    \item François Chollet, o criador do \textit{Keras}, comentou em 2022 que você não deve tentar aproveitar um \textit{scheduler} de \textit{learning rate} que funcionou bem em outro conjunto de dados para treinar em um novo conjunto de dados. A afirmação de Chollet vale mesmo nos casos nos quais a arquitetura da rede se mantém igual. Dentre as opções abaixo, quais são racionais razoáveis para essa afirmação?
-
-	\begin{enumerate}[(a)]
-	    \item \textit{Learning rate schedulle} deve variar conforme o número de observações no conjunto de dados. Dessa forma se os dados mudarem precisamos mudar o \textit{scheduller}.
-	    \item O \textit{learning rate schedulle} deve mudar sempre que a distribuição alvo mudar. Nos casos que ela se mantém igual não é necessário realizar modificação.
-	    \item Um novo conjunto de dados modifica o \textit{tradeoff} entre otimização e regularização. Dessa forma, o \textit{learning rate scheduller} é específico para um conjunto de dados.
-	\end{enumerate}
-    %c
 
     \item Você se depara com uma situação na qual o seu time de pesquisa está usando o maior \textit{batch size} possível, respeitando apenas a limitação da memória disponível na GPU. Você entende existem argumentos a favor de um \textit{batch size} grande, contudo você quer trazer para a discussão argumentos contrários para incentivar o uso de \textit{batch sizes} menores. Dentre as alternativas abaixo, quais seriam bons argumentos para diminuir o \textit{batch size}?
 
@@ -661,8 +652,6 @@
 
     \item b. Com $0.1$ a \textit{loss} cai rápido mas se comporta de forma instável (taxa alta demais) e com $10^{-6}$ o decaimento é lento demais. O próximo palpite razoável fica entre os dois extremos em escala logarítmica, como $10^{-4}$. Testar $0.2$ (a) aumentaria a instabilidade e $10^{-8}$ (c) seria ainda mais lento que o caso já inviável.
 
-    \item c. O \textit{scheduler} interage com o equilíbrio entre otimizar bem o conjunto de treino e regularizar o modelo, e esse equilíbrio muda quando os dados mudam; por isso o \textit{scheduler} é específico do conjunto de dados. O número de observações (a) e a distribuição alvo (b), isoladamente, não capturam essa dependência.
-
     \item a, c. O ruído da estimativa do gradiente com \textit{batches} menores atua como regularização implícita, dificultando a memorização do conjunto de treino (a) e ajudando a escapar de mínimos ruins (c). A alternativa (b) é falsa pois \textit{batches} menores aproveitam pior o paralelismo da GPU, (d) afirma o oposto de (a) e (e) ignora o efeito do \textit{batch size} na solução encontrada.
 
     \item O gradiente aponta na direção de maior crescimento local da função de custo, então atualizar os pesos na direção contrária diminui o custo. Formalmente, pela expansão de primeira ordem, $J(\boldsymbol{\theta} - \eta\nabla_{\boldsymbol{\theta}} J) \approx J(\boldsymbol{\theta}) - \eta\,\|\nabla_{\boldsymbol{\theta}} J\|^2$, e como $\|\nabla_{\boldsymbol{\theta}} J\|^2 \geq 0$, um passo suficientemente pequeno na direção $-\nabla_{\boldsymbol{\theta}} J$ reduz o valor de $J$.
@@ -813,7 +802,7 @@ Agora, calculamos $\boldsymbol{\theta}_{2}$ para a iteração $t=2$:
     $$\hat{\mathbf{m}}_{2} = \frac{\mathbf{m}_{2}}{1 - \beta ^{2}} = \frac{\begin{bmatrix} -0.28\\ 1.25 \end{bmatrix}}{1 - 0.9^2} = \frac{\begin{bmatrix} -0.28\\ 1.25 \end{bmatrix}}{0.19} \approx \begin{bmatrix} -1.47368\\ 6.57895 \end{bmatrix}$$   $$\hat{\mathbf{v}}_{2} = \frac{\mathbf{v}_{2}}{1 - \gamma ^{2}} = \frac{\begin{bmatrix} 0.004996\\ 0.088975 \end{bmatrix}}{1 - 0.999^2} = \frac{\begin{bmatrix} 0.004996\\ 0.088975 \end{bmatrix}}{0.001999} \approx \begin{bmatrix} 2.49925\\ 44.50975 \end{bmatrix}$$
 
   Atualização de $\boldsymbol{\theta}_2$:
-    $$\boldsymbol{\theta}_{2} = \boldsymbol{\theta}_{1} - \eta \frac{\hat{\mathbf{m}}_{2}}{\sqrt{\hat{\mathbf{v}}_{2}} + \epsilon} = \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} \frac{-1.47368}{\sqrt{2.49925}}\\ \frac{6.57895}{\sqrt{44.50975}} \end{bmatrix} \approx \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} -0.9322\\ 0.9869 \end{bmatrix} = \begin{bmatrix} 5.1932\\ 9.8013 \end{bmatrix}$$
+    $$\boldsymbol{\theta}_{2} = \boldsymbol{\theta}_{1} - \eta \frac{\hat{\mathbf{m}}_{2}}{\sqrt{\hat{\mathbf{v}}_{2}} + \epsilon} = \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} \frac{-1.47368}{\sqrt{2.49925}}\\ \frac{6.57895}{\sqrt{44.50975}} \end{bmatrix} \approx \begin{bmatrix} 5.1\\ 9.9 \end{bmatrix} - 0.1\begin{bmatrix} -0.9322\\ 0.9861 \end{bmatrix} = \begin{bmatrix} 5.1932\\ 9.8014 \end{bmatrix}$$
 
 Portanto, o valor de $\boldsymbol{\theta}_{2}$ ao seguir a regra de atualização do \textsc{Adam} é:
 $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$

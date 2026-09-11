@@ -1,0 +1,227 @@
+\documentclass{dlproblemset}
+
+\usepackage{booktabs}
+
+\title{Desenvolvimento de um Small Language Model (SLM)}
+\subtitle{Projeto 2}
+
+\begin{document}
+
+\section*{Visão geral}
+
+Neste projeto, cada grupo irá projetar, treinar e avaliar um \textit{Small Language Model} (SLM). Sugere-se que o modelo tenha entre 50 milhões e 200 milhões de parâmetros treináveis. O objetivo é reproduzir, em escala reduzida, o \textit{pipeline} completo de desenvolvimento de LLMs: desde o \textit{design} da arquitetura e o pré-treino em larga escala, passando pelo \textit{mid-training} e pelo \textit{supervised fine-tuning} (SFT), até a avaliação quantitativa e uma demonstração em modo \textit{chat}.
+
+O projeto é deliberadamente aberto. Não há uma única solução correta: diferentes escolhas de arquitetura, dados e hiperparâmetros levarão a modelos com características distintas. Explorar e justificar essas escolhas é parte central da avaliação.
+
+O desenvolvimento do SLM segue quatro etapas sequenciais:
+
+\[
+    \text{Pré-treino} \longrightarrow \textit{Mid-training} \longrightarrow \text{SFT} \longrightarrow \text{Avaliação \& Demo}
+\]
+
+A entrega é única e cobre todas as etapas.
+
+\section*{Etapa 1: pré-treino}
+
+\subsection*{Objetivo}
+
+O pré-treino tem como objetivo aprender representações gerais de linguagem a partir de um grande \textit{corpus} de texto não rotulado. O modelo deve aprender a prever o próximo \textit{token} de forma autorregressiva (\textit{next-token prediction}).
+
+\subsection*{Projeto da arquitetura}
+
+Cada grupo deve projetar a arquitetura do seu SLM. O ponto de partida é um \textit{transformer decoder-only} (estilo GPT), mas os grupos estão encorajados a explorar e justificar variantes. A seguir estão os principais componentes a considerar:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{@{}lp{0.62\textwidth}@{}}
+        \toprule
+        \textbf{Componente} & \textbf{Exemplos e alternativas a explorar} \\
+        \midrule
+        \textit{Positional Encoding} & RoPE, ALiBi, aprendido, sinusoidal \\
+        Mecanismo de atenção & MHA, GQA (\textit{Grouped-Query Attention}), MQA, \textit{Flash Attention} \\
+        Função de ativação & GELU, SwiGLU, ReLU, SiLU \\
+        Normalização & LayerNorm (\textit{pre-norm}), RMSNorm, \textit{post-norm} \\
+        Otimizador & AdamW, Adam, Muon; \textit{schedule}: cosseno, WSD \\
+        \textit{Tokenizer} & BPE (GPT-2), BPE com vocabulário maior, SentencePiece, treinado do zero \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A contagem de parâmetros treináveis deve se encaixar no intervalo de 50M a 200M. Grupos que extrapolarem esse intervalo deverão justificar tecnicamente a decisão.
+
+\subsection*{Conjunto de dados e \textit{scaling laws}}
+
+A escolha do \textit{corpus} de pré-treino e da quantidade de \textit{tokens} é responsabilidade do grupo. Recomenda-se o uso das \textit{Chinchilla Scaling Laws} como guia: o número ótimo de \textit{tokens} de treinamento é aproximadamente $20 \times N$, onde $N$ é o número de parâmetros. Por exemplo, um modelo de $\sim$63M parâmetros deve ser treinado em pelo menos $\sim$1,3B \textit{tokens} (nesses casos normalmente arredondamos para 2B).
+
+Sugestões de conjuntos de dados de alta qualidade para o pré-treino:
+
+\begin{enumerate}[1)]
+    \item FineWeb-Edu (\texttt{HuggingFaceFW/fineweb-edu}): texto \textit{web} filtrado por qualidade educacional;
+    \item The Pile: \textit{corpus} diversificado de alta qualidade;
+    \item RedPajama: reprodução \textit{open-source} do \textit{training mix} do LLaMA;
+    \item SlimPajama: versão deduplicada do RedPajama.
+\end{enumerate}
+
+\subsection*{Infraestrutura e tempo de treinamento}
+
+O servidor do curso está disponível para o treinamento. Detalhes sobre acesso constam no moodle. Sugere-se:
+
+\begin{enumerate}[1)]
+    \item Usar treinamento distribuído (DDP com 2 GPUs) para o pré-treino;
+    \item Monitorar a \textit{loss} de treino ao longo do tempo e incluir o gráfico na apresentação;
+    \item Salvar \textit{checkpoints} regularmente para garantir a continuidade do treinamento em caso de falha.
+\end{enumerate}
+
+\paragraph{Referência de tempo.} O pré-treino de um modelo de $\sim$63M parâmetros treinado em $\sim$2B \textit{tokens} utilizando 2 GPUs do servidor tipicamente leva em torno de 6 horas. Planeje o cronograma do grupo levando em conta filas de espera e eventuais interrupções.
+
+\section*{Etapa 2: \textit{mid-training}}
+
+\subsection*{Objetivo}
+
+O \textit{mid-training} tem como objetivo especializar o modelo a partir do \textit{checkpoint} de pré-treino, expondo-o a dados de natureza conversacional e de raciocínio. Essa etapa utiliza pesos inicializados do pré-treino e continua o treinamento com novos dados e com uma taxa de aprendizado que pode ser diferente em relação ao pré-treino.
+
+\subsection*{Dados}
+
+Recomenda-se um \textit{mix} de dados conversacionais e de raciocínio. Sugestões:
+
+\begin{enumerate}[1)]
+    \item SmolTalk: conjunto de dados conversacional de alta qualidade (\texttt{HuggingFaceTB/smoltalk});
+    \item GSM8K: problemas de matemática elementar para capacidade de raciocínio;
+    \item OpenHermes, UltraChat ou outros conjuntos de dados de instruções de alta qualidade.
+\end{enumerate}
+
+O grupo pode escolher um \textit{mix} diferente, desde que justifique a escolha, explicando por que esses dados tornam o modelo mais capaz para as etapas seguintes.
+
+\subsection*{Configuração}
+
+Orientações gerais para o \textit{mid-training}:
+
+\begin{enumerate}[1)]
+    \item Inicializar a partir do \textit{checkpoint} final do pré-treino (somente pesos do modelo, sem estado do otimizador);
+    \item Usar uma taxa de aprendizado menor do que a do pré-treino (típico: 1e-4 a 3e-4 com \textit{warmup} curto);
+    \item Treinar por aproximadamente 1 época sobre o conjunto de dados (ou um número de \textit{tokens} equivalente a $\sim$100M a 300M \textit{tokens});
+    \item Formato dos dados: converter todas as amostras para um \textit{template} de \textit{chat} (por exemplo, \texttt{User: ...\textbackslash nAssistant: ...}) e aplicar \textit{sequence packing}.
+\end{enumerate}
+
+\section*{Etapa 3: \textit{supervised fine-tuning} (SFT)}
+
+\subsection*{Objetivo}
+
+O SFT tem como objetivo alinhar o modelo ao formato instrucional, ensinando-o a responder perguntas de forma útil e coerente. A principal diferença em relação ao \textit{mid-training} é o uso de uma \textit{loss mask}: somente os \textit{tokens} das respostas do assistente contribuem para o cálculo da \textit{loss}, enquanto os \textit{tokens} do \textit{prompt} (\texttt{User:}) são mascarados com \texttt{-100}.
+
+\subsection*{Dados e configuração}
+
+Para o SFT, recomenda-se:
+
+\begin{enumerate}[1)]
+    \item Usar o mesmo conjunto de dados conversacional do \textit{mid-training} (por exemplo, SmolTalk) ou um \textit{subset} curado de alta qualidade;
+    \item Taxa de aprendizado ainda mais baixa (típico: 1e-5 a 3e-5) e \textit{warmup} curto;
+    \item Treinar por 1 ou 2 épocas sobre o conjunto de dados de SFT, monitorando o risco de \textit{overfitting};
+    \item Inicializar a partir do \textit{checkpoint} final do \textit{mid-training}.
+\end{enumerate}
+
+\section*{Etapa 4: avaliação}
+
+\subsection*{Métricas obrigatórias}
+
+Cada grupo deve implementar e reportar, no mínimo, dois tipos de avaliação.
+
+\paragraph{Perplexidade.} Calcule a perplexidade (PPL) do modelo sobre um conjunto de validação. A PPL é definida como $\exp(\bar{\ell})$, onde $\bar{\ell}$ é a \textit{cross-entropy} média sobre os \textit{tokens}, e mede quão bem o modelo prevê os \textit{tokens}. Valores menores indicam melhor modelo. A avaliação de perplexidade deve ser feita sobre um \textit{split} de validação do conjunto de dados de pré-treino, ou seja, textos que o modelo não viu durante o treino, e reportada ao longo do treinamento (curva de validação).
+
+\paragraph{\textit{Benchmark} de múltipla escolha.} Além da perplexidade, cada grupo deve implementar e reportar os resultados em pelo menos um dos \textit{benchmarks} abaixo:
+
+\begin{enumerate}[1)]
+    \item HellaSwag: completamento de sentenças (raciocínio de senso comum);
+    \item ARC-Easy ou ARC-Challenge: perguntas de ciências (ensino fundamental e médio);
+    \item PIQA: raciocínio físico de senso comum;
+    \item WinoGrande: resolução de anafóricos ambíguos.
+\end{enumerate}
+
+Para \textit{benchmarks} de múltipla escolha, utilize a avaliação por \textit{log-likelihood}: para cada alternativa, calcule a probabilidade do modelo gerar aquele texto dado o contexto e escolha a alternativa de maior log-verossimilhança. Isso evita a dependência de geração autorregressiva.
+
+\subsection*{Avaliações adicionais (opcional)}
+
+Grupos que quiserem se destacar podem implementar avaliações adicionais, como:
+
+\begin{enumerate}[1)]
+    \item Comparação qualitativa de respostas antes e depois do SFT para as mesmas perguntas;
+    \item Avaliação em GSM8K (acurácia em problemas de matemática elementar);
+    \item Avaliação humana: o grupo prepara um conjunto de perguntas e membros externos avaliam qual modelo responde melhor.
+\end{enumerate}
+
+\section*{Demo e apresentação}
+
+\subsection*{Demo em modo \textit{chat}}
+
+Cada grupo deve desenvolver uma interface de \textit{chat} que permita interagir com o SLM treinado. Uma aplicação Streamlit é suficiente. A demo deve:
+
+\begin{enumerate}[1)]
+    \item Carregar o \textit{checkpoint} final do SFT;
+    \item Permitir enviar mensagens ao modelo e visualizar as respostas;
+    \item Expor parâmetros de geração ajustáveis (temperatura, \textit{top-k}, número máximo de \textit{tokens});
+    \item Ser executada ao vivo durante a apresentação da disciplina.
+\end{enumerate}
+
+\subsection*{Apresentação}
+
+Cada grupo terá de 10 a 15 minutos de apresentação, incluindo a demo ao vivo. A apresentação deve cobrir:
+
+\begin{enumerate}[1)]
+    \item Descrição da arquitetura escolhida e justificativa das decisões de \textit{design};
+    \item Análise das \textit{scaling laws} aplicadas: como o número de \textit{tokens} foi determinado?
+    \item Curvas de \textit{loss} de treino (pré-treino, \textit{mid-training} e SFT);
+    \item Resultados da avaliação: perplexidade e \textit{benchmark}(s) implementado(s);
+    \item Discussão: o que funcionou bem? O que mudaria com mais tempo ou mais recursos?
+    \item Demo ao vivo do modelo em modo \textit{chat}.
+\end{enumerate}
+
+\section*{Entrega}
+
+\paragraph{Entrega única, prazo disponível no moodle.} Todos os itens abaixo devem ser entregues via repositório GitHub (\textit{link} no moodle) até a data definida:
+
+\begin{enumerate}[1)]
+    \item Repositório GitHub organizado com código de pré-treino, \textit{mid-training}, SFT, avaliação e demo, com README contendo instruções para reproduzir cada etapa;
+    \item \textit{Checkpoints}: \textit{checkpoint} final do SFT (obrigatório), \textit{checkpoint} do \textit{mid-training} (recomendado) e do pré-treino (recomendado), hospedados no HuggingFace Hub ou no Google Drive;
+    \item Gráficos das curvas de \textit{loss} de treino das três etapas de treinamento ao longo dos \textit{steps} ou \textit{tokens};
+    \item Resultados de avaliação: perplexidade no \textit{split} de validação e resultados no(s) \textit{benchmark}(s) implementado(s);
+    \item Demonstração de geração de texto, com exemplos de completamento de \textit{prompt} do modelo pré-treinado e de respostas do modelo após o SFT;
+    \item Slides da apresentação (PDF ou \textit{link} para o Google Slides);
+    \item Interface de \textit{chat} funcional, com código no repositório e instruções para execução local.
+\end{enumerate}
+
+Bons diferenciais, que podem elevar a nota: explorar arquiteturas alternativas além do GPT padrão (por exemplo, GQA, SwiGLU, RMSNorm, Mamba), usar múltiplos \textit{benchmarks}, comparar modelos em diferentes estágios (pós pré-treino \textit{vs.} pós SFT) ou justificar quantitativamente as escolhas de hiperparâmetros via experimentação.
+
+\section*{Dicas}
+
+\subsection*{Boas práticas}
+
+\begin{enumerate}[1)]
+    \item Comece pequeno: valide o \textit{pipeline} completo (treino, \textit{checkpoint}, avaliação e demo) com um modelo menor antes de escalar;
+    \item \textit{Smoke test}: verifique que o modelo consegue \textit{overfittar} um \textit{mini-batch}, o que confirma que o \textit{pipeline} de treino está correto;
+    \item \textit{Checkpoints} frequentes: treinamentos longos no servidor podem ser interrompidos, portanto retomadas devem ser possíveis;
+    \item Monitore a \textit{loss} em tempo real: uma \textit{loss} que não decresce no início geralmente indica \textit{bug} no \textit{pipeline} de dados ou na inicialização;
+    \item \textit{Scripts} separados: separe o código de cada etapa (pré-treino, \textit{mid-training}, SFT e avaliação) em \textit{scripts} distintos, cada um com sua configuração própria.
+\end{enumerate}
+
+\subsection*{Referências}
+
+\begin{enumerate}[1)]
+    \item \textit{Attention Is All You Need}, Vaswani et al. (2017);
+    \item \textit{Language Models are Few-Shot Learners} (GPT-3), Brown et al. (2020);
+    \item \textit{Training Compute-Optimal Large Language Models} (Chinchilla), Hoffmann et al. (2022);
+    \item \textit{LLaMA: Open and Efficient Foundation Language Models}, Touvron et al. (2023);
+    \item \textit{RoFormer: Enhanced Transformer with Rotary Position Embedding}, Su et al. (2022);
+    \item SmolLM, HuggingFace (2024), referência de SLM com \textit{pipeline} similar a este projeto;
+    \item nanoGPT, de Andrej Karpathy, implementação de referência simples e bem documentada (\url{https://github.com/karpathy/nanoGPT}).
+\end{enumerate}
+
+\section*{Regras e considerações}
+
+\begin{enumerate}[1)]
+    \item \textbf{Grupos:} 3 a 5 integrantes;
+    \item \textbf{Uso de código externo:} é permitido usar bibliotecas \textit{open-source} (PyTorch, HuggingFace Datasets, Tiktoken, \ldots) e se inspirar em implementações de referência (por exemplo, nanoGPT). Entretanto, o código do \textit{pipeline} de treino, de avaliação e da demo deve ser escrito pelo grupo. Qualquer código adaptado de terceiros deve ser explicitamente creditado no repositório;
+    \item \textbf{Prazo:} entregas fora do prazo terão desconto de 10\% por dia de atraso, até o limite de 50\%. Não serão aceitas entregas com mais do que 5 dias de atraso;
+    \item \textbf{Apresentação:} não é obrigatório que todos os integrantes participem da apresentação.
+\end{enumerate}
+
+\end{document}

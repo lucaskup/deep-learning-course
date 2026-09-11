@@ -275,17 +275,17 @@
 % Q19: Médio
 % ------------------------------------------------------------------
 \item \emoji{skull-and-crossbones} Considere o RoPE com $d = 4$ e frequências $\theta_0 = 1.0$,
-      $\theta_1 = 0.01$. A query é $\mathbf{q} = [1, 0, 1, 0]$ na posição $i = 1$,
-      e a key é $\mathbf{k} = [0, 1, 0, 1]$ na posição $j = 3$.
-      Usando $\cos(1.0) \approx 0.540$, $\sin(1.0) \approx 0.841$,
-      $\cos(3.0) \approx -0.990$, $\sin(3.0) \approx 0.141$, qual é
-      $\mathrm{score}(1, 3) = \tilde{\mathbf{q}}_1^\top \tilde{\mathbf{k}}_3$?
+      $\theta_1 = 0.01$. A query é $\mathbf{q} = [2, 0, 1, 0]$ na posição $i = 2$,
+      e a key é $\mathbf{k} = [0, 1, 1, 0]$ na posição $j = 5$.
+      Usando $\cos(3.0) \approx -0.990$, $\sin(3.0) \approx 0.141$,
+      $\cos(0.03) \approx 1.000$, $\sin(0.03) \approx 0.030$, qual é
+      $\mathrm{score}(2, 5) = \tilde{\mathbf{q}}_2^\top \tilde{\mathbf{k}}_5$?
 
 \begin{enumerate}[a)]
-    \item $+0.929$
-    \item $-0.929$
-    \item $0.000$
-    \item $-0.540$
+    \item $+1.282$
+    \item $+0.718$
+    \item $-0.282$
+    \item $+1.000$
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -352,7 +352,8 @@
 % ------------------------------------------------------------------
 \item \emoji{skull-and-crossbones} Considere o positional encoding senoidal
       $\mathbf{PE}(i) \in \mathbb{R}^d$ com $d = 512$ para posições inteiras $i \geq 0$.
-      É possível recuperar univocamente a posição $i$ a partir do vetor $\mathbf{PE}(i)$?
+      Em \textbf{aritmética exata} (ou seja, ignorando limitações de ponto flutuante),
+      é possível recuperar univocamente a posição $i$ a partir do vetor $\mathbf{PE}(i)$?
 %R: b
 
 \begin{enumerate}[a)]
@@ -594,8 +595,10 @@ vetores posicionais explícitos.
 O ALiBi penaliza a atenção com $-m_h \cdot |i-j|$. Quando a sequência ultrapassa
 $L_{\mathrm{train}}$, a penalidade simplesmente fica maior para tokens distantes,
 comportamento \emph{inteiramente dentro da distribuição} de treinamento. Press et al.\
-(2022) demonstraram que modelos com ALiBi treinados em 1K tokens \emph{mantêm
-perplexidade baixa} até 8K tokens sem nenhum fine-tuning. Vale notar que essa
+(2022) reportam que um modelo com ALiBi treinado com contexto de 1024 tokens
+\emph{mantém perplexidade baixa} ao ser avaliado em sequências mais longas,
+igualando a perplexidade de um modelo com PE senoidal treinado diretamente com
+2048 tokens, sem nenhum fine-tuning. Vale notar que essa
 afirmação de extrapolação é medida apenas por \emph{perplexidade}: trabalhos
 posteriores mostraram que o desempenho em tarefas de recuperação de longo alcance
 (por exemplo, \textit{needle in a haystack}) degrada bem antes do que a perplexidade
@@ -628,42 +631,30 @@ central, que é uma propriedade aprendida da atenção e não do positional enco
 % --- Solução Q19 ---
 \subsection*{XVIII, Resposta:(b)}
 
-\textbf{Passo 1: Rotacionar a query $\mathbf{q} = [1,0,1,0]$ em $i=1$:}
+O caminho mais curto usa a propriedade relativa do RoPE: o produto interno dos vetores
+rotacionados depende de $i$ e $j$ apenas por $j - i = 3$. Bloco a bloco,
 \[
-  \text{Bloco } k=0 \;(i\theta_0 = 1.0\,\text{rad}):\;
-  (\cos(1)\cdot1 - \sin(1)\cdot0,\; \sin(1)\cdot1 + \cos(1)\cdot0)
-  = (0.540,\; 0.841)
+  \mathrm{score}(i,j) = \sum_{b}\Bigl[(q_{2b}k_{2b} + q_{2b+1}k_{2b+1})\cos\bigl((j-i)\theta_b\bigr)
+  + (q_{2b+1}k_{2b} - q_{2b}k_{2b+1})\sin\bigl((j-i)\theta_b\bigr)\Bigr].
 \]
-\[
-  \text{Bloco } k=1 \;(i\theta_1 = 0.01\,\text{rad}):\;
-  (\cos(0.01)\cdot1,\; \sin(0.01)\cdot1) \approx (1.000,\; 0.010)
-\]
-Portanto $\tilde{\mathbf{q}}_1 = [0.540,\; 0.841,\; 1.000,\; 0.010]$.
 
-\textbf{Passo 2: Rotacionar a key $\mathbf{k} = [0,1,0,1]$ em $j=3$:}
+\textbf{Bloco $b=0$} ($\mathbf{q} = (2,0)$, $\mathbf{k} = (0,1)$, ângulo $(j-i)\theta_0 = 3.0$):
 \[
-  \text{Bloco } k=0 \;(j\theta_0 = 3.0\,\text{rad}):\;
-  (\cos(3)\cdot0 - \sin(3)\cdot1,\; \sin(3)\cdot0 + \cos(3)\cdot1)
-  = (-0.141,\; -0.990)
+  (2\cdot0 + 0\cdot1)\cos(3.0) + (0\cdot0 - 2\cdot1)\sin(3.0)
+  = 0 - 2\,(0.141) = -0.282.
 \]
-\[
-  \begin{aligned}
-  \text{Bloco } k=1 \;(j\theta_1 = 0.03\,\text{rad}):\;
-  &(\cos(0.03)\cdot0 - \sin(0.03)\cdot1,\; \sin(0.03)\cdot0 + \cos(0.03)\cdot1) \\
-  &\approx (-0.030,\; 1.000)
-  \end{aligned}
-\]
-Portanto $\tilde{\mathbf{k}}_3 = [-0.141,\; -0.990,\; -0.030,\; 1.000]$.
 
-\textbf{Passo 3: Produto interno:}
+\textbf{Bloco $b=1$} ($\mathbf{q} = (1,0)$, $\mathbf{k} = (1,0)$, ângulo $(j-i)\theta_1 = 0.03$):
 \[
-  \begin{aligned}
-  \mathrm{score}(1,3)
-  &= 0.540\cdot(-0.141) + 0.841\cdot(-0.990)
-    + 1.000\cdot(-0.030) + 0.010\cdot1.000 \\
-  &\approx -0.076 - 0.832 - 0.030 + 0.010 = -0.929.
-  \end{aligned}
+  (1\cdot1 + 0\cdot0)\cos(0.03) + (0\cdot1 - 1\cdot0)\sin(0.03)
+  = 1.000 + 0 = 1.000.
 \]
+
+\textbf{Total:} $\mathrm{score}(2,5) \approx -0.282 + 1.000 = 0.718$.
+
+A alternativa (a) $+1.282$ troca o sinal do termo em seno, o que equivale a usar
+$i - j$ no lugar de $j - i$; (c) $-0.282$ considera apenas o bloco $b=0$; (d) $+1.000$
+considera apenas o bloco $b=1$.
 % ---
 
 % --- Solução Q20 ---
@@ -826,120 +817,89 @@ Os temas centrais são:
 
 \paragraph{Enunciado.}
 Considere o RoPE com $d = 4$ e frequências $\theta_0 = 1.0$, $\theta_1 = 0.01$.
-A query é $\mathbf{q} = [1, 0, 1, 0]$ na posição $i = 1$, e a key é
-$\mathbf{k} = [0, 1, 0, 1]$ na posição $j = 3$. Usando os valores trigonométricos
+A query é $\mathbf{q} = [2, 0, 1, 0]$ na posição $i = 2$, e a key é
+$\mathbf{k} = [0, 1, 1, 0]$ na posição $j = 5$. Usando os valores trigonométricos
 \[
-  \cos(1.0) \approx 0.540,\quad \sin(1.0) \approx 0.841,\quad
-  \cos(3.0) \approx -0.990,\quad \sin(3.0) \approx 0.141,
+  \cos(3.0) \approx -0.990,\quad \sin(3.0) \approx 0.141,\quad
+  \cos(0.03) \approx 1.000,\quad \sin(0.03) \approx 0.030,
 \]
-calcule $\mathrm{score}(1,3) = \tilde{\mathbf{q}}_1^\top \tilde{\mathbf{k}}_3$.
+calcule $\mathrm{score}(2,5) = \tilde{\mathbf{q}}_2^\top \tilde{\mathbf{k}}_5$.
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: $-0.929$.
+Alternativa \textbf{(b)}: $+0.718$.
 \end{respostabox}
 
-\paragraph{Derivação completa.}
-
-O RoPE com $d = 4$ opera em dois blocos 2D independentes, um para cada par de
-dimensões $(2k, 2k+1)$.
+\paragraph{Derivação pela propriedade relativa.}
+Os valores fornecidos no enunciado são os do ângulo $(j-i)\theta_b$, e não os de
+$i\theta_b$ ou $j\theta_b$: isso já indica o caminho. O produto interno dos vetores
+rotacionados depende das posições apenas pela diferença $j - i = 3$, e se separa por
+bloco de frequência:
+\[
+  \mathrm{score}(i,j) = \sum_{b}\Bigl[(q_{2b}k_{2b} + q_{2b+1}k_{2b+1})\cos\bigl((j-i)\theta_b\bigr)
+  + (q_{2b+1}k_{2b} - q_{2b}k_{2b+1})\sin\bigl((j-i)\theta_b\bigr)\Bigr].
+\]
 
 \bigskip
-\textbf{Bloco $k=0$, ângulo de rotação $\alpha = i\,\theta_0 = 1 \times 1.0 = 1.0\;\mathrm{rad}$:}
-
-A rotação no plano $[q_0, q_1]$ aplica a matriz
+\textbf{Bloco $b = 0$.} Aqui $\mathbf{q}_{[0:2]} = (2, 0)$, $\mathbf{k}_{[0:2]} = (0, 1)$
+e o ângulo é $(j-i)\theta_0 = 3 \times 1.0 = 3.0\;\mathrm{rad}$:
 \[
-  \mathbf{R}(i\theta_0) =
-  \begin{pmatrix}
-    \cos(1.0) & -\sin(1.0) \\
-    \sin(1.0) & \phantom{-}\cos(1.0)
-  \end{pmatrix}
-  =
-  \begin{pmatrix}
-    0.540 & -0.841 \\
-    0.841 & \phantom{-}0.540
-  \end{pmatrix}.
+  \underbrace{(2 \cdot 0 + 0 \cdot 1)}_{= 0}\cos(3.0)
+  + \underbrace{(0 \cdot 0 - 2 \cdot 1)}_{= -2}\sin(3.0)
+  = 0 - 2\,(0.141) = -0.282.
 \]
-Como $\mathbf{q}_{[0:2]} = [1, 0]^\top$:
+
+\bigskip
+\textbf{Bloco $b = 1$.} Aqui $\mathbf{q}_{[2:4]} = (1, 0)$, $\mathbf{k}_{[2:4]} = (1, 0)$
+e o ângulo é $(j-i)\theta_1 = 3 \times 0.01 = 0.03\;\mathrm{rad}$:
 \[
-  \tilde{\mathbf{q}}_{1,[0:2]}
-  = \begin{pmatrix}0.540 & -0.841 \\ 0.841 & 0.540\end{pmatrix}
+  \underbrace{(1 \cdot 1 + 0 \cdot 0)}_{= 1}\cos(0.03)
+  + \underbrace{(0 \cdot 1 - 1 \cdot 0)}_{= 0}\sin(0.03)
+  = 1.000 + 0 = 1.000.
+\]
+
+\bigskip
+\textbf{Total:} $\mathrm{score}(2,5) \approx -0.282 + 1.000 = 0.718$.
+
+\paragraph{Verificação via rotação explícita.}
+Rotacionando cada vetor pela sua própria posição, o que exige os valores
+$\cos(2.0) \approx -0.416$, $\sin(2.0) \approx 0.909$, $\cos(5.0) \approx 0.284$,
+$\sin(5.0) \approx -0.959$, $\cos(0.02) \approx 1.000$, $\sin(0.02) \approx 0.020$,
+$\cos(0.05) \approx 0.999$ e $\sin(0.05) \approx 0.050$:
+\[
+  \tilde{\mathbf{q}}_{2,[0:2]}
+  = \begin{pmatrix}-0.416 & -0.909 \\ 0.909 & -0.416\end{pmatrix}
+    \begin{pmatrix}2\\0\end{pmatrix}
+  = \begin{pmatrix}-0.832\\ 1.818\end{pmatrix},
+  \qquad
+  \tilde{\mathbf{q}}_{2,[2:4]}
+  = \begin{pmatrix}1.000 & -0.020 \\ 0.020 & 1.000\end{pmatrix}
     \begin{pmatrix}1\\0\end{pmatrix}
-  = \begin{pmatrix}0.540\\0.841\end{pmatrix}.
+  = \begin{pmatrix}1.000\\ 0.020\end{pmatrix}.
 \]
-
-\bigskip
-\textbf{Bloco $k=1$, ângulo de rotação $\alpha = i\,\theta_1 = 1 \times 0.01 = 0.01\;\mathrm{rad}$:}
-
-Para ângulos pequenos, $\cos(0.01) \approx 1.000$ e $\sin(0.01) \approx 0.010$.
-Como $\mathbf{q}_{[2:4]} = [1, 0]^\top$:
 \[
-  \tilde{\mathbf{q}}_{1,[2:4]}
-  = \begin{pmatrix}1.000 & -0.010 \\ 0.010 & 1.000\end{pmatrix}
+  \tilde{\mathbf{k}}_{5,[0:2]}
+  = \begin{pmatrix}\phantom{-}0.284 & 0.959 \\ -0.959 & 0.284\end{pmatrix}
+    \begin{pmatrix}0\\1\end{pmatrix}
+  = \begin{pmatrix}0.959\\ 0.284\end{pmatrix},
+  \qquad
+  \tilde{\mathbf{k}}_{5,[2:4]}
+  = \begin{pmatrix}0.999 & -0.050 \\ 0.050 & \phantom{-}0.999\end{pmatrix}
     \begin{pmatrix}1\\0\end{pmatrix}
-  = \begin{pmatrix}1.000\\0.010\end{pmatrix}.
+  = \begin{pmatrix}0.999\\ 0.050\end{pmatrix}.
 \]
-
-\textbf{Query rotacionada:}
-$\tilde{\mathbf{q}}_1 = [0.540,\; 0.841,\; 1.000,\; 0.010]$.
-
-\bigskip
-\textbf{Bloco $k=0$ para key, ângulo de rotação $\beta = j\,\theta_0 = 3 \times 1.0 = 3.0\;\mathrm{rad}$:}
-
+Logo $\tilde{\mathbf{q}}_2 = [-0.832,\; 1.818,\; 1.000,\; 0.020]$ e
+$\tilde{\mathbf{k}}_5 = [0.959,\; 0.284,\; 0.999,\; 0.050]$, e
 \[
-  \mathbf{R}(j\theta_0) =
-  \begin{pmatrix}
-    -0.990 & -0.141 \\
-    \phantom{-}0.141 & -0.990
-  \end{pmatrix}.
+  \mathrm{score}(2,5)
+  = \underbrace{(-0.832)(0.959)}_{\approx -0.798}
+  + \underbrace{(1.818)(0.284)}_{\approx +0.516}
+  + \underbrace{(1.000)(0.999)}_{\approx +0.999}
+  + \underbrace{(0.020)(0.050)}_{\approx +0.001}
+  \approx 0.718 \;\checkmark
 \]
-Como $\mathbf{k}_{[0:2]} = [0, 1]^\top$:
-\[
-  \tilde{\mathbf{k}}_{3,[0:2]}
-  = \begin{pmatrix}-0.990 & -0.141 \\ 0.141 & -0.990\end{pmatrix}
-    \begin{pmatrix}0\\1\end{pmatrix}
-  = \begin{pmatrix}-0.141\\-0.990\end{pmatrix}.
-\]
-
-\bigskip
-\textbf{Bloco $k=1$ para key, ângulo de rotação $\beta = j\,\theta_1 = 3 \times 0.01 = 0.03\;\mathrm{rad}$:}
-
-$\cos(0.03) \approx 1.000$, $\sin(0.03) \approx 0.030$.
-Como $\mathbf{k}_{[2:4]} = [0, 1]^\top$:
-\[
-  \tilde{\mathbf{k}}_{3,[2:4]}
-  = \begin{pmatrix}1.000 & -0.030 \\ 0.030 & 1.000\end{pmatrix}
-    \begin{pmatrix}0\\1\end{pmatrix}
-  = \begin{pmatrix}-0.030\\1.000\end{pmatrix}.
-\]
-
-\textbf{Key rotacionada:}
-$\tilde{\mathbf{k}}_3 = [-0.141,\; -0.990,\; -0.030,\; 1.000]$.
-
-\bigskip
-\textbf{Produto interno:}
-\[
-  \mathrm{score}(1,3)
-  = \underbrace{0.540 \times (-0.141)}_{\approx -0.076}
-  + \underbrace{0.841 \times (-0.990)}_{\approx -0.832}
-  + \underbrace{1.000 \times (-0.030)}_{= -0.030}
-  + \underbrace{0.010 \times 1.000}_{= +0.010}
-  \approx -0.929.
-\]
-
-\paragraph{Verificação via expansão analítica.}
-O bloco $k=0$ sozinho contribui com
-$(q_0 k_0 + q_1 k_1)\cos\!\bigl((j-i)\theta_0\bigr) + (q_1 k_0 - q_0 k_1)\sin\!\bigl((j-i)\theta_0\bigr)$:
-\[
-  (1{\cdot}0 + 0{\cdot}1)\cos(2) + (0{\cdot}0 - 1{\cdot}1)\sin(2)
-  = 0 - \sin(2) \approx -0.909.
-\]
-O bloco $k=1$ contribui com valor próximo de zero (ângulo muito pequeno):
-\[
-  (1{\cdot}0 + 0{\cdot}1)\cos(0.02) + (0{\cdot}0 - 1{\cdot}1)\sin(0.02)
-  \approx -0.020.
-\]
-Soma: $-0.909 + (-0.020) \approx -0.929$ \checkmark
-
+O caminho relativo exige quatro valores trigonométricos e duas multiplicações; o
+caminho explícito exige oito valores e quatro produtos de matriz. Essa diferença é
+exatamente o conteúdo da propriedade que a questão quer testar.
 % ------------------------------------------------------------------
 % Q19: Derivação Detalhada
 % ------------------------------------------------------------------
@@ -1185,17 +1145,17 @@ para todo inteiro $i \geq 0$, sem restrição de faixa.
 
 \textbf{Definição.} O positional encoding senoidal é:
 \[
-  \mathrm{PE}(i, 2k)   = \sin\!\left(\frac{i}{\omega_k}\right),\quad
-  \mathrm{PE}(i, 2k+1) = \cos\!\left(\frac{i}{\omega_k}\right),\quad
-  \omega_k = 10000^{2k/d},\quad k = 0, 1, \ldots, \frac{d}{2}-1.
+  \mathrm{PE}(i, 2k)   = \sin\!\left(i\,\omega_k\right),\quad
+  \mathrm{PE}(i, 2k+1) = \cos\!\left(i\,\omega_k\right),\quad
+  \omega_k = 10000^{-2k/d},\quad k = 0, 1, \ldots, \frac{d}{2}-1.
 \]
 
 \textbf{Condição de colisão.} Dois inteiros $i \neq j$ com $i, j \geq 0$ produzem
 $\mathbf{PE}(i) = \mathbf{PE}(j)$ se e somente se, para \emph{todo} $k$:
 \[
-  \frac{i}{\omega_k} \equiv \frac{j}{\omega_k} \pmod{2\pi},
+  i\,\omega_k \equiv j\,\omega_k \pmod{2\pi},
 \]
-ou seja, $\frac{i - j}{\omega_k}$ é múltiplo inteiro de $2\pi$ para todo $k$.
+ou seja, $(i - j)\,\omega_k$ é múltiplo inteiro de $2\pi$ para todo $k$.
 
 \textbf{Análise para $k = 0$.} Com $\omega_0 = 10000^0 = 1$:
 \[
@@ -1227,8 +1187,8 @@ não negativos.
   \item \textbf{(c) Errada.} A norma de $\mathbf{PE}(i)$ é:
         \[
           \|\mathbf{PE}(i)\|^2 = \sum_{k=0}^{d/2-1}
-          \!\left[\sin^2\!\!\left(\frac{i}{\omega_k}\right)
-                + \cos^2\!\!\left(\frac{i}{\omega_k}\right)\right]
+          \!\left[\sin^2\!\!\left(i\,\omega_k\right)
+                + \cos^2\!\!\left(i\,\omega_k\right)\right]
           = \sum_{k=0}^{d/2-1} 1 = \frac{d}{2}.
         \]
         A norma é constante igual a $\sqrt{d/2}$ para \emph{todo} $i$. Isso é
@@ -1306,7 +1266,7 @@ realmente faz.
 
 \textbf{Contraste com outros métodos.}
 \begin{itemize}
-  \item \textbf{PE senoidal}: possui fórmula fechada $\sin(i/\omega_k)$, calculável
+  \item \textbf{PE senoidal}: possui fórmula fechada $\sin(i\,\omega_k)$, calculável
         para qualquer $i$. Não consulta tabela.
   \item \textbf{RoPE}: aplica matrizes de rotação parametrizadas por $\theta_k$,
         válidas para qualquer $i$.
@@ -1370,7 +1330,7 @@ O último termo $\mathbf{PE}(i)^\top \mathbf{PE}(j)$ se simplifica via identidad
 trigonométricas:
 \[
   \mathbf{PE}(i)^\top \mathbf{PE}(j)
-  = \sum_k \cos\!\!\left(\frac{j-i}{\omega_k}\right),
+  = \sum_k \cos\!\!\left((j-i)\,\omega_k\right),
 \]
 que depende apenas de $(j-i)$. Contudo, os termos cruzados
 $\mathbf{x}_i^\top \mathbf{PE}(j)$ e $\mathbf{PE}(i)^\top \mathbf{x}_j$
@@ -1385,9 +1345,38 @@ Com RoPE:
 Não há termos cruzados conteúdo-posição absoluta: a posição entra exclusivamente
 como offset relativo $\mathbf{R}(j-i)$.
 
-Portanto, mesmo quando $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois logits contêm termos
-estruturalmente distintos e os dois métodos não são equivalentes para nenhuma
-escolha de pesos.
+Portanto, mesmo no caso mais favorável $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois logits
+contêm termos estruturalmente distintos.
+
+\paragraph{Por que a conclusão vale para \emph{qualquer} escolha de pesos.}
+O caso identidade sozinho não basta para justificar a alternativa, então convém
+fechar o argumento com projeções gerais. Escrevendo $\mathbf{M} = \mathbf{W}_Q^\top \mathbf{W}_K$,
+o logit senoidal é
+\[
+  A_{\mathrm{sin}}(i,j)
+  = \mathbf{x}_i^\top \mathbf{M}\, \mathbf{x}_j
+  + \mathbf{x}_i^\top \mathbf{M}\, \mathbf{PE}(j)
+  + \mathbf{PE}(i)^\top \mathbf{M}\, \mathbf{x}_j
+  + \mathbf{PE}(i)^\top \mathbf{M}\, \mathbf{PE}(j),
+\]
+enquanto o do RoPE, que aplica a rotação \emph{depois} das projeções, é
+\[
+  A_{\mathrm{RoPE}}(i,j)
+  = (\mathbf{R}(i)\mathbf{W}_Q\mathbf{x}_i)^\top (\mathbf{R}(j)\mathbf{W}_K\mathbf{x}_j)
+  = \mathbf{x}_i^\top \mathbf{W}_Q^\top\, \mathbf{R}(j-i)\, \mathbf{W}_K\, \mathbf{x}_j.
+\]
+Considere deslocar as duas posições pela mesma quantidade $c$, mantendo o conteúdo
+fixo. No RoPE, $A_{\mathrm{RoPE}}(i+c, j+c) = A_{\mathrm{RoPE}}(i,j)$ para
+\textbf{toda} escolha de $\mathbf{W}_Q$ e $\mathbf{W}_K$, porque $\mathbf{R}((j+c)-(i+c)) = \mathbf{R}(j-i)$.
+No senoidal, os termos cruzados $\mathbf{x}_i^\top \mathbf{M}\, \mathbf{PE}(j)$ e
+$\mathbf{PE}(i)^\top \mathbf{M}\, \mathbf{x}_j$ misturam o conteúdo de um token com a posição
+\emph{absoluta} do outro, e mudam sob esse deslocamento sempre que $\mathbf{M}$ não os
+anula. Uma invariância que vale sempre em um método e falha no outro não pode ser
+reconciliada por escolha de pesos: só haveria equivalência se $\mathbf{M}$ zerasse os
+termos cruzados \emph{e} o termo $\mathbf{PE}(i)^\top \mathbf{M}\, \mathbf{PE}(j)$ reproduzisse
+exatamente a rotação, o que exigiria $\mathbf{M} = \mathbf{0}$ e destruiria também o termo de
+conteúdo $\mathbf{x}_i^\top \mathbf{M}\, \mathbf{x}_j$. Logo não existe configuração de pesos que
+torne os dois métodos equivalentes em geral.
 
 % ------------------------------------------------------------------
 % Q26: Derivação Detalhada

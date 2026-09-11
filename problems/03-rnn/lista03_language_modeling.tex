@@ -114,7 +114,7 @@ temperatura $\tau = 0.5$ na \textit{softmax}, qual é a probabilidade do \textit
 \end{tabular}
 \end{center}
 
-Para $p = 0.90$, quantos \textit{tokens} compõem o núcleo do qual se amostra?
+Para $p = 0.85$, quantos \textit{tokens} compõem o núcleo do qual se amostra?
 
 \begin{enumerate}[a)]
     \item $2$.
@@ -177,14 +177,14 @@ peso de atenção $a_1^{(t)}$ do primeiro estado?
 \item \emoji{skull-and-crossbones} Para reduzir o viés do \textit{Beam Search} a favor de
 sequências curtas, usa-se o \textit{score} normalizado
 $\dfrac{1}{n^{\alpha}} \sum_{t=1}^{n} \log\bigl(P(y_t \mid y_{<t})\bigr)$. Um candidato $B$ tem
-$n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha = 1$, qual é o
+$n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.2$. Com $\alpha = 0.5$, qual é o
 \textit{score} normalizado de $B$?
 
 \begin{enumerate}[a)]
-    \item $-0.80$.
-    \item $-0.40$.
-    \item $-1.60$.
-    \item $-6.40$.
+    \item $-0.30$.
+    \item $-0.60$.
+    \item $-1.20$.
+    \item $-2.40$.
 \end{enumerate}
 % R: b
 
@@ -216,9 +216,10 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
     \textit{logits} por $\tau$ em vez de dividir, obtendo $[\,1;\, 0.5\,]$; (d) $0.500$
     supõe distribuição uniforme.
     \item \textbf{c.} As probabilidades acumuladas são $0.50,\; 0.75,\; 0.90,\; 0.97,\;
-    1.00$. O menor conjunto cuja massa acumulada atinge $0.90$ é $\{w_1, w_2, w_3\}$, isto é,
+    1.00$. O menor conjunto cuja massa acumulada atinge $0.85$ é $\{w_1, w_2, w_3\}$, isto é,
     $3$ \textit{tokens}. A alternativa (a) $2$ para em $0.75$, antes de atingir $p$; (b) $4$ e
-    (d) $5$ incluem \textit{tokens} além do necessário para alcançar $0.90$.
+    (d) $5$ incluem \textit{tokens} além do necessário, porque a massa já passa de $0.85$ no
+    terceiro.
     \item \textbf{b.} $\log_2 p = [\,-1,\; -1,\; -3\,]$, então $L = -5$ e
     $-\frac{1}{m} L = \frac{5}{3} \approx 1.667$; logo
     $\text{Perplexidade} = 2^{1.667} \approx 3.17$. A alternativa (a) $5.00$ devolve
@@ -234,11 +235,13 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
     = (1.2 - 0.2;\; 1.2 - 0.2) = (1.0;\; 1.0)$. A alternativa (a) $(1.2;\, 1.2)$
     ignora a contribuição de $\mathbf{s}_3$; (b) $(0.0;\, 0.67)$ faz a média simples dos vetores sem
     os pesos; (d) $(0.0;\, 2.0)$ soma os vetores sem ponderar.
-    \item \textbf{b.} $\frac{1}{n^{\alpha}} \sum_t \log P = \frac{1}{4^{1}} (-1.6) = -0.40$.
-    A alternativa (a) $-0.80$ divide por $2$ (comprimento errado); (c) $-1.60$ não aplica
-    normalização alguma; (d) $-6.40$ multiplica por $n$ em vez de dividir. Como o candidato $B$
-    fica com $-0.40$, ele pode superar uma sequência curta como $A$ ($n = 2$,
-    $\sum \log P = -1.0$, \textit{score} $-0.50$), que venceria sem a normalização.
+    \item \textbf{b.} $\frac{1}{n^{\alpha}} \sum_t \log P = \frac{1}{4^{0.5}} (-1.2) =
+    \frac{-1.2}{2} = -0.60$. A alternativa (a) $-0.30$ usa $\alpha = 1$, dividindo por $n = 4$
+    em vez de $\sqrt{n}$; (c) $-1.20$ não aplica normalização alguma; (d) $-2.40$ multiplica por
+    $n^{\alpha}$ em vez de dividir. O efeito da normalização aparece na comparação com uma
+    sequência curta $A$ ($n = 2$, $\sum \log P = -1.0$): sem normalizar, $A$ vence
+    ($-1.0 > -1.2$); com $\alpha = 0.5$, o \textit{score} de $A$ é
+    $-1.0/\sqrt{2} \approx -0.71$ e o de $B$ é $-0.60$, então $B$ passa à frente.
 \end{enumerate}
 \color{black}
 
@@ -251,7 +254,7 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.6$. Com $\alpha
 % ------------------------------------------------------------------
 % D1 — Medium (passo completo de atenção: scores, pesos, contexto)
 % ------------------------------------------------------------------
-\item No mecanismo de atenção de \textit{Bahdanau}, o estado do \textit{decoder} é
+\item Em um mecanismo de atenção com \textit{score} do tipo \textit{dot-product}, o estado do \textit{decoder} é
 $\mathbf{h}_t = (1;\, 2)$ e há três estados do \textit{encoder}: $\mathbf{s}_1 = (2;\, 0)$, $\mathbf{s}_2 = (0;\, 2)$ e
 $\mathbf{s}_3 = ({-}1;\, 1)$. Use $\text{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ e
 $a_k^{(t)} = \dfrac{\exp(\text{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_i \exp(\text{score}(\mathbf{h}_t, \mathbf{s}_i))}$.
