@@ -131,12 +131,12 @@
       Com bias zero, qual o valor de $\mathbf{q} = \mathbf{x} \, \mathbf{W}_q$?
 
 \begin{enumerate}[a)]
-    \item $[3,\;2]$
     \item $[5,\;3]$
+    \item $[3,\;2]$
     \item $[3,\;5]$
     \item $[5,\;5]$
 \end{enumerate}
-% R: b
+% R: a
 
 % ------------------------------------------------------------------
 % Q12 — Médio (saída da atenção como soma ponderada de values)
@@ -234,16 +234,16 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
 \begin{enumerate}[a)]
     \item BatchNorm computa estatísticas por linha do tensor, então a soma das
           linhas em \textit{batches} grandes diverge para sequências longas.
-    \item BatchNorm computa estatísticas por coluna (\textit{feature}) sobre
-          o \textit{batch}; com sequências de comprimentos diferentes, o
-          número de \textit{tokens} contribuindo em cada posição varia,
-          distorcendo as estatísticas.
     \item BatchNorm usa parâmetros aprendidos diferentes de LayerNorm,
           o que requer reinicializar o otimizador a cada novo \textit{batch}.
     \item BatchNorm depende de uma janela deslizante temporal que não está
           disponível em \textit{transformers} sem recorrência.
+    \item BatchNorm computa estatísticas por coluna (\textit{feature}) sobre
+          o \textit{batch}; com sequências de comprimentos diferentes, o
+          número de \textit{tokens} contribuindo em cada posição varia,
+          distorcendo as estatísticas.
 \end{enumerate}
-% R: b
+% R: d
 
 % ------------------------------------------------------------------
 % Q17 — Médio (máscara causal e softmax)
@@ -258,12 +258,12 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
       Quais são os pesos da atenção $\mathbf{a}^{(2)}$ resultantes (após \textit{softmax})?
 
 \begin{enumerate}[a)]
-    \item $[\,0.55,\; 0.10,\; 0.25,\; 0.10\,]$
     \item $[\,0.73,\; 0.27,\; 0,\; 0\,]$
+    \item $[\,0.55,\; 0.10,\; 0.25,\; 0.10\,]$
     \item $[\,0.25,\; 0.25,\; 0.25,\; 0.25\,]$
     \item $[\,1.5,\; 0.5,\; 0,\; 0\,]$
 \end{enumerate}
-% R: b
+% R: a
 
 % ------------------------------------------------------------------
 % Q18 — Médio (cross-attention: origem de Q, K e V)
@@ -302,10 +302,10 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
 \begin{enumerate}[a)]
     \item $2\,097\,152$
     \item $1\,313\,280$
-    \item $2\,099\,712$
     \item $4\,194\,304$
+    \item $2\,099\,712$
 \end{enumerate}
-% R: c
+% R: d
 
 % ------------------------------------------------------------------
 % Q20 — \emoji{skull-and-crossbones} Difícil (custos assintóticos de self-attention)
@@ -399,14 +399,14 @@ de número de parâmetros.
 % ---
 
 % --- Solução Q11 ---
-\subsubsection*{XI — Resposta: (b)}
+\subsubsection*{XI — Resposta: (a)}
 A multiplicação $\mathbf{q} = \mathbf{x}\, \mathbf{W}_q$ produz um vetor de duas componentes:
 \[
   q_0 = 1\cdot 2 + 2\cdot 0 + 3\cdot 1 = 5, \qquad
   q_1 = 1\cdot 1 + 2\cdot 1 + 3\cdot 0 = 3.
 \]
 Logo $\mathbf{q} = [5,\;3]$.
-A opção~(a) corresponde a somar as colunas de $\mathbf{W}_q$ ignorando $\mathbf{x}$:
+A opção~(b) corresponde a somar as colunas de $\mathbf{W}_q$ ignorando $\mathbf{x}$:
 $[2+0+1,\,1+1+0] = [3,\,2]$. A opção~(c) inverte os componentes. A
 opção~(d) usa a primeira coluna de $\mathbf{W}_q$ para ambas as posições da saída
 ($1\cdot 2 + 2\cdot 0 + 3\cdot 1 = 5$ aplicado duas vezes).
@@ -469,7 +469,7 @@ de $H$ e $N$ ($H^2 \cdot N$).
 % ---
 
 % --- Solução Q16 ---
-\subsubsection*{XVI — Resposta: (b)}
+\subsubsection*{XVI — Resposta: (d)}
 \textit{BatchNorm} computa média e variância \emph{por feature}, agregando
 sobre o eixo do \textit{batch} e (em sequências) sobre o eixo temporal.
 Com sequências de comprimentos muito distintos, o número de \textit{tokens}
@@ -479,14 +479,14 @@ apenas algumas. As estatísticas resultantes ficam ruidosas e dependentes
 da composição do \textit{batch}. \textit{LayerNorm}, por outro lado,
 normaliza \emph{por token} (linha), independendo do tamanho do
 \textit{batch} ou do comprimento das sequências.
-A opção~(a) inverte o eixo de normalização do BatchNorm. A opção~(c)
+A opção~(a) inverte o eixo de normalização do BatchNorm. A opção~(b)
 inventa um requisito de reinicialização do otimizador que não existe.
-A opção~(d) atribui ao BatchNorm uma janela deslizante que não faz parte
+A opção~(c) atribui ao BatchNorm uma janela deslizante que não faz parte
 da sua definição.
 % ---
 
 % --- Solução Q17 ---
-\subsubsection*{XVII — Resposta: (b)}
+\subsubsection*{XVII — Resposta: (a)}
 Após somar a máscara, os scores efetivos passam a ser
 $[\,1.5,\; 0.5,\; -\infty,\; -\infty\,]$. Aplicando $\exp$:
 \[
@@ -499,7 +499,7 @@ A soma é $4.482 + 1.649 = 6.131$, então
   \mathbf{a}^{(2)} = \left[\frac{4.482}{6.131},\; \frac{1.649}{6.131},\; 0,\; 0\right]
          \approx [\,0.73,\; 0.27,\; 0,\; 0\,].
 \]
-A opção~(a) ignora a máscara, aplicando \textit{softmax} aos quatro
+A opção~(b) ignora a máscara, aplicando \textit{softmax} aos quatro
 scores originais. A opção~(c) atribui peso uniforme. A opção~(d)
 apenas anula as duas últimas entradas e mantém os scores brutos no lugar
 das probabilidades.
@@ -521,7 +521,7 @@ com \textit{self-attention} do próprio \textit{decoder}, não com
 % ---
 
 % --- Solução Q19 ---
-\subsubsection*{XIX — Resposta: (c)}
+\subsubsection*{XIX — Resposta: (d)}
 Contagem direta dos parâmetros:
 \[
   |\mathbf{W}_1| = d \cdot d_{ff} = 512 \cdot 2\,048 = 1\,048\,576,
@@ -539,7 +539,7 @@ Total:
 A opção~(a) ignora os \textit{biases}: $2\cdot 512\cdot 2\,048 = 2\,097\,152$.
 A opção~(b) usa $\mathbf{W}_2 \in \mathbb{R}^{d\times d}$ por engano:
 $1\,048\,576 + 262\,144 + 2\,048 + 512 = 1\,313\,280$.
-A opção~(d) duplica indevidamente o número de matrizes:
+A opção~(c) duplica indevidamente o número de matrizes:
 $4\cdot 512\cdot 2\,048 = 4\,194\,304$.
 % ---
 

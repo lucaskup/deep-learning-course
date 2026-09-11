@@ -32,13 +32,13 @@
 
     \item Redes recorrentes tendem a sofrer mais dos problemas do gradiente que se dissipa e do gradiente explosivo. Por que isso acontece?
 
-    \item \textit{(Adaptado de CS224N Stanford 2017)} Considere que todos os parâmetros da rede recorrente ilustrada na figura abaixo são escalares ($\theta_{hh}, \theta_{ih}, b_{h}, \theta_{ho}$ e  $b_{o}$). A função de ativação $f[.]$ é a função sinal definida abaixo:
+    \item \textit{(Adaptado de CS224N Stanford 2017)} Considere que todos os parâmetros da rede recorrente ilustrada na figura abaixo são escalares ($\theta_{hh}, \theta_{ih}, b_{h}, \theta_{ho}$ e  $b_{o}$). A função de ativação $f[.]$ é a função degrau definida abaixo:
     
 \[   
 f(z) = 
      \begin{cases}
-       z \ge 0, &\quad 1,\\
-       z < 0, &\quad 0\\
+       1, &\quad z \ge 0,\\
+       0, &\quad z < 0
      \end{cases}
 \]
     
@@ -140,7 +140,7 @@ f(z) =
     
     \item 
         \begin{enumerate}[a)]
-            \item Sua função é processar a imagem, analisando e extraindo as características visuais importantes, comprimindo toda a informação em um único vetor ($\mathbf{v}$). Usando uma VGG-16 de encoder (como a VGG) não é possível, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
+            \item Sua função é processar a imagem, analisando e extraindo as características visuais importantes, comprimindo toda a informação em um único vetor ($\mathbf{v}$). Uma CNN como a VGG-16 não consegue, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
 
             % \item Sua função é processar dados sequenciais, recebendo o vetor $v$ e utilizando ele como ponto de partida para gerar uma sequência de palavras gramaticalmente correta que descreva o contexto visual. Tecnicamente é possível alimentar uma RNN com pixels em sequência, porém ela é inadequada para entender a estrutura espacial 2D de uma imagem e falha em capturar relações de longo alcance, sendo uma escolha ineficiente como encoder de imagens.
 
@@ -148,28 +148,29 @@ f(z) =
                         \begin{enumerate}[i.]
                             \item \textbf{Para gerar $y_1$ (Tempo $t=1$):}
                                 \begin{itemize}
-                                    \item \textbf{Estado Oculto Anterior ($\mathbf{h}_{t-1}$):} É o $\mathbf{h}_0$, que é o vetor da imagem $\mathbf{v}$ fornecido pela CNN.
+                                    \item \textbf{Estado Oculto Anterior ($\mathbf{h}_{t-1}$):} É o $\mathbf{h}_0$. Uma opção comum é inicializá-lo com o vetor da imagem $\mathbf{v}$ fornecido pela CNN, que é a convenção adotada aqui; alimentar $\mathbf{v}$ como primeira entrada $\mathbf{x}_0$ e partir de $\mathbf{h}_0 = \mathbf{0}$ é igualmente comum.
 
                                     \item \textbf{Input ($\mathbf{x}_1$):} Não temos uma palavra anterior. Portanto, usamos um \textit{token} especial de início de sentença (ex: \texttt{<START>}).
 
-                                    \item \textbf{Cálculo:} $\mathbf{h}_1 = f(\mathbf{x}_1\,\mathbf{\Theta}_{ih}^{T} + \mathbf{v}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\mathbf{y}_1 = g(\mathbf{h}_1\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$.
+                                    \item \textbf{Cálculo:} $\mathbf{h}_1 = f(\mathbf{x}_1\,\mathbf{\Theta}_{ih}^{T} + \mathbf{v}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\hat{\mathbf{y}}_1 = g(\mathbf{h}_1\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$, em que $\hat{\mathbf{y}}_1$ é uma distribuição sobre o vocabulário.
                                 \end{itemize}
                         
                             \item \textbf{Para gerar $y_2$ (Tempo $t=2$):}
                                 \begin{itemize}
                                     \item \textbf{Estado Oculto Anterior ($\mathbf{h}_{t-1}$):} É o $\mathbf{h}_1$, o estado oculto que acabou de ser calculado no passo anterior.
 
-                                    \item \textbf{Input ($\mathbf{x}_2$):} É a palavra que foi gerada no passo anterior, ou seja, $y_1$.
+                                    \item \textbf{Input ($\mathbf{x}_2$):} É a palavra gerada no passo anterior, mas atenção ao que de fato entra na rede: $\hat{\mathbf{y}}_1$ é uma distribuição sobre o vocabulário, não uma palavra. Amostramos (ou tomamos o \textit{argmax} de) $\hat{\mathbf{y}}_1$ para obter um \textit{token} $w_1$ e usamos a \textit{embedding} dele, $\mathbf{x}_2 = \text{emb}(w_1)$. Em treino com \textit{teacher forcing} usa-se a \textit{embedding} da palavra correta da legenda em vez da palavra gerada, e é justamente essa diferença entre treino e geração que dá origem ao \textit{exposure bias}.
 
-                                    \item \textbf{Cálculo} $\mathbf{h}_2 = f(\mathbf{y}_1\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_1\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\mathbf{y}_2 = g(\mathbf{h}_2\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$.
+                                    \item \textbf{Cálculo:} $\mathbf{h}_2 = f(\mathbf{x}_2\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_1\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)$ e $\hat{\mathbf{y}}_2 = g(\mathbf{h}_2\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o)$.
                                 \end{itemize}
                         \end{enumerate}
 
-            \item A abordagem mais comum e direta \textbf{é} usar a saída `achatada' (flattened) da última camada convolucional.
+            \item A abordagem clássica, usada no \textit{Show and Tell} de Vinyals et al. (2015), é tomar a saída de uma camada totalmente conectada e projetá-la linearmente para a dimensão da RNN.
                 \begin{enumerate}[i.]
-                    \item Processo: A imagem passa pelas camadas convolucionais (ex: VGG-16), resultando em um \textit{feature map} 3D (ex: $7 \times 7 \times 512$). Achatamos (flattening) para um vetor 1D (ex: $25088 \times 1$). A saída é usada como o vetor $\mathbf{v}$.
-                    \item Formato (Shape): O vetor $\mathbf{v}$ é um vetor 1D (ex: `($25088$,)').
-                    \item Uso: Este vetor 1D representa a imagem inteira, é usado para inicializar o primeiro estado oculto ($\mathbf{h}_0$) da RNN, `preparando' o decoder com o que ele deve descrever.
+                    \item Processo: a imagem passa pela CNN e, na VGG-16, a saída da penúltima camada densa é um vetor de $4096$ dimensões. Uma camada linear aprendida projeta esse vetor para a dimensão do estado oculto da RNN, produzindo $\mathbf{v}$.
+                    \item Formato: $\mathbf{v}$ é um vetor 1-D com a dimensão do estado oculto da RNN (por exemplo $512$), e não com a dimensão da saída da CNN.
+                    \item Uso: $\mathbf{v}$ representa a imagem inteira e serve para condicionar o \textit{decoder}. Duas formas são comuns: usá-lo como estado oculto inicial $\mathbf{h}_0$, ou apresentá-lo como primeira entrada $\mathbf{x}_0$ da sequência, que é o que o \textit{Show and Tell} faz.
+                    \item As outras duas opções do enunciado também aparecem na literatura, mas exigem cuidado. O \textit{feature map} 3-D não pode ser consumido diretamente por uma RNN densa, e a versão achatada ($7 \times 7 \times 512 = 25088$ dimensões na VGG-16) é grande demais para virar $\mathbf{h}_0$ diretamente: seria preciso uma camada linear para casar a dimensão, e nesse caso a projeção é justamente o que a abordagem clássica já faz a partir do vetor menor da camada densa. Manter o mapa 3-D sem achatar é o caminho de arquiteturas com atenção visual, em que o \textit{decoder} consulta as $49$ posições espaciais a cada passo em vez de receber um único vetor.
                 \end{enumerate}
 
             \item Sim, é possível, e esta arquitetura é conhecida como \textbf{Convolutional RNN} (ou ConvLSTM/ConvGRU).

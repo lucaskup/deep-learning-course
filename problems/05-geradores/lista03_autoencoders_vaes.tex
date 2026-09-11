@@ -31,11 +31,11 @@
     \item Em um \textit{denoising autoencoder}, qual é o procedimento correto de treinamento por amostra?
     \begin{enumerate}[(a)]
         \item Corromper $\mathbf{x}$ gerando $\tilde{\mathbf{x}}$, passar $\tilde{\mathbf{x}}$ pela rede e comparar a saída com $\tilde{\mathbf{x}}$.
-        \item Corromper $\mathbf{x}$ gerando $\tilde{\mathbf{x}}$, passar $\tilde{\mathbf{x}}$ pela rede e comparar a saída com $\mathbf{x}$ original.
         \item Passar $\mathbf{x}$ pela rede e comparar a saída com uma versão corrompida $\tilde{\mathbf{x}}$ do mesmo $\mathbf{x}$.
         \item Passar $\mathbf{x}$ pela rede e adicionar ruído na representação latente antes do \textit{decoder}.
+        \item Corromper $\mathbf{x}$ gerando $\tilde{\mathbf{x}}$, passar $\tilde{\mathbf{x}}$ pela rede e comparar a saída com $\mathbf{x}$ original.
     \end{enumerate}
-    % R: b
+    % R: d
 
     % ------------------------------------------------------------------
     % Q3 — Medium (AE vs VAE conceptual)
@@ -79,11 +79,11 @@
     \item Por que o \textit{reparametrization trick} é necessário durante o treinamento de um VAE?
     \begin{enumerate}[(a)]
         \item Para garantir que o \textit{prior} $p(\mathbf{z})$ seja exatamente $\mathcal{N}(0, \mathbf{I})$ durante toda a otimização.
-        \item Para que a amostragem de $\mathbf{z}^{*}$ permaneça no caminho diferenciável em relação aos parâmetros do \textit{encoder}.
         \item Para reduzir o custo computacional da estimativa \textit{Monte Carlo} do termo de reconstrução.
         \item Para forçar a distribuição posterior $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ a ter média zero e variância unitária.
+        \item Para que a amostragem de $\mathbf{z}^{*}$ permaneça no caminho diferenciável em relação aos parâmetros do \textit{encoder}.
     \end{enumerate}
-    % R: b
+    % R: d
 
     % ------------------------------------------------------------------
     % Q7 — Medium (ELBO decomposition)
@@ -103,11 +103,11 @@
     \item Após treinar um VAE com \textit{decoder} muito expressivo, observa-se que $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$ tende a zero para todas as entradas, enquanto o erro de reconstrução do \textit{decoder} permanece elevado. O que esse padrão indica?
     \begin{enumerate}[(a)]
         \item A taxa de aprendizado está alta demais e o gradiente do termo KL está dominando o gradiente da reconstrução.
-        \item O \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} e o latente carrega pouca informação sobre $\mathbf{x}$.
         \item O ruído $\boldsymbol{\epsilon}^{*}$ do \textit{reparametrization trick} não está sendo amostrado de forma independente para cada exemplo.
         \item A dimensão do latente $D_z$ está pequena demais para representar a distribuição dos dados.
+        \item O \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} e o latente carrega pouca informação sobre $\mathbf{x}$.
     \end{enumerate}
-    % R: b
+    % R: d
 
     % ------------------------------------------------------------------
     % Q9 — Medium (sampling new instances from a trained VAE)
@@ -162,13 +162,13 @@
 \subsection*{Gabarito - Objetivas}
 \begin{enumerate}[I)]
 \item   c
-\item   b
+\item   d
 \item   b
 \item   c
 \item   a
+\item   d
 \item   b
-\item   b
-\item   b
+\item   d
 \item   b
 \item   a
 \item   c
@@ -180,7 +180,7 @@
 \begin{enumerate}[I)]
     \item \textbf{(c)} Com $D_z = 1024 > 784$ e ativações lineares em todas as camadas, não existe gargalo de informação: a rede pode implementar a identidade (ou um par de mapas lineares que se cancelam) e copiar a entrada, zerando o erro sem aprender estrutura. A (a) é irrelevante para o sintoma descrito. A (b) contradiz o erro de reconstrução próximo de zero. A (d) produziria erro de reconstrução alto, o oposto do observado.
 
-    \item \textbf{(b)} O \textit{denoising autoencoder} corrompe a entrada (gerando $\tilde{\mathbf{x}}$) mas usa o $\mathbf{x}$ limpo como alvo, forçando a rede a aprender a remover o ruído. A (a) treina a rede a reproduzir a própria entrada corrompida, sem efeito de limpeza. A (c) inverte os papéis e ensinaria a rede a adicionar ruído. A (d) descreve perturbação no latente, que não caracteriza o \textit{denoising autoencoder}.
+    \item \textbf{(d)} O \textit{denoising autoencoder} corrompe a entrada (gerando $\tilde{\mathbf{x}}$) mas usa o $\mathbf{x}$ limpo como alvo, forçando a rede a aprender a remover o ruído. A (a) treina a rede a reproduzir a própria entrada corrompida, sem efeito de limpeza. A (b) inverte os papéis e ensinaria a rede a adicionar ruído. A (c) descreve perturbação no latente, que não caracteriza o \textit{denoising autoencoder}.
 
     \item \textbf{(b)} Sem uma distribuição conhecida sobre o latente, não há como escolher $\mathbf{z}$ para alimentar o \textit{decoder}: pontos sorteados ao acaso tendem a cair fora da região efetivamente ocupada pelas codificações do treino, e o \textit{decoder} devolve saídas implausíveis. A (a) não é o impedimento, o \textit{decoder} de um VAE também é determinístico dado $\mathbf{z}$. A (c) é um \textit{non sequitur}, reconstruir bem não elimina diversidade. A (d) parte de premissa falsa, o \textit{encoder} é diferenciável.
 
@@ -188,11 +188,11 @@
 
     \item \textbf{(a)} $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\sigma} \odot \boldsymbol{\epsilon}^{*} = (1 + 0.5 \cdot 0.4,\; -2 + 1.5 \cdot (-0.2)) = (1.2,\; -2.3)$. A (b) soma $\boldsymbol{\epsilon}^{*}$ diretamente, sem escalar por $\sigma$. As alternativas (c) e (d) resultam de trocas de componentes ou de sinais na aplicação elemento a elemento.
 
-    \item \textbf{(b)} O nó de amostragem é estocástico e não admite derivada em relação a $\boldsymbol{\phi}$. Reescrevendo $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}^{*}$, a aleatoriedade fica isolada em $\boldsymbol{\epsilon}^{*}$ (amostrado de uma distribuição fixa) e o caminho por $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}^{1/2}$ permanece diferenciável. A (a) confunde o \textit{prior}, fixado por hipótese, com algo imposto pelo truque. A (c) não procede, o custo da estimativa não muda. A (d) descreveria um colapso forçado do posterior, que não é o objetivo.
+    \item \textbf{(d)} O nó de amostragem é estocástico e não admite derivada em relação a $\boldsymbol{\phi}$. Reescrevendo $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}^{*}$, a aleatoriedade fica isolada em $\boldsymbol{\epsilon}^{*}$ (amostrado de uma distribuição fixa) e o caminho por $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}^{1/2}$ permanece diferenciável. A (a) confunde o \textit{prior}, fixado por hipótese, com algo imposto pelo truque. A (b) não procede, o custo da estimativa não muda. A (c) descreveria um colapso forçado do posterior, que não é o objetivo.
 
     \item \textbf{(b)} O ELBO é $\mathbb{E}_{q}[\log p(\mathbf{x} \mid \mathbf{z}, \thetav)] - D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$: o primeiro termo mede a qualidade da reconstrução, o segundo regulariza $q$ na direção do \textit{prior}. A (a) troca os papéis dos dois termos. A (c) usa a esperança sob o \textit{prior} e inverte os argumentos da KL. A (d) confunde o ELBO com a própria verossimilhança marginal, que é intratável.
 
-    \item \textbf{(b)} KL próxima de zero com reconstrução ruim é sinal do \textit{posterior collapse}: $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi}) \approx p(\mathbf{z})$ para todo $\mathbf{x}$ e o latente deixa de informar o \textit{decoder}. A (a) descreveria instabilidade geral de otimização, não esse padrão específico. A (c) não produz esse sintoma. A (d) implicaria KL tipicamente alta, não nula.
+    \item \textbf{(d)} KL próxima de zero com reconstrução ruim é sinal do \textit{posterior collapse}: $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi}) \approx p(\mathbf{z})$ para todo $\mathbf{x}$ e o latente deixa de informar o \textit{decoder}. A (a) descreveria instabilidade geral de otimização, não esse padrão específico. A (b) não produz esse sintoma. A (c) implicaria KL tipicamente alta, não nula.
 
     \item \textbf{(b)} A amostragem ancestral segue o modelo gerador: $\mathbf{z}^{*} \sim p(\mathbf{z}) = \mathcal{N}(0, \mathbf{I})$ e, em seguida, o \textit{decoder} produz os parâmetros de $p(\mathbf{x} \mid \mathbf{z}^{*}, \thetav)$. A (a) descreve reconstrução de um dado existente, não geração. A (c) amostra da distribuição errada. A (d) condiciona em um exemplo do treino, tendendo a reproduzi-lo em vez de gerar algo novo.
 

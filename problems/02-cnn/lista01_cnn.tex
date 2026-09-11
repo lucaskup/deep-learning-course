@@ -9,12 +9,12 @@
 
 \begin{enumerate}[I)]
 
-    \item A rede convolucional LeNET-5 ilustrada na Figura \ref{fig:lenet5} foi desenvolvida por Yann LeCun e publicada em 1989. Sobre a LeNET-5, responda as perguntas abaixo.
+    \item A rede convolucional LeNet-5 ilustrada na Figura \ref{fig:lenet5} foi desenvolvida por Yann LeCun e publicada em 1998. Sobre a LeNet-5, responda as perguntas abaixo.
 
     \begin{figure}[H]
         \centering
         \includegraphics[width=0.9\linewidth]{problems/02-cnn/images/LeNET5.jpeg}
-        \caption{LeNET-5}
+        \caption{LeNet-5}
         \label{fig:lenet5}
     \end{figure}
 \begin{enumerate}[a)]
@@ -33,7 +33,7 @@
     \item Por que usualmente omitimos o número de canais em uma convolução 2D?
     \item Considerando uma convolução 2D 3x3 que conecta dois mapas de ativação com tamanho 224x224 com $C_1$ e $C_2$ canais respectivamente. Como você poderia inicializar os pesos dessa camada usando a inicialização He?
 
-    \item Dada a matriz de input abaixo, e uma rede com 2 camadas convolucionais, calcule a saída da rede com as configurações a seguir. Para a primeira camada convolucional: Padding = 0, Stride = 1; Kernel = $\mathbf{\Theta}_1$; Ativação linear na saída. Para a segunda camada convolucional: Padding = 1; Stride = 1; Kernel = $\mathbf{\Theta}_2$; Ativação ReLU na saída. Considere \textit{dillation} = 0.
+    \item Dada a matriz de input abaixo, e uma rede com 2 camadas convolucionais, calcule a saída da rede com as configurações a seguir. Para a primeira camada convolucional: Padding = 0, Stride = 1; Kernel = $\mathbf{\Theta}_1$; Ativação linear na saída. Para a segunda camada convolucional: Padding = 1; Stride = 1; Kernel = $\mathbf{\Theta}_2$; Ativação ReLU na saída. Considere \textit{dilation} = 1, ou seja, o \textit{kernel} denso.
 
     $$\mathbf{X} = \begin{bmatrix}
     7 & 8 & 9 \\
@@ -79,7 +79,7 @@
 \end{enumerate}
 
 
-    \item Dada uma imagem de entrada de $32\times32$ pixels, e duas camadas convolucionais, qual o campo receptivo na imagem original que é representado por um único pixel na saída final? Considere: Kernel para as duas camadas ($\mathbf{\Theta}_1 = \mathbf{\Theta}_2$) tem tamanho $5\times5$; Stride = 1; Dillation = 2.
+    \item Dada uma imagem de entrada de $32\times32$ pixels, e duas camadas convolucionais, qual o campo receptivo na imagem original que é representado por um único pixel na saída final? Considere: Kernel para as duas camadas ($\mathbf{\Theta}_1 = \mathbf{\Theta}_2$) tem tamanho $5\times5$; Stride = 1; \textit{Dilation} = 2.
 
 \end{enumerate}
 
@@ -98,7 +98,15 @@
 
     %\item Tamanho 16x16. Para responder a essa questão você deve perceber que ao aplicar uma conv após fazer pooling 2x2 com stride 2 o campo perceptivo dobra de tamanho.
 
-    \item Na primeira camada: $5x5x1x6 + 6 = 156$; Na segunda camada: $5x5x6x16 + 16 = 2416$; Na terceira camada $400*120 + 120=48120$; Na quarta camada $120*84 + 84=10164$; Na quinta camada $84*10 + 10=850$. Total 61706.
+    \item Contando as camadas com parâmetros treináveis e assumindo que C3 está totalmente conectada aos 6 mapas de S2: primeira camada convolucional $5\times5\times1\times6 + 6 = 156$; segunda camada convolucional $5\times5\times6\times16 + 16 = 2416$; terceira camada $400\times120 + 120 = 48\,120$; quarta camada $120\times84 + 84 = 10\,164$; quinta camada $84\times10 + 10 = 850$. Total $61\,706$.
+
+    Vale registrar que a LeNet-5 do artigo de 1998 tem cerca de $60\,840$ parâmetros, número que o próprio artigo arredonda para 60 mil. A diferença em relação aos $61\,706$ acima vem de três escolhas de modelagem que a leitura moderna da arquitetura abandonou:
+    \begin{itemize}
+        \item \textbf{C3 com conectividade parcial.} No artigo, cada um dos 16 mapas de C3 recebe apenas um subconjunto dos 6 mapas de S2 (Tabela I do artigo), o que dá 60 \textit{kernels} $5\times5$ em vez de 96, ou seja $60\times25 + 16 = 1516$ parâmetros em vez de $2416$. A motivação era dupla: reduzir o custo computacional e quebrar a simetria entre os mapas, forçando cada um a extrair características diferentes.
+        \item \textbf{Camada de saída RBF.} No artigo a saída não é uma camada linear com \textit{bias}, e sim uma camada RBF que mede a distância euclidiana a 10 vetores-protótipo de 84 dimensões, ou seja $84\times10 = 840$ pesos em vez de $850$. Esses protótipos foram definidos à mão e mantidos fixos, então contá-los como treináveis é uma convenção.
+        \item \textbf{Subamostragem com parâmetros.} S2 e S4 não são \textit{average pooling} puro: no artigo cada mapa tem um coeficiente multiplicativo e um \textit{bias} treináveis, somando $6\times2 + 16\times2 = 44$ parâmetros que a contagem acima não inclui, porque hoje tratamos \textit{pooling} como operação sem parâmetros.
+    \end{itemize}
+    Fechando a conta: $61\,706 - 900 - 10 + 44 = 60\,840$.
 
     \item Nas camadas totalmente conectadas.
 \end{enumerate}
@@ -161,23 +169,23 @@
     0 & 0 & 0
     \end{bmatrix}
     $$
-    Em seguida, aplicamos $\mathbf{\Theta}_2$, $B_2=1$ e ReLU:
+    Em seguida, aplicamos $\mathbf{\Theta}_2$ e a ReLU. O enunciado não define \textit{bias} em nenhuma das duas camadas, então $B_1 = B_2 = 0$. O elemento central de $\mathbf{\Theta}_2$ é $0$ e a única posição não nula de $\mathbf{C}_{1,\,padded}$ é justamente a central, logo a soma se anula:
     $$
-    \text{Soma Conv} = \sum(\mathbf{C}_{1, padded} \cdot \mathbf{\Theta}_2) = (-2 \cdot 0) = 0
-    $$
-    $$
-    \text{Pré ativação} = \text{Soma Conv} + B_2 = 0 + 1 = 1
+    \text{Soma Conv} = \sum(\mathbf{C}_{1,\,padded} \cdot \mathbf{\Theta}_2) = (-2) \cdot 0 = 0
     $$
     $$
-    Output = \text{ReLU}(1) = 1
+    \text{Pré-ativação} = \text{Soma Conv} + B_2 = 0 + 0 = 0
+    $$
+    $$
+    \text{Output} = \text{ReLU}(0) = 0
     $$
 
     Resultado Final
     $$
-    Output = \begin{bmatrix} 1 \end{bmatrix}
+    \text{Output} = \begin{bmatrix} 0 \end{bmatrix}
     $$
 
-\item Alternativa D % resolução 9 IX
+\item Alternativa (d). É o operador de Sobel na direção vertical, $\partial/\partial y$: as linhas superior e inferior têm sinais opostos, então a resposta é máxima onde a intensidade muda de cima para baixo, que é o que caracteriza uma borda horizontal. As demais: (a) é o Laplaciano, um filtro passa-alta isotrópico que responde a bordas em qualquer orientação, sem selecionar direção; (b) é o Sobel na direção horizontal, $\partial/\partial x$, com as colunas de sinais opostos, então detecta bordas \textbf{verticais}; (c) é um filtro de realce, também de soma nula, com pesos maiores na direção horizontal, mas que responde às duas orientações e serve para acentuar detalhes, não para isolar bordas horizontais. % resolução 9 IX
 
    \item A primeira camada de convolução com kernel $5\times5$ e dilatação $2$, resulta em um \textit{feature map} com campo receptivo de $9\times9$ sobre a imagem de entrada. A segunda camada aplica a mesma configuração de kernel sobre o \textit{feature map} da primeira camada de convolução. Portanto, o campo receptivo final é o campo de visão da camada anterior ($9\times9$) mais a expansão adicional do seu próprio kernel. Resultando em um campo receptivo de $17\times17$. % questão X
 
