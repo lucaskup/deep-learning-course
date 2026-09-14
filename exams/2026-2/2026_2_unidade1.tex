@@ -1,0 +1,476 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+% ---- Mini-diagramas de MLP usados nas alternativas da Questão 1 ----------
+% Convenção: o viés fica dentro do círculo, os pesos ficam sobre as arestas
+% e as conexões de peso zero são omitidas.
+\tikzset{
+  mlpunit/.style={circle, draw, minimum size=7mm, inner sep=0pt, font=\scriptsize},
+  mlpin/.style={font=\scriptsize},
+  mlpw/.style={font=\tiny, inner sep=1.2pt}
+}
+% Rede de 3 unidades (2 ocultas + 1 de saída).
+% #1 entrada de h1 (1 ou 2), #2 peso de h1, #3 viés de h1,
+% #4 entrada de h2 (1 ou 2), #5 peso de h2, #6 viés de h2,
+% #7 peso das duas arestas de saída, #8 viés da unidade de saída.
+\newcommand{\mlpA}[8]{%
+\begin{tikzpicture}[>=stealth, baseline=(o.base), scale=0.86, transform shape]
+  \node[mlpin]   (x1) at (0,0.72)     {$x_1$};
+  \node[mlpin]   (x2) at (0,-0.72)    {$x_2$};
+  \node[mlpunit] (h1) at (1.28,0.72)  {$#3$};
+  \node[mlpunit] (h2) at (1.28,-0.72) {$#6$};
+  \node[mlpunit] (o)  at (2.62,0)     {$#8$};
+  \draw[->] (x#1) -- node[mlpw, above]{$#2$} (h1);
+  \draw[->] (x#4) -- node[mlpw, below]{$#5$} (h2);
+  \draw[->] (h1) -- node[mlpw, above right=-2pt]{$#7$} (o);
+  \draw[->] (h2) -- node[mlpw, below right=-2pt]{$#7$} (o);
+\end{tikzpicture}}
+% Rede de 4 unidades (3 ocultas + 1 de saída); h1 e h2 partem de x1, h3 parte de x2.
+% #1 peso de h1, #2 viés de h1, #3 peso de h2, #4 viés de h2,
+% #5 peso de h3, #6 viés de h3, #7 peso das três arestas de saída, #8 viés da saída.
+\newcommand{\mlpB}[8]{%
+\begin{tikzpicture}[>=stealth, baseline=(o.base), scale=0.86, transform shape]
+  \node[mlpin]   (x1) at (0,0.70)     {$x_1$};
+  \node[mlpin]   (x2) at (0,-1.15)    {$x_2$};
+  \node[mlpunit] (h1) at (1.28,1.15)  {$#2$};
+  \node[mlpunit] (h2) at (1.28,0)     {$#4$};
+  \node[mlpunit] (h3) at (1.28,-1.15) {$#6$};
+  \node[mlpunit] (o)  at (2.62,0)     {$#8$};
+  \draw[->] (x1) -- node[mlpw, above left=-3pt]{$#1$} (h1);
+  \draw[->] (x1) -- node[mlpw, below left=-3pt]{$#3$} (h2);
+  \draw[->] (x2) -- node[mlpw, below]{$#5$} (h3);
+  \draw[->] (h1) -- node[mlpw, above right=-3pt]{$#7$} (o);
+  \draw[->] (h2) -- node[mlpw, above=0pt, pos=0.42]{$#7$} (o);
+  \draw[->] (h3) -- node[mlpw, below right=-3pt]{$#7$} (o);
+\end{tikzpicture}}
+
+% ---- Nodos de grafo computacional usados na Questão 3 -------------------
+% Mesma convenção da aula: variáveis em círculo, operações em caixa,
+% gradientes anotados abaixo de cada aresta.
+\tikzset{
+  cgvar/.style  ={circle, draw=black, minimum size=0.8cm, inner sep=1pt, font=\small},
+  cgopw/.style  ={rectangle, rounded corners=2pt, draw=black, fill=black!8,
+                  minimum height=0.8cm, inner sep=4pt, font=\small},
+  cgedge/.style ={->, >=stealth, thick, gray!70},
+  cggrad/.style ={font=\scriptsize, fill=white, inner sep=1.5pt},
+}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 1}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.2em]
+\begin{center}
+{\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\hspace{1.2em}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+6 & & & & & & & & \\\hline
+7 & & & & & & & & \\\hline
+8 & & & & & & & & \\\hline
+9 & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1,0 = 10,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10{,}0 pts)}
+
+\begin{enumerate}[1)]
+\setlength{\itemsep}{1em}
+
+%% ---------- Q1: OBJ-J decision boundary -> which MLP ----------
+\item (1{,}0) A figura abaixo apresenta seis instâncias de um problema de classificação binária com rótulos $y \in \{-1, +1\}$. A região delimitada pela linha tracejada é a fronteira de decisão de um MLP: tudo que está dentro dela é classificado como $-1$ e tudo que está fora como $+1$.
+
+\begin{center}
+\begin{tikzpicture}[scale=0.88, >=stealth, font=\small]
+    % região classificada como +1 (sombreada); a região branca é classificada como -1.
+    % Ambas se estendem abaixo de x2 = 0: a faixa negativa não é limitada por baixo.
+    \fill[black!8] (0,-0.85) rectangle (3.7,3.7);
+    \fill[white] (1.5,-0.85) rectangle (2.5,2);
+    \draw[dashed, thick] (1.5,-0.85) -- (1.5,2) -- (2.5,2) -- (2.5,-0.85);
+    % eixos
+    \draw[->] (-0.2,0) -- (4.0,0) node[right] {$x_1$};
+    \draw[->] (0,-1.0) -- (0,4.0) node[above] {$x_2$};
+    \foreach \x in {1,2,3} { \draw (\x,0.08) -- (\x,-0.08); \node[below, inner sep=1.5pt, fill=none] at (\x,-0.08) {\x}; }
+    \foreach \y in {1,2,3} { \draw (0.08,\y) -- (-0.08,\y) node[left] {\y}; }
+    % instâncias positivas
+    \foreach \p in {(1,1),(1,3),(2,3),(3,1),(3,3)} {
+        \draw[very thick] \p ++(-0.15,0) -- ++(0.30,0);
+        \draw[very thick] \p ++(0,-0.15) -- ++(0,0.30);
+    }
+    % instância negativa
+    \draw[very thick] (2,1) ++(-0.15,0) -- ++(0.30,0);
+\end{tikzpicture}
+\end{center}
+
+\vspace{-0.7em}
+\centerline{\footnotesize As instâncias marcadas com $+$ têm $y = +1$ e a instância marcada com $-$ tem $y = -1$.}
+\centerline{\footnotesize A região sombreada é classificada como $+1$ e a região branca como $-1$.}
+
+Nas redes abaixo, cada círculo é uma unidade que aplica $\mathrm{sinal}$ à soma ponderada das suas entradas somada ao viés indicado \emph{dentro} do círculo; os números sobre as arestas são os pesos, e as conexões de peso zero foram omitidas. Considere $\mathrm{sinal}(z) = +1$ para $z \geq 0$ e $\mathrm{sinal}(z) = -1$ para $z < 0$. Qual das redes gera exatamente a fronteira de decisão apresentada?
+
+\begin{center}
+\begin{tabular}{@{}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{}}
+\textbf{a)} & \mlpA{1}{1}{-1{,}5}{1}{-1}{2{,}5}{-1}{1} &
+\textbf{b)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{1}{-2}{-1}{2} &
+\textbf{c)} & \mlpA{1}{1}{-1{,}5}{2}{-1}{2}{-1}{1} &
+\textbf{d)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{1}{-2} \\[4em]
+\textbf{e)} & \mlpA{1}{-1}{2{,}5}{2}{-1}{2}{-1}{1} &
+\textbf{f)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{-1}{2} &
+\textbf{g)} & \mlpA{1}{1}{-1{,}5}{1}{-1}{2{,}5}{1}{-1} &
+\textbf{h)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{-1}{4} \\
+\end{tabular}
+\end{center}
+
+%% ---------- Q2: vectorized forward pass ----------
+\item (1{,}0) Considere um MLP vetorizado com $\mathbf{Z}^{(l)} = \mathbf{A}^{(l-1)}{\mathbf{\Theta}^{(l)}}^{\top} + \mathbf{b}^{(l)}$, ReLU na camada oculta e sigmoide na camada de saída. Para o minilote de duas instâncias
+\[
+\mathbf{X} = \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}, \quad
+\mathbf{\Theta}^{(1)} = \begin{bmatrix} 1 & -1 \\ 0 & 2 \end{bmatrix}, \quad
+\mathbf{b}^{(1)} = \begin{bmatrix} 0 & -1 \end{bmatrix}, \quad
+\mathbf{\Theta}^{(2)} = \begin{bmatrix} 1 & 2 \end{bmatrix}, \quad
+b^{(2)} = -2 ,
+\]
+e sabendo que $\sigma(0) = 0{,}500$, $\sigma(2) \approx 0{,}881$, $\sigma(3) \approx 0{,}953$, $\sigma(4) \approx 0{,}982$ e $\sigma(6) \approx 0{,}998$, qual é o vetor de saídas $\hat{\mathbf{y}}$ do minilote?
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item $\hat{\mathbf{y}} = (0{,}953;\ 0{,}119)$
+    \item $\hat{\mathbf{y}} = (0{,}998;\ 0{,}881)$
+    \item $\hat{\mathbf{y}} = (0{,}500;\ 0{,}982)$
+    \item $\hat{\mathbf{y}} = (0{,}982;\ 0{,}500)$
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item $\hat{\mathbf{y}} = (0{,}953;\ 0{,}500)$
+    \item $\hat{\mathbf{y}} = (0{,}998;\ 0{,}500)$
+    \item $\hat{\mathbf{y}} = (0{,}982;\ 0{,}982)$
+    \item $\hat{\mathbf{y}} = (0{,}119;\ 0{,}953)$
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q3: numerical backward pass, gradient w.r.t. a hidden bias ----------
+\item (1{,}0) Considere o MLP abaixo, com duas unidades ReLU na camada oculta e saída linear. A entrada é $x = 2$ e a saída esperada é $y = 3$. A função de custo é $J = \tfrac{1}{2}(y - \hat{y})^2$ e os parâmetros são
+\[
+\mathbf{\Theta}^{(1)} = \begin{bmatrix} 0{,}5 \\ -1 \end{bmatrix}, \quad
+\mathbf{b}^{(1)} = \begin{bmatrix} 1 \\ 0{,}5 \end{bmatrix}, \quad
+\mathbf{\Theta}^{(2)} = \begin{bmatrix} 1{,}5 & 2 \end{bmatrix}, \quad
+b^{(2)} = -0{,}5 .
+\]
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+    \node[circle, draw] (x)  at (0, 0)      {$x$};
+    \node[circle, draw] (h1) at (2.8, 1.15)  {$a^{(1)}_1$};
+    \node[circle, draw] (h2) at (2.8, -1.15) {$a^{(1)}_2$};
+    \node[circle, draw] (y)  at (5.6, 0)    {$\hat{y}$};
+    % pesos
+    \draw[->] (x)  -- node[above left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_1$} (h1);
+    \draw[->] (x)  -- node[below left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_2$} (h2);
+    \draw[->] (h1) -- node[above right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_1$} (y);
+    \draw[->] (h2) -- node[below right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_2$} (y);
+    % vieses como arestas que chegam nas unidades
+    \draw[->] (2.8, 2.35)  -- node[right, font=\footnotesize]{$b^{(1)}_1$} (h1);
+    \draw[->] (2.8, -2.35) -- node[right, font=\footnotesize]{$b^{(1)}_2$} (h2);
+    \draw[->] (5.6, 1.15)  -- node[right, font=\footnotesize]{$b^{(2)}$}   (y);
+    % funções de ativação, junto de cada unidade
+    \node[left=0.10cm of h1, font=\footnotesize] {ReLU};
+    \node[left=0.10cm of h2, font=\footnotesize] {ReLU};
+    \node[below=0.30cm of y, font=\footnotesize] {linear};
+\end{tikzpicture}
+\end{center}
+
+Qual o valor de $\dfrac{\partial J}{\partial b^{(1)}_1}$?
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item $0$
+    \item $-0{,}25$
+    \item $-0{,}50$
+    \item $+0{,}75$
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item $-0{,}75$
+    \item $-1{,}00$
+    \item $-1{,}25$
+    \item $-1{,}50$
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q4: computational graph, backward of a dropout node ----------
+\pagebreak
+\item (1{,}0) Os dois nodos vetorizados abaixo foram vistos em aula. Em ambos, $\mathbf{G}$ é o gradiente \textit{upstream} que chega pela saída do nodo, e as expressões anotadas abaixo das arestas de entrada são os gradientes que o nodo envia para trás.
+
+\begin{center}
+\begin{tikzpicture}[node distance=0.9cm and 1.3cm]
+    % nodo matmul
+    \node[cgvar] (A) {$\mathbf{A}$};
+    \node[cgvar, below=of A] (T) {$\mathbf{\Theta}$};
+    \node[cgopw, right=of A, yshift=-0.75cm] (mm) {\textit{matmul}};
+    \node[right=of mm, xshift=-0.55cm] (Z) {$\mathbf{Z}$};
+    \draw[cgedge] (A) -- (mm);
+    \draw[cgedge] (T) -- (mm);
+    \draw[cgedge] (mm) -- (Z);
+    \node[cggrad, below right=0.05cm and 0.05cm of mm] {$\mathbf{G}$};
+    \node[cggrad, below right=0.0cm and 0.05cm of A] {$\mathbf{G}\,\mathbf{\Theta}$};
+    \node[cggrad, below right=0.0cm and 0.05cm of T] {$\mathbf{G}^{\top}\mathbf{A}$};
+    % nodo ReLU
+    \node[cgvar, right=3.4cm of Z] (Z2) {$\mathbf{Z}$};
+    \node[cgopw, right=of Z2] (rl) {ReLU};
+    \node[right=of rl, xshift=-0.55cm] (A2) {$\mathbf{A}$};
+    \draw[cgedge] (Z2) -- (rl);
+    \draw[cgedge] (rl) -- (A2);
+    \node[cggrad, below right=0.05cm and 0.05cm of rl] {$\mathbf{G}$};
+    \node[cggrad, below right=0.24cm and 0.02cm of Z2] {$\mathbf{G} \odot \mathrm{ReLU}'(\mathbf{Z})$};
+\end{tikzpicture}
+\end{center}
+
+O nodo de \textit{dropout} abaixo multiplica a entrada, elemento a elemento, por uma máscara binária aleatória $\mathbf{u} \in \{0,1\}^{d}$:
+\[
+\mathbf{s} = \mathbf{u} \odot \mathbf{x},
+\qquad
+u_i =
+\begin{cases}
+1, & v_i > p,\\
+0, & v_i \leq p,
+\end{cases}
+\qquad
+v_i \sim \mathrm{Uniforme}(0,1),
+\]
+com a máscara sorteada no \textit{forward pass} e mantida fixa no \textit{backward pass} do mesmo minilote.
+
+\begin{center}
+\begin{tikzpicture}[node distance=0.9cm and 1.3cm]
+    \node[cgvar] (X) {$\mathbf{x}$};
+    \node[cgopw, right=of X] (dp) {\textit{dropout}};
+    \node[right=of dp, xshift=-0.55cm] (S) {$\mathbf{s}$};
+    \draw[cgedge] (X) -- (dp);
+    \draw[cgedge] (dp) -- (S);
+    \node[cggrad, below right=0.05cm and 0.05cm of dp] {$\mathbf{G}$};
+    \node[cggrad, below right=0.0cm and 0.05cm of X, font=\normalsize\bfseries] {?};
+\end{tikzpicture}
+\end{center}
+
+Em uma iteração com $d = 4$ temos
+\[
+\mathbf{x} = (2;\ -1;\ 3;\ 0{,}5), \qquad
+\mathbf{u} = (1;\ 0;\ 1;\ 1), \qquad
+\mathbf{G} = \frac{\partial J}{\partial \mathbf{s}} = (4;\ 6;\ -2;\ 8).
+\]
+Qual é o gradiente $\partial J / \partial \mathbf{x}$ que o nodo de \textit{dropout} envia pela sua aresta de entrada?
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item $(4;\ 6;\ -2;\ 8)$
+    \item $(8;\ -6;\ -6;\ 4)$
+    \item $(2;\ 0;\ 3;\ 0{,}5)$
+    \item $(0;\ 6;\ 0;\ 0)$
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item $(1;\ 0;\ 1;\ 1)$
+    \item $(8;\ 0;\ -6;\ 4)$
+    \item $(4;\ 0;\ -2;\ 8)$
+    \item $(0;\ 0;\ 0;\ 0)$
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q5: NLL of an invented parametric distribution ----------
+\item (1{,}0) A distribuição paramétrica \textit{Krék Normal}, com parâmetro de posição $\mu$ e escala $\sigma$ fixa e conhecida (não predita pela rede), tem densidade
+\[
+\Pr(y \mid \mu, \sigma) \;\propto\;
+\exp\!\left(-\frac{(y - \mu)^2}{2\sigma^2}\right) \cdot
+\bigl|\cos(y - \mu)\bigr|^{\,1/(2\sigma^2)} .
+\]
+Você quer treinar uma rede que prediz $\mu^{(i)} = f(\mathbf{x}^{(i)}; \boldsymbol{\theta})$ para $N$ observações independentes, seguindo a receita de máxima verossimilhança vista em aula. Descartando tudo que não altera o ponto de mínimo em $\boldsymbol{\theta}$, qual é a função de custo a ser minimizada?
+
+\begin{minipage}[t]{0.48\linewidth}\small
+\begin{enumerate}[a)]
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 + \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \frac{\bigl(y^{(i)} - \mu^{(i)}\bigr)^2}{2\sigma^2} - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ -\bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}\small
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 \cdot \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(\mu^{(i)})\bigr| \right]$
+    \item $\mathcal{L} = -\displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q6: predicted vs actual loss decrease (first-order Taylor) ----------
+\item (1{,}0) A aproximação de primeira ordem da série de Taylor prevê que, ao aplicar a atualização $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta\,\nabla_{\boldsymbol{\theta}}\mathcal{L}$, a variação da loss é $\Delta\mathcal{L} \approx -\eta\,\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2$. Considere $\mathcal{L}(\theta_1, \theta_2) = \theta_1^2 + 2\theta_2^2$, o ponto $\boldsymbol{\theta}_t = (2;\ 1)$ e a taxa de aprendizado $\eta = 0{,}1$. Quais são, respectivamente, a variação \emph{prevista} pela aproximação linear e a variação \emph{real} da loss após um passo?
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item Prevista $-3{,}20$ e real $-2{,}72$.
+    \item Prevista $-2{,}72$ e real $-3{,}20$.
+    \item Prevista $-3{,}20$ e real $-3{,}20$.
+    \item Prevista $-0{,}32$ e real $-2{,}72$.
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item Prevista $-3{,}20$ e real $-3{,}08$.
+    \item Prevista $-2{,}00$ e real $-2{,}16$.
+    \item Prevista $-3{,}20$ e real $-3{,}68$.
+    \item Prevista $-6{,}40$ e real $-2{,}72$.
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q7: which update directions reduce the loss ----------
+\item (1{,}0) Em um modelo com apenas dois parâmetros treináveis, o gradiente no ponto atual é $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ 2)$. Considere os cinco candidatos a direção de atualização $\Delta\boldsymbol{\theta}$ abaixo, todos aplicados com a mesma taxa de aprendizado $\eta > 0$ pequena:
+\[
+\mathbf{v}_1 = (-2;\ -2), \qquad
+\mathbf{v}_2 = (-3;\ 1), \qquad
+\mathbf{v}_3 = (2;\ -2), \qquad
+\mathbf{v}_4 = (3;\ 1), \qquad
+\mathbf{v}_5 = (-1;\ 3).
+\]
+Quais desses candidatos reduzem o valor da loss segundo a aproximação de primeira ordem?
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item Apenas $\mathbf{v}_1$.
+    \item Apenas $\mathbf{v}_1$ e $\mathbf{v}_3$.
+    \item Apenas $\mathbf{v}_2$ e $\mathbf{v}_5$.
+    \item Apenas $\mathbf{v}_1$, $\mathbf{v}_2$ e $\mathbf{v}_3$.
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item Apenas $\mathbf{v}_1$, $\mathbf{v}_2$ e $\mathbf{v}_5$.
+    \item Apenas $\mathbf{v}_1$ e $\mathbf{v}_2$.
+    \item Apenas $\mathbf{v}_3$ e $\mathbf{v}_4$.
+    \item $\mathbf{v}_1$, $\mathbf{v}_2$, $\mathbf{v}_3$ e $\mathbf{v}_5$.
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q8: first update, normalized momentum without bias correction vs Adam ----------
+\item (1{,}0) Compare dois otimizadores na \textbf{primeira} iteração ($t = 0$, com $\mathbf{m}_0 = \mathbf{v}_0 = \mathbf{0}$ e $\epsilon \approx 0$). Ambos acumulam as mesmas médias móveis,
+\[
+\mathbf{m}_{1} = \beta_1\,\mathbf{m}_{0} + (1 - \beta_1)\,\nabla_{\boldsymbol{\theta}}\mathcal{L}, \qquad
+\mathbf{v}_{1} = \beta_2\,\mathbf{v}_{0} + (1 - \beta_2)\,\bigl(\nabla_{\boldsymbol{\theta}}\mathcal{L}\bigr)^{2} ,
+\]
+mas o primeiro atualiza com $\boldsymbol{\theta}_{1} = \boldsymbol{\theta}_{0} - \eta\,\mathbf{m}_{1} / (\sqrt{\mathbf{v}_{1}} + \epsilon)$, sem correção de viés, enquanto o Adam aplica a correção antes de dividir. Com $\eta = 0{,}1$, $\beta_1 = \beta_2 = 0{,}99$, $\boldsymbol{\theta}_0 = (4;\ -2)$ e $\nabla_{\boldsymbol{\theta}}\mathcal{L}(\boldsymbol{\theta}_0) = (2;\ -4)$, quais são os dois valores de $\boldsymbol{\theta}_1$?
+\begin{enumerate}[a)]
+    \item Sem correção $(3{,}90;\ -1{,}90)$ e Adam $(3{,}99;\ -1{,}99)$.
+    \item Sem correção $(3{,}80;\ -1{,}60)$ e Adam $(3{,}90;\ -1{,}90)$.
+    \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}90;\ -1{,}90)$.
+    \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}00;\ -1{,}00)$.
+    \item Sem correção $(3{,}90;\ -1{,}90)$ e Adam $(3{,}90;\ -1{,}90)$.
+    \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}99;\ -1{,}99)$.
+    \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}80;\ -1{,}60)$.
+    \item Sem correção $(3{,}00;\ -1{,}00)$ e Adam $(3{,}90;\ -1{,}90)$.
+\end{enumerate}
+
+%% ---------- Q9: OBJ-H matching activation choice -> observed symptom ----------
+\pagebreak
+\item (1{,}0) Associe cada escolha de função de ativação (coluna da esquerda) ao comportamento observado durante o treinamento (coluna da direita).
+
+\begin{center}
+\begin{tabular}{p{0.34\linewidth} p{0.58\linewidth}}
+\textbf{1.} Sigmoide em todas as camadas ocultas de uma rede profunda & \textbf{(i)} as ativações ficam centradas em zero, mas o gradiente ainda decai nas regiões em que as unidades operam saturadas. \\
+\textbf{2.} ReLU com vieses deslocados para valores muito negativos & \textbf{(ii)} parte das unidades passa a produzir saída zero para todas as instâncias e deixa de receber gradiente. \\
+\textbf{3.} Tangente hiperbólica em todas as camadas ocultas & \textbf{(iii)} o gradiente que chega às camadas iniciais é multiplicado por um fator de no máximo $0{,}25$ a cada camada. \\
+\textbf{4.} Identidade (linear) em todas as camadas ocultas & \textbf{(iv)} a rede inteira equivale a uma única transformação afim, qualquer que seja o número de camadas. \\
+\end{tabular}
+\end{center}
+
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+    \item 1-(i); 2-(ii); 3-(iii); 4-(iv)
+    \item 1-(iii); 2-(i); 3-(ii); 4-(iv)
+    \item 1-(ii); 2-(iii); 3-(i); 4-(iv)
+    \item 1-(iii); 2-(ii); 3-(iv); 4-(i)
+\end{enumerate}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}
+\begin{enumerate}[a)]
+\setcounter{enumii}{4}
+    \item 1-(i); 2-(iii); 3-(ii); 4-(iv)
+    \item 1-(iv); 2-(ii); 3-(i); 4-(iii)
+    \item 1-(ii); 2-(i); 3-(iii); 4-(iv)
+    \item 1-(iii); 2-(ii); 3-(i); 4-(iv)
+\end{enumerate}
+\end{minipage}
+
+%% ---------- Q10: OBJ-A conceptual, non-convexity of MSE in classification ----------
+\item (1{,}0) Um colega propõe treinar um classificador binário linear com saída sigmoide usando a função de custo quadrática $J = \tfrac{1}{2}(y - \hat{y})^2$ no lugar da entropia cruzada binária. Sobre a superfície de custo resultante, qual afirmação é correta?
+\begin{enumerate}[a)]
+    \item O custo quadrático composto com a sigmoide permanece convexo nos parâmetros, apenas com o mínimo deslocado em relação ao da entropia cruzada.
+    \item É a entropia cruzada que perde a convexidade quando composta com a sigmoide, enquanto o custo quadrático preserva essa propriedade.
+    \item As duas funções perdem a convexidade quando compostas com a sigmoide, de modo que a escolha entre elas é indiferente para a otimização.
+    \item A convexidade não depende da função de custo escolhida, mas apenas do número de camadas ocultas presentes na arquitetura da rede.
+    \item O custo quadrático composto com a sigmoide deixa de ser convexo nos parâmetros, e a otimização pode parar em mínimos locais em vez do global.
+    \item O custo quadrático deixa de ser diferenciável nos pontos em que a sigmoide satura, o que impede o uso de descida de gradiente no treinamento.
+    \item O custo quadrático passa a ter derivada constante em todo o domínio, fazendo a descida de gradiente divergir para qualquer taxa de aprendizado.
+    \item A perda de convexidade é irrelevante na prática, pois a descida de gradiente sempre encontra o mínimo global de qualquer função diferenciável.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

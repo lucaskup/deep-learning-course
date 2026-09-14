@@ -1,0 +1,253 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 1}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+f & d & e & g & b & a & f & c & h & e \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (f)}
+\textbf{Contagem de unidades.} A região negativa é a interseção de \emph{três} semiplanos: $x_1 > 1{,}5$, $x_1 < 2{,}5$ e $x_2 < 2$. Cada semiplano exige uma unidade oculta, e é preciso mais uma unidade na saída para combiná-los com um E lógico, totalizando \textbf{quatro} unidades. As redes de três unidades têm apenas duas ocultas e só conseguem representar a interseção de dois semiplanos, que é sempre uma região ilimitada; nenhuma delas isola a instância $(2;1)$ sem arrastar junto outra instância positiva. Isso elimina de imediato as alternativas \textbf{(a)}, \textbf{(c)}, \textbf{(e)} e \textbf{(g)}, restando apenas quatro candidatas.
+
+\textbf{Verificação da alternativa (f).} As três unidades ocultas calculam $h_1 = \mathrm{sinal}(x_1 - 1{,}5)$, $h_2 = \mathrm{sinal}(2{,}5 - x_1)$ e $h_3 = \mathrm{sinal}(2 - x_2)$, e a saída calcula $\hat{y} = \mathrm{sinal}(2 - h_1 - h_2 - h_3)$. Como $h_1 + h_2 + h_3 \in \{3, 1, -1, -3\}$, a saída vale $-1$ apenas quando a soma é $3$, isto é, quando as três condições valem ao mesmo tempo. Conferindo: $(2;1)$ dá $h = (+1, +1, +1)$ e soma $3$, logo $\hat{y} = \mathrm{sinal}(-1) = -1$; $(1;1)$ e $(3;1)$ dão soma $1$ (falha um dos limiares em $x_1$) e $(1;3)$, $(2;3)$, $(3;3)$ dão soma $1$ ou $-1$ (falha o limiar em $x_2$), todas com $\hat{y} = +1$.\\
+\textbf{(a)} tem três unidades e nem sequer conecta $x_2$: as duas ocultas recortam a faixa vertical inteira $1{,}5 < x_1 < 2{,}5$, classificando $(2;3)$ como $-1$.
+\textbf{(b)} tem quatro unidades, mas a terceira oculta usa peso $+1$ e viés $-2$, recortando $x_2 > 2$ em vez de $x_2 < 2$; erra $(2;1)$ e $(2;3)$.
+\textbf{(c)} tem três unidades e define o quadrante $x_1 > 1{,}5$ e $x_2 < 2$, ilimitado à direita, classificando $(3;1)$ como $-1$.
+\textbf{(d)} tem as ocultas corretas, mas os pesos de saída são $+1$ e o viés é $-2$, o que inverte a decisão: prediz $+1$ dentro da região e $-1$ fora, errando as seis instâncias.
+\textbf{(e)} tem três unidades e define o quadrante $x_1 < 2{,}5$ e $x_2 < 2$, ilimitado à esquerda, classificando $(1;1)$ como $-1$.
+\textbf{(g)} tem três unidades, ignora $x_2$ e ainda inverte a saída com pesos $+1$ e viés $-1$; erra cinco das seis instâncias.
+\textbf{(h)} tem as ocultas corretas, mas o viés da saída é $4$: como $\mathrm{sinal}(4 - 3) = +1$, a rede nunca prediz $-1$ e erra $(2;1)$.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (d)}
+\[
+\mathbf{Z}^{(1)} = \mathbf{X}\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)}
+= \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}\begin{bmatrix} 1 & 0 \\ -1 & 2 \end{bmatrix} + \begin{bmatrix} 0 & -1 \end{bmatrix}
+= \begin{bmatrix} -1 & 4 \\ 2 & 0 \end{bmatrix} + \begin{bmatrix} 0 & -1 \end{bmatrix}
+= \begin{bmatrix} -1 & 3 \\ 2 & -1 \end{bmatrix},
+\]
+\[
+\mathbf{A}^{(1)} = \mathrm{ReLU}\bigl(\mathbf{Z}^{(1)}\bigr) = \begin{bmatrix} 0 & 3 \\ 2 & 0 \end{bmatrix},
+\qquad
+\mathbf{Z}^{(2)} = \mathbf{A}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + b^{(2)} = \begin{bmatrix} 6 \\ 2 \end{bmatrix} - 2 = \begin{bmatrix} 4 \\ 0 \end{bmatrix},
+\]
+\[
+\hat{\mathbf{y}} = \sigma\bigl(\mathbf{Z}^{(2)}\bigr) = (0{,}982;\ 0{,}500).
+\]
+\textbf{(a)} omite a ReLU e propaga $\mathbf{Z}^{(1)}$ direto, chegando a $\mathbf{Z}^{(2)} = (3; -2)$.
+\textbf{(b)} esquece o viés $b^{(2)} = -2$, chegando a $\mathbf{Z}^{(2)} = (6; 2)$.
+\textbf{(c)} inverte a ordem das duas instâncias do minilote.
+\textbf{(e)} usa $\mathbf{\Theta}^{(1)}$ sem transpor, chegando a $\mathbf{Z}^{(2)} = (3; 0)$.
+\textbf{(f)} esquece o viés $\mathbf{b}^{(1)}$, o que deixa $\mathbf{A}^{(1)} = [\,0\ \ 4\,;\ 2\ \ 0\,]$ e $\mathbf{Z}^{(2)} = (6; 0)$.
+\textbf{(g)} repete a saída da primeira instância nas duas linhas.
+\textbf{(h)} combina o erro de (a), omitir a ReLU, com a inversão das instâncias de (c).
+
+\subsection*{Questão 3 \textemdash{} Resposta: (e)}
+\textit{Forward pass:}
+\[
+\mathbf{z}^{(1)} = \begin{bmatrix} 0{,}5 \cdot 2 + 1 \\ -1 \cdot 2 + 0{,}5 \end{bmatrix} = \begin{bmatrix} 2 \\ -1{,}5 \end{bmatrix},
+\qquad
+\mathbf{a}^{(1)} = \mathrm{ReLU}(\mathbf{z}^{(1)}) = \begin{bmatrix} 2 \\ 0 \end{bmatrix},
+\]
+\[
+z^{(2)} = 1{,}5 \cdot 2 + 2 \cdot 0 - 0{,}5 = 2{,}5, \qquad \hat{y} = 2{,}5, \qquad J = \tfrac{1}{2}(3 - 2{,}5)^2 = 0{,}125 .
+\]
+\textit{Backward pass:} com saída linear, $\dfrac{\partial J}{\partial z^{(2)}} = \hat{y} - y = -0{,}5$. Propagando para a primeira unidade oculta,
+\[
+\frac{\partial J}{\partial a^{(1)}_1} = -0{,}5 \cdot \theta^{(2)}_1 = -0{,}5 \cdot 1{,}5 = -0{,}75,
+\qquad
+\frac{\partial J}{\partial z^{(1)}_1} = -0{,}75 \cdot \mathrm{ReLU}'(2) = -0{,}75 .
+\]
+Como $z^{(1)}_1 = \theta^{(1)}_1 x + b^{(1)}_1$, temos $\partial z^{(1)}_1 / \partial b^{(1)}_1 = 1$ e portanto $\partial J / \partial b^{(1)}_1 = -0{,}75$.\\
+\textbf{(a)} é o gradiente da \emph{segunda} unidade, que está morta ($z^{(1)}_2 = -1{,}5 < 0$, logo $\mathrm{ReLU}' = 0$).
+\textbf{(b)} deriva $\tfrac{1}{2}(y - \hat{y})^2$ mantendo o fator $\tfrac{1}{2}$ na derivada.
+\textbf{(c)} para em $\partial J / \partial z^{(2)}$ e não multiplica pelo peso $\theta^{(2)}_1$.
+\textbf{(d)} usa $y - \hat{y}$ em vez de $\hat{y} - y$, invertendo o sinal do gradiente.
+\textbf{(f)} usa $\theta^{(2)}_2 = 2$ no lugar de $\theta^{(2)}_1 = 1{,}5$.
+\textbf{(g)} soma indevidamente os gradientes dos dois caminhos, $-0{,}75$ e $-0{,}5$.
+\textbf{(h)} trata o viés como um peso e multiplica o gradiente pela entrada $x = 2$.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (g)}
+O \textit{dropout} é um nodo \textbf{elemento a elemento}, como a ReLU, e não um nodo que mistura posições, como o \textit{matmul}. Para nodos desse tipo o \textit{backward} é a regra escalar aplicada posição a posição: multiplica-se o gradiente \textit{upstream} pela derivada local. Como $s_i = u_i\,x_i$ e $u_i$ é uma constante no \textit{backward} (foi sorteada no \textit{forward} e não é um parâmetro treinável), a derivada local é
+\[
+\frac{\partial s_i}{\partial x_i} = u_i \in \{0, 1\},
+\qquad\text{logo}\qquad
+\frac{\partial J}{\partial \mathbf{x}} = \mathbf{G} \odot \mathbf{u}.
+\]
+A máscara age como uma \emph{chave}: nas posições sorteadas com $u_i = 1$ o gradiente passa intacto, e nas posições com $u_i = 0$ ele é zerado, exatamente como a unidade desligada não contribuiu para a saída no \textit{forward}. Substituindo,
+\[
+\frac{\partial J}{\partial \mathbf{x}} = (4;\ 6;\ -2;\ 8) \odot (1;\ 0;\ 1;\ 1) = (4;\ 0;\ -2;\ 8).
+\]
+Note o paralelo com a ReLU exibida no enunciado: lá a derivada local é $\mathrm{ReLU}'(\mathbf{Z})$, que também vale $1$ ou $0$ por posição. O \textit{dropout} tem a mesma estrutura, com a diferença de que quem decide entre $1$ e $0$ é a máscara sorteada, e não o sinal da pré-ativação.\\
+\textbf{(a)} repassa $\mathbf{G}$ intacto, tratando o \textit{dropout} como nodo de soma (\textit{distribuidor}) e ignorando a máscara.
+\textbf{(b)} aplica a regra do \textit{matmul} à entrada errada, usando $\mathbf{G} \odot \mathbf{x}$: o ``outro fator'' do produto é $\mathbf{u}$, não $\mathbf{x}$.
+\textbf{(c)} devolve $\mathbf{u} \odot \mathbf{x}$, que é a \emph{saída} do nodo no \textit{forward}, não o gradiente.
+\textbf{(d)} usa a máscara invertida $\mathbf{1} - \mathbf{u}$, deixando passar gradiente exatamente nas posições que foram desligadas.
+\textbf{(e)} devolve a derivada local $\mathbf{u}$ isolada, esquecendo de multiplicar pelo gradiente \textit{upstream}.
+\textbf{(f)} combina os dois erros anteriores, calculando $\mathbf{G} \odot \mathbf{x} \odot \mathbf{u}$.
+\textbf{(h)} zera o gradiente inteiro por supor que um nodo com componente aleatória bloqueia a retropropagação; a máscara é aleatória, mas é uma constante conhecida no \textit{backward} e o caminho até $\mathbf{x}$ continua diferenciável.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (b)}
+Seguindo a receita vista em aula, a função de custo é a \textit{negative log-likelihood}. Para observações independentes a verossimilhança é o produto das densidades, e o logaritmo transforma produto em soma. Note que o expoente $1/(2\sigma^2)$ incide sobre \emph{os dois} fatores da densidade:
+\[
+-\ln \Pr(y \mid \mu, \sigma)
+ = \frac{(y - \mu)^2}{2\sigma^2} - \frac{1}{2\sigma^2}\ln\bigl|\cos(y - \mu)\bigr| + \ln Z(\sigma)
+ = \frac{1}{2\sigma^2}\Bigl[ (y - \mu)^2 - \ln\bigl|\cos(y - \mu)\bigr| \Bigr] + \ln Z(\sigma),
+\]
+\[
+\mathcal{L} = \frac{1}{2\sigma^2}\sum_{i=1}^{N} \Bigl[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \Bigr] + N\ln Z(\sigma).
+\]
+Duas coisas podem ser descartadas, por motivos diferentes. A constante de normalização $N \ln Z(\sigma)$ é um termo \textbf{aditivo} que não depende de $\boldsymbol{\theta}$: ela desloca o valor da loss sem mover o mínimo. Já $1/(2\sigma^2)$ é um fator \textbf{multiplicativo global e positivo}, que multiplica tudo que depende de $\boldsymbol{\theta}$; como $\arg\min_{\boldsymbol{\theta}} c\,f(\boldsymbol{\theta}) = \arg\min_{\boldsymbol{\theta}} f(\boldsymbol{\theta})$ para $c > 0$, ele também sai sem alterar a solução. Sobra
+\[
+\mathcal{L} = \sum_{i=1}^{N} \Bigl[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \Bigr].
+\]
+Lendo o resultado: o primeiro termo é o erro quadrático usual, herdado do fator exponencial. O segundo depende apenas do resíduo $r^{(i)} = y^{(i)} - \mu^{(i)}$: como $-\ln|\cos(r)|$ vale $0$ em $r = 0$ e cresce sem limite quando $|r| \to \pi/2$, ele penaliza resíduos grandes de forma bem mais agressiva que a quadrática nessa faixa.\\
+\textbf{(a)} não nega o segundo termo: minimizar $+\ln|\cos(r)|$ empurra o resíduo \emph{para longe} de zero, na direção oposta à indicada pela verossimilhança.
+\textbf{(c)} é o erro mais instrutivo: mantém $1/(2\sigma^2)$ apenas no termo quadrático, como se o expoente da densidade incidisse só no fator exponencial. Aí o $\sigma$ deixa de ser um fator global e passa a ser o \emph{peso relativo} entre os dois termos, e o ponto de mínimo muda com $\sigma$. Um fator constante só pode ser descartado quando multiplica a expressão inteira.
+\textbf{(d)} nega apenas o termo quadrático, o que faria a rede maximizar o erro de predição.
+\textbf{(e)} mantém o produto dos dois fatores; o logaritmo da verossimilhança converte produto em soma, não em produto.
+\textbf{(f)} esquece o logaritmo sobre $|\cos(r)|$, mantendo esse fator na escala original enquanto o outro termo já está no domínio logarítmico.
+\textbf{(g)} aplica o cosseno a $\mu$ em vez do resíduo $y - \mu$, trocando um termo que depende do erro por um que depende só da predição.
+\textbf{(h)} inverte o sinal da soma inteira, o que corresponde a \emph{maximizar} a NLL em vez de minimizá-la.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (a)}
+O gradiente em $\boldsymbol{\theta}_t = (2;\ 1)$ é $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2\theta_1;\ 4\theta_2) = (4;\ 4)$, com $\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2 = 32$. A aproximação de primeira ordem prevê
+\[
+\Delta\mathcal{L} \approx -\eta\,\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2 = -0{,}1 \cdot 32 = -3{,}20 .
+\]
+O passo real leva a $\boldsymbol{\theta}_{t+1} = (2;\ 1) - 0{,}1\,(4;\ 4) = (1{,}6;\ 0{,}6)$, e
+\[
+\mathcal{L}(\boldsymbol{\theta}_t) = 4 + 2 = 6, \qquad
+\mathcal{L}(\boldsymbol{\theta}_{t+1}) = 2{,}56 + 0{,}72 = 3{,}28, \qquad
+\Delta\mathcal{L}_{\text{real}} = -2{,}72 .
+\]
+A diferença de $0{,}48$ é exatamente o termo de segunda ordem desprezado, $\tfrac{1}{2}\Delta\boldsymbol{\theta}^{\top}\nabla^2\mathcal{L}\,\Delta\boldsymbol{\theta}$ com $\nabla^2\mathcal{L} = \mathrm{diag}(2, 4)$ e $\Delta\boldsymbol{\theta} = (-0{,}4;\ -0{,}4)$. A queda real é sempre menor do que a prevista quando a loss é convexa: a aproximação linear é otimista.\\
+\textbf{(b)} troca os dois valores de lugar, sugerindo que a queda real supera a prevista.
+\textbf{(c)} assume que a aproximação linear é exata, ignorando o termo quadrático.
+\textbf{(d)} aplica $\eta$ duas vezes na previsão, calculando $-\eta^2\|\nabla\mathcal{L}\|^2 = -0{,}32$.
+\textbf{(e)} esquece o fator $2$ ao avaliar $\mathcal{L}(\boldsymbol{\theta}_{t+1})$, obtendo $2{,}92$ em vez de $3{,}28$.
+\textbf{(f)} deriva $2\theta_2^2$ como se fosse $\theta_2^2$, usando $\nabla\mathcal{L} = (4;\ 2)$ na previsão e no passo.
+\textbf{(g)} inverte a relação e faz a queda real maior do que a prevista, o que não ocorre em uma loss convexa.
+\textbf{(h)} usa $\eta = 0{,}2$ na previsão, dobrando a queda esperada.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (f)}
+Pela aproximação de primeira ordem, $\mathcal{L}(\boldsymbol{\theta} + \eta\,\Delta\boldsymbol{\theta}) - \mathcal{L}(\boldsymbol{\theta}) \approx \eta\,\Delta\boldsymbol{\theta}^{\top}\nabla_{\boldsymbol{\theta}}\mathcal{L}$. Como $\eta > 0$, a loss cai apenas quando o produto escalar é negativo, o que equivale a um ângulo em $(90^\circ, 180^\circ]$ com o gradiente. Calculando com $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ 2)$:
+\[
+\mathbf{v}_1 \cdot \nabla\mathcal{L} = -8 \ (180^\circ), \quad
+\mathbf{v}_2 \cdot \nabla\mathcal{L} = -4 \ (117^\circ), \quad
+\mathbf{v}_3 \cdot \nabla\mathcal{L} = 0 \ (90^\circ),
+\]
+\[
+\mathbf{v}_4 \cdot \nabla\mathcal{L} = +8 \ (27^\circ), \quad
+\mathbf{v}_5 \cdot \nabla\mathcal{L} = +4 \ (63^\circ).
+\]
+Somente $\mathbf{v}_1$ e $\mathbf{v}_2$ têm produto escalar negativo. O vetor $\mathbf{v}_1 = -\nabla\mathcal{L}$ é o de maior redução prevista, mas não é o único que funciona: qualquer direção com componente contrária ao gradiente serve, e é isso que permite a otimizadores como o \textit{momentum} reduzirem a loss sem seguir exatamente $-\nabla\mathcal{L}$.\\
+\textbf{(a)} supõe que apenas a direção exatamente oposta ao gradiente reduz a loss.
+\textbf{(b)} e \textbf{(d)} incluem $\mathbf{v}_3$, que é ortogonal ao gradiente: o produto escalar é zero e a loss não muda em primeira ordem.
+\textbf{(c)} e \textbf{(e)} incluem $\mathbf{v}_5$, que aponta visualmente ``para longe'' do gradiente, mas forma com ele um ângulo de apenas $63^\circ$ e portanto aumenta a loss.
+\textbf{(g)} inclui $\mathbf{v}_4$, que forma $27^\circ$ com o gradiente e é a pior escolha do conjunto.
+\textbf{(h)} inclui simultaneamente o caso neutro $\mathbf{v}_3$ e o caso que aumenta a loss $\mathbf{v}_5$.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (c)}
+Com $\mathbf{m}_0 = \mathbf{v}_0 = \mathbf{0}$, $\beta_1 = \beta_2 = 0{,}99$ e $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ -4)$:
+\[
+\mathbf{m}_1 = 0{,}01\,(2;\ -4) = (0{,}02;\ -0{,}04),
+\qquad
+\mathbf{v}_1 = 0{,}01\,(4;\ 16) = (0{,}04;\ 0{,}16).
+\]
+\textit{Sem correção de viés:} $\sqrt{\mathbf{v}_1} = (0{,}2;\ 0{,}4)$ e
+\[
+\frac{\mathbf{m}_1}{\sqrt{\mathbf{v}_1}} = (0{,}1;\ -0{,}1),
+\qquad
+\boldsymbol{\theta}_1 = (4;\ -2) - 0{,}1\,(0{,}1;\ -0{,}1) = (3{,}99;\ -1{,}99).
+\]
+\textit{Com correção de viés (Adam), em $t + 1 = 1$:} $\widetilde{\mathbf{m}}_1 = \mathbf{m}_1/(1 - 0{,}99) = (2;\ -4)$ e $\widetilde{\mathbf{v}}_1 = \mathbf{v}_1/(1 - 0{,}99) = (4;\ 16)$, de modo que $\sqrt{\widetilde{\mathbf{v}}_1} = (2;\ 4)$ e
+\[
+\frac{\widetilde{\mathbf{m}}_1}{\sqrt{\widetilde{\mathbf{v}}_1}} = (1;\ -1),
+\qquad
+\boldsymbol{\theta}_1 = (4;\ -2) - 0{,}1\,(1;\ -1) = (3{,}90;\ -1{,}90).
+\]
+O passo por parâmetro vai de $0{,}01$ para $0{,}10$: a correção multiplica a primeira atualização por $10$ e devolve a magnitude a $\approx \eta$. É esse o papel dela. Como $\mathbf{m}_1$ e $\mathbf{v}_1$ partem de zero, as primeiras iterações subestimam fortemente os dois momentos, e sem a correção o treinamento começaria dando passos pequenos demais.
+
+\textbf{Observação para a correção da prova:} o sentido do efeito depende de como $\beta_1$ e $\beta_2$ se comparam. O passo sem correção vale $\eta\,(1-\beta_1)/\sqrt{1-\beta_2}$ contra $\eta$ do Adam, ou seja, a correção \emph{aumenta} a primeira atualização exatamente quando $(1-\beta_1)^2 < 1-\beta_2$. Aqui $(0{,}01)^2 = 10^{-4} < 10^{-2}$, e a correção aumenta o passo. Com os valores padrão $\beta_1 = 0{,}9$ e $\beta_2 = 0{,}999$ a desigualdade se inverte e o efeito seria o oposto. Um aluno que levantar esse ponto está certo, e a resposta desta questão continua sendo (c) porque os $\beta$ estão fixados no enunciado.\\
+\textbf{(a)} troca os dois otimizadores de lugar.
+\textbf{(b)} calcula a versão sem correção como SGD puro, $\boldsymbol{\theta}_0 - \eta\,\nabla\mathcal{L}$.
+\textbf{(d)} corrige apenas $\mathbf{m}$ e esquece de corrigir $\mathbf{v}$, obtendo o quociente $(10;\ -10)$ no Adam.
+\textbf{(e)} assume que a correção de viés não altera a primeira atualização, quando é justamente nela que o efeito é máximo.
+\textbf{(f)} assume que o Adam também sofre a subestimativa, isto é, que a correção não faz nada.
+\textbf{(g)} atribui ao Adam o resultado do SGD puro.
+\textbf{(h)} corrige apenas $\mathbf{m}$ na versão que deveria estar \emph{sem} correção, e ainda troca os papéis dos dois otimizadores.
+
+\subsection*{Questão 9 \textemdash{} Resposta: (h)}
+\textbf{1-(iii):} a derivada da sigmoide, $\sigma'(z) = \sigma(z)(1 - \sigma(z))$, tem máximo $0{,}25$ em $z = 0$. Empilhando camadas, a regra da cadeia multiplica esses fatores e o gradiente decai exponencialmente com a profundidade, mesmo sem saturação.
+
+\textbf{2-(ii):} vieses muito negativos deixam a pré-ativação abaixo de zero para todas as instâncias. Como $\mathrm{ReLU}'(z) = 0$ para $z < 0$, a unidade nunca recebe gradiente e não consegue voltar, o que caracteriza o \textit{dying ReLU}.
+
+\textbf{3-(i):} a tanh é centrada em zero, o que a diferencia da sigmoide e ajuda na propagação, mas ela também satura nos dois extremos, com $\tanh'(z) \to 0$ para $|z|$ grande.
+
+\textbf{4-(iv):} a composição de transformações afins é uma transformação afim. Sem não-linearidade,
+\[
+\mathbf{\Theta}^{(2)}\bigl(\mathbf{\Theta}^{(1)}\mathbf{x} + \mathbf{b}^{(1)}\bigr) + \mathbf{b}^{(2)}
+= \bigl(\mathbf{\Theta}^{(2)}\mathbf{\Theta}^{(1)}\bigr)\mathbf{x} + \bigl(\mathbf{\Theta}^{(2)}\mathbf{b}^{(1)} + \mathbf{b}^{(2)}\bigr),
+\]
+que é uma única camada, independentemente da profundidade.\\
+\textbf{(a)} troca sigmoide e tanh: o fator $0{,}25$ é o máximo da derivada da sigmoide, não da tanh.
+\textbf{(b)} dá à ReLU a saturação centrada em zero da tanh e à tanh o \textit{dying ReLU}, que exige derivada exatamente nula em um intervalo.
+\textbf{(c)} dá o \textit{dying ReLU} à sigmoide, cuja derivada nunca é exatamente zero, e o fator $0{,}25$ à ReLU.
+\textbf{(d)} acerta as duas primeiras associações, mas troca tanh e identidade: a tanh não colapsa a rede em uma transformação afim.
+\textbf{(e)} tira o fator $0{,}25$ da sigmoide e coloca o \textit{dying ReLU} na tanh, que satura sem nunca zerar a derivada.
+\textbf{(f)} troca sigmoide e identidade: a sigmoide não torna a rede equivalente a uma única camada.
+\textbf{(g)} embaralha as três primeiras descrições, deixando o \textit{dying ReLU} na sigmoide e o fator $0{,}25$ na tanh.
+
+\subsection*{Questão 10 \textemdash{} Resposta: (e)}
+Em um classificador linear o \textit{logit} é $z = \mathbf{x}^{\top}\boldsymbol{\theta}$, afim nos parâmetros, de modo que a convexidade da função de custo em $z$ se transfere para os parâmetros. A entropia cruzada binária é convexa em $z$; já o erro quadrático composto com a sigmoide, $\bigl(\sigma(z) - y\bigr)^2$, não é. Como a sigmoide satura nas duas pontas, essa composição produz regiões praticamente planas e curvatura que troca de sinal, e a superfície passa a admitir mínimos locais e platôs em que a descida de gradiente pode estacionar longe do mínimo global. Foi por isso que, ao adaptar a regressão linear para classificação, trocamos o custo quadrático pela entropia cruzada.\\
+\textbf{(a)} afirma que a convexidade é preservada, o que é justamente o que se perde na composição com a sigmoide.
+\textbf{(b)} inverte os papéis: a entropia cruzada é a que permanece convexa em $z$.
+\textbf{(c)} supõe que ambas perdem a convexidade, o que tornaria a escolha indiferente; a entropia cruzada não perde.
+\textbf{(d)} atribui a convexidade à profundidade da rede; aqui o modelo é linear e a diferença vem exclusivamente da função de custo.
+\textbf{(f)} confunde perda de convexidade com perda de diferenciabilidade: a sigmoide é diferenciável em todo o domínio, inclusive nas regiões saturadas.
+\textbf{(g)} a derivada não é constante; ela é próxima de zero nas regiões saturadas, o que trava o treinamento em vez de fazê-lo divergir.
+\textbf{(h)} a descida de gradiente não garante o mínimo global de funções não convexas, que é exatamente o problema levantado.
+
+\end{document}

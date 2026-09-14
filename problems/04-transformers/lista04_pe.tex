@@ -35,10 +35,11 @@
 \item Por que o mecanismo de self-attention padrão precisa de positional encoding?
 
 \begin{enumerate}[a)]
-    \item Porque o score de atenção $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ depende apenas
-          dos valores dos vetores $\mathbf{q}_i$ e $\mathbf{k}_j$, e não dos índices $i$ e $j$.
+    \item Porque o score de atenção $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ não depende
+          dos índices $i$ e $j$.
     \item Porque a função softmax não é diferenciável sem informação de posição.
-    \item Porque a multiplicação de matrizes não é comutativa.
+    \item Porque a multiplicação de matrizes não é comutativa e a ordem dos
+          tokens se perde.
     \item Porque os token embeddings são inicializados com zero e precisam de um sinal não nulo.
 \end{enumerate}
 
@@ -89,25 +90,27 @@
       generaliza melhor para sequências mais longas do que o positional encoding absoluto?
 
 \begin{enumerate}[a)]
-    \item O NoPE utiliza uma dimensão de embedding maior, aumentando a capacidade do modelo.
-    \item O positional encoding absoluto adiciona vetores que ficam fora da distribuição
-          de treinamento para posições além do comprimento treinado, enquanto o NoPE
-          não adiciona nada que possa se tornar fora da distribuição.
-    \item O NoPE aplica um decaimento cosseno a todos os pesos de atenção.
-    \item O NoPE requer um embedding aprendido para cada posição, o que é mais flexível.
+    \item O NoPE utiliza uma dimensão de embedding maior, aumentando a capacidade
+          do modelo para sequências longas.
+    \item O positional encoding absoluto produz vetores fora da distribuição além
+          do comprimento treinado; o NoPE não soma nada.
+    \item O NoPE aplica um decaimento cosseno aos pesos de atenção, que se estende
+          a qualquer comprimento.
+    \item O NoPE requer um embedding aprendido para cada posição, o que é mais
+          flexível que uma fórmula fixa.
 \end{enumerate}
 
 % ------------------------------------------------------------------
 % Q6: Fácil
 % ------------------------------------------------------------------
-\item Qual estratégia de positional encoding absoluto possui um \emph{limite rígido}:
+\item Qual estratégia de positional encoding possui um \emph{limite rígido}:
       posições além de $L_{\max}$ simplesmente não existem no modelo?
 
 \begin{enumerate}[a)]
     \item Positional encoding senoidal
     \item ALiBi
     \item RoPE
-    \item Positional encoding absoluto aprendido (ex.: BERT, GPT original)
+    \item Positional encoding absoluto aprendido
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -172,8 +175,8 @@
 \begin{enumerate}[a)]
     \item Todos os valores são limitados ao intervalo $[-1, 1]$, mantendo os gradientes estáveis.
     \item O encoding usa base 10\,000, compatível com tamanhos típicos de vocabulário.
-    \item $\mathbf{PE}(i + \delta)$ pode ser escrito como uma transformação linear fixa
-          (multiplicação de matriz) de $\mathbf{PE}(i)$ para qualquer offset $\delta$.
+    \item $\mathbf{PE}(i + \delta)$ pode ser escrito como uma transformação linear
+          fixa de $\mathbf{PE}(i)$.
     \item As funções seno e cosseno são ortogonais, tornando cada dimensão independente.
 \end{enumerate}
 
@@ -200,10 +203,12 @@
 \begin{enumerate}[a)]
     \item O PI usa busca evolutiva para encontrar escalas por dimensão; o YaRN usa
           escalonamento uniforme.
-    \item O PI não requer fine-tuning; o YaRN requer dois estágios de fine-tuning.
-    \item O PI modifica a máscara de atenção; o YaRN modifica apenas os vetores key.
-    \item O PI aplica um fator de escala uniforme a todas as posições; o YaRN aplica
-          fatores de escala diferentes por dimensão de frequência do RoPE.
+    \item O PI não requer fine-tuning; o YaRN requer dois estágios de fine-tuning
+          com dados longos.
+    \item O PI modifica a máscara de atenção; o YaRN modifica apenas os vetores
+          key antes da rotação.
+    \item O PI aplica um fator de escala uniforme a todas as posições; o YaRN
+          aplica fatores por dimensão de frequência.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -214,10 +219,13 @@
 
 \begin{enumerate}[a)]
     \item Cada token na posição $i$ atende exatamente a $i+1$ tokens, criando um
-          padrão único por linha que se estende naturalmente além do comprimento de treinamento.
-    \item A máscara introduz um padrão senoidal nos pesos de atenção.
-    \item Mascarar tokens futuros força o modelo a memorizar posições absolutas.
-    \item A máscara triangular inferior é equivalente a subtrair as penalidades do ALiBi.
+          padrão único por linha.
+    \item A máscara introduz um padrão senoidal nos pesos de atenção, equivalente
+          ao PE absoluto.
+    \item Mascarar tokens futuros força o modelo a memorizar as posições absolutas
+          vistas no treino.
+    \item A máscara triangular inferior é equivalente a subtrair as penalidades
+          lineares do ALiBi.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -242,14 +250,13 @@
       diretamente a modelos \emph{encoder-only} como o BERT?
 
 \begin{enumerate}[a)]
-    \item Porque o BERT utiliza tokenização de subpalavras, que é incompatível com
-          a ausência de positional encoding.
-    \item Porque modelos encoder-only não possuem máscara causal; sem ela, o sinal
-          posicional implícito que torna o NoPE viável em decoders desaparece e o
-          modelo se torna invariante a permutações.
-    \item Porque o BERT possui um vocabulário pequeno demais para inferir posição
-          a partir do contexto.
-    \item Porque o NoPE requer uma camada de normalização especial ausente nos
+    \item Porque o BERT utiliza tokenização de subpalavras, que é incompatível
+          com a ausência de positional encoding.
+    \item Porque modelos encoder-only não possuem máscara causal, sem a qual o
+          NoPE fica sem sinal posicional.
+    \item Porque o BERT possui um vocabulário pequeno demais para inferir a
+          posição a partir do contexto.
+    \item Porque o NoPE requer uma camada de normalização especial, ausente nos
           modelos da família BERT.
 \end{enumerate}
 
@@ -263,10 +270,10 @@
 \begin{enumerate}[a)]
     \item Sempre preencher todo o contexto disponível com a maior quantidade de
           documentos possível.
-    \item Trocar o positional encoding do modelo de RoPE para senoidal absoluto.
-    \item Usar Retrieval-Augmented Generation (RAG) para trazer apenas os trechos
-          relevantes, ou posicionar deliberadamente o conteúdo crítico no início
-          ou no final do prompt.
+    \item Trocar o positional encoding do modelo de RoPE para senoidal absoluto
+          e refazer o fine-tuning.
+    \item Usar Retrieval-Augmented Generation (RAG) e posicionar o conteúdo
+          crítico no início ou no final do prompt.
     \item Aumentar a temperatura de amostragem para forçar o modelo a explorar
           mais regiões do contexto.
 \end{enumerate}
@@ -301,10 +308,11 @@
 
 \begin{enumerate}[a)]
     \item O score depende apenas do offset relativo $(j - i)$, e não das posições
-          absolutas $i$ ou $j$ separadamente, confirmando que o RoPE é um
-          positional encoding relativo.
-    \item O score é sempre zero quando $i = j$, impedindo o self-attention.
-    \item O score é limitado entre $-1$ e $+1$ para qualquer query e key.
+          absolutas $i$ ou $j$.
+    \item O score é sempre zero quando $i = j$, o que impede o self-attention
+          na diagonal.
+    \item O score é limitado ao intervalo $[-1, +1]$ para qualquer par de query
+          e key.
     \item A expressão mostra que o RoPE é equivalente ao positional encoding senoidal
           somado à entrada.
 \end{enumerate}
@@ -319,15 +327,14 @@
       \emph{mais prejudicadas} por essa compressão uniforme, e por quê?
 
 \begin{enumerate}[a)]
-    \item Dimensões de $k$ alto (baixa frequência), pois não completaram muitas rotações
-          e a compressão as empurra ainda mais para fora do intervalo treinado.
-    \item Todas as dimensões são igualmente afetadas, pois o mesmo fator é aplicado
-          uniformemente.
+    \item Dimensões de $k$ alto (baixa frequência), pois não completam muitas
+          rotações dentro de $L_{\mathrm{train}}$.
+    \item Todas as dimensões são igualmente afetadas, pois o mesmo fator de escala
+          é aplicado uniformemente.
     \item Dimensões de $k$ médio, pois suas frequências estão mais próximas da taxa
-          de Nyquist.
-    \item Dimensões de $k$ baixo (alta frequência), pois já completam muitas rotações
-          completas dentro de $L_{\mathrm{train}}$; comprimir o espaço de índices
-          super-comprime essas dimensões e destrói a resolução posicional fina.
+          de Nyquist do índice comprimido.
+    \item Dimensões de $k$ baixo (alta frequência), pois já completam muitas
+          rotações dentro de $L_{\mathrm{train}}$.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -378,12 +385,11 @@
 %R: b
 
 \begin{enumerate}[a)]
-    \item O modelo extrapola suavemente os embeddings posicionais usando interpolação
-          linear entre $\mathbf{PE}(511)$ e $\mathbf{PE}(0)$.
+    \item O modelo extrapola os embeddings posicionais por interpolação linear
+          entre $\mathbf{PE}(511)$ e $\mathbf{PE}(0)$, sem perda de desempenho.
     \item Essas posições não possuem embeddings treinados; a implementação típica
-          lançará um erro de índice (\textit{index out of bounds}) ou, se o índice
-          for truncado, reutilizará vetores de posições iniciais, gerando representações
-          completamente fora da distribuição de treinamento.
+          lança um erro de índice (\textit{index out of bounds}) ou reutiliza
+          vetores de posições iniciais.
     \item A camada posicional gera os embeddings faltantes pela fórmula senoidal,
           usada como \textit{fallback} padrão para índices fora da tabela.
     \item Os embeddings posicionais para $i > 512$ serão automaticamente inicializados
@@ -402,16 +408,14 @@
     \item São algebraicamente equivalentes: rotacionar os vetores de query e key com
           RoPE produz exatamente o mesmo logit de atenção que somar o PE senoidal ao
           embedding de entrada.
-    \item São equivalentes quando $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$ (projeções identidade), pois
-          nesse caso adição e rotação têm o mesmo efeito sobre o produto interno.
-    \item O PE senoidal é um caso especial do RoPE aplicado somente às duas primeiras
-          dimensões do embedding.
-    \item Compartilham o mesmo espectro de frequências, mas diferem fundamentalmente:
-          o PE senoidal codifica posição \emph{absoluta} por adição ao embedding de
-          entrada (antes das projeções lineares $\mathbf{W}_Q$, $\mathbf{W}_K$), enquanto o RoPE
-          codifica posição \emph{relativa} via rotação dos vetores de query e key
-          (após as projeções). Não existe configuração de pesos que torne os dois
-          métodos equivalentes em geral.
+    \item São equivalentes quando $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$ (projeções identidade),
+          pois nesse caso adição e rotação têm o mesmo efeito sobre o produto interno.
+    \item O PE senoidal é um caso especial do RoPE aplicado somente às duas
+          primeiras dimensões do embedding de entrada.
+    \item Compartilham o mesmo espectro, mas o PE senoidal soma posição
+          \emph{absoluta} antes das projeções e o RoPE aplica rotação
+          \emph{relativa} depois delas; nenhuma configuração de pesos os
+          torna equivalentes.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -435,8 +439,8 @@
 \begin{enumerate}[a)]
     \item $\mathbf{q}^\top\mathbf{k} + (i-j)\theta$,
           mostrando dependência linear na posição relativa.
-    \item $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$, mostrando que o score depende apenas
-          do offset relativo $(j-i)$ e não das posições absolutas $i$ ou $j$ individualmente.
+    \item $\mathbf{q}^\top \mathbf{R}(j-i)\,\mathbf{k}$, dependendo apenas do offset
+          relativo $(j-i)$.
     \item $\mathbf{q}^\top \mathbf{R}(i+j)\,\mathbf{k}$,
           mostrando dependência na posição absoluta somada.
     \item $\|\mathbf{q}\|\,\|\mathbf{k}\|\cos((i-j)\theta)$, válido apenas quando
