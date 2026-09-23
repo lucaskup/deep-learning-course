@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de inicialização de pesos: propagação do sinal no forward e do gradiente no backward em uma MLP profunda, comparando zeros, normal com σ fixo, Xavier/Glorot e He/Kaiming." />
+  <meta name="description" content="Demonstrações interativas de inicialização de pesos: propagação do sinal no forward e do gradiente no backward em uma MLP profunda, comparando zeros, normal com σ fixo, uniforme 𝒰(−1/√n, 1/√n), Xavier/Glorot e He/Kaiming." />
   <title>Inicialização de Pesos — Demo Interativa</title>
   <script>
     (function () {
@@ -37,6 +37,7 @@
         iniciais controla o sinal que se propaga em forward e em backward.
         Esquemas dos slides: <span class="formula">θ = 0</span>,
         <span class="formula">θ ∼ 𝒩(0, σ²)</span>,
+        <span class="formula">θ ∼ 𝒰(−1/√n, 1/√n)</span> (o padrão do PyTorch),
         Xavier/Glorot com <span class="formula">σ<sub>θ</sub>² = 1/n<sup>(l−1)</sup></span>
         (recomendada para sigmoide e tanh) e He/Kaiming com
         <span class="formula">σ<sub>θ</sub>² = 2/n<sup>(l−1)</sup></span>
@@ -50,21 +51,33 @@
     <div class="container">
       <h2 class="section-title">1 · Sinal no forward: ativações camada a camada</h2>
       <p class="demo-text">
-        Como no estudo de caso de MNIST da aula, propagamos um batch de 100 entradas
-        <span class="formula">x ∼ 𝒩(0, I)</span> por <span class="formula">L</span> camadas
-        ocultas de 300 unidades, aplicando
+        Como no estudo de caso da aula, propagamos um batch de 100 imagens do MNIST
+        (pixels normalizados para média 0 e desvio 1, 784 entradas) por
+        <span class="formula">L</span> camadas ocultas de 300 unidades, aplicando
         <span class="formula">z<sup>(l)</sup> = θ<sup>(l)</sup> a<sup>(l−1)</sup></span> e
-        <span class="formula">a<sup>(l)</sup> = φ(z<sup>(l)</sup>)</span>, com
-        <span class="formula">n<sup>(l−1)</sup> = 300</span> (fan-in) em todas as camadas.
+        <span class="formula">a<sup>(l)</sup> = φ(z<sup>(l)</sup>)</span>. O fan-in
+        <span class="formula">n<sup>(l−1)</sup></span> é 784 na primeira camada e 300 nas
+        demais. Também é possível trocar a entrada por
+        <span class="formula">x ∼ 𝒩(0, I)</span> com 300 componentes.
         Antes da primeira atualização, só a inicialização e a ativação determinam a
         magnitude das ativações. Escolha o esquema e observe os histogramas.
       </p>
       <div class="panel">
         <div class="controls">
+          <span class="readout">Tentativas dos slides (MNIST, tanh, L = 4):</span>
+          <div class="tabs" role="group" aria-label="Configurações dos slides">
+            <button class="tab" id="s1-preset-zeros" type="button">1 · θ = 0</button>
+            <button class="tab" id="s1-preset-normal" type="button">2 · 𝒩(0, 1)</button>
+            <button class="tab" id="s1-preset-uniform" type="button">3 · 𝒰(−1/√n, 1/√n)</button>
+            <button class="tab" id="s1-preset-xavier" type="button">Xavier</button>
+          </div>
+        </div>
+        <div class="controls">
           <label class="slider-label">Inicialização:
             <select id="s1-init">
               <option value="zeros">zeros (θ = 0)</option>
               <option value="normal" selected>normal 𝒩(0, σ²)</option>
+              <option value="uniform">uniforme 𝒰(−1/√n, 1/√n)</option>
               <option value="xavier">Xavier (1/n)</option>
               <option value="he">He (2/n)</option>
             </select>
@@ -77,6 +90,12 @@
               <option value="tanh" selected>tanh</option>
               <option value="sigmoid">sigmoide</option>
               <option value="relu">ReLU</option>
+            </select>
+          </label>
+          <label class="slider-label">Entrada:
+            <select id="s1-input">
+              <option value="mnist" selected>MNIST</option>
+              <option value="gauss">x ∼ 𝒩(0, I)</option>
             </select>
           </label>
           <label class="slider-label">L = <span id="s1-depth-val">10</span> camadas
@@ -99,13 +118,18 @@
         </div>
         <p class="demo-text small">
           💡 Reproduza as tentativas da aula: com <span class="formula">θ ∼ 𝒩(0, 1)</span>
-          e tanh a massa concentra em ±1, a zona morta de derivada nula; com
-          <span class="formula">σ</span> pequeno (tente 0.01) a distribuição encolhe a cada
-          camada até virar uma agulha em zero; com zeros toda unidade calcula o mesmo valor
-          e o histograma colapsa em um único ponto (a simetria nunca se quebra). Compare
-          então Xavier com tanh e He com ReLU: o desvio fica aproximadamente constante,
-          que é exatamente a condição <span class="formula">σ²<sub>z⁽ˡ⁾</sub> = σ²<sub>z⁽ˡ⁻¹⁾</sub></span>
-          derivada nos slides. Troque o par (He com tanh, Xavier com ReLU) e veja o desajuste.
+          e tanh a massa concentra em ±1, a região saturada de derivada quase nula; com a
+          uniforme <span class="formula">𝒰(−1/√n, 1/√n)</span> (variância
+          <span class="formula">1/(3n)</span>) a distribuição encolhe a cada camada até virar
+          uma agulha em zero; com zeros toda unidade calcula o mesmo valor e o histograma
+          colapsa em um único ponto (a simetria nunca se quebra). Os botões de tentativas
+          acima reproduzem exatamente os histogramas dos slides. Com He e ReLU o desvio fica aproximadamente
+          constante, que é exatamente a condição
+          <span class="formula">σ²<sub>z⁽ˡ⁾</sub> = σ²<sub>z⁽ˡ⁻¹⁾</sub></span> derivada nos
+          slides; troque para Xavier com ReLU e o sinal some. Com Xavier e tanh o desvio cai
+          devagar, porque <span class="formula">tanh(z) ≈ z</span> só vale perto da origem e
+          <span class="formula">|tanh(z)| &lt; |z|</span> tira um pouco de variância a cada
+          camada; ainda assim fica longe do colapso exponencial da uniforme.
         </p>
       </div>
     </div>
@@ -149,8 +173,9 @@
           direção às primeiras camadas (exploding). Com zeros,
           <span class="formula">θ<sup>T</sup>g = 0</span> e o gradiente das
           ativações é exatamente zero abaixo da última camada; por simetria, as unidades de
-          uma mesma camada receberiam atualizações idênticas. Com Xavier e tanh, ou He e
-          ReLU, a curva fica aproximadamente plana e a razão fica perto de 1.
+          uma mesma camada receberiam atualizações idênticas. Com He e ReLU a curva fica
+          aproximadamente plana e a razão fica perto de 1; com Xavier e tanh o gradiente
+          encolhe devagar, sem o colapso exponencial de <span class="formula">σ</span> pequeno.
         </p>
       </div>
     </div>
@@ -162,6 +187,8 @@
 
   <script defer src="../shared/js/utils.js"></script>
   <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/mnist-batch.js"></script>
+  <script defer src="js/winit-core.js"></script>
   <script defer src="js/section1-forward.js"></script>
   <script defer src="js/section2-backward.js"></script>
   <script defer src="../shared/js/boot.js"></script>

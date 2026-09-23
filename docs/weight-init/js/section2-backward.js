@@ -8,10 +8,12 @@
   const INIT_NAMES = {
     zeros: 'zeros (θ = 0)',
     normal: 'normal 𝒩(0, σ²)',
+    uniform: 'uniforme 𝒰(−1/√n, 1/√n)',
     xavier: 'Xavier (1/n)',
     he: 'He (2/n)',
   };
   const ACT_NAMES = { tanh: 'tanh', sigmoid: 'sigmoide', relu: 'ReLU' };
+  const INPUT_NAMES = { mnist: 'MNIST', gauss: 'x ∼ 𝒩(0, I)' };
 
   function init() {
     const P = DL.plot, S = DL.winit;
@@ -31,7 +33,8 @@
       let label = INIT_NAMES[cfg.init];
       if (cfg.init === 'normal') label += ', σ = ' + cfg.sigma.toFixed(2);
       $('s2-config').textContent =
-        'configuração atual: ' + label + ' · ' + ACT_NAMES[cfg.act] + ' · L = ' + cfg.L;
+        'configuração atual: ' + label + ' · ' + ACT_NAMES[cfg.act] + ' · L = ' + cfg.L +
+        ' · entrada ' + INPUT_NAMES[cfg.input];
       const ratio = d.gradStd[d.L] > 0 ? d.gradStd[1] / d.gradStd[d.L] : 0;
       $('s2-ratio').innerHTML = ratio === 0
         ? 'σ(g<sub>1</sub>) / σ(g<sub>L</sub>) = 0 (o gradiente não chega)'
