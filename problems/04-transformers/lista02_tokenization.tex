@@ -107,9 +107,10 @@
 \begin{enumerate}[a)]
     \item 65.536 tokens (um por ponto de código Unicode BMP), cobrindo os caracteres
           mais comuns de todas as línguas.
-    \item 256 tokens (um por valor de byte possível), pois qualquer texto pode ser
-          codificado em UTF-8 como uma sequência de bytes no intervalo $[0, 255]$.
-    \item 128 tokens (caracteres ASCII), suficientes para texto em inglês sem OOV.
+    \item 256 tokens (um por valor de byte possível), pois todo texto pode ser
+          codificado em UTF-8 como uma sequência de bytes.
+    \item 128 tokens (caracteres ASCII), pois todo texto pode ser reduzido ao
+          alfabeto latino básico sem gerar OOV.
     \item 1.024 tokens (pares de bytes comuns), reduzindo o comprimento das sequências
           sem perder cobertura.
 \end{enumerate}
@@ -179,8 +180,8 @@
 \begin{enumerate}[a)]
     \item O Unigram usa merges guiados por frequência de bigramas, enquanto o BPE
           usa verossimilhança.
-    \item O Unigram é top-down: parte de um vocabulário grande e itera removendo os
-          tokens que menos contribuem para a verossimilhança do corpus.
+    \item O Unigram é top-down: parte de um vocabulário grande e itera removendo
+          os tokens menos úteis.
     \item O Unigram aplica dropout nos merges durante o treinamento, enquanto o BPE
           usa merges determinísticos.
     \item O Unigram é restrito a modelos que usam SentencePiece, enquanto o BPE pode
@@ -198,8 +199,7 @@
     \item Reduzir o tamanho do vocabulário durante o treinamento para diminuir o
           uso de memória.
     \item Aumentar a velocidade de tokenização ao pular merges pouco frequentes.
-    \item Servir como \emph{data augmentation}, expondo o modelo a múltiplas
-          segmentações válidas de um mesmo texto durante o treinamento.
+    \item Servir como \emph{data augmentation} sobre a segmentação do texto.
     \item Garantir que cada token apareça no mínimo uma vez por batch de treinamento.
 \end{enumerate}
 
@@ -215,7 +215,7 @@
     \item Porque utiliza um vocabulário base fixo de 256 bytes, idêntico para
           todos os sistemas de escrita.
     \item Porque dispensa a pré-tokenização por espaços em branco, tratando o
-          espaço como um caractere regular do fluxo de entrada.
+          espaço como caractere regular.
     \item Porque aprende um vocabulário separado para cada idioma detectado
           automaticamente no corpus.
 \end{enumerate}
@@ -266,11 +266,11 @@
     \item O token colidia com um token especial de controle, e o modelo o
           interpretava como marcador de fim de documento.
     \item O token continha bytes fora do intervalo UTF-8 válido, corrompendo o
-          mapeamento byte-para-unicode do tokenizer.
-    \item O vocabulário foi aprendido num corpus diferente do usado para treinar o
-          modelo, e o embedding do token quase não recebeu gradiente.
+          mapeamento byte-para-unicode usado na decodificação da saída.
+    \item O vocabulário foi aprendido num corpus diferente do usado para treinar
+          o modelo, deixando o embedding do token subtreinado.
     \item O token era longo demais e foi truncado em bytes inválidos durante a
-          codificação da entrada.
+          codificação da entrada pelo tokenizer.
 \end{enumerate}
 
 % ------------------------------------------------------------------

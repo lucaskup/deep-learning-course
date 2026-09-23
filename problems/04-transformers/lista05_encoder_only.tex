@@ -66,11 +66,10 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
       \textbf{quatro} matrizes em uma única camada?
 
 \begin{enumerate}[a)]
-    \item $589\,824$: apenas $\mathbf{W}^Q$.
-    \item $1\,769\,472$: $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V$ sem a projeção de saída $\mathbf{W}^O$.
-    \item $2\,359\,296$: as quatro matrizes $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V, \mathbf{W}^O$.
-    \item $4\,718\,592$: dupla contagem ao considerar dimensões de
-          entrada e saída separadamente para cada projeção.
+    \item $589\,824$
+    \item $1\,769\,472$
+    \item $2\,359\,296$
+    \item $4\,718\,592$
 \end{enumerate}
 % R: c
 
@@ -87,11 +86,10 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 
 \begin{enumerate}[a)]
     \item A perda MLM fica indefinida porque \texttt{[MASK]} não faz
-          parte do vocabulário padrão do modelo.
-    \item O modelo nunca aprende a representar \textit{tokens} reais
-          durante o pré-treino; ao fazer \textit{fine-tuning}, jamais
-          encontra \texttt{[MASK]}, criando um desalinhamento entre
-          as duas fases.
+          parte do vocabulário usado no \textit{fine-tuning}.
+    \item O modelo nunca vê \textit{tokens} reais nas posições
+          selecionadas durante o pré-treino, criando um desalinhamento
+          com o \textit{fine-tuning}.
     \item Os gradientes da posição \texttt{[MASK]} se anulam quando
           todas as posições selecionadas recebem o mesmo \textit{token}.
     \item O modelo aprende a ignorar a posição dos \textit{tokens}, pois
@@ -112,11 +110,13 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
       \textbf{maior degradação} de desempenho?
 
 \begin{enumerate}[a)]
-    \item \textit{POS tagging} em uma única sentença.
-    \item Classificação de sentimento em uma única sentença (SST-2).
+    \item \textit{POS tagging} em uma única sentença, com um rótulo por token.
+    \item Classificação de sentimento em uma única sentença (SST-2), com um
+          rótulo por sentença.
     \item \textit{Extractive QA} (SQuAD): identificar o trecho que responde
-          a uma pergunta dado um parágrafo de contexto.
-    \item \textit{Named Entity Recognition} (NER) em uma única sentença.
+          a uma pergunta.
+    \item \textit{Named Entity Recognition} (NER) em uma única sentença, com
+          um rótulo por token.
 \end{enumerate}
 % R: c
 
@@ -135,9 +135,7 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
     \item O ELECTRA não precisa de uma camada de vocabulário na saída
           (custo $d \times |V|$), pois a classificação RTD é binária.
     \item O ELECTRA gera sinal de gradiente em \textbf{todas} as posições
-          da sequência (não apenas nos $\approx 15\%$ mascarados do
-          MLM), obtendo desempenho equivalente com $\approx 25\%$
-          do \textit{compute}.
+          da sequência, e não apenas nos $\approx 15\%$ mascarados do MLM.
     \item O ELECTRA não precisa de \textit{fine-tuning}, pois o RTD
           já otimiza diretamente tarefas discriminativas como NER.
     \item O ELECTRA usa \textit{batches} menores que o BERT por precisar
@@ -159,10 +157,8 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 
 \begin{enumerate}[a)]
     \item O \texttt{[CLS]} foi treinado no NSP, um objetivo binário e
-          ruidoso que não incentiva a organização do espaço para
-          similaridade cosseno; o espaço resultante é anisotrópico
-          (vetores concentrados em um cone estreito), tornando as
-          distâncias cosseno pouco discriminativas.
+          ruidoso que não organiza o espaço para similaridade cosseno;
+          o espaço resultante é anisotrópico.
     \item O BERT usa \textit{position embeddings} aprendidos, logo
           o \texttt{[CLS]} captura apenas informação posicional e
           perde a semântica do restante da sentença.
@@ -202,16 +198,10 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} mascarado?
 
 \begin{enumerate}[a)]
-    \item $\bigl[1,\;\tfrac{5}{3}\bigr] \approx [1.00,\;1.67]$:
-          inclui $\mathbf{h}_3$ do \texttt{[PAD]} no numerador e usa $L = 3$
-          no denominador.
-    \item $[2,\;2]$:
-          soma correta dos tokens mascarados, sem dividir por $\sum m_i$.
-    \item $\bigl[\tfrac{2}{3},\;\tfrac{2}{3}\bigr] \approx [0.67,\;0.67]$:
-          exclui o \texttt{[PAD]} do numerador, mas divide por $L = 3$
-          em vez de $\sum m_i = 2$.
-    \item $[1,\;1]$:
-          média dos tokens reais $w_1$ e $w_2$, excluindo o \texttt{[PAD]}.
+    \item $\bigl[1,\;\tfrac{5}{3}\bigr] \approx [1.00,\;1.67]$
+    \item $[2,\;2]$
+    \item $\bigl[\tfrac{2}{3},\;\tfrac{2}{3}\bigr] \approx [0.67,\;0.67]$
+    \item $[1,\;1]$
 \end{enumerate}
 % R: d
 
@@ -228,15 +218,10 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
       momento da consulta ao usar o bi-encoder?
 
 \begin{enumerate}[a)]
-    \item $\approx 100\times$: o bi-encoder ainda precisa de $1$
-          \textit{forward pass} por documento durante a consulta.
-    \item $\approx 1\,000\times$: eliminando o processamento par-a-par
-          para os primeiros $1\,000$ documentos filtrados.
-    \item $\approx 100\,000\times$: a consulta requer apenas $10\text{ ms}$
-          (um único \textit{forward pass}) em vez de
-          $100\,000 \times 10\text{ ms} = 1\,000\text{ s}$.
-    \item Equivalente; a busca vetorial requer um produto escalar por
-          documento, igualando o custo do \textit{forward pass}.
+    \item $\approx 100\times$
+    \item $\approx 1\,000\times$
+    \item $\approx 100\,000\times$
+    \item Nenhuma redução de latência.
 \end{enumerate}
 % R: c
 
@@ -249,10 +234,9 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
       para $N = 1\,024$. Qual é o efeito esperado desse aumento?
 
 \begin{enumerate}[a)]
-    \item O treino fica mais lento por \textit{token}, mas os gradientes
-          são mais informativos: cada âncora deve distinguir seu positivo
-          de $1\,023$ competidores, melhorando a qualidade dos
-          \textit{embeddings}.
+    \item O treino fica mais lento por \textit{token}, mas cada âncora
+          distingue seu positivo de mais competidores, melhorando a
+          qualidade dos \textit{embeddings}.
     \item O treino produz resultado equivalente ao de $N = 4$: a perda
           InfoNCE é normalizada pelo número de negativos e compensa
           automaticamente o aumento.
@@ -281,12 +265,10 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
       Qual é o valor de $\mathcal{L}_{\text{triplet}}$?
 
 \begin{enumerate}[a)]
-    \item $0.50$ (a perda iguala exatamente a margem $\alpha$ quando
-          as duas distâncias são iguais).
-    \item $1.90$ (inverte a ordem das distâncias no argumento).
-    \item $-1.90$ (resultado antes do truncamento por zero).
-    \item $0$ (a margem já é satisfeita: o positivo está suficientemente
-          mais próximo que o negativo).
+    \item $0.50$
+    \item $1.90$
+    \item $-1.90$
+    \item $0$
 \end{enumerate}
 % R: d
 
@@ -436,8 +418,9 @@ Redução de latência:
 A opção~(a) erra ao supor que o bi-encoder ainda faz um \textit{forward pass} por
 documento em tempo de consulta (documentos estão pré-computados).
 A opção~(b) chega a $1\,000\times$ por confundir $n = 100\,000$ com $n = 1\,000$.
-A opção~(d) subestima a diferença de velocidade entre um produto escalar e um
-\textit{forward pass} completo por um transformer (fator de $\sim 10^4$--$10^6$).
+A opção~(d) supõe que a busca vetorial custa tanto quanto um \textit{forward pass}
+completo por um transformer, ignorando o fator de $\sim 10^4$--$10^6$ entre um produto
+escalar e uma passagem pela rede.
 
 % --- Solução Q9 ---
 \subsection*{IX — Resposta: (a)}

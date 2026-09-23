@@ -147,11 +147,10 @@ Qual afirmação descreve corretamente o efeito da temperatura?
           comparação direta entre modelos com vocabulários distintos;
           o MMLU mede exclusivamente raciocínio matemático em
           múltiplos passos.
-    \item A perplexidade é barata de computar e não exige dados
-          rotulados, mas correlaciona-se imperfeitamente com o
-          desempenho em tarefas específicas; o MMLU mede capacidades
-          concretas, mas pode ser inflacionado por contaminação do
-          corpus de pré-treinamento.
+    \item A perplexidade é barata e não exige dados rotulados, mas
+          correlaciona-se imperfeitamente com tarefas específicas;
+          o MMLU mede capacidades concretas, mas é sensível à
+          contaminação do corpus.
     \item A perplexidade garante que modelos com valores menores
           terão melhor desempenho em qualquer tarefa downstream;
           benchmarks como o MMLU são imunes a esse problema por
@@ -244,10 +243,8 @@ KV-cache \textbf{por token} com GQA e quantas vezes menor é que o MHA?
           inativos; solução: conexões residuais no router.
     \item \textbf{Mode collapse}: todos os especialistas convergem para a mesma
           função; solução: inicialização diversificada dos pesos.
-    \item \textbf{Expert collapse}: ciclo de reforço positivo em que o especialista
-          mais ativo recebe mais tokens, melhora mais e atrai ainda mais tokens;
-          solução: perda auxiliar de balanceamento
-          $\mathcal{L}_{\text{aux}} = \alpha\,N_E\sum_{i=1}^{N_E} f_i\,P_i$.
+    \item \textbf{Expert collapse}: o especialista mais ativo recebe cada vez mais
+          tokens; solução: perda auxiliar de balanceamento.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -266,9 +263,8 @@ KV-cache \textbf{por token} com GQA e quantas vezes menor é que o MHA?
           bruta sem custo computacional adicional por token.
     \item A SwiGLU aplica a não-linearidade duas vezes consecutivas
           ($\mathrm{SiLU}$ e depois $W_2$), aumentando a profundidade efetiva.
-    \item O portão $\mathbf{x}\mathbf{W}_3$ aprende dinamicamente quais dimensões do espaço
-          oculto deixar passar, ao contrário da ReLU, que zera estaticamente
-          valores negativos independentemente do contexto da entrada.
+    \item O portão $\mathbf{x}\mathbf{W}_3$ é computado a partir da entrada e determina
+          dinamicamente quais dimensões do espaço oculto passam adiante.
     \item A SwiGLU elimina a necessidade de normalização por camada, pois
           o portão já controla a magnitude das ativações.
 \end{enumerate}
@@ -300,11 +296,11 @@ token substituto?
     \item Aceitação $= 1.00$ (sempre aceito, pois $p(\tilde{x}) > 0$);
           substituto amostrado de $p$ sem modificação.
     \item Aceitação $= 0.50$; substituto amostrado de
-          $p'(x) \propto \max\!\bigl(0,\,p(x)-q(x)\bigr)$,
-          que concentra a massa onde $M_p$ supera $M_q$.
+          $p'(x) \propto \max\!\bigl(0,\,p(x)-q(x)\bigr)$.
     \item Aceitação $= 0.50$; substituto amostrado
           uniformemente sobre o vocabulário.
-    \item Aceitação $= 0.30$; substituto amostrado de $q$ (draft).
+    \item Aceitação $= 0.30$; substituto amostrado de $q$, a distribuição
+          do próprio \textit{draft}.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -343,11 +339,10 @@ token substituto?
       Ela quer testar $k = 10$. Qual afirmação está correta?
 
 \begin{enumerate}[a)]
-    \item $k = 10$ é viável: $10 \times 200 = 2000 < 2048$, portanto
-          há tokens suficientes.
-    \item $k = 10$ não é viável: o prompt totalizaria
-          $150 + 10 \times 200 + 200 = 2350 > 2048$ tokens, excedendo a
-          janela; o modelo precisaria truncar o contexto ou a geração.
+    \item $k = 10$ é viável: sobra espaço na janela de $2048$ tokens
+          para os exemplares, a consulta e a geração.
+    \item $k = 10$ não é viável: o prompt excede a janela de $2048$
+          tokens, e o modelo precisaria truncar o contexto ou a geração.
     \item $k = 10$ é equivalente a \textit{fine-tuning} com 10 exemplos:
           em ambos os casos, o modelo atualiza sua distribuição de saída
           sem modificar os pesos.
@@ -369,8 +364,7 @@ token substituto?
 
 \begin{enumerate}[a)]
     \item $16\,384$ floats/token; $2\times$ menor que MHA.
-    \item $8\,192$ floats/token; $4\times$ menor que MHA
-          (mesmo resultado do GQA com $G{=}2$).
+    \item $8\,192$ floats/token; $4\times$ menor que MHA.
     \item $4\,096$ floats/token; $4\times$ menor que MHA.
     \item $4\,096$ floats/token; $8\times$ menor que MHA.
 \end{enumerate}
@@ -630,8 +624,8 @@ não sofrem sobreajuste por excesso de dados, tipicamente quanto mais dados melh
 Com $k = 5$: $150 + 5 \times 200 + 200 = 1350 \le 2048$ tokens (cabe).
 Com $k = 10$: $150 + 10 \times 200 + 200 = 2350 > 2048$ tokens (excede a janela em
 $302$ tokens; o modelo precisaria truncar exemplares iniciais ou a geração, degradando a qualidade).
-A opção~(a) esquece o prompt de sistema ($150$) e a consulta ($200$), computando apenas
-$k \times 200 = 2000 < 2048$ e concluindo erroneamente que cabe.
+A opção~(a) ignora que o prompt de sistema ($150$) e a consulta ($200$) também ocupam a
+janela: só os exemplares já somam $10 \times 200 = 2000$ dos $2048$ tokens disponíveis.
 A opção~(c) confunde \textit{in-context learning} com \textit{fine-tuning}: o \textit{few-shot
 prompting} não atualiza nenhum peso: o modelo usa os exemplares apenas como contexto durante
 a inferência.

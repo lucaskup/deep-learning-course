@@ -111,13 +111,13 @@
 
 \begin{enumerate}[a)]
     \item A dot-product tem um parâmetro escalar aprendido, a bilinear adiciona
-          uma matriz $\mathbf{W}$, e a MLP aditiva tem dois conjuntos de pesos.
+          uma matriz $\mathbf{W}$, e a MLP aditiva é a mais barata das três.
     \item A dot-product não tem parâmetros aprendidos, a bilinear adiciona uma
-          matriz $\mathbf{W}$, e a MLP aditiva é a mais expressiva e cara das três.
-    \item A dot-product e a bilinear não têm parâmetros aprendidos, e apenas a
-          MLP aditiva tem pesos treináveis no score.
-    \item As três variantes têm o mesmo número de parâmetros e diferem somente
-          no custo computacional do passo \textit{forward}.
+          matriz $\mathbf{W}$, e a MLP aditiva é a mais cara das três.
+    \item A dot-product e a bilinear não têm parâmetros aprendidos, e a MLP
+          aditiva é a mais barata das três.
+    \item As três variantes têm o mesmo número de parâmetros e o mesmo custo,
+          diferindo apenas na forma algébrica do score.
 \end{enumerate}
 % R: b
 
@@ -170,9 +170,8 @@
       formulação?
 
 \begin{enumerate}[a)]
-    \item O cálculo é determinístico nas entradas e não tem parâmetros
-          treináveis no bloco de atenção, então o \textit{backpropagation}
-          não tem o que ajustar.
+    \item O cálculo depende apenas dos valores dos \textit{embeddings} e não
+          tem parâmetros treináveis no bloco de atenção.
     \item O score $\mathbf{x}_t^\top \mathbf{x}_k$ é sempre não negativo, fazendo com que a
           softmax sature em pesos próximos a $1/m$.
     \item A normalização por $\sqrt{d}$ deixa de funcionar quando $\mathbf{x}_t$ e
@@ -197,8 +196,8 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
 \begin{enumerate}[a)]
     \item As saídas são diferentes, pois o índice $i$ de cada token influencia
           o cálculo das chaves $\mathbf{k}_i$.
-    \item Para cada token, a saída produzida é a mesma em $S_1$ e em $S_2$
-          (apenas em ordem permutada), pois o cálculo independe da posição.
+    \item Para cada token, a saída produzida é a mesma em $S_1$ e em $S_2$,
+          a menos da permutação das posições.
     \item A camada falha por incompatibilidade de dimensões e exige preenchimento
           com \texttt{<PAD>} para alinhar as duas frases.
     \item A softmax dos scores compensa automaticamente a permutação,
@@ -239,9 +238,8 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
     \item BatchNorm depende de uma janela deslizante temporal que não está
           disponível em \textit{transformers} sem recorrência.
     \item BatchNorm computa estatísticas por coluna (\textit{feature}) sobre
-          o \textit{batch}; com sequências de comprimentos diferentes, o
-          número de \textit{tokens} contribuindo em cada posição varia,
-          distorcendo as estatísticas.
+          o \textit{batch}, e o número de \textit{tokens} em cada posição
+          varia com o comprimento das sequências.
 \end{enumerate}
 % R: d
 

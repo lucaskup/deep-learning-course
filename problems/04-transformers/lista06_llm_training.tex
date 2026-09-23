@@ -90,10 +90,8 @@
           \texttt{<|im\_start|>} não podem ser previstos.
     \item A normalização por $|\mathcal{R}|$ resultaria em divisão por zero,
           já que todos os tokens passariam a contar.
-    \item O gradiente passa a incluir contribuições dos tokens de
-          instrução, que seguem formatos repetitivos em todos os exemplos;
-          o modelo gastaria capacidade aprendendo a \emph{gerar
-          instruções} em vez de aprender a \emph{responder} a elas.
+    \item O gradiente passa a incluir os tokens de instrução, que seguem
+          formatos repetitivos em todos os exemplos.
 \end{enumerate}
 % R: d
 
@@ -106,12 +104,9 @@
       Qual a explicação correta para esse comportamento?
 
 \begin{enumerate}[a)]
-    \item \texttt{BF16} tem $8$ bits de expoente (mesma faixa dinâmica do
-          \texttt{fp32}: $\sim\!10^{-38}$ a $\sim\!10^{38}$), enquanto
-          \texttt{fp16} tem $5$ bits de expoente e satura próximo de
-          $65\,504$. Gradientes de redes profundas extrapolam esse limite,
-          causando \texttt{Inf}/\texttt{NaN}; a faixa larga do \texttt{bf16}
-          elimina o \textit{overflow} sem necessidade de escalonamento.
+    \item \texttt{BF16} tem $8$ bits de expoente, a mesma faixa dinâmica do
+          \texttt{fp32}, enquanto \texttt{fp16} tem $5$ bits de expoente e
+          satura próximo de $65\,504$.
     \item \texttt{BF16} tem $16$ bits de mantissa, oferecendo mais precisão
           que os $10$ bits do \texttt{fp16}, eliminando os erros de
           arredondamento que causavam os \texttt{NaN}.
@@ -119,7 +114,7 @@
           contrário do \texttt{fp16}, que sempre introduz erros de
           quantização.
     \item \texttt{BF16} usa o dobro de bits do \texttt{fp16} ($32$ vs.\ $16$),
-          o que explica o ganho de estabilidade numérica.
+          o que explica o ganho de faixa dinâmica e de estabilidade numérica.
 \end{enumerate}
 % R: a
 
@@ -177,7 +172,7 @@
     \item $131\,072$ params ($\approx 0.78\%$).
     \item $524\,288$ params ($\approx 3.12\%$).
     \item $65\,536$ params ($\approx 0.39\%$).
-    \item $262\,144$ params ($\approx 1.56\%$ dos $16.78\,$M originais).
+    \item $262\,144$ params ($\approx 1.56\%$).
 \end{enumerate}
 % R: d
 
@@ -190,11 +185,9 @@
       correta para a escolha $\mathbf{B} = \mathbf{0}$?
 
 \begin{enumerate}[a)]
-    \item Com $\mathbf{B} = \mathbf{0}$, temos $\Delta\mathbf{W} = \tfrac{\alpha}{r}\mathbf{B}\mathbf{A} = \mathbf{0}$ no passo
-          inicial, logo o modelo adaptado começa \emph{exatamente} do
-          pré-treinamento. Se $\mathbf{B}$ fosse aleatório, $\Delta\mathbf{W} \neq \mathbf{0}$
-          adicionaria ruído às projeções pré-treinadas, degradando o ponto
-          de partida.
+    \item Com $\mathbf{B} = \mathbf{0}$, temos $\Delta\mathbf{W} = \tfrac{\alpha}{r}\mathbf{B}\mathbf{A} = \mathbf{0}$ no
+          passo inicial, logo o modelo adaptado começa \emph{exatamente}
+          do pré-treinamento.
     \item Inicializar $\mathbf{B}$ aleatoriamente faria com que o adaptador LoRA
           competisse com os pesos originais, reduzindo o número de
           parâmetros treináveis efetivos.
@@ -242,14 +235,14 @@
 \begin{enumerate}[a)]
     \item Comportamento esperado: SFT sempre descarta conhecimento do
           pré-treinamento; a correção é treinar do zero com os dados SFT.
-    \item \textit{Catastrophic forgetting}: LR alto por muitas épocas
-          sobrescreve representações adquiridas no pré-treinamento, mesmo
-          com a perda SFT em queda. Correção: reduzir LR para
-          $10^{-6}$--$2\times 10^{-5}$ e limitar a $1$--$3$ épocas.
+    \item \textit{Catastrophic forgetting}: a LR alta por muitas épocas
+          sobrescreve representações do pré-treinamento. Correção: reduzir
+          a LR e limitar o número de épocas.
     \item \textit{Overfitting} nos próprios \textit{benchmarks}; a correção
-          é adicionar mais \textit{benchmarks} ao conjunto de avaliação.
-    \item Explosão de gradiente causada pelo LR alto; a correção é
-          aumentar o \textit{weight decay} para $1.0$.
+          é adicionar mais \textit{benchmarks} ao conjunto de avaliação e
+          reavaliar o modelo.
+    \item Explosão de gradiente causada pela LR alta; a correção é aumentar
+          o \textit{weight decay} para $1.0$ e manter a LR.
 \end{enumerate}
 % R: b
 

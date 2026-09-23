@@ -87,8 +87,8 @@
     \end{columns}
     \vspace{1em}
     
-    Uma única sequência de comprimento $T$ gera $T{-}1$ pares (contexto, alvo).
-          
+    Uma única sequência de comprimento $T$ gera $T$ pares (contexto, alvo); o primeiro tem contexto vazio (na prática, apenas o token inicial \texttt{<s>}).
+
     \vspace{1em}
     \textbf{Propriedade chave:} o corpus de texto é a própria supervisão: não há necessidade de anotação humana.
   \note{
@@ -96,7 +96,7 @@
     \begin{itemize}
       \item A perda é simplesmente a \textbf{entropia cruzada} média sobre os $T$ tokens da sequência: o modelo deve maximizar a probabilidade do token correto em cada posição.
       \item O fator $-1/T$ normaliza pelo comprimento, permitindo comparar perdas entre sequências de tamanhos diferentes.
-      \item \textbf{Teacher forcing:} durante o treino, o contexto fornecido ao modelo é sempre o texto \emph{real} (não as predições anteriores do modelo). Isso permite processar todos os $T{-}1$ pares em \emph{paralelo} com uma única passagem pelo transformador (é por isso que o pré-treinamento de LLMs é viável em escala).
+      \item \textbf{Teacher forcing:} durante o treino, o contexto fornecido ao modelo é sempre o texto \emph{real} (não as predições anteriores do modelo). Isso permite processar todos os $T$ pares em \emph{paralelo} com uma única passagem pelo transformador (é por isso que o pré-treinamento de LLMs é viável em escala).
       \item Ponto para enfatizar: não há anotadores humanos! O texto em si é tanto a entrada quanto o rótulo. Isso é o que torna viável treinar em trilhões de tokens.
     \end{itemize}
   }
@@ -121,7 +121,7 @@
             \item \textbf{Tokenização}: conversão para tokens
             \item \textbf{Shuffling}: evitar correlações temporais no gradiente
           \end{enumerate}
-        \textcolor{DarkRed}{\footnotesize \textbf{Regra geral:} qualidade $>$ quantidade — corpus menor e limpo supera corpus bruto.}
+        \textcolor{DarkRed}{\small \textbf{Regra geral:} qualidade $>$ quantidade: um corpus menor e limpo supera um corpus bruto maior.}
   \note{
     \textbf{Pontos para a figura/tabela de datasets:}
     \begin{itemize}
@@ -134,99 +134,55 @@
   \end{frame}
 
   %--- Slide: Tokenização ---
-  \begin{frame}{Tokenização e Vocabulário}
-        A tokenização converte texto bruto em sequências de \textit{tokens}.
-    \begin{columns}
-      \begin{column}{0.55\textwidth}
+  \begin{frame}{Recapitulação: Tokenização e Vocabulário}
+    A tokenização (vista em detalhe na aula de tokenização) converte texto bruto em sequências de \textit{tokens}. O que importa para o treinamento:
 
-        \vspace{0.4em}
-        \begin{block}{Tamanho do vocabulário e impacto}
-          \begin{itemize}
-            \item Vocabulário menor $\Rightarrow$ sequências mais longas, mais computação
-            \item Vocabulário maior $\Rightarrow$ matriz de embedding maior, cobertura melhor
-            \item Modelos modernos: 32\,k -- 200\,k tokens (BPE ou Unigram)
-          \end{itemize}
-        \end{block}
+    \vspace{0.4em}
+    \begin{block}{Tamanho do vocabulário e impacto}
+      \begin{itemize}
+        \item Vocabulário menor $\Rightarrow$ sequências mais longas, mais computação por texto
+        \item Vocabulário maior $\Rightarrow$ matriz de \textit{embedding} e projeção de saída maiores, cobertura melhor de outras línguas e código
+        \item Modelos modernos: 32\,k -- 200\,k tokens (BPE ou Unigram)
+      \end{itemize}
+    \end{block}
 
-        \vspace{0.3em}
-      \end{column}
-      \begin{column}{0.42\textwidth}
-        \textcolor{DarkBlue}{\textbf{Comparação de vocabulários}}
-        \vspace{0.3em}
-
-        \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lcc}
-          \toprule
-          \textbf{Modelo} & \textbf{Vocab} & \textbf{Algoritmo} \\
-          \midrule
-          GPT-2    & 50\,257 & BPE \\
-          LLaMA-2  & 32\,000 & BPE (sentencepiece) \\
-          LLaMA-3  & 128\,256 & BPE \\
-          BERT     & 30\,522 & WordPiece \\
-          T5       & 32\,100 & Unigram \\
-          \bottomrule
-        \end{tabular}}
-
-
-      \end{column}
-    \end{columns}
-        O \textit{tokenizer} é \textbf{treinado antes} do modelo, no mesmo corpus, e permanece fixo durante o treinamento.
+    \vspace{0.4em}
+    O \textit{tokenizer} é \textbf{treinado antes} do modelo, no mesmo corpus, e permanece fixo durante o treinamento: trocar ou estender o vocabulário depois exige retreinar o \textit{tokenizer} e ajustar os \textit{embeddings}.
   \note{
-    \textbf{Sobre a tabela de vocabulários:}
+    \textbf{Pontos para a recapitulação:}
     \begin{itemize}
-      \item O GPT-2 usa 50\,257 tokens (número primo, evita colisões em algumas implementações de hashing).
-      \item LLaMA-3 quadruplicou o vocabulário do LLaMA-2 (32k $\to$ 128k) principalmente para melhorar a cobertura de idiomas não-ingleses e código.
+      \item Exemplos de tamanho de vocabulário, se perguntarem: GPT-2 usa 50\,257 tokens (256 bytes base + 50\,000 \textit{merges} do BPE + 1 token especial \texttt{<|endoftext|>}); LLaMA-2 usa 32\,000; LLaMA-3 quadruplicou para 128\,256, principalmente para melhorar a cobertura de idiomas não-ingleses e código.
       \item \textbf{Trade-off prático:} vocabulário $2\times$ maior $\Rightarrow$ embedding de entrada e projeção de saída $2\times$ maiores (para um modelo de 7B, isso pode representar 3--5\% do total de parâmetros).
       \item Lembrar que o tokenizador é treinado \emph{antes} e permanece \emph{congelado}: se você quiser adicionar uma língua nova depois, precisa retreinar o tokenizador e fazer \textit{embedding extension}.
     \end{itemize}
   }
   \end{frame}
 
-  %--- Slide: Estágios de treino — Warm-up ---
-  \begin{frame}{Pré-treinamento: \textit{Warm-up} do LR}
-        \begin{block}{1. \textit{Warm-up} do LR}
+  %--- Slide: Schedule do LR (warm-up + cosine + WSD) ---
+  \begin{frame}{Pré-treinamento: \textit{Schedule} da Taxa de Aprendizado \cite{loshchilov2019adamw}}
+    \small
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{block}{1. \textit{Warm-up} linear}
           \begin{itemize}
-            \item LR cresce linearmente de 0 até $\eta_{\max}$
-            \item Dura tipicamente 1--2\% do treino total
-            \item Evita explosão de gradiente no início e estabiliza a norma dos parâmetros
-            \item \textbf{Por quê:} os estimadores de momento do Adam começam em zero, sem \textit{warm-up} as primeiras atualizações seriam enormes
+            \item LR cresce de 0 até $\eta_{\max}$ em $T_{\text{wu}}$ passos (1--2\% do treino)
+            \item Os momentos do Adam começam em zero: sem \textit{warm-up}, as primeiras atualizações seriam enormes
           \end{itemize}
         \end{block}
-
-    \vspace{0.8em}
-    \centering
-    \textcolor{DarkGreen}{\small \textbf{Otimizador padrão:} AdamW com
-    $\beta_1{=}0.9$, $\beta_2{=}0.95$, $\epsilon{=}10^{-8}$,
-    \textit{weight decay} $\lambda{=}0.1$, \textit{gradient clipping} em 1.0.}
-  \note{
-    \textbf{Warm-up e configuração do Adam:}
-    \begin{itemize}
-      \item \textbf{Warm-up:} os estimadores de média e variância do Adam são inicializados em zero, portanto as primeiras atualizações seriam muito grandes sem warm-up. O warm-up linear dá tempo para o Adam ``calibrar'' seus estimadores.
-      \item \textbf{$\beta_2 = 0.95$} (vs.\ padrão 0.999): acumula histórico de gradientes mais curto, tornando o Adam mais adaptável a mudanças rápidas de gradiente comuns no pré-treinamento.
-    \end{itemize}
-  }
-  \end{frame}
-
-  %--- Slide: Estágios de treino — Cosine Decay ---
-  \begin{frame}{Pré-treinamento: \textit{Cosine Decay} do LR}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \begin{block}{2. \textit{Cosine Decay}}
-          \begin{itemize}
-            \item LR decai de $\eta_{\max}$ a $\eta_{\min}$
-              \[
-                \eta_t = \eta_{\min} + \tfrac{\eta_{\max}-\eta_{\min}}{2}
-                  \!\left(1+\cos\tfrac{\pi t}{T}\right)
-              \]
-            \item Transição suave evita instabilidades
-          \end{itemize}
+        \begin{block}{2. \textit{Cosine decay}}
+          De $\eta_{\max}$ a $\eta_{\min}$ (tipicamente $0.1\,\eta_{\max}$), para $T_{\text{wu}} \le t \le T$:
+          \vspace{-0.3em}
+          \[
+            \eta_t = \eta_{\min} + \tfrac{\eta_{\max}-\eta_{\min}}{2}
+              \!\left(1+\cos\tfrac{\pi\,(t - T_{\text{wu}})}{T - T_{\text{wu}}}\right)
+          \]
         \end{block}
       \end{column}
-      \begin{column}{0.47\textwidth}
+      \begin{column}{0.45\textwidth}
         \centering
         \begin{tikzpicture}
           \begin{axis}[
-            width=5.5cm, height=3.8cm,
+            width=5.8cm, height=3.5cm,
             xlabel={passo $t$},
             ylabel={$\eta_t$},
             xmin=0, xmax=1,
@@ -248,37 +204,117 @@
               {0.1 + 0.45*(1 + cos(180*(x-0.1)/0.9))};
             \addplot[DarkRed!20, fill, opacity=0.4, domain=0.1:1.0, samples=80]
               {0.1 + 0.45*(1 + cos(180*(x-0.1)/0.9))} \closedcycle;
+            % WSD alternative (dashed gray)
+            \addplot[MidGray, thick, dashed, domain=0.1:0.85, samples=2] {1.0};
+            \addplot[MidGray, thick, dashed, domain=0.85:1.0, samples=2] {1.0 - 6*(x-0.85)};
             % Phase labels
-            \node[font=\tiny, text=DarkBlue]
-              at (axis cs:0.05, 0.55) {warm-up};
+            \node[font=\tiny, text=DarkBlue, anchor=west]
+              at (axis cs:0.11, 0.35) {warm-up};
             \node[font=\tiny, text=DarkRed]
-              at (axis cs:0.55, 0.80) {cosine decay};
+              at (axis cs:0.55, 0.72) {cosine decay};
+            \node[font=\tiny, text=MidGray]
+              at (axis cs:0.50, 1.08) {WSD (tracejado)};
           \end{axis}
         \end{tikzpicture}
+
+        {\footnotesize\raggedright \textbf{Alternativa: WSD} (\textit{Warmup-Stable-Decay}) \cite{hu2024minicpm}: LR constante na maior parte do treino e decaimento curto no fim (10--20\% dos passos). Permite estender o treino sem fixar $T$ de antemão.\par}
       \end{column}
     \end{columns}
   \note{
-    \textbf{Intuição da fórmula do Cosine Decay:}
+    \textbf{Warm-up, cosine e WSD:}
     \begin{itemize}
-      \item Em $t=0$: $\cos(0) = 1 \Rightarrow \eta_0 = \eta_{\min} + \frac{\eta_{\max}-\eta_{\min}}{2}\cdot 2 = \eta_{\max}$. Em $t=T$: $\cos(\pi) = -1 \Rightarrow \eta_T = \eta_{\min}$.
-      \item A transição suave (sem descida abrupta como step decay) evita instabilidades. O modelo ``sente'' uma taxa de aprendizado continuamente decrescente.
+      \item \textbf{Warm-up:} os estimadores de média e variância do Adam são inicializados em zero, portanto as primeiras atualizações seriam muito grandes sem warm-up. O warm-up linear dá tempo para o Adam ``calibrar'' seus estimadores.
+      \item \textbf{Cosine:} em $t=T_{\text{wu}}$: $\cos(0) = 1 \Rightarrow \eta = \eta_{\max}$. Em $t=T$: $\cos(\pi) = -1 \Rightarrow \eta = \eta_{\min}$. LLaMA usa $\eta_{\min} = 0.1\,\eta_{\max}$. A transição suave evita as instabilidades que os degraus do step decay podem causar.
+      \item \textbf{Limitação do cosine:} a curva depende de $T$. Se decidirmos treinar por mais tokens depois, o schedule inteiro muda. O WSD resolve isso: mantém o LR constante, guarda checkpoints, e faz um decaimento curto a partir de qualquer checkpoint para ``colher'' um modelo. Também facilita experimentos de \textit{scaling law}: o mesmo run produz modelos com vários orçamentos de tokens.
     \end{itemize}
   }
   \end{frame}
 
-  %--- Slide: Estágios de treino — Batch Ramp-up ---
-  \begin{frame}{Pré-treinamento: \textit{Batch Ramp-up}}
-        \begin{block}{3. \textit{Batch Ramp-up}}
+  %--- Slide: Otimizador, clipping e batch ---
+  \begin{frame}{Pré-treinamento: Otimizador, \textit{Gradient Clipping} e \textit{Batch Size}}
+    \small
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{block}{Otimizador padrão: AdamW}
           \begin{itemize}
-            \item \textit{Batch size} cresce ao longo do treino
-            \item Início: mini-batches pequenos para convergência rápida
-            \item Fim: batches grandes para melhor generalização
+            \item $\beta_1{=}0.9$, $\beta_2{=}0.95$, $\epsilon{=}10^{-8}$, \textit{weight decay} $\lambda{=}0.1$
+            \item $\beta_2{=}0.95$ (e não $0.999$): histórico mais curto, reage mais rápido a mudanças no gradiente
           \end{itemize}
         \end{block}
+        \begin{block}{\textit{Gradient clipping} por norma global}
+          Seja $\mathbf{g}$ o gradiente de \textbf{todos os parâmetros da rede} concatenados em um único vetor, antes de entrar no Adam.
+          Se $\|\mathbf{g}\|_2 > 1.0$, escala-se o vetor inteiro: $\mathbf{g} \leftarrow \mathbf{g}/\|\mathbf{g}\|_2$.
+          Preserva a direção (ao contrário do \textit{clipping} por valor) e contém picos de \textit{loss}.
+        \end{block}
+      \end{column}
+      \begin{column}{0.47\textwidth}
+        \begin{block}{\textit{Batch ramp-up} \cite{mccandlish2018batch}}
+          \begin{itemize}
+            \item \textit{Batch} cresce ao longo do treino (ex.: de 1M para 4M tokens)
+            \item O \textbf{ruído do gradiente cresce} conforme a \textit{loss} cai, e com ele o \textit{batch} eficiente (\textit{critical batch size})
+            \item Início: \textit{batches} pequenos aproveitam melhor cada token
+            \item Fim: \textit{batches} grandes ocupam mais GPUs sem desperdiçar amostras
+          \end{itemize}
+        \end{block}
+        \textcolor{DarkRed}{\textit{Batch} grande não melhora a generalização por si só: a motivação é eficiência computacional.}
+      \end{column}
+    \end{columns}
   \note{
-    \textbf{Gradient clipping e batch ramp-up:}
+    \textbf{Otimizador, clipping e batch:}
     \begin{itemize}
-      \item \textbf{Gradient clipping} (norma $\leq 1.0$): escala o vetor de gradientes inteiro se a norma exceder 1.0. Previne explosão de gradiente especialmente no início do treino. Diferenciar de gradient clipping por valor (clip element-wise), que distorce a direção do gradiente.
+      \item \textbf{$\beta_2 = 0.95$} (vs.\ padrão 0.999): acumula histórico de gradientes mais curto, tornando o Adam mais adaptável a mudanças rápidas de gradiente comuns no pré-treinamento. Com $0.999$, um pico isolado de gradiente ``contamina'' a estimativa de variância por milhares de passos.
+      \item \textbf{Gradient clipping} (norma $\leq 1.0$): a norma é calculada sobre o gradiente de todos os parâmetros do modelo de uma vez (bilhões de entradas), não camada a camada, e o mesmo fator de escala é aplicado a todos. Acontece depois do backward (e do \textit{unscale} do AMP) e antes do \texttt{optimizer.step()}: o que entra nos momentos $m$ e $v$ do Adam já é o gradiente cortado, então um pico isolado não contamina o histórico. Previne explosão de gradiente especialmente no início do treino. Diferenciar de gradient clipping por valor (clip element-wise), que distorce a direção do gradiente. Observar que, como o Adam normaliza por $\sqrt{v}$, o clipping por norma não limita o tamanho do passo, só o que alimenta o otimizador.
+      \item \textbf{Critical batch size} (McCandlish et al., 2018): a razão entre a variância do gradiente e o quadrado da sua norma (\textit{gradient noise scale}) define o batch a partir do qual aumentar $B$ deixa de reduzir o número de passos necessários. Essa escala cresce ao longo do treino, por isso o ramp-up. Batch grande demais no início desperdiça amostras (retornos decrescentes); batch pequeno demais no fim desperdiça GPUs.
+      \item Cuidado com a intuição ``batch grande generaliza melhor'': a evidência clássica (Keskar et al., 2017) vai na direção oposta em visão. Em LLMs o efeito é pequeno se o LR for ajustado; o argumento é de custo, não de generalização.
+    \end{itemize}
+  }
+  \end{frame}
+
+  %--- Slide: Receitas reais de pré-treinamento ---
+  \begin{frame}{Na Prática: Receitas de Pré-treinamento de Modelos Reais}
+    \centering
+    \resizebox{0.74\linewidth}{!}{%
+    \begin{tabular}{lccc}
+      \toprule
+      & \textbf{LLaMA-7B} \cite{touvron2023llama} & \textbf{Llama 3 405B} \cite{grattafiori2024llama3} & \textbf{SmolLM2-1.7B} \cite{allal2025smollm2} \\
+      \midrule
+      Tokens de treino     & 1,0T & 15,6T & 11T \\
+      \textit{Batch} (tokens) & 4M & 4M $\to$ 8M $\to$ 16M & 2M \\
+      Contexto             & 2\,048 & 4\,096 $\to$ 8\,192 & 2\,048 \\
+      $\eta_{\max}$        & $3\times10^{-4}$ & $8\times10^{-5}$ & $5\times10^{-4}$ \\
+      \textit{Warm-up}     & 2\,000 passos & 8\,000 passos & 2\,000 passos \\
+      \textit{Schedule}    & \textit{cosine} & \textit{cosine} & WSD \\
+      $\eta_{\min}$        & $0{,}1\,\eta_{\max}$ & $0{,}01\,\eta_{\max}$ & $0$ (linear, últimos 10\%) \\
+      Otimizador           & AdamW, $\beta_2{=}0.95$ & AdamW & AdamW, $\beta_2{=}0.95$ \\
+      \bottomrule
+    \end{tabular}}
+
+    \vspace{1.1em}
+    \begin{columns}[T]
+      \begin{column}{0.48\textwidth}
+        \textcolor{DarkBlue}{\textbf{O que se repete}}
+        \begin{itemize}\small
+          \item \textit{Warm-up} curto (menos de 1\% dos passos) e decaimento suave
+          \item $\beta_2{=}0.95$ e \textit{batches} de milhões de tokens em todos
+          \item Contexto curto no pré-treino; contextos longos vêm numa fase final de extensão
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        \textcolor{DarkRed}{\textbf{O que muda com a escala}}
+        \begin{itemize}\small
+          \item $\eta_{\max}$ cai conforme o modelo cresce: $5\times10^{-4}$ (1,7B) até $8\times10^{-5}$ (405B)
+          \item O \textit{batch} cresce durante o treino nos modelos maiores (\textit{ramp-up} do Llama 3)
+          \item WSD quando o orçamento de tokens não é fixado de antemão (SmolLM2)
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \note{
+    \textbf{Como usar a tabela:}
+    \begin{itemize}
+      \item \textbf{LLaMA 1} (Touvron et al., 2023, seção 2.3): AdamW com $\beta_1=0.9$, $\beta_2=0.95$, \textit{cosine} até 10\% do LR máximo, \textit{weight decay} 0.1, \textit{gradient clipping} 1.0, 2\,000 passos de \textit{warm-up}. O LR e o batch variam com o tamanho: 7B usa $3\times10^{-4}$ e 65B usa $1{,}5\times10^{-4}$, ambos com 4M tokens por batch. É a origem dos ``valores padrão'' citados no slide anterior de otimizador.
+      \item \textbf{Llama 3 405B} (Grattafiori et al., 2024, seção 3.4.1): LR de pico $8\times10^{-5}$, \textit{warm-up} linear de 8\,000 passos, \textit{cosine} até $8\times10^{-7}$ ao longo de 1,2M passos. O batch começa em 4M tokens com sequências de 4\,096, dobra para 8M tokens e sequências de 8\,192 após 252M tokens, e dobra de novo para 16M após 2,87T tokens. A justificativa dos autores é estabilidade no início do treino: é exatamente o \textit{batch ramp-up} do slide anterior. \textit{Weight decay} e \textit{clipping} não são informados no relatório, por isso a célula só diz AdamW.
+      \item \textbf{SmolLM2-1.7B} (Allal et al., 2025): 11T tokens em quatro estágios com misturas de dados diferentes, LR de pico $5\times10^{-4}$, 2\,000 passos de \textit{warm-up}, batch de 2M tokens, sequência de 2\,048 (estendida para 8\,192 no fim). O \textit{schedule} é WSD: LR constante e decaimento linear a zero nos últimos 10\% do treino. Como o treino foi planejado em estágios, o WSD permitiu ajustar a mistura de dados sem reiniciar o \textit{schedule}.
+      \item Enfatizar que os números não são universais: modelos com arquiteturas ou tokenizadores diferentes (Qwen, Gemma, DeepSeek) usam outras combinações, mas a estrutura (\textit{warm-up}, decaimento, batch grande, $\beta_2$ menor) é a mesma.
     \end{itemize}
   }
   \end{frame}
@@ -309,7 +345,7 @@
           (não do prompt/instrução).
         \end{block}
 
-        \textcolor{DarkRed}{\small É a \textbf{mesma perda do pré-treino}, mas mascarada: calculá-la também no prompt faria o modelo memorizar instruções em vez de aprender a responder.}
+        \textcolor{DarkRed}{\small É a \textbf{mesma perda do pré-treino}, mas mascarada: o gradiente vem só dos tokens que o modelo deve gerar, não dos que ele recebe do usuário.}
         % Note: \note command placed at end of frame
       \end{column}
       \begin{column}{0.45\textwidth}
@@ -334,7 +370,7 @@
     \textbf{Intuição da perda SFT e da figura:}
     \begin{itemize}
       \item A perda SFT é matematicamente idêntica à perda de pré-treinamento (NLL / entropia cruzada), mas com uma \textbf{máscara}: o gradiente é zerado para todos os tokens do prompt.
-      \item \textbf{Por que mascarar o prompt?} Se calcularmos a perda também nas instruções, o modelo otimizaria para ``prever instruções'', aprendendo a repetir os padrões de instrução em vez de aprender a gerar boas respostas. Queremos que o gradiente venha apenas dos tokens que o modelo deve \emph{gerar}.
+      \item \textbf{Por que mascarar o prompt?} Queremos que o gradiente venha apenas dos tokens que o modelo deve \emph{gerar}; gastar capacidade prevendo instruções (que o usuário escreve) não é o objetivo. É a prática padrão (Alpaca, LLaMA-Chat, HF TRL), embora haja evidência de que incluir a perda no prompt ajuda em alguns regimes (ex.: respostas curtas com prompts longos). Vale mencionar como decisão de projeto, não como lei.
       \item A figura ilustra isso: a caixa azul (instrução) contribui com gradiente zero; apenas a caixa verde (resposta) contribui para atualizar os pesos.
       \item \textbf{Hipótese do alinhamento superficial} (Zhou et al., LIMA): o conhecimento factual já está no modelo após o pré-treinamento. O SFT ensina apenas o \emph{formato} e o \emph{estilo} de resposta. Por isso, 1000 exemplos bem curados podem ser suficientes.
     \end{itemize}
@@ -474,10 +510,10 @@
   \section{RLHF com PPO}
 
   %--- Slide: Pipeline RLHF ---
-  \begin{frame}{Pipeline Completo do RLHF \cite{ouyang2022instructgpt}}
+  \begin{frame}{Pipeline Completo do RLHF \cite{ouyang2022instructgpt,schulman2017ppo}}
     \centering
     \begin{tikzpicture}[
-      node distance=0.5cm and 0.55cm,
+      node distance=0.4cm and 0.55cm,
       box/.style={draw, rounded corners, fill=CellBlue, text width=2.7cm,
                   align=center, font=\small, minimum height=1cm, inner sep=4pt},
       arr/.style={->, >=Stealth, thick}
@@ -496,13 +532,13 @@
 
       % KL penalty annotation
       \node[draw=DarkRed, fill=LightOrange, rounded corners, font=\scriptsize,
-            text width=2.0cm, align=center, below=0.8cm of ppo] (kl)
+            text width=2.0cm, align=center, below=0.3cm of ppo] (kl)
             {Penalidade KL mantém política próxima do modelo SFT};
       \draw[->, DarkRed, dashed] (kl) -- (ppo);
       \draw[->, DarkRed, dashed] (kl.west) to[bend left=20] (sft.south);
     \end{tikzpicture}
 
-    \vspace{0.4em}
+    \vspace{0.2em}
     \begin{columns}
       \begin{column}{0.48\textwidth}
         \textbf{Etapa 1:} amostrar pares de respostas do modelo SFT\\
@@ -515,8 +551,8 @@
       \end{column}
     \end{columns}
 
-    \vspace{0.3em}
-    \centering\textcolor{DarkRed}{\small O passo PPO mantém \textbf{4 modelos} em memória (política, referência, \textit{reward model}, \textit{value function}) $\to\ {\sim}4\times$ a VRAM do modelo base.}
+    \vspace{0.5em}
+    \centering\textcolor{DarkRed}{\small O passo PPO mantém \textbf{4 modelos} em memória: (1) política $\pi_\theta$, (2) referência $\pi_{\text{ref}}$, (3) \textit{reward model} $r_\phi$, (4) \textit{value function} $V_\phi$, ou seja, ${\sim}4\times$ a VRAM do modelo base.}
   \note{
     \textbf{Sobre o diagrama do pipeline RLHF:}
     \begin{itemize}
@@ -550,7 +586,7 @@
           programados para cada tarefa.''}
         \end{block}
         \vspace{0.3em}
-        \centering\small Tripla: $(x,\; y_w,\; y_l)$ — usada por RLHF, DPO, GRPO
+        \centering\small Tripla: $(x,\; y_w,\; y_l)$, usada pelo RLHF (para treinar o RM), pelo DPO e variantes
       \end{column}
       \begin{column}{0.48\textwidth}
         \setbeamercolor{block title}{bg=DarkRed!80!black, fg=white}
@@ -562,7 +598,7 @@
         \end{block}
         \vspace{0.3em}
         \centering\small\textcolor{MidGray}{HH-RLHF \cite{bai2022hhrlhf},
-        UltraFeedback (64k), OpenHermes}
+        UltraFeedback \cite{cui2024ultrafeedback}, OpenHermes}
       \end{column}
     \end{columns}
   \note{
@@ -571,7 +607,7 @@
       \item \textbf{Coleta:} um prompt $x$ é enviado ao modelo (ou a múltiplos modelos), gerando duas respostas. Anotadores humanos escolhem qual preferem (ou modelos GPT-4 atuam como juízes: RLAIF, Reinforcement Learning from AI Feedback).
       \item \textbf{Critérios de preferência:} utilidade, veracidade, ausência de conteúdo nocivo, clareza. Os critérios variam por dataset.
       \item \textbf{HH-RLHF} (Anthropic, 170k pares): foco em \textit{helpfulness} e \textit{harmlessness}. \textbf{UltraFeedback} (64k): gerado por GPT-4 como árbitro, multiaspecto. \textbf{OpenHermes}: instruções sintéticas de alta qualidade.
-      \item A mesma tripla $(x, y_w, y_l)$ é usada por RLHF (para treinar o Reward Model) e por DPO/GRPO (diretamente na loss de alinhamento).
+      \item A mesma tripla $(x, y_w, y_l)$ é usada por RLHF (para treinar o Reward Model) e por DPO, IPO, SimPO etc.\ (diretamente na loss de alinhamento). O GRPO \emph{não} usa pares: usa uma recompensa escalar por resposta (verificador ou RM).
     \end{itemize}
   }
   \end{frame}
@@ -699,8 +735,66 @@
   }
   \end{frame}
 
+  %--- Slide: Value function e vantagem ---
+  \begin{frame}{O Quarto Modelo: \textit{Value Function} e Vantagem}
+    \small
+    \begin{columns}[T]
+      \begin{column}{0.46\textwidth}
+        \begin{block}{O crítico $V_\phi$ opera por token}
+          Para cada prefixo $s_t = (x, y_{<t})$, estima a recompensa futura: $V_\phi(s_t) \approx \mathbb{E}\big[R \mid s_t\big]$.
+          Mesma arquitetura da política com uma cabeça escalar, treinado por regressão.
+        \end{block}
+        \begin{block}{Vantagem por token}
+          \vspace{-0.6em}
+          \[
+            A_t = r_t + V_\phi(s_{t+1}) - V_\phi(s_t)
+          \]
+          \vspace{-1.1em}
+
+          ``Quanto o token $t$ mudou a expectativa de recompensa?''
+          No RLHF, $r_t = 0$ exceto no último token, que recebe a nota do RM.
+        \end{block}
+      \end{column}
+      \begin{column}{0.52\textwidth}
+        \textcolor{DarkBlue}{\textbf{Exemplo:}} $x$ = ``Quanto é $7\times 8$?'', RM dá $R = 0{,}2$
+        \vspace{0.2em}
+
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{clcccc}
+          \toprule
+          $t$ & token $y_t$ & $V_\phi(s_t)$ & $r_t$ & $V_\phi(s_{t+1})$ & $A_t$ \\
+          \midrule
+          1 & \texttt{É}     & $1{,}2$ & $0$     & $1{,}3$ & $\textcolor{DarkGreen}{+0{,}1}$ \\
+          2 & \texttt{igual} & $1{,}3$ & $0$     & $1{,}4$ & $\textcolor{DarkGreen}{+0{,}1}$ \\
+          3 & \texttt{a}     & $1{,}4$ & $0$     & $1{,}5$ & $\textcolor{DarkGreen}{+0{,}1}$ \\
+          4 & \texttt{54}    & $1{,}5$ & $0{,}2$ & $0$ (fim) & $\textcolor{DarkRed}{-1{,}3}$ \\
+          \bottomrule
+        \end{tabular}}
+
+        \vspace{0.3em}
+        Os três primeiros tokens elevaram a expectativa e são levemente reforçados; o número errado recebe \textbf{toda a culpa}.
+
+        \vspace{0.1em}
+        \textcolor{MidGray}{Com uma \textit{baseline} só do prompt ($b = 1{,}2$), os quatro tokens receberiam a mesma vantagem $R - b = -1{,}0$.}
+
+        \vspace{0.1em}
+        \textcolor{DarkRed}{\textbf{Custo:} uma rede do tamanho da política, treinada junto com ela: o quarto modelo em memória.}
+      \end{column}
+    \end{columns}
+  \note{
+    \textbf{Por que o PPO precisa de um crítico:}
+    \begin{itemize}
+      \item \textbf{Gradiente de política (REINFORCE):} $\nabla J = \mathbb{E}[\nabla\log\pi_\theta(y_t|s_t)\,R]$. Funciona, mas a variância é enorme: toda ação de uma trajetória com $R>0$ é reforçada, mesmo as ruins. Subtrair qualquer função $b(s_t)$ que não dependa da ação mantém o gradiente esperado ($\mathbb{E}[\nabla\log\pi \cdot b] = b\,\nabla\sum_a \pi = 0$) e reduz a variância. A melhor baseline é aproximadamente $V(s_t)$.
+      \item \textbf{Por token:} no RLHF a recompensa é esparsa (o RM só avalia a resposta completa, no último token), e a penalidade KL entra por token. O crítico é o que distribui esse sinal pelos tokens intermediários (\textit{credit assignment}): no exemplo, ele ``sabia'' que o prefixo ``É igual a'' estava indo bem ($V$ subindo) e que o ``54'' estragou tudo ($V$ cai de 1,5 para 0 e só entram 0,2 de reward).
+      \item \textbf{Sobre a fórmula do slide:} $A_t = r_t + V(s_{t+1}) - V(s_t)$ é a vantagem de um passo (erro de TD, $\gamma = 1$). O PPO usa GAE (\textit{Generalized Advantage Estimation}, Schulman et al., 2016), que combina esse estimador com o retorno completo $R - V(s_t)$ via um parâmetro $\lambda$; no RLHF costuma-se usar $\gamma = 1$ e $\lambda = 0{,}95$, ou seja, quase o retorno completo, mas com a correção por token do crítico. Com $\lambda = 1$ o exemplo daria $A_t = R - V(s_t)$: $-1{,}0$, $-1{,}1$, $-1{,}2$, $-1{,}3$ (todos negativos, sem distinguir os tokens bons).
+      \item \textbf{Comparação com a baseline do prompt:} a linha cinza é exatamente o que o GRPO faz (vantagem igual para todos os tokens da resposta, calculada a partir de uma baseline que não depende do prefixo). Funciona bem quando as respostas do grupo diferem por inteiro; perde a granularidade por token.
+      \item \textbf{Inicialização:} o crítico normalmente parte dos pesos do Reward Model (já aprendeu a avaliar respostas) e é treinado com a perda quadrática $(V_\phi(s_t) - R_t)^2$ em paralelo ao clip surrogate da política. Ignoramos a penalidade KL nos números do exemplo para não poluir a tabela.
+    \end{itemize}
+  }
+  \end{frame}
+
   %--- Slide: PPO objetivo ---
-  \begin{frame}{Função Objetivo do PPO com Penalidade KL}
+  \begin{frame}{Função Objetivo do PPO com Penalidade KL \cite{schulman2017ppo}}
     \begin{columns}
       \begin{column}{0.52\textwidth}
         O PPO otimiza a política $\pi_\theta$ para maximizar recompensa
@@ -714,7 +808,7 @@
           \]
         \end{block}
         \vspace{-0.2em}
-        {\scriptsize\textcolor{MidGray}{Na prática a KL vira um \textbf{bônus por token}: subtrai-se $\beta\log\frac{\pi_\theta(t)}{\pi_{\text{ref}}(t)}$ do \textit{reward} de cada token.}}
+        {\scriptsize\textcolor{MidGray}{Na prática a KL vira uma \textbf{penalidade por token}: subtrai-se $\beta\log\frac{\pi_\theta(t)}{\pi_{\text{ref}}(t)}$ do \textit{reward} de cada token.}}
 
         \begin{block}{\textit{Clip Surrogate} do PPO}
           \[
@@ -750,7 +844,7 @@
   \note{
     \textbf{Intuição das duas equações do PPO:}
     \begin{itemize}
-      \item \textbf{Objetivo RLHF-PPO:} o termo $-\beta\,\text{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ penaliza o modelo por se afastar do SFT. Na prática, isso é implementado como um \emph{bônus por token}: para cada token gerado, subtrai-se $\beta \log(\pi_\theta(t)/\pi_{\text{ref}}(t))$ do reward.
+      \item \textbf{Objetivo RLHF-PPO:} o termo $-\beta\,\text{KL}(\pi_\theta \Vert \pi_{\text{ref}})$ penaliza o modelo por se afastar do SFT. Na prática, isso é implementado como uma \emph{penalidade por token}: para cada token gerado, subtrai-se $\beta \log(\pi_\theta(t)/\pi_{\text{ref}}(t))$ do reward (o reward do RM entra só no último token da resposta).
       \item \textbf{Clip Surrogate:} $r_t = \pi_\theta(a_t|s_t)/\pi_{\text{old}}(a_t|s_t)$ é a razão de importância. O clipping em $[1-\varepsilon, 1+\varepsilon]$ (tipicamente $\varepsilon=0.2$) impede atualizações muito grandes: se $r_t > 1+\varepsilon$, o ganho adicional não é considerado. Isso mantém a política próxima de $\pi_{\text{old}}$ a cada iteração.
       \item $A_t$ é a \textbf{vantagem}: quanto melhor foi a ação $a_t$ em relação à baseline (valor esperado). Se $A_t > 0$, queremos aumentar $r_t$; se $A_t < 0$, queremos diminuir.
       \item \textbf{Reward hacking:} exemplo clássico: modelos PPO aprendem a gerar respostas longas com repetição, pois o RM mal treinado dá rewards maiores a respostas longas. A penalidade KL deveria prevenir isso, mas $\beta$ precisa ser calibrado.
@@ -777,7 +871,7 @@
 
         \textbf{Ideia do DPO} (Rafailov et al., 2023): \textit{eliminar o RM, reparametrizando o problema diretamente na política.}
 
-        \textcolor{DarkGreen}{\small O DPO usa a solução ótima do RLHF para dispensar o RM (derivação a seguir).}
+        \textcolor{DarkGreen}{\small O DPO usa a forma da solução ótima do RLHF para dispensar o RM.}
       \end{column}
       \begin{column}{0.45\textwidth}
         \textcolor{DarkBlue}{\textbf{Comparação de infraestrutura}}
@@ -810,46 +904,47 @@
   }
   \end{frame}
 
-  %--- Slide: Derivação DPO ---
-  \begin{frame}{Derivação da Função de Perda do DPO \cite{rafailov2023dpo}}
-    Solução ótima do RLHF (restrição KL): $\pi^*(y|x) \propto \pi_{\text{ref}}(y|x)\exp(r^*(x,y)/\beta)$, com normalizador $Z(x)$ (\textit{função de partição}). Isolando $r^*$ e substituindo no Bradley-Terry, $Z(x)$ \textbf{cancela} na diferença:
-
+  %--- Slide: DPO enunciado ---
+  \begin{frame}{A Perda do DPO \cite{rafailov2023dpo}}
+    \small
+    A política ótima do RLHF com penalidade KL tem a forma $\pi^*(y|x) \propto \pi_{\text{ref}}(y|x)\exp\!\big(r(x,y)/\beta\big)$.
+    Invertendo-a, o \textit{reward} vira uma função da política; no Bradley-Terry a constante de normalização cancela e sobra:
     \begin{block}{Perda DPO}
+      \vspace{-0.4em}
       \[
-        \mathcal{L}_{\text{DPO}} = -\mathbb{E}_{(x,y_w,y_l)}\!\left[\log\sigma\!\left(
+        \mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x,y_w,y_l)}\!\left[\log\sigma\!\left(
           \beta\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)}
           - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}
         \right)\right]
       \]
+      \vspace{-0.6em}
     \end{block}
-
     \begin{columns}[T]
-      \begin{column}{0.55\textwidth}
-        \textcolor{DarkBlue}{\textbf{Interpretação intuitiva}}\\[0.3em]
-        A perda aumenta $\pi_\theta(y_w|x)$ e diminui $\pi_\theta(y_l|x)$,
-        \textbf{ponderado pela mudança relativa em relação à referência}.
-        Sem Reward Model explícito — o modelo de linguagem \emph{é} o reward model.
+      \begin{column}{0.50\textwidth}
+        \textcolor{DarkBlue}{\textbf{Como ler}}
+        \begin{itemize}
+          \item É a perda do Reward Model com o \textit{reward} trocado pelo \textbf{\textit{reward} implícito} $\hat r_\theta(x,y) = \beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$
+          \item O modelo de linguagem \emph{é} o reward model
+          \item $\beta$ controla o afastamento de $\pi_{\text{ref}}$ (típico: 0,1 a 0,5)
+        \end{itemize}
       \end{column}
-      \begin{column}{0.43\textwidth}
-        \begin{block}{Gradiente implícito}
-          \small O DPO aumenta a probabilidade relativa de $y_w$ mais
-          agressivamente quando o RM implícito \textbf{subestima} $y_w$,
-          e vice-versa.
-        \end{block}
+      \begin{column}{0.47\textwidth}
+        \textcolor{DarkGreen}{\textbf{O que o gradiente faz}}
+        \begin{itemize}
+          \item Aumenta $\log\pi_\theta(y_w|x)$ e diminui $\log\pi_\theta(y_l|x)$
+          \item Peso $\sigma\big(\hat r_\theta(y_l) - \hat r_\theta(y_w)\big)$: pares ainda mal ordenados dominam a atualização
+          \item Só precisa de \textit{log-probs} nos pares: sem geração, sem RM, sem crítico
+        \end{itemize}
       \end{column}
     \end{columns}
-
-    \vspace{0.3em}
-    \textcolor{MidGray}{\small \textbf{Datasets:} UltraFeedback (64k),
-    Anthropic-HH (170k), TL;DR (93k) — formato \texttt{(prompt, chosen, rejected)}.}
   \note{
-    \textbf{Derivação da perda DPO (passo a passo para o instrutor):}
+    \textbf{Sobre a perda DPO (sem a derivação completa):}
     \begin{itemize}
-      \item \textbf{Passo 1:} a solução ótima do RLHF (KL-constrained) é $\pi^*(y|x) = \pi_{\text{ref}}(y|x)\exp(r^*(x,y)/\beta)/Z(x)$, onde $Z(x) = \sum_y \pi_{\text{ref}}(y|x)\exp(r^*(x,y)/\beta)$ é a função de partição.
-      \item \textbf{Passo 2:} isolando $r^*$: $r^*(x,y) = \beta\log(\pi^*(y|x)/\pi_{\text{ref}}(y|x)) + \beta\log Z(x)$.
-      \item \textbf{Passo 3:} substituindo no modelo Bradley-Terry, $Z(x)$ \emph{cancela} na diferença $r^*(y_w) - r^*(y_l)$! Isso é o insight central do DPO: não precisamos calcular $Z(x)$.
-      \item \textbf{Interpretação do gradiente:} o DPO aumenta $\log\pi_\theta(y_w|x)$ e diminui $\log\pi_\theta(y_l|x)$ com intensidade proporcional a $\sigma(-\hat{r}_\theta)$ (o modelo ajusta mais agressivamente quando o reward implícito ainda subestima $y_w$).
-      \item \textbf{Atenção:} o DPO é off-policy (usa dados coletados com $\pi_{\text{ref}}$, não com $\pi_\theta$). Se $\pi_\theta$ mudar muito do $\pi_{\text{ref}}$, os dados podem se tornar desatualizados.
+      \item \textbf{Esboço da derivação, se perguntarem:} (1) a solução do RLHF com KL é $\pi^* = \pi_{\text{ref}}\exp(r/\beta)/Z(x)$, com $Z(x)$ a função de partição; (2) isolando, $r = \beta\log(\pi^*/\pi_{\text{ref}}) + \beta\log Z(x)$; (3) no Bradley-Terry só entra a diferença $r(y_w) - r(y_l)$, e $\beta\log Z(x)$ cancela; (4) trocando $\pi^*$ por $\pi_\theta$ e maximizando a verossimilhança dos pares, sai a perda. A parte intratável ($Z$) era irrelevante para preferências. O artigo original (Rafailov et al., 2023, apêndice A) tem a derivação completa em uma página.
+      \item \textbf{Gradiente:} $\nabla_\theta\mathcal{L} = -\beta\,\mathbb{E}[\sigma(\hat r_\theta(y_l) - \hat r_\theta(y_w))\,(\nabla\log\pi_\theta(y_w|x) - \nabla\log\pi_\theta(y_l|x))]$. O peso é a probabilidade que o RM implícito atribui à ordem errada: pares já bem ordenados quase não contribuem.
+      \item \textbf{Implementação:} $\log\pi_\theta(y|x) = \sum_t\log\pi_\theta(y_t|x,y_{<t})$ sai de um forward com \textit{teacher forcing}; os log-probs de $\pi_{\text{ref}}$ são constantes e podem ser pré-computados. Dois forwards por par. Por isso o DPO cabe numa GPU onde o PPO não cabe.
+      \item \textbf{Off-policy:} os pares vêm de $\pi_{\text{ref}}$ ou de outros modelos, não de $\pi_\theta$. Se $\pi_\theta$ se afastar muito, os pares deixam de ser representativos. É a principal fraqueza frente ao PPO e a motivação das variantes \textit{online}.
+      \item \textbf{Fenômeno comum:} $\log\pi_\theta(y_w|x)$ frequentemente \emph{cai} durante o treino, apenas menos que $\log\pi_\theta(y_l|x)$; a perda só olha para a diferença. Variantes como IPO e SimPO tentam mitigar isso.
     \end{itemize}
   }
   \end{frame}
@@ -860,40 +955,38 @@
   \section{Outros Métodos de Alinhamento}
 
   %--- Slide: GRPO ---
-  \begin{frame}{GRPO: \textit{Group Relative Policy Optimization} \cite{deepseekr1}}
-        Proposto no DeepSeek-R1 (DeepSeek-AI, 2025), o GRPO elimina a
-        \textit{value function} do PPO substituindo-a por uma
-        \textbf{estimativa de baseline por grupo}.
-
-        \vspace{0.4em}
-          \[\begin{split}
-            J_{\text{GRPO}} &= \mathbb{E}\!\bigg[\frac{1}{G}\sum_{i=1}^{G}
-              \min\!\left(r_i\hat{A}_i,\;\text{clip}(r_i,1{-}\varepsilon,1{+}\varepsilon)\,\hat{A}_i\right)
+  \begin{frame}{GRPO: \textit{Group Relative Policy Optimization} \cite{shao2024deepseekmath,deepseekr1}}
+        Proposto no DeepSeekMath (Shao et al., 2024) e popularizado pelo DeepSeek-R1, o GRPO elimina a
+        \textit{value function} do PPO usando como \textbf{baseline a média de um grupo}: para cada prompt, amostram-se $G$ respostas $y_1,\ldots,y_G$ com recompensas $r_1,\ldots,r_G$.
+        \vspace{-0.2em}
+          \[
+            J_{\text{GRPO}} = \mathbb{E}\!\bigg[\frac{1}{G}\sum_{i=1}^{G}
+              \min\!\left(\rho_i\hat{A}_i,\;\text{clip}(\rho_i,1{-}\varepsilon,1{+}\varepsilon)\,\hat{A}_i\right)
+              \;-\; \beta\,\text{KL}\!\left(\pi_\theta \Vert \pi_{\text{ref}}\right)
             \bigg]
-          \end{split}\]
-          onde $\hat{A}_i = \dfrac{r_i - \text{mean}(\{r_j\})}{\text{std}(\{r_j\})}$
-          e $G$ é o tamanho do grupo de amostras.
+          \]
+          onde $\rho_i = \dfrac{\pi_\theta(y_i|x)}{\pi_{\text{old}}(y_i|x)}$ é a razão de importância e
+          $\hat{A}_i = \dfrac{r_i - \text{mean}(\{r_j\})}{\text{std}(\{r_j\})}$ é a vantagem relativa ao grupo.
 
-    \vspace{0.3em}
-
-        \begin{itemize}
-          \item Sem \textit{value function}: menos parâmetros, menos memória
-          \item Estimativa de vantagem simples e estável ($z$-score; sem variância no grupo, $\hat{A}_i{=}0$ e não há gradiente)
-          \item Funciona bem com \textit{reward} esparso (verificação matemática)
-          \item Permite raciocínio de \textit{chain-of-thought} emergente
+        \begin{itemize}\small
+          \item Sem \textit{value function}: um modelo a menos em memória (3 em vez de 4)
+          \item Vantagem por $z$-score no grupo: sem variância no grupo, $\hat{A}_i{=}0$ e não há gradiente
+          \item Funciona bem com \textit{reward} esparso e verificável (resposta final certa ou errada)
+          \item O termo KL continua ancorando a política ao modelo de referência
         \end{itemize}
 
-        \vspace{0.5em}
-        \textcolor{DarkGreen}{\small \textbf{Resultado:} DeepSeek-R1 alcança
-        desempenho competitivo com OpenAI o1 em AIME e MATH usando GRPO
+        \textcolor{DarkGreen}{\footnotesize \textbf{Resultado:} DeepSeek-R1 alcança
+        desempenho competitivo com OpenAI o1 em AIME 2024 e MATH-500 usando GRPO
         com verificação automática de respostas.}
   \note{
     \textbf{Intuição da equação GRPO:}
     \begin{itemize}
-      \item \textbf{Estimativa de vantagem por grupo:} para cada prompt, geram-se $G$ respostas diferentes. A vantagem de cada resposta é sua recompensa normalizada pelo grupo: $\hat{A}_i = (r_i - \bar{r})/\sigma_r$. Isso é simplesmente um \emph{z-score} (quanto melhor que a média do grupo?).
-      \item Por que isso substitui a value function? A value function do PPO estima $E[r | s_t]$ para cada estado intermediário. O GRPO substitui essa estimativa complexa por uma baseline simples: a média das recompensas do grupo para o mesmo prompt. Funciona bem quando o reward é \emph{esparso} (só recebido no final: acertou ou errou a resposta matemática).
-      \item \textbf{Chain-of-thought emergente:} ao otimizar para acertar a resposta final, o modelo aprende espontaneamente a usar raciocínio intermediário (``deixa eu verificar...'', ``portanto...'') para melhorar suas chances. Não é diretamente supervisionado.
-      \item O reward no DeepSeek-R1 é verificado automaticamente: para matemática, compara-se a resposta final com a solução correta via parser simbólico. Para código, roda-se os testes. Isso elimina a necessidade de um RM neural.
+      \item \textbf{Atribuição:} o GRPO aparece no DeepSeekMath (fev.\ 2024), onde foi usado para matemática. O R1 (jan.\ 2025) mostrou que o mesmo algoritmo, com reward verificável, faz emergir raciocínio longo. Citar os dois.
+      \item \textbf{Notação:} $\rho_i$ é a mesma razão de importância do PPO (lá chamada de $r_t$); usamos $\rho$ aqui porque $r_i$ já denota a recompensa. No paper, a razão e o clip são calculados \emph{por token} e a média é feita sobre os tokens de cada resposta; o slide mostra a versão por sequência para simplificar.
+      \item \textbf{Estimativa de vantagem por grupo:} a vantagem de cada resposta é sua recompensa normalizada pelo grupo: $\hat{A}_i = (r_i - \bar{r})/\sigma_r$. Isso é simplesmente um \emph{z-score} (quanto melhor que a média do grupo?).
+      \item Por que isso substitui a value function? A value function do PPO estima $E[r | s_t]$ para cada estado intermediário. O GRPO substitui essa estimativa por uma baseline simples: a média das recompensas do grupo para o mesmo prompt. Funciona bem quando o reward é \emph{esparso} (só recebido no final).
+      \item \textbf{KL:} o GRPO original mantém a penalidade KL (com um estimador não enviesado $\frac{\pi_{\text{ref}}}{\pi_\theta} - \log\frac{\pi_{\text{ref}}}{\pi_\theta} - 1$), somada diretamente à perda em vez de embutida no reward. Trabalhos posteriores (DAPO, Dr.\ GRPO) removem ou modificam esse termo.
+      \item O reward no DeepSeek-R1 é verificado automaticamente: para matemática, compara-se a resposta final com a solução correta via parser simbólico. Para código, rodam-se os testes. Isso elimina a necessidade de um RM neural.
     \end{itemize}
   }
   \end{frame}
@@ -952,30 +1045,92 @@
   }
   \end{frame}
 
+  %--- Slide: RLVR e modelos de raciocínio ---
+  \begin{frame}{RL com Recompensas Verificáveis (RLVR) \cite{deepseekr1,lambert2024tulu3}}
+    \small
+    \begin{columns}[T]
+      \begin{column}{0.50\textwidth}
+        \begin{block}{Ideia}
+          Trocar o \textit{reward model} neural por um \textbf{verificador}: gabarito em matemática, testes unitários em código, checagem de formato. Recompensa barata, exata e difícil de enganar.
+        \end{block}
+        \begin{block}{Receita do DeepSeek-R1}
+          \begin{enumerate}
+            \item \textit{Cold start}: SFT curto com cadeias de raciocínio
+            \item GRPO com \textit{reward} de acurácia + formato
+            \item \textit{Rejection sampling} das melhores gerações e novo SFT
+            \item Nova rodada de RL, agora com preferências humanas também
+          \end{enumerate}
+        \end{block}
+      \end{column}
+      \begin{column}{0.47\textwidth}
+        \textcolor{DarkBlue}{\textbf{O que emerge durante o RL}}
+        \begin{itemize}
+          \item Respostas ficam \textbf{mais longas}: o modelo aprende a ``pensar'' antes de responder
+          \item Autoverificação e retrocesso (``espera, vou conferir\ldots'') sem supervisão direta
+        \end{itemize}
+        \vspace{0.2em}
+        \textcolor{DarkRed}{\textbf{Riscos e limites}}
+        \begin{itemize}
+          \item \textit{Reward hacking} no verificador (formato do gabarito, testes fracos)
+          \item Só funciona onde há verificador: escrita e diálogo seguem com RM ou pares
+          \item Custo de inferência cresce com cadeias longas
+        \end{itemize}
+      \end{column}
+    \end{columns}
+  \note{
+    \textbf{RLVR e raciocínio:}
+    \begin{itemize}
+      \item O termo RLVR (\textit{Reinforcement Learning with Verifiable Rewards}) foi cunhado no Tülu 3 (Lambert et al., 2024); a ideia é a mesma do reward baseado em resultado do DeepSeekMath e do R1.
+      \item \textbf{R1-Zero vs.\ R1:} o R1-Zero fez RL direto sobre o modelo base, sem SFT, e obteve raciocínio forte mas com texto ilegível e mistura de idiomas. O R1 adiciona o cold start e as rodadas de rejection sampling para recuperar legibilidade e utilidade geral.
+      \item \textbf{Comprimento crescente:} a curva de tokens por resposta ao longo do treino RL é a figura mais citada do paper. Ligar com o custo de inferência: raciocínio longo é \textit{test-time compute}.
+      \item \textbf{Reward hacking:} verificadores fracos (comparação de string, testes incompletos) são explorados rapidamente. Boas práticas: verificadores simbólicos (SymPy), múltiplos testes ocultos, penalidade de formato.
+      \item Enfatizar a limitação: sem verificador, voltamos ao RM neural ou a pares de preferência. Modelos de fronteira combinam os dois regimes no mesmo pós-treino.
+    \end{itemize}
+  }
+  \end{frame}
+
   %--- Slide: SimPO ---
   \begin{frame}{SimPO: \textit{Reward} Sem Modelo de Referência \cite{meng2024simpo}}
-        \begin{block}{SimPO}
-          \textbf{Motivação:} DPO depende do modelo de referência, o que pode
-          ser ineficiente.
+    \textbf{Duas críticas ao DPO:} o \textit{reward} implícito $\beta\log\frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$ não é o critério usado na \textbf{geração}, que olha só para $\pi_\theta$; e manter $\pi_{\text{ref}}$ em memória custa uma cópia inteira do modelo.
+    \begin{block}{Perda SimPO}
+      \vspace{-0.4em}
+      \[
+        \mathcal{L}_{\text{SimPO}} = -\log\sigma\!\bigg(
+          \frac{\beta}{|y_w|}\log\pi_\theta(y_w|x)
+          - \frac{\beta}{|y_l|}\log\pi_\theta(y_l|x) - \gamma \bigg)
+      \]
+    \end{block}
+    \begin{columns}[T]
+      \begin{column}{0.52\textwidth}
+        \begin{itemize}\small
+          \item \textit{Reward} $=$ log-verossimilhança \textbf{média por token}: alinhado com a geração e sem viés de comprimento
+          \item Margem $\gamma > 0$ exige separação mínima entre $y_w$ e $y_l$
+          \item Sem $\pi_{\text{ref}}$: $\sim$20\% menos memória e treino mais rápido
+          \item \textcolor{DarkRed}{Sem âncora, $\gamma$ e $\beta$ exigem ajuste fino}
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.45\textwidth}
+        \textcolor{DarkBlue}{\textbf{\textit{Reward} implícito de cada método}}
+        \vspace{0.2em}
 
-          \begin{align*}
-            \mathcal{L}_{\text{SimPO}} &= -\log\sigma\!\bigg(
-              \frac{\beta}{|y_w|}\log\pi_\theta(y_w|x)
-              - \frac{\beta}{|y_l|}\log\pi_\theta(y_l|x) - \gamma \bigg)
-          \end{align*}
-
-          \normalsize
-          \begin{itemize}
-            \item Sem modelo de referência ($\pi_{\text{ref}}$)
-            \item \textit{Length-normalized reward}: divide pelo comprimento para evitar viés
-            \item Margem $\gamma$ garante separação entre escolhida e rejeitada
-          \end{itemize}
-        \end{block}
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{lcc}
+          \toprule
+          \textbf{Método} & $r_\theta(x,y)$ & $\pi_{\text{ref}}$? \\
+          \midrule
+          DPO   & $\beta\log\dfrac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$ & sim \\[1.2em]
+          SimPO & $\dfrac{\beta}{|y|}\log\pi_\theta(y|x)$ & não \\
+          \bottomrule
+        \end{tabular}}
+      \end{column}
+    \end{columns}
   \note{
     \textbf{Intuição da perda SimPO:}
     \begin{itemize}
-      \item \textbf{SimPO, normalização por comprimento:} $\log\pi_\theta(y|x) = \sum_{t}\log\pi_\theta(y_t|x,y_{<t})$ é uma soma sobre os tokens. Sequências mais longas têm log-probabilidade maior em magnitude simplesmente por ter mais termos: dividir por $|y|$ normaliza isso, evitando que o modelo prefira respostas curtas (ou longas) apenas por viés de comprimento.
-      \item \textbf{Margem $\gamma$:} garante que $\text{reward}(y_w) - \text{reward}(y_l) > \gamma$ (não apenas $> 0$). Isso previne que o modelo estagne com separação mínima entre chosen e rejected.
+      \item \textbf{Desalinhamento treino/geração no DPO:} o DPO otimiza $\log\pi_\theta - \log\pi_{\text{ref}}$, mas na hora de gerar usamos apenas $\pi_\theta$. Um par pode ter reward implícito correto ($y_w$ acima de $y_l$) e ainda assim $\pi_\theta(y_w) < \pi_\theta(y_l)$, se a referência já preferia muito $y_l$. SimPO remove essa discrepância.
+      \item \textbf{Normalização por comprimento:} $\log\pi_\theta(y|x) = \sum_{t}\log\pi_\theta(y_t|x,y_{<t})$ é uma soma sobre os tokens. Sequências mais longas têm log-probabilidade mais negativa simplesmente por ter mais termos: dividir por $|y|$ normaliza isso, evitando que o modelo prefira respostas curtas (ou longas) apenas por viés de comprimento.
+      \item \textbf{Margem $\gamma$:} garante que $\text{reward}(y_w) - \text{reward}(y_l) > \gamma$ (não apenas $> 0$). Isso previne que o modelo estagne com separação mínima entre chosen e rejected. Valores típicos: $\beta \in [2, 10]$, $\gamma/\beta \in [0.3, 1.5]$.
+      \item \textbf{Sem âncora:} o preço de remover $\pi_{\text{ref}}$ é perder a garantia de que a política não se afasta demais do SFT. Na prática, SimPO usa poucas épocas e LR baixo para compensar.
     \end{itemize}
   }
   \end{frame}
@@ -1000,31 +1155,29 @@
       DPO  & \texttimes & \textcolor{DarkGreen}{\checkmark} & \texttimes & \texttimes &
         Alinhamento simples, eficiente \\
       \rowcolor{CellBlue}
-      IPO  & \texttimes & \textcolor{DarkGreen}{\checkmark} & \texttimes & \texttimes &
-        DPO mais robusto a ruído \\
       SimPO & \texttimes & \textcolor{DarkGreen}{\checkmark} & \texttimes &
         \textcolor{DarkGreen}{\checkmark} &
         Sem dependência de referência \\
-      \rowcolor{CellGreen}
       GRPO & \textcolor{DarkGreen}{\checkmark}* & \texttimes & \textcolor{DarkGreen}{\checkmark} &
         \texttimes & Raciocínio matemático/código \\
       \bottomrule
-      \multicolumn{6}{l}{\small * GRPO usa reward verificável automaticamente (ex.: checar resposta matemática), não um RM neural separado.}
+      \multicolumn{6}{l}{\small * GRPO usa uma recompensa escalar por resposta: um verificador automático (RLVR) ou, quando não há verificador, um RM neural.}
     \end{tabular}}
 
     \vspace{0.5em}
-    \begin{block}{Tendência atual}
-      Para a maioria dos casos, \textbf{SFT + DPO} é o pipeline padrão.
-      PPO é reservado para cenários onde a geração \textit{online} traz ganhos claros.
-      GRPO cresce para tarefas de raciocínio com reward verificável.
+    \begin{block}{Panorama em 2026}
+      \textbf{SFT + DPO} (ou variantes \textit{offline}) segue sendo o caminho mais barato e o padrão em modelos abertos menores.
+      Modelos de fronteira combinam, em várias rodadas, \textit{rejection sampling}, DPO \textit{online} e
+      \textbf{RL com recompensas verificáveis} (GRPO e sucessores) para raciocínio, código e agentes.
+      PPO clássico com \textit{value function} ficou restrito a equipes com infraestrutura dedicada.
     \end{block}
   \note{
     \textbf{Como usar esta tabela em aula:}
     \begin{itemize}
       \item Percorrer as colunas: ``Precisa de RM?'' elimina todos exceto RLHF-PPO e GRPO*. ``Online?'' elimina todos exceto RLHF-PPO e GRPO.
-      \item A nota de rodapé do GRPO é importante: o ``RM'' do GRPO é um verificador simbólico/algorítmico (solução matemática, execução de código), não um rede neural treinada em preferências humanas. É muito mais barato e confiável.
-      \item \textbf{Decisão prática para os alunos:} ``Você tem pares de preferência humana? Use DPO. Você quer alinhamento sem modelo de referência? Use SimPO. Você quer treinar raciocínio matemático/código com verificação automática? Use GRPO. Você precisa de alinhamento de última geração com orçamento computacional alto? Use PPO.''
-      \item Mencionar que modelos como Qwen-2.5, Gemma-2, e Mistral usam DPO/SFT como pipeline principal.
+      \item A nota de rodapé do GRPO é importante: na maioria dos usos, o ``RM'' do GRPO é um verificador simbólico/algorítmico (solução matemática, execução de código), não uma rede neural treinada em preferências humanas. É muito mais barato e confiável. Nada impede, porém, usar GRPO com um RM neural em tarefas sem verificador.
+      \item \textbf{Decisão prática para os alunos:} ``Você tem pares de preferência humana? Use DPO. Você quer alinhamento sem modelo de referência? Use SimPO. Você quer treinar raciocínio matemático/código com verificação automática? Use GRPO. Você precisa de alinhamento de última geração com orçamento computacional alto? Use RL online (PPO ou GRPO) com RM e verificadores combinados.''
+      \item \textbf{Exemplos de pipelines reais:} Llama 3 (Grattafiori et al., 2024) fez seis rodadas de rejection sampling + SFT + DPO; Tülu 3 fez SFT + DPO + RLVR; DeepSeek-R1 e Qwen3 fazem SFT curto + GRPO em larga escala. A mensagem: não há um método vencedor, há uma composição.
     \end{itemize}
   }
   \end{frame}
@@ -1044,7 +1197,7 @@
       \node[stage, fill=CellBlue,    right=of sft] (rm)
             {\textbf{RM}\\{\scriptsize Pares preferidos}\\{\scriptsize (opcional)}};
       \node[stage, fill=CellRed,     right=of rm]  (align)
-            {\textbf{Alinhamento}\\{\scriptsize PPO / DPO}\\{\scriptsize GRPO / SimPO}};
+            {\textbf{Alinhamento}\\{\scriptsize PPO / DPO / SimPO}\\{\scriptsize GRPO (RLVR)}};
       \node[stage, fill=CellPurple,  right=of align] (deploy)
             {\textbf{Deploy}\\{\scriptsize Quantização, GGUF}\\{\scriptsize vLLM, TGI}};
 
@@ -1066,7 +1219,7 @@
           \scriptsize
           GPT-3, LLaMA, Falcon\\
           Datasets: The Pile, C4\\
-          Flash Attention, Precisão Mista
+          Precisão Mista, Paralelismo
         \end{block}
       \end{column}
       \begin{column}{0.32\textwidth}
@@ -1080,9 +1233,9 @@
       \begin{column}{0.32\textwidth}
         \begin{block}{\small Pesquisa ativa}
           \scriptsize
-          DPO e variantes\\
-          GRPO para raciocínio\\
-          \textit{Constitutional AI} (Anthropic)
+          RL com recompensas verificáveis\\
+          Variantes do GRPO (DAPO, Dr.\ GRPO)\\
+          \textit{Constitutional AI} / RLAIF
         \end{block}
       \end{column}
     \end{columns}
@@ -1103,7 +1256,7 @@
   \section{Otimizações de Treinamento}
 
   %--- Slide: Motivação Precisão Mista ---
-  \begin{frame}{Precisão Mista: Por que Usar Menos Bits?}
+  \begin{frame}{Precisão Mista: Por que Usar Menos Bits? \cite{micikevicius2018mixed}}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
         Treinar em \textbf{precisão total} (fp32) consome 16 bytes
@@ -1114,39 +1267,40 @@
           operações principais permite:
           \begin{itemize}
             \item \textbf{2$\times$ menos memória} para pesos e ativações
-            \item \textbf{2--8$\times$ throughput} em Tensor Cores modernos
+            \item \textbf{2--16$\times$ throughput} em Tensor Cores modernos
             \item Treinamento de modelos maiores com o mesmo hardware
           \end{itemize}
         \end{block}
 
-        \textcolor{DarkRed}{\scriptsize \textbf{Atenção:} precisão insuficiente causa \textit{overflow/underflow} e instabilidade.}
+        \textcolor{DarkRed}{\footnotesize \textbf{Atenção:} precisão insuficiente causa \textit{overflow/underflow} e instabilidade.}
       \end{column}
       \begin{column}{0.47\textwidth}
-        \textcolor{DarkBlue}{\textbf{Throughput de GEMM por precisão}}
+        \textcolor{DarkBlue}{\textbf{Throughput de GEMM (denso)}}
         \vspace{0.3em}
 
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lcc}
           \toprule
-          \textbf{GPU} & \textbf{FP32} & \textbf{BF16/FP16} \\
+          \textbf{GPU} & \textbf{FP32 (CUDA cores)} & \textbf{BF16/FP16 (Tensor Cores)} \\
           \midrule
-          A100 SXM & 312 TFLOPS & 624 TFLOPS \\
-          H100 SXM & 67 TFLOPS  & 1\,979 TFLOPS \\
-          RTX 4090 & 83 TFLOPS  & 330 TFLOPS \\
+          A100 SXM & 19.5 TFLOPS & 312 TFLOPS \\
+          H100 SXM & 67 TFLOPS   & 989 TFLOPS \\
+          RTX 4090 & 83 TFLOPS   & 165 TFLOPS \\
           \bottomrule
-          \multicolumn{3}{l}{\scriptsize GEMM = multiplicação de matrizes}
+          \multicolumn{3}{l}{\scriptsize GEMM = multiplicação de matrizes. Valores sem \textit{sparsity} estruturada.}
         \end{tabular}}
 
         \vspace{0.4em}
         \textcolor{MidGray}{\small \textbf{Tensor Cores} (GPUs Volta+) são
         unidades de hardware dedicadas à multiplicação de matrizes em
-        fp16/bf16, daí o salto de throughput acima.}
+        fp16/bf16 (e TF32/FP8 nas gerações recentes), daí o salto de throughput acima.}
       \end{column}
     \end{columns}
   \note{
     \textbf{Por que GPUs são muito mais rápidas em fp16/bf16?}
     \begin{itemize}
-      \item GPUs modernas (Volta+) possuem \emph{Tensor Cores}: unidades de hardware dedicadas a multiplicações de matrizes em fp16/bf16. Um A100 tem 312 TFLOPS em fp32, mas 624 TFLOPS em fp16 com Tensor Cores. No H100, a diferença é ainda mais dramática: 67 vs 1979 TFLOPS (o H100 usa FP8 nativamente e faz FP32 de forma emulada).
+      \item GPUs modernas (Volta+) possuem \emph{Tensor Cores}: unidades de hardware dedicadas a multiplicações de matrizes em fp16/bf16. Um A100 faz 19.5 TFLOPS em fp32 nos CUDA cores, mas 312 TFLOPS em bf16 nos Tensor Cores (16$\times$). No H100: 67 vs.\ 989 TFLOPS, e 1\,979 TFLOPS em FP8. As fichas técnicas da NVIDIA costumam anunciar o dobro desses valores ``com sparsity'' (2:4 estruturada), que não se aplica a treino comum; por isso a tabela usa os valores densos.
+      \item Em FP32 também existe o modo \emph{TF32} dos Tensor Cores (19 bits: 8 de expoente, 10 de mantissa), ativado por padrão no PyTorch para convoluções e opcionalmente para matmul: 156 TFLOPS no A100, 495 no H100. É o motivo de ``fp32'' em GPU moderna já ser mais rápido do que parece.
       \item O bottleneck de memória também melhora: pesos em fp16 ocupam metade da memória, logo mais pesos cabem no cache L2/SRAM da GPU, reduzindo acessos à HBM.
       \item \textbf{Por que não treinar sempre em fp16?} O intervalo dinâmico do fp16 (máximo $\approx 65504$) causa \emph{overflow} de gradientes em modelos grandes. O bf16 tem o mesmo intervalo do fp32 (8 bits de expoente) e é mais robusto numericamente.
     \end{itemize}
@@ -1270,14 +1424,14 @@
         \begin{block}{\small Comparação chave}
         \small
           \textbf{BF16} = mesmo expoente do FP32 (8 bits), evita overflow de
-          gradientes; \textbf{FP16} = mais mantissa (10 bits) mas range
-          $\sim 10^{10}\times$ menor que FP32.
+          gradientes; \textbf{FP16} = mais mantissa (10 bits) mas intervalo
+          de $\sim$9 ordens de grandeza, contra $\sim$76 do FP32.
           \textbf{FP8 E5M2} (mais range): gradientes. \textbf{FP8 E4M3} (mais precisão): pesos/ativações.
         \end{block}
   \note{
     \textbf{Como ler o diagrama de bits:}
     \begin{itemize}
-      \item Valor representado: $(-1)^S \times 2^{E - \text{bias}} \times (1 + M/2^{|M|})$. O expoente tem ``bias'' subtraído (ex.: FP32 bias = 127, então expoente 0 representa $2^{0-127} \approx 10^{-38}$).
+      \item Valor representado: $(-1)^S \times 2^{E - \text{bias}} \times (1 + M/2^{|M|})$. O expoente tem ``bias'' subtraído (ex.: FP32 bias = 127; o menor campo de expoente normal é $E=1$, que representa $2^{1-127} = 2^{-126} \approx 1.18\times10^{-38}$; $E=0$ é reservado para zero e subnormais, $E=255$ para $\pm\infty$ e NaN).
       \item \textbf{FP32 vs BF16}: ambos têm 8 bits de expoente (mesmo intervalo dinâmico $[\sim\!3.4\times10^{-38}, \sim\!3.4\times10^{38}]$). BF16 sacrifica 16 bits de mantissa (23→7) para caber em 16 bits. Para gradientes de redes neurais, a precisão de 7 bits de mantissa geralmente é suficiente.
       \item \textbf{FP16}: 5 bits de expoente $\to$ máximo $\approx 65504$. Gradientes de modelos grandes frequentemente excedem isso, causando \textit{inf/NaN}. Por isso o AMP usa \textit{loss scaling} com FP16 mas não com BF16.
       \item \textbf{FP8}: introduzido nas GPUs H100 (Hopper). E4M3 para forward (mais precisão); E5M2 para backward (mais range). Throughput $\approx 2\times$ BF16 em H100.
@@ -1287,18 +1441,16 @@
 
   %--- Slide: AMP ---
   \begin{frame}{Precisão Mista Automática (AMP)}
-    {\footnotesize
+    \small
     \textbf{Pesos mestres:} cópia dos parâmetros em fp32 usada pelo otimizador.
-    Forward/backward usam cópia em fp16/bf16 (rápido em \textit{Tensor Cores}),
-    mas o AdamW acumula na cópia mestre em fp32 para não descartar gradientes
-    minúsculos.\par}
+    \textit{Forward} e \textit{backward} usam uma cópia em fp16/bf16 (rápida nos \textit{Tensor Cores}),
+    mas o AdamW acumula na cópia mestre em fp32 para não descartar atualizações minúsculas.
 
-    \vspace{0.1em}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \centering
         \begin{tikzpicture}[
-          node distance=0.12cm,
+          node distance=0.3cm,
           box/.style={draw, rounded corners=3pt, minimum height=0.45cm,
                      text width=3.4cm, align=center, font=\scriptsize,
                      inner sep=2pt},
@@ -1350,281 +1502,53 @@
     \textbf{Sobre AMP e loss scaling:}
     \begin{itemize}
       \item A cópia mestre em fp32 existe porque as atualizações do AdamW acumulam pequenas diferenças: a resolução da mantissa do fp16 (10 bits $\approx 3$ dígitos decimais) não é suficiente para acumular gradientes minúsculos sem perda de informação.
-      \item \textbf{GradScaler dinâmico (PyTorch):} começa com $S = 2^{16}$. Após cada passo sem overflow: $S \leftarrow S \times 2$. Se ocorrer overflow/NaN: $S \leftarrow S / 2$ e o passo é descartado. Converge para um $S$ estável rapidamente.
+      \item \textbf{GradScaler dinâmico (PyTorch):} começa com $S = 2^{16}$. Se ocorrer overflow/NaN no gradiente: $S \leftarrow S / 2$ e o passo é descartado. Após 2\,000 passos consecutivos sem overflow (\texttt{growth\_interval}): $S \leftarrow S \times 2$. Assim $S$ fica sempre perto do maior valor que ainda não estoura.
       \item O backward em fp16/bf16 é possível porque os GEMMs do backward pass (multiplicações de ativações e erros) se beneficiam dos Tensor Cores: só as somas de gradientes e as atualizações do otimizador precisam de fp32.
     \end{itemize}
   }
   \end{frame}
 
-  %--- Slide: Flash Attention - Problema ---
-  \begin{frame}{\textit{Flash Attention}: O Gargalo de Memória \cite{dao2022flashattention}}
+  %--- Slide: Paralelismo e memória de ativações ---
+  \begin{frame}{Treinamento Distribuído: Paralelismo e Memória \cite{rajbhandari2020zero,shoeybi2019megatron,chen2016checkpoint}}
+    \small
+    Um modelo de 70B em bf16 ocupa 140 GB só em pesos: \textbf{nenhuma GPU} o contém. O treino distribui o trabalho em três eixos.
     \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
-        O \textbf{mecanismo de atenção padrão} materializa a matriz
-        $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top \in \mathbb{R}^{N\times N}$ inteira na HBM:
-        \[
-          \text{Attn}(\mathbf{Q},\mathbf{K},\mathbf{V}) =
-          \text{softmax}\!\left(\tfrac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}}\right)\!\mathbf{V}
-        \]
-
-        \begin{alertblock}{Problema de IO}
-          Para $N=4096$, fp16: $\mathbf{S} \approx \textbf{32 MB/camada}$.
-          Com 32 camadas: \textbf{GBs de transfers HBM}, que é lenta.
-        \end{alertblock}
-
-        O bottleneck \textbf{não é computação, é memória}:
-        cada elemento de $\mathbf{S}$ deve ser escrito e relido da HBM
-        pelo menos 2 vezes (forward + backward).
-      \end{column}
-      \begin{column}{0.45\textwidth}
-        \centering
-        \textcolor{DarkBlue}{\textbf{Hierarquia de memória da GPU}}
-        \vspace{0.2em}
-
-        \begin{tikzpicture}[
-          mem/.style={draw, rounded corners=3pt, text width=3.0cm,
-                     minimum height=0.7cm, align=center, font=\scriptsize,
-                     inner sep=4pt},
-          arr/.style={<->, >=Stealth, thick}
-        ]
-          \node[mem, fill=PastelRed!60] (hbm)
-            {\textbf{HBM (VRAM)}\\40--80 GB | $\sim$2 TB/s};
-          \node[mem, fill=PastelYellow!80, above=0.5cm of hbm] (l2)
-            {\textbf{L2 Cache}\\$\sim$40 MB | $\sim$6 TB/s};
-          \node[mem, fill=PastelGreen!80, above=0.5cm of l2] (sram)
-            {\textbf{SRAM}\\$\sim$20 MB | $\sim$19 TB/s};
-          \node[mem, fill=CellBlue!70, above=0.5cm of sram] (reg)
-            {\textbf{Registradores}\\$<$1 MB | ultrarrápido};
-
-          \draw[arr] (hbm) -- (l2);
-          \draw[arr] (l2) -- (sram);
-          \draw[arr] (sram) -- (reg);
-
-          \node[draw=DarkRed, fill=LightOrange, rounded corners,
-                font=\scriptsize, text width=1.5cm, align=center,
-                right=0.3cm of hbm] (std)
-                {Atenção\\padrão:\\escreve $\mathbf{S}$};
-          \draw[->, DarkRed, dashed, thin] (std) -- (hbm.east);
-
-          \node[draw=DarkGreen, fill=PastelGreen!40, rounded corners,
-                font=\scriptsize, text width=1.5cm, align=center,
-                right=0.3cm of sram] (fa)
-                {Flash Attn:\\fica na\\SRAM};
-          \draw[->, DarkGreen, dashed, thin] (fa) -- (sram.east);
-        \end{tikzpicture}
-      \end{column}
-    \end{columns}
-  \note{
-    \textbf{Por que o IO domina?}
-    \begin{itemize}
-      \item \textbf{Atenção padrão:} (1) lê $\mathbf{Q}$, $\mathbf{K}$ da HBM; (2) computa $\mathbf{S}=\mathbf{Q}\mathbf{K}^\top$ e escreve $\mathbf{S}$ na HBM; (3) lê $\mathbf{S}$ para softmax, escreve $\mathbf{P}=\text{softmax}(\mathbf{S})$ na HBM; (4) lê $\mathbf{P}$ e $\mathbf{V}$ para calcular saída, escreve $\mathbf{O}$ na HBM. Cada round-trip à HBM ($\sim$2 TB/s) é caro.
-      \item Para $N=4096$: $\mathbf{S}$ em fp16 = $32\text{MB}$. Com $\sim$2 TB/s: $32\text{MB}/2\text{TB/s} = 16\,\mu\text{s}$ por leitura/escrita. Multiplicando por cabeças de atenção, camadas e passos de treino: segundos de tempo desperdiçado em IO puro.
-      \item \textbf{Dao et al. (2022):} a SRAM on-chip ($\sim$20MB numa A100) é $\sim$10$\times$ mais rápida que a HBM. A insight chave: se o bloco de atenção couber na SRAM, podemos evitar os round-trips à HBM.
-    \end{itemize}
-  }
-  \end{frame}
-
-  %--- Slide: Flash Attention - Tiling ---
-  \begin{frame}{\textit{Flash Attention}: Tiling na SRAM}
-    \begin{columns}[T]
-      \begin{column}{0.50\textwidth}
-        \textbf{Ideia central:} dividir $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ em \textbf{blocos}
-        que cabem na SRAM e processar atenção bloco a bloco,
-        sem materializar $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top$ na HBM.
+      \begin{column}{0.62\textwidth}
+        \resizebox{\linewidth}{!}{%
+        \begin{tabular}{lp{4.6cm}p{3.6cm}}
+          \toprule
+          \textbf{Eixo} & \textbf{O que se divide} & \textbf{Custo de comunicação} \\
+          \midrule
+          \textit{Data parallel} (DP) & O \textit{batch}: cada GPU tem uma réplica completa & \textit{All-reduce} dos gradientes a cada passo \\
+          \rowcolor{LightGray}
+          \textit{Tensor parallel} (TP) & Cada matriz de pesos, dentro da camada (Megatron-LM) & \textit{All-reduce} em toda camada, exige NVLink \\
+          \textit{Pipeline parallel} (PP) & As camadas, em estágios sequenciais (GPipe) & Só ativações na fronteira; sofre com ``bolhas'' \\
+          \rowcolor{LightGray}
+          ZeRO / FSDP & Os \textbf{estados do otimizador, gradientes e pesos} entre as réplicas de DP & \textit{All-gather} dos pesos antes de cada camada \\
+          \bottomrule
+        \end{tabular}}
 
         \vspace{0.3em}
-        \begin{block}{\textit{Online Softmax}}
-          O softmax requer ver todos os escores para normalizar.
-          Solução: manter estatísticas acumuladas por bloco:
-          \[
-            m_i^{\text{new}} = \max(m_i^{\text{old}},\, \max_j s_{ij})
-          \]
-          \[
-            \ell_i^{\text{new}} = e^{m_i^{\text{old}} - m_i^{\text{new}}} \ell_i^{\text{old}}
-              + \textstyle\sum_j e^{s_{ij} - m_i^{\text{new}}}
-          \]
-          Matematicamente equivalente ao softmax global.
-        \end{block}
-
-        \textcolor{DarkGreen}{\small \textbf{Resultado:} memória $\mathcal{O}(N^2)\!\to\!\mathcal{O}(N)$;
-        2--4$\times$ mais rápido; contextos longos viáveis \cite{dao2022flashattention}.}
+        \textcolor{DarkBlue}{\textbf{Na prática (LLaMA, Megatron):} TP dentro do nó (8 GPUs), PP entre nós, DP com ZeRO por cima; $\text{TP}\times\text{PP}\times\text{DP}$ é o total de GPUs.}
       \end{column}
-      \begin{column}{0.47\textwidth}
-        \centering
-        \begin{tikzpicture}[
-          every node/.style={font=\scriptsize},
-          qbox/.style={draw=DarkBlue, rounded corners=3pt, fill=PastelBlue!80,
-                       minimum height=0.75cm, minimum width=1.55cm,
-                       inner sep=2pt, align=center},
-          kvbox/.style={draw=DarkGreen, rounded corners=3pt,
-                        fill=PastelGreen!80, minimum height=0.75cm,
-                        minimum width=1.55cm, inner sep=2pt, align=center},
-          sbox/.style={draw=DarkOrange, rounded corners=3pt,
-                       fill=LightOrange, minimum width=3.40cm,
-                       minimum height=0.65cm, inner sep=2pt, align=center},
-          sfbox/.style={draw=DarkOrange!70, rounded corners=3pt,
-                        fill=PastelYellow!90, minimum width=3.40cm,
-                        minimum height=0.90cm, inner sep=2pt, align=center},
-          outbox/.style={draw=DarkBlue!70, rounded corners=3pt,
-                         fill=CellBlue!80, minimum width=3.10cm,
-                         minimum height=0.65cm, inner sep=2pt, align=center},
-          arr/.style={->, >=Stealth, thick},
-        ]
-          % ---- HBM region (background tint) ----
-          \fill[DarkRed!7, rounded corners=4pt]
-            (-2.25, 3.45) rectangle (2.25, 4.95);
-          \node[font=\tiny\bfseries, text=DarkRed, anchor=north west]
-            at (-2.20, 4.90) {HBM (entrada)};
-
-          % ---- Q_i tile ----
-          \node[qbox] (qi) at (-1.00, 4.10)
-            {$\mathbf{Q}_i$\\\tiny \textit{query}};
-
-          % ---- K_j, V_j tile ----
-          \node[kvbox] (kj) at (1.00, 4.10)
-            {$\mathbf{K}_j,\,\mathbf{V}_j$\\\tiny \textit{key/value}};
-
-          % ---- SRAM region (background tint) ----
-          \fill[DarkOrange!7, rounded corners=4pt]
-            (-2.25, 0.95) rectangle (2.25, 3.20);
-          \node[font=\tiny\bfseries, text=DarkOrange, anchor=north west]
-            at (-2.20, 3.15) {SRAM};
-
-          % ---- Compute S_ij box ----
-          \node[sbox] (compute) at (0, 2.55)
-            {$\mathbf{S}_{ij} = \mathbf{Q}_i \mathbf{K}_j^\top /\!\sqrt{d}$};
-
-          % ---- Online softmax box ----
-          \node[sfbox] (softmax) at (0, 1.50)
-            {softmax online:\\
-             atualiza $m_i,\,\ell_i,\,\mathbf{O}_i$};
-
-          % ---- Output box ----
-          \node[outbox] (out) at (0, 0.30)
-            {escreve $\mathbf{O}_i$ na HBM};
-
-          % ---- Arrows: HBM tiles -> compute ----
-          \draw[arr, DarkBlue]  (qi.south) -- (qi.south  |- compute.north);
-          \draw[arr, DarkGreen] (kj.south) -- (kj.south  |- compute.north);
-
-          % ---- Arrows: SRAM chain ----
-          \draw[arr, DarkOrange!80] (compute) -- (softmax);
-          \draw[arr]                (softmax) -- (out);
-
-          % ---- Loop arrow (right side) ----
-          \draw[arr, DarkRed!75, dashed]
-            (softmax.east) -- ++(0.20, 0) |- (kj.east);
-          \node[font=\tiny, text=DarkRed, align=left, anchor=west]
-            at (1.95, 2.80) {loop\\$j{+}1$};
-        \end{tikzpicture}
+      \begin{column}{0.36\textwidth}
+        \begin{block}{\textit{Gradient checkpointing}}
+          As ativações do \textit{forward} dominam a memória em sequências longas.
+          Guardar só as de algumas camadas e \textbf{recomputar} o resto no \textit{backward}
+          troca $\sim$30\% de computação por memória $\mathcal{O}(\sqrt{L})$ em vez de $\mathcal{O}(L)$.
+        \end{block}
+        \textcolor{MidGray}{ZeRO-3/FSDP e \textit{checkpointing} permitem \textit{full fine-tuning} de 7B--70B em poucos nós; para uma GPU só, a resposta é PEFT.}
       \end{column}
     \end{columns}
   \note{
-    \textbf{Como o Flash Attention funciona:}
+    \textbf{Paralelismo e memória:}
     \begin{itemize}
-      \item \textbf{Loop externo:} itera sobre blocos de $\mathbf{Q}$. Para cada $\mathbf{Q}_i$: carrega na SRAM.
-      \item \textbf{Loop interno:} itera sobre blocos de $\mathbf{K}$ e $\mathbf{V}$. Para cada $(\mathbf{Q}_i, \mathbf{K}_j)$: (1) computa $\mathbf{S}_{ij} = \mathbf{Q}_i \mathbf{K}_j^\top / \sqrt{d}$ na SRAM; (2) atualiza softmax online ($m_i, \ell_i$); (3) acumula $\mathbf{O}_i$.
-      \item \textbf{Online softmax:} ao encontrar um score maior em um bloco novo, recalibra o acumulador $\mathbf{O}_i$ multiplicando pelo fator de correção $e^{m_i^{\text{old}} - m_i^{\text{new}}}$. Matematicamente idêntico ao softmax global, sem revisitar blocos anteriores.
-      \item \textbf{Resultado:} apenas $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ e $\mathbf{O}$ são transferidos HBM$\leftrightarrow$SRAM. A matriz $\mathbf{S}$ nunca existe na HBM. IO reduzido de $\mathcal{O}(N^2)$ para $\mathcal{O}(N)$.
-    \end{itemize}
-  }
-  \end{frame}
-
-  %--- Slide: Online Softmax Exemplo Numérico ---
-  \begin{frame}{Online Softmax: Exemplo Numérico}
-    \begin{columns}[T,onlytextwidth]
-      \begin{column}{0.56\textwidth}
-        \small
-        \textbf{Scores:} $\mathbf{s} = [3,\,1,\,2,\,4]$ em dois blocos:
-        $B_1 = [3,\,1]$, $B_2 = [2,\,4]$
-
-        \vspace{0.3em}
-        \textcolor{DarkBlue}{\textbf{Processamento por blocos:}}
-        \begin{align*}
-          &\textbf{Bloco }B_1 = [3,\,1]\\
-          &\quad m^{(1)} = \max(3,1) = 3 \\
-          &\quad \ell^{(1)} = e^{3-3} + e^{1-3} = 1{.}000 + 0{.}135 = 1{.}135 \\[4pt]
-          &\textbf{Bloco }B_2 = [2,\,4]\;\;(m^{(1)} = 3)\\
-          &\quad m^{(2)} = \max(3,\,4) = 4 \\
-          &\quad \ell^{(2)} = \underbrace{e^{3-4}}_{\text{rescale}}\!\cdot\,\ell^{(1)}
-                             + e^{2-4} + e^{4-4} \\
-          &\qquad\;\; = 0{.}368 \times 1{.}135 + 0{.}135 + 1{.}000 \\
-          &\qquad\;\; = \mathbf{1{.}553}
-        \end{align*}
-      \end{column}
-      \begin{column}{0.42\textwidth}
-        \textcolor{DarkBlue}{\textbf{Softmax global (referência):}}
-        \begin{align*}
-          \ell &= e^{3-4}+e^{1-4}+e^{2-4}+e^{4-4} \\
-               &= 0{.}368+0{.}050+0{.}135+1{.}000 \\
-               &= \mathbf{1{.}553}\;\textcolor{DarkGreen}{\checkmark}
-        \end{align*}
-
-        \begin{alertblock}{Por que isso importa?}
-          \small Sem subtração do máximo:
-          \[
-            \mathbf{s} = [1000,\,1001] \;\Rightarrow\; e^{1000} = \infty
-          \]
-          Online: $\mathbf{s} - m = [-1,\,0]$\\
-          $\Rightarrow e^{-1} + e^{0} = 1{.}368$
-          \textcolor{DarkGreen}{\checkmark} sem overflow
-        \end{alertblock}
-
-        \vspace{0.2em}
-        \textcolor{MidGray}{\small O fator $e^{m^{(1)} - m^{(2)}}$ rescala o
-        acumulador anterior para o novo máximo global.}
-      \end{column}
-    \end{columns}
-  \note{
-    \textbf{Intuição do exemplo:}
-    \begin{itemize}
-      \item Após $B_1$, o acumulador $\ell^{(1)}=1.135$ assume que o máximo global é $3$. Quando $B_2$ revela o score $4$, esse acumulador está ``desescalado'' em $e^{3-4}=0.368$: é como multiplicar todas as exponenciais anteriores por esse fator de correção.
-      \item O resultado final $\ell^{(2)}=1.553$ é idêntico ao denominador do softmax global calculado de uma vez. Nenhuma aproximação foi feita.
-      \item O benefício de overflow: ao sempre subtrair o máximo visto até agora, os expoentes nunca excedem 0. Para fp16 (max $\approx 65504$), $e^{11}$ já extrapola; para fp32, $e^{88}$. Valores como $s=1000$ são comuns em logits de LLMs sem normalização.
-    \end{itemize}
-  }
-  \end{frame}
-
-  %--- Slide: Flash Attention 2 ---
-  \begin{frame}{\textit{Flash Attention} 2 e Versões Modernas \cite{dao2023flashattention2}}
-    \begin{columns}[T]
-      \begin{column}{0.48\textwidth}
-        \begin{block}{\textit{Flash Attention} 2 (Dao, 2023)}
-          Melhorias sobre a v1:
-          \begin{itemize}
-            \item \textbf{Menos operações de rescale}: reduz FLOPs
-              do softmax online em $\sim$2$\times$
-            \item \textbf{Paralelismo na dimensão de sequência}: divide
-              o trabalho tanto pelas heads quanto pelo comprimento
-            \item \textbf{Causal masking eficiente}: pula a metade
-              superior da matriz em geração autoregressiva
-            \item \textbf{Resultado}: 2--4$\times$ mais rápido que FA1
-              em sequências $\geq$1k tokens
-          \end{itemize}
-        \end{block}
-      \end{column}
-      \begin{column}{0.48\textwidth}
-        \begin{block}{\textit{Flash Attention} 3 (2024, H100)}
-          Projetado para GPUs Hopper (H100):
-          \begin{itemize}
-            \item Usa \textbf{WGMMA} e \textbf{TMA}: primitivas de hardware
-              do H100 para GEMMs e carregamentos assíncronos
-            \item Pipeline: calcula GEMM enquanto carrega o próximo bloco
-              em paralelo (sobreposição compute/IO)
-            \item Suporte nativo a \textbf{FP8}: atenção em 8 bits
-            \item $\sim$1,5--2$\times$ mais rápido que FA2 no H100
-          \end{itemize}
-        \end{block}
-
-        \textcolor{DarkGreen}{\footnotesize \textbf{Adoção:} FA2 padrão em PyTorch 2.0+, vLLM e HuggingFace.}
-      \end{column}
-    \end{columns}
-  \note{
-    \textbf{Impacto prático do Flash Attention:}
-    \begin{itemize}
-      \item FA não reduz FLOPs de computação (o número de multiplicações é o mesmo). Ele reduz o custo de IO, que é o bottleneck em GPUs modernas para $N \geq 512$.
-      \item \textbf{Contextos longos:} FA tornou praticável treinar com $N = 32$k, 128k ou até 1M tokens. Sem FA, o custo $\mathcal{O}(N^2)$ em memória limita $N$ a poucos milhares.
-      \item \textbf{PyTorch 2.0:} \texttt{F.scaled\_dot\_product\_attention} usa FA2 automaticamente quando detecta hardware compatível. Basta atualizar o código para usar essa função.
+      \item \textbf{DP puro} replica tudo: com AdamW em precisão mista, cada GPU precisa de 16 bytes/parâmetro, o que limita DP a modelos de $\sim$1B em GPUs de 24 GB. Por isso DP quase sempre vem com ZeRO.
+      \item \textbf{ZeRO} (Rajbhandari et al., 2020) tem três estágios: ZeRO-1 divide os estados do otimizador (12 dos 16 bytes), ZeRO-2 também os gradientes, ZeRO-3 também os pesos. Com ZeRO-3 a memória por GPU cai para $16/N_{\text{DP}}$ bytes/parâmetro mais ativações. FSDP do PyTorch é a implementação nativa do ZeRO-3.
+      \item \textbf{TP} (Megatron-LM) divide cada matriz $\mathbf{W}$ por colunas ou linhas entre GPUs, de modo que a atenção e a MLP de uma camada sejam calculadas em paralelo. Exige comunicação a cada camada, por isso fica confinado às GPUs de um mesmo nó (NVLink, $\sim$600--900 GB/s).
+      \item \textbf{PP} coloca camadas diferentes em GPUs diferentes; o problema são as bolhas (GPUs ociosas esperando o estágio anterior). Mitiga-se dividindo o batch em micro-batches (GPipe, 1F1B).
+      \item \textbf{Gradient checkpointing} (Chen et al., 2016): sem ele, um transformador guarda várias ativações intermediárias por camada e por token (entrada da atenção, scores, saída da MLP etc.). Com checkpoints a cada $\sqrt{L}$ camadas, o custo é um forward extra ($\sim$1/3 do passo). É o padrão em HF \texttt{gradient\_checkpointing=True}.
+      \item Ligar com a próxima seção: tudo isso é infraestrutura de quem treina o modelo base ou faz full fine-tuning. Para a maioria dos alunos, o caminho realista é PEFT em uma GPU.
     \end{itemize}
   }
   \end{frame}
@@ -1640,13 +1564,13 @@
       \begin{column}{0.50\textwidth}
         Fazer \textit{fine-tuning} completo de um LLM exige armazenar em GPU:
         \begin{itemize}
-          \item \textbf{Pesos do modelo}: $\sim$2 bytes/parâmetro (fp16)
-          \item \textbf{Gradientes}: mesmo tamanho dos pesos
-          \item \textbf{Estados do otimizador} (AdamW): $\sim$12 bytes/parâmetro
-          \item \textbf{Ativações}: proporcional ao \textit{batch size}
+          \item \textbf{Pesos}: 2 bytes/parâmetro (bf16)
+          \item \textbf{Gradientes}: 2 bytes/parâmetro
+          \item \textbf{Otimizador} (AdamW): 12 bytes/parâmetro (cópia mestre fp32 + $m$ + $v$)
+          \item \textbf{Ativações}: dependem de \textit{batch} e comprimento
         \end{itemize}
 
-        \vspace{0.4em}
+        \vspace{0.2em}
         \begin{alertblock}{Exemplo: modelo de 7B parâmetros}
           Pesos + gradientes + otimizador $\approx$ \textbf{112 GB}:
           fora do alcance de GPUs de consumo (RTX~4090: 24~GB).
@@ -1663,12 +1587,13 @@
           \midrule
           Pesos               & 4 bytes & 2 bytes \\
           Gradientes          & 4 bytes & 2 bytes \\
-          Adam $m$ (1\textordfeminine\ mom.)  & 4 bytes & --- \\
-          Adam $v$ (2\textordfeminine\ mom.)  & 4 bytes & --- \\
+          Cópia mestre (fp32) & ---     & 4 bytes \\
+          Adam $m$ (1\textordfeminine\ mom.)  & 4 bytes & 4 bytes \\
+          Adam $v$ (2\textordfeminine\ mom.)  & 4 bytes & 4 bytes \\
           \midrule
-          \textbf{Total}      & \textbf{16 bytes} & \textbf{$\sim$16 bytes*} \\
+          \textbf{Total}      & \textbf{16 bytes} & \textbf{16 bytes} \\
           \bottomrule
-          \multicolumn{3}{l}{\scriptsize * estados Adam mantidos em fp32 mesmo com pesos em fp16}
+          \multicolumn{3}{l}{\scriptsize Em precisão mista, a cópia mestre e os momentos do Adam ficam em fp32.}
         \end{tabular}}
 
         \vspace{0.4em}
@@ -1681,7 +1606,7 @@
     \begin{itemize}
       \item \textbf{Por que os estados Adam ficam em fp32 mesmo com pesos em fp16?} Mixed-precision training: os pesos são mantidos em fp16 para a forward pass (economia de memória), mas uma cópia ``mestre'' em fp32 é mantida para as atualizações (precisão numérica). Os momentos do Adam ($m$, $v$) também ficam em fp32. Resultado: $2 + 2 + 4 + 4 + 4 = 16$ bytes/param.
       \item Para 7B params: $7\times10^9 \times 16 = 112$ GB (confirma o número no slide). Uma A100 80GB não chega para fine-tuning completo de um modelo 7B!
-      \item \textbf{Gradient checkpointing} pode reduzir o custo das ativações de $O(L)$ para $O(\sqrt{L})$, ao custo de recalcular ativações durante o backward. Não está na tabela mas é frequentemente usado.
+      \item \textbf{Ativações} não estão na tabela porque dependem de batch e comprimento; \textit{gradient checkpointing} (visto no slide de treinamento distribuído) reduz esse custo de $O(L)$ para $O(\sqrt{L})$.
       \item A PEFT resolve o problema dos gradientes e estados do otimizador: se só 0,1\% dos params são treináveis, os gradientes e o estado Adam de apenas 0,1\% dos params precisam ser armazenados.
     \end{itemize}
   }
@@ -1689,25 +1614,24 @@
 
   %--- Slide: LoRA ---
   \begin{frame}{LoRA: \textit{Low-Rank Adaptation} \cite{hu2022lora}}
-    \begin{columns}
+    \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         Hu et al.\ (2022) decompõem a atualização de pesos como um produto
-        de \textbf{baixo \textit{rank}}:
+        \textbf{\textit{low rank}}:
 
-        \vspace{0.2em}
         \begin{block}{Decomposição LoRA}
-          Para uma camada $W_0 \in \mathbb{R}^{d \times k}$ congelada,
+          Para uma camada $\mathbf{W}_0 \in \mathbb{R}^{d \times k}$ congelada,
           adicionamos um desvio treinável:
           \[
-            h = W_0 x + \tfrac{\alpha}{r}\, B A x
+            \mathbf{h} = \mathbf{W}_0 \mathbf{x} + \tfrac{\alpha}{r}\, \mathbf{B} \mathbf{A} \mathbf{x}
           \]
-          onde $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$,
+          onde $\mathbf{B} \in \mathbb{R}^{d \times r}$, $\mathbf{A} \in \mathbb{R}^{r \times k}$,
           $r \ll \min(d,k)$ e $\alpha$ é um fator de escala.
         \end{block}
 
         \begin{itemize}
-          \item $A$ normal, $B$ com \textbf{zeros}: $\Delta W{=}0$ no início, o modelo parte do base
-          \item Somente $A$ e $B$ são atualizados durante o treino
+          \item $\mathbf{A}$ gaussiana, $\mathbf{B}$ com \textbf{zeros}: $\Delta\mathbf{W}{=}\mathbf{0}$ no início, o modelo parte do base
+          \item Somente $\mathbf{A}$ e $\mathbf{B}$ recebem gradiente
           \item Parâmetros treináveis: $r(d{+}k) \ll dk$
         \end{itemize}
       \end{column}
@@ -1723,35 +1647,35 @@
           \textit{rank} $r$     & 4--64      & Menor = menos parâmetros \\
           $\alpha$               & $r$--$2r$  & Controla a escala \\
           \textit{lora\_dropout} & 0.05       & Regularização \\
-          Camadas alvo           & Q, V, ff       & Projeções de atenção \\
+          Camadas alvo           & Q, V       & Mínimo; ver abaixo \\
           \bottomrule
         \end{tabular}}
 
         \vspace{0.4em}
-        \textcolor{DarkRed}{\small \textbf{Exemplo:} LLaMA-7B com $r{=}16$,
-        adaptando Q e V: apenas 0,17\% dos parâmetros são treináveis,
-        redução de memória de $\sim$3$\times$.}
+        \textcolor{DarkRed}{\small \textbf{Exemplo:} LLaMA-7B com $r{=}16$
+        em Q e V: $\sim$8,4M parâmetros treináveis ($\sim$0,12\% do total);
+        a memória de gradientes e otimizador praticamente desaparece.}
 
         \vspace{0.3em}
-        \textcolor{MidGray}{\small Adaptar também as projeções de saída
-        (O, \textit{gate}, \textit{up}, \textit{down}) melhora o desempenho
-        ao custo de mais parâmetros.}
+        \textcolor{MidGray}{\small Adaptar todas as projeções lineares
+        (Q, K, V, O, \textit{gate}, \textit{up}, \textit{down}) melhora o desempenho
+        ao custo de mais parâmetros; é o padrão atual (QLoRA).}
       \end{column}
     \end{columns}
   \note{
-    \textbf{Intuição da fórmula LoRA ($h = W_0 x + \frac{\alpha}{r}BAx$):}
+    \textbf{Intuição da fórmula LoRA ($\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r}\mathbf{B}\mathbf{A}\mathbf{x}$):}
     \begin{itemize}
-      \item $\Delta W = \frac{\alpha}{r}BA$ é a \emph{atualização} aprendida. O rank $r$ de $\Delta W$ é no máximo $r \ll d, k$, daí o nome Low-Rank Adaptation.
-      \item \textbf{Por que $B$ começa em zero?} Para que no início do treino $\Delta W = \frac{\alpha}{r} \cdot 0 \cdot Ax = 0$: o modelo começa exatamente do pré-treinamento, sem perturbação. Se inicializássemos ambos aleatoriamente, a primeira forward pass divergiria do modelo base, perdendo o ponto de partida calibrado. (Isso é a questão 1 dos exercícios de reflexão!)
-      \item \textbf{Contagem de parâmetros:} $r(d+k)$ vs.\ $dk$. Para uma atenção com $d=4096$, $k=4096$, $r=16$: LoRA usa $16\times8192=131072$ params vs.\ $16.7M$ do peso original (0,78\% do tamanho original).
+      \item $\Delta\mathbf{W} = \frac{\alpha}{r}\mathbf{B}\mathbf{A}$ é a \emph{atualização} aprendida. O rank de $\Delta\mathbf{W}$ é no máximo $r \ll d, k$, daí o nome \textit{Low-Rank Adaptation}. A hipótese do paper: a atualização necessária para adaptar um modelo pré-treinado tem ``rank intrínseco'' baixo.
+      \item \textbf{Por que $\mathbf{B}$ começa em zero?} Para que no início do treino $\Delta\mathbf{W} = \frac{\alpha}{r} \cdot \mathbf{0} \cdot \mathbf{A} = \mathbf{0}$: o modelo começa exatamente do pré-treinamento, sem perturbação. Se inicializássemos ambos aleatoriamente, a primeira forward pass divergiria do modelo base, perdendo o ponto de partida calibrado. Boa pergunta para a turma: por que não zerar $\mathbf{A}$ em vez de $\mathbf{B}$? (Se ambos fossem zero, o gradiente de ambos seria zero e nada seria aprendido; zerar só um basta.)
+      \item \textbf{Contagem de parâmetros:} $r(d+k)$ vs.\ $dk$. Para uma projeção com $d=k=4096$, $r=16$: LoRA usa $16\times8192=131\,072$ params vs.\ $16.7$M do peso original (0,78\%). Para LLaMA-7B inteiro, Q e V em 32 camadas: $2 \times 32 \times 131\,072 \approx 8.4$M, ou $\sim$0,12\% de 6,7B.
       \item O fator $\alpha/r$ é análogo a uma taxa de aprendizado adicional para os adaptadores. Mantê-lo constante ao variar $r$ é uma boa prática (ex.: sempre use $\alpha = 2r$).
-      \item \textbf{Deploy:} antes de servir, funde-se $W_0 + \frac{\alpha}{r}BA$ num único tensor: sem custo extra de inferência em relação ao modelo base!
+      \item \textbf{Deploy:} antes de servir, funde-se $\mathbf{W}_0 + \frac{\alpha}{r}\mathbf{B}\mathbf{A}$ num único tensor: sem custo extra de inferência em relação ao modelo base!
     \end{itemize}
   }
   \end{frame}
 
   %--- Slide: LoRA - Diagrama de Decomposição ---
-  \begin{frame}{LoRA: Decomposição de Baixo \textit{Rank} — Visualização}
+  \begin{frame}{LoRA: Visualização da Decomposição \textit{Low Rank}}
     \begin{columns}[T]
       \begin{column}{0.58\textwidth}
         \centering
@@ -1766,7 +1690,7 @@
           % W0 matrix (frozen)
           \filldraw[fill=LightGray, draw=MidGray, line width=1pt]
             (0, 0) rectangle (\K, \D);
-          \node[font=\normalsize\bfseries] at ({\K/2}, {\D/2+0.15}) {$W_0$};
+          \node[font=\normalsize\bfseries] at ({\K/2}, {\D/2+0.15}) {$\mathbf{W}_0$};
           \node[font=\scriptsize, text=MidGray] at ({\K/2}, {\D/2-0.25})
             {\textit{congelado}};
           \draw[decorate, decoration={brace,amplitude=5pt}, DarkBlue]
@@ -1784,7 +1708,7 @@
           \filldraw[fill=CellBlue, draw=DarkBlue, line width=1pt]
             (\bx, 0) rectangle ({\bx+\R}, \D);
           \node[rotate=90, font=\small\bfseries, text=DarkBlue]
-            at ({\bx+\R/2}, {\D/2}) {$B$};
+            at ({\bx+\R/2}, {\D/2}) {$\mathbf{B}$};
           \draw[decorate, decoration={brace,amplitude=4pt}, DarkBlue]
             (\bx, \D+0.1) -- ({\bx+\R}, \D+0.1)
             node[midway, above=4pt, font=\scriptsize, text=DarkRed] {$r \ll k$};
@@ -1797,12 +1721,12 @@
           \filldraw[fill=PastelGreen, draw=DarkGreen, line width=1pt]
             (\ax, {\D/2-\R/2}) rectangle ({\ax+\K}, {\D/2+\R/2});
           \node[font=\small\bfseries, text=DarkGreen]
-            at ({\ax+\K/2}, {\D/2}) {$A$};
+            at ({\ax+\K/2}, {\D/2}) {$\mathbf{A}$};
 
           % Formula at bottom
           \node[font=\normalsize] at ({(\K + \bx+\R+0.80+\K)/2}, {-0.75})
-            {$h = \underbrace{W_0\,x}_{\text{congelado}} +
-              \dfrac{\alpha}{r}\;\underbrace{B\,A\,x}_{\text{treinável}}$};
+            {$\mathbf{h} = \underbrace{\mathbf{W}_0\,\mathbf{x}}_{\text{congelado}} +
+              \dfrac{\alpha}{r}\;\underbrace{\mathbf{B}\,\mathbf{A}\,\mathbf{x}}_{\text{treinável}}$};
         \end{tikzpicture}
       \end{column}
       \begin{column}{0.40\textwidth}
@@ -1817,9 +1741,9 @@
           \textbf{Matriz} & \textbf{Dim.} & \textbf{Params} \\
           \midrule
           \rowcolor{LightGray}
-          $W_0$ & $d \times k$ & 16.7M \textit{(frozen)} \\
-          $B$   & $d \times r$ & 65k \\
-          $A$   & $r \times k$ & 65k \\
+          $\mathbf{W}_0$ & $d \times k$ & 16.7M \textit{(frozen)} \\
+          $\mathbf{B}$   & $d \times r$ & 65k \\
+          $\mathbf{A}$   & $r \times k$ & 65k \\
           \midrule
           \multicolumn{2}{l}{\textbf{Total treinável}} & \textbf{130k} \\
           \multicolumn{2}{l}{\textcolor{DarkGreen}{\small fração}} &
@@ -1829,17 +1753,17 @@
 
         \vspace{0.5em}
         \textcolor{DarkRed}{\scriptsize \textbf{Deploy:} fundir
-        $W_0 + \tfrac{\alpha}{r}BA$ antes de servir $\to$ zero overhead
+        $\mathbf{W}_0 + \tfrac{\alpha}{r}\mathbf{B}\mathbf{A}$ antes de servir $\to$ zero overhead
         de inferência.}
       \end{column}
     \end{columns}
   \note{
     \textbf{Como ler o diagrama:}
     \begin{itemize}
-      \item $W_0$ (cinza) tem dimensões $d \times k$: por exemplo, uma projeção de atenção com $d=k=4096$ tem 16,7M parâmetros. Ele é congelado (gradiente bloqueado).
-      \item $B$ (azul, $d \times r$) e $A$ (verde, $r \times k$) são os adaptadores de baixo rank. Com $r=16$: $B$ tem $4096 \times 16 = 65536$ params e $A$ tem $16 \times 4096 = 65536$ params (total de 131k, 0,78\% do peso original).
-      \item $A$ inicializa com distribuição normal gaussiana; $B$ inicializa com zero: garante que $\Delta W = \frac{\alpha}{r}BA = 0$ no início, preservando o modelo pré-treinado intacto.
-      \item No deploy: funde-se $W_0 + \frac{\alpha}{r}BA$ em um único tensor antes de servir (zero overhead em inferência).
+      \item $\mathbf{W}_0$ (cinza) tem dimensões $d \times k$: por exemplo, uma projeção de atenção com $d=k=4096$ tem 16,7M parâmetros. Ele é congelado (gradiente bloqueado).
+      \item $\mathbf{B}$ (azul, $d \times r$) e $\mathbf{A}$ (verde, $r \times k$) são os adaptadores de baixo rank. Com $r=16$: $\mathbf{B}$ tem $4096 \times 16 = 65536$ params e $\mathbf{A}$ tem $16 \times 4096 = 65536$ params (total de 131k, 0,78\% do peso original).
+      \item $\mathbf{A}$ inicializa com distribuição normal gaussiana; $\mathbf{B}$ inicializa com zero: garante que $\Delta\mathbf{W} = \frac{\alpha}{r}\mathbf{B}\mathbf{A} = \mathbf{0}$ no início, preservando o modelo pré-treinado intacto.
+      \item No deploy: funde-se $\mathbf{W}_0 + \frac{\alpha}{r}\mathbf{B}\mathbf{A}$ em um único tensor antes de servir (zero overhead em inferência).
     \end{itemize}
   }
   \end{frame}
@@ -1857,7 +1781,7 @@
               de quantização para pesos com distribuição normal (vs.\ INT4 uniforme)
             \item \textbf{Dupla quantização}: quantizar também as constantes
               de quantização, economizando $\approx$0,37 bits/parâmetro extra
-            \item \textbf{\textit{Paged Optimizers}}: memória unificada CPU/GPU para absorver picos durante o treino
+            \item \textbf{\textit{Paged Optimizers}}: memória unificada CPU/GPU absorve picos de uso
           \end{enumerate}
         \end{block}
       \end{column}
@@ -1892,7 +1816,69 @@
       \item \textbf{NF4 (NormalFloat 4-bit):} pesos de redes neurais seguem distribuição aproximadamente normal. O NF4 usa 16 valores de quantização distribuídos de acordo com a \emph{função de distribuição acumulada} de $\mathcal{N}(0,1)$: os bins são mais densos perto do zero (onde há mais pesos) e mais esparsos nas caudas. Isso minimiza o erro quadrático médio de quantização comparado ao INT4 uniforme.
       \item \textbf{Dupla quantização:} normalmente, cada grupo de 64 pesos tem uma constante de escala em fp32 (32 bits para 64 params = 0,5 bits extras/param). A dupla quantização quantiza essas constantes de escala em fp8 (8 bits), economizando $\approx 0,37$ bits/param adicionais.
       \item \textbf{Paged Optimizers:} durante gradient checkpointing e backward pass, há picos de uso de memória. O NVIDIA Unified Memory permite ``paginar'' o estado do otimizador para RAM da CPU quando a GPU satura, evitando OOM (Out of Memory) errors.
-      \item \textbf{Ponto crucial:} apenas os pesos base ($W_0$) são quantizados em NF4 e \emph{congelados}. Os adaptadores $A$ e $B$ ficam em bf16 e são treináveis normalmente. Os gradientes fluem pelos adaptadores sem precisar desquantizar $W_0$.
+      \item \textbf{Ponto crucial:} apenas os pesos base ($\mathbf{W}_0$) são quantizados em NF4 e \emph{congelados}. Os adaptadores $\mathbf{A}$ e $\mathbf{B}$ ficam em bf16 e são treináveis normalmente. Os gradientes fluem pelos adaptadores sem precisar desquantizar $\mathbf{W}_0$.
+    \end{itemize}
+  }
+  \end{frame}
+
+  %--- Slide: NF4 e Quantização para PEFT ---
+  \begin{frame}{Quantização para PEFT: NF4 vs.\ INT4}
+    \begin{block}{NormalFloat 4-bit (NF4)}
+      \small
+      Tipo de dado de 4 bits projetado para pesos de redes neurais, que
+      tipicamente seguem $\mathcal{N}(0, \sigma^2)$. Em vez de espaçamento
+      uniforme (INT4), os 16 valores representáveis do NF4 são obtidos dos
+      \textbf{quantis da distribuição normal}: cada nível é a média de dois
+      quantis vizinhos de $\mathcal{N}(0,1)$ (o que evita os extremos $\pm\infty$),
+      com um zero exato, e o conjunto é normalizado para $[-1, 1]$. Mais
+      resolução perto de zero, onde há mais pesos; menos resolução nas caudas.
+    \end{block}
+
+    \vspace{0.3em}
+    \centering
+    \begin{tikzpicture}[yscale=1.0, xscale=1.9]
+      % Normal density (scaled to peak ~1.5)
+      \fill[DarkBlue!15, domain=-2.7:2.7, samples=80]
+        plot (\x, {1.5*exp(-\x*\x/2)}) -- (2.7, 0) -- (-2.7, 0) -- cycle;
+      \draw[DarkBlue, thick, domain=-2.7:2.7, samples=80]
+        plot (\x, {1.5*exp(-\x*\x/2)});
+      \node[font=\scriptsize, text=DarkBlue, anchor=west] at (1.0, 1.35)
+        {$\mathcal{N}(0,1)$: distribuição dos pesos};
+
+      % Axis
+      \draw[->, thick] (-2.8, 0) -- (2.9, 0)
+        node[right, font=\tiny] {$w$};
+      \foreach \x/\lbl in {-2/$-2\sigma$, -1/$-\sigma$, 0/$0$, 1/$+\sigma$, 2/$+2\sigma$} {
+        \draw[thick] (\x, -0.05) -- (\x, 0.05);
+        \node[font=\tiny, below=1pt] at (\x, -0.05) {\lbl};
+      }
+
+      % NF4 quantile ticks (above axis, green)
+      \foreach \x in {-2.40,-1.67,-1.26,-0.95,-0.68,-0.44,-0.22,0.00,0.19,0.39,0.59,0.81,1.06,1.35,1.74,2.40} {
+        \draw[DarkGreen, very thick] (\x, 0.02) -- (\x, 0.32);
+      }
+      \node[font=\scriptsize\bfseries, text=DarkGreen, anchor=west]
+        at (-2.8, 0.95) {NF4: \textit{denso no centro}};
+
+      % INT4 uniform ticks (below axis, red)
+      \foreach \x in {-2.40,-2.08,-1.76,-1.44,-1.12,-0.80,-0.48,-0.16,0.16,0.48,0.80,1.12,1.44,1.76,2.08,2.40} {
+        \draw[DarkRed, very thick] (\x, -0.32) -- (\x, -0.02);
+      }
+      \node[font=\scriptsize\bfseries, text=DarkRed, anchor=west]
+        at (-2.6, -0.55) {INT4: \textit{uniforme, desperdiça nas caudas}};
+    \end{tikzpicture}
+
+    \vspace{0.4em}
+    \textcolor{DarkGreen}{\small \textbf{QLoRA:} pesos base em NF4 (congelados);
+    adaptadores LoRA em bf16 (treináveis). Menor erro de quantização que INT4
+    com os mesmos 4 bits.}
+  \note{
+    \textbf{Intuição do NF4 vs INT4:}
+    \begin{itemize}
+      \item INT4 uniforme divide $[\min(W), \max(W)]$ em 16 bins iguais. Como a distribuição de pesos é normal (concentrada perto do zero), a maioria dos valores cai em apenas 2--4 bins centrais, desperdiçando resolução nas caudas.
+      \item NF4 usa os quantis de $\mathcal{N}(0,1)$: coloca mais bins onde há mais massa de probabilidade (perto do zero) e menos nas caudas raras, minimizando o erro quadrático médio de quantização. \textbf{Construção exata (Dettmers et al., 2023):} para $k=4$ bits, tomam-se $2^{k-1}$ quantis para a metade negativa e $2^{k-1}+1$ para a positiva, cada nível sendo a média de dois quantis consecutivos (assim os extremos ficam finitos), unem-se as duas metades removendo um dos zeros duplicados, e normaliza-se para $[-1,1]$. Cada bloco de 64 pesos é dividido pelo seu máximo absoluto antes de ser mapeado nesses 16 níveis.
+      \item Na figura, as marcas verdes são os 16 níveis exatos do NF4 (os valores da tabela do \texttt{bitsandbytes}, em $[-1,1]$) multiplicados por $2{,}4\sigma$, que é o \textit{absmax} esperado de um bloco de 64 pesos gaussianos; as vermelhas são 16 níveis uniformes no mesmo intervalo. Note a assimetria do NF4: 7 níveis negativos, o zero e 8 positivos, porque o zero exato ``rouba'' um nível de um dos lados. O espaçamento vai de $\approx 0{,}08$ perto do zero a $\approx 0{,}3$ nas caudas (em unidades normalizadas).
+      \item \textbf{Ponto crucial:} apenas os pesos base ($\mathbf{W}_0$) são quantizados em NF4 e congelados. Os adaptadores $\mathbf{A}$ e $\mathbf{B}$ ficam em bf16: os gradientes fluem pelos adaptadores sem precisar desquantizar $\mathbf{W}_0$ para o otimizador (a desquantização acontece só no forward, bloco a bloco).
     \end{itemize}
   }
   \end{frame}
@@ -1939,67 +1925,22 @@
   }
   \end{frame}
 
-  %--- Slide: NF4 e Quantização para PEFT ---
-  \begin{frame}{Quantização para PEFT: NF4 vs.\ INT4}
-    \begin{block}{NormalFloat 4-bit (NF4)}
-      \small
-      Tipo de dado de 4 bits projetado para pesos de redes neurais, que
-      tipicamente seguem $\mathcal{N}(0, \sigma^2)$. Em vez de espaçamento
-      uniforme (INT4), os 16 valores representáveis do NF4 são posicionados
-      nos \textbf{quantis da distribuição normal}:
-      $q_i = Q_F^{-1}\!\left(\frac{i}{15}\right),\ i=0,\ldots,15$. Mais
-      resolução perto de zero, onde há mais pesos; menos resolução nas caudas.
-    \end{block}
+  %======================================================================================
+  % LEITURAS RECOMENDADAS
+  %======================================================================================
+  \section*{Referências e Leituras}
 
-    \vspace{0.3em}
-    \centering
-    \begin{tikzpicture}[yscale=1.0, xscale=1.9]
-      % Normal density (scaled to peak ~1.5)
-      \fill[DarkBlue!15, domain=-2.6:2.6, samples=80]
-        plot (\x, {1.5*exp(-\x*\x/2)}) -- (2.6, 0) -- (-2.6, 0) -- cycle;
-      \draw[DarkBlue, thick, domain=-2.6:2.6, samples=80]
-        plot (\x, {1.5*exp(-\x*\x/2)});
-      \node[font=\scriptsize, text=DarkBlue, anchor=east] at (2.6, 1.15)
-        {$\mathcal{N}(0,1)$: distribuição dos pesos};
-
-      % Axis
-      \draw[->, thick] (-2.8, 0) -- (2.9, 0)
-        node[right, font=\tiny] {$w$};
-      \foreach \x/\lbl in {-2/$-2\sigma$, -1/$-\sigma$, 0/$0$, 1/$+\sigma$, 2/$+2\sigma$} {
-        \draw[thick] (\x, -0.05) -- (\x, 0.05);
-        \node[font=\tiny, below=1pt] at (\x, -0.05) {\lbl};
-      }
-
-      % NF4 quantile ticks (above axis, green)
-      \foreach \x in {-2.10,-1.77,-1.48,-1.22,-0.97,-0.74,-0.50,-0.25,
-                       0.00, 0.25, 0.50, 0.74, 0.97, 1.22, 1.48, 1.77} {
-        \draw[DarkGreen, very thick] (\x, 0.02) -- (\x, 0.32);
-      }
-      \node[font=\scriptsize\bfseries, text=DarkGreen, anchor=west]
-        at (-2.6, 0.55) {NF4: \textit{denso no centro}};
-
-      % INT4 uniform ticks (below axis, red)
-      \foreach \x in {-2.1,-1.82,-1.54,-1.26,-0.98,-0.70,-0.42,-0.14,
-                       0.14, 0.42, 0.70, 0.98, 1.26, 1.54, 1.82, 2.10} {
-        \draw[DarkRed, very thick] (\x, -0.32) -- (\x, -0.02);
-      }
-      \node[font=\scriptsize\bfseries, text=DarkRed, anchor=west]
-        at (-2.6, -0.55) {INT4: \textit{uniforme, desperdiça nas caudas}};
-    \end{tikzpicture}
-
-    \vspace{0.4em}
-    \textcolor{DarkGreen}{\small \textbf{QLoRA:} pesos base em NF4 (congelados);
-    adaptadores LoRA em bf16 (treináveis). Menor erro de quantização que INT4
-    com os mesmos 4 bits.}
-  \note{
-    \textbf{Intuição do NF4 vs INT4:}
+  \begin{frame}{Leituras Recomendadas}
+    \leiturasize
     \begin{itemize}
-      \item INT4 uniforme divide $[\min(W), \max(W)]$ em 16 bins iguais. Como a distribuição de pesos é normal (concentrada perto do zero), a maioria dos valores cai em apenas 2--4 bins centrais, desperdiçando resolução nas caudas.
-      \item NF4 usa os quantis de $\mathcal{N}(0,1)$: coloca mais bins onde há mais massa de probabilidade (perto do zero) e menos nas caudas raras, minimizando o erro quadrático médio de quantização.
-      \item \textbf{Ponto crucial:} apenas os pesos base ($W_0$) são quantizados em NF4 e congelados. Os adaptadores $A$ e $B$ ficam em bf16: os gradientes fluem pelos adaptadores sem precisar desquantizar $W_0$.
-      \item Dupla quantização (QLoRA): as constantes de escala da quantização (fp32, 1 por grupo de 64 pesos) são quantizadas novamente em fp8, economizando $\approx 0.37$ bits/parâmetro extras.
+      \item Lambert, N. (2025). \textit{Reinforcement Learning from Human Feedback} (The RLHF Book). \textit{rlhfbook.com}. RM, PPO, DPO, GRPO e RLVR em um só lugar.
+      \item Hugging Face (2025). \textit{The Ultra-Scale Playbook: Training LLMs on GPU Clusters}. Paralelismo, ZeRO e precisão mista com experimentos.
+      \item Grattafiori, A. et al. (2024). The Llama 3 Herd of Models. \textit{arXiv:2407.21783}. Relato completo de pré-treino e pós-treino.
+      \item Lambert, N. et al. (2024). Tülu 3: Pushing Frontiers in Open Language Model Post-Training. \textit{arXiv:2411.15124}.
+      \item Shao, Z. et al. (2024). DeepSeekMath. \textit{arXiv:2402.03300}. Origem do GRPO.
+      \item Penedo, G. et al. (2024). The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale. \textit{NeurIPS Datasets and Benchmarks}.
+      \item Karpathy, A. (2024). Let's Reproduce GPT-2 (124M). \textit{github.com/karpathy/build-nanogpt}. Pré-treino completo em código.
     \end{itemize}
-  }
   \end{frame}
 
   %======================================================================================
