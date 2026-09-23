@@ -3,6 +3,42 @@
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
 
+% Histogramas do estudo de caso: dados gerados por scripts/export_init_histograms.js,
+% que roda o mesmo código da demo docs/weight-init (MNIST, 4 camadas tanh, semente 42).
+\usepgfplotslibrary{groupplots}
+\input{slides/data/01-mlp/init-hist-stats}
+\definecolor{histA}{RGB}{0,114,178}
+\definecolor{histB}{RGB}{0,158,115}
+\definecolor{histC}{RGB}{230,159,0}
+\definecolor{histD}{RGB}{213,94,0}
+\newcommand{\inithiststd}[2]{\csname inithiststd-#1-#2\endcsname}
+% \inithistpanel{esquema}{camada}{cor}
+\newcommand{\inithistpanel}[3]{%
+  \nextgroupplot[title={$\mathbf{A}^{(#2)}$}, xlabel={$\sigma = \inithiststd{#1}{#2}$}]
+  \addplot[const plot, draw=#3, thick, fill=#3, fill opacity=.35]
+    table[x=x, y=l#2] {slides/data/01-mlp/init-hist-#1.csv} \closedcycle;
+}
+% \inithist{esquema}{largura de cada painel}{altura}
+\newcommand{\inithist}[3]{%
+  \begin{tikzpicture}
+    \begin{groupplot}[
+      group style={group size=4 by 1, horizontal sep=11pt},
+      scale only axis, width=#2, height=#3,
+      xmin=-1.05, xmax=1.05, ymin=0,
+      ymax=\csname inithistymax-#1\endcsname,
+      xtick={-1,0,1}, ytick=\empty,
+      tick label style={font=\tiny}, title style={font=\scriptsize, yshift=-3pt},
+      xlabel style={font=\tiny, yshift=2pt},
+      axis line style={gray}, tick style={gray},
+    ]
+      \inithistpanel{#1}{1}{histA}
+      \inithistpanel{#1}{2}{histB}
+      \inithistpanel{#1}{3}{histC}
+      \inithistpanel{#1}{4}{histD}
+    \end{groupplot}
+  \end{tikzpicture}%
+}
+
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
 %----------------------------------------------------------------------------------------
@@ -109,9 +145,10 @@
       \begin{column}{.6\linewidth}
         \begin{itemize}
           \item Dataset: MNIST, dígitos manuscritos.
-          \item Arquitetura: MLP com 5 camadas, todas com 300 unidades tanh,
+          \item Arquitetura: MLP com 4 camadas ocultas de 300 unidades tanh e
             saída softmax com 10 classes.
-          \item Tamanho do \textit{batch}: 100 imagens.
+          \item Tamanho do \textit{batch}: 100 imagens, com pixels normalizados
+            para média 0 e desvio 1.
           \item Vamos olhar o histograma das ativações $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$
             em cada camada oculta.
         \end{itemize}
@@ -158,15 +195,17 @@
       \begin{column}{.4\linewidth}
         \begin{itemize}
           \item Pesos iniciais zerados.
-          \item Toda unidade computa a mesma pré-ativação.
-          \item Todas as ativações colapsam em 0.
-          \item Por simetria, qualquer atualização afeta todas as unidades igualmente:
-            a rede nunca quebra a simetria.
+          \item Toda pré-ativação é 0 e, como $\tanh(0)=0$, todas as ativações
+            colapsam em 0.
+          \item O gradiente de todos os pesos é exatamente zero: só o bias da saída
+            é atualizado.
+          \item As unidades de uma camada permanecem idênticas: a rede nunca quebra
+            a simetria.
         \end{itemize}
       \end{column}
       \begin{column}{.6\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-zero.png}
+        \inithist{zero}{1.6cm}{3cm}\\
         \footnotesize Histogramas de $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$ com $\thetav=0$.
       \end{column}
     \end{columns}
@@ -181,31 +220,32 @@
           \item As pré-ativações de cada camada explodem em magnitude.
           \item A tanh \alert{satura} em $\pm 1$.
           \item Em camadas internas, quase todas as unidades estão na região
-            de derivada nula.
+            de derivada quase nula.
         \end{itemize}
       \end{column}
       \begin{column}{.6\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-normal.png}
-        \footnotesize Massa concentrada em $\pm 1$: zona morta da tanh.
+        \inithist{normal}{1.6cm}{3cm}\\
+        \footnotesize Massa concentrada em $\pm 1$: região saturada da tanh.
       \end{column}
     \end{columns}
   \end{frame}
 
-  %--- Slide: theta ~ U(-1, 1) ---
-  \begin{frame}{Tentativa 3: $\thetav \sim \mathcal{U}(-1,1)$}
+  %--- Slide: theta ~ U(-1/sqrt(n), 1/sqrt(n)) ---
+  \begin{frame}{Tentativa 3: $\thetav \sim \mathcal{U}\!\left(-1/\sqrt{n},\,1/\sqrt{n}\right)$}
     \begin{columns}
       \begin{column}{.4\linewidth}
         \begin{itemize}
-          \item Variância $\sigma_\theta^2 = 1/3$, menor que o caso anterior.
-          \item Mesmo assim, as ativações \alert{encolhem} a cada camada.
+          \item $n$: número de entradas da camada (784 ou 300).
+          \item Variância $\sigma_\theta^2 = 1/(3n)$, muito menor que o caso anterior.
+          \item Agora as ativações \alert{encolhem} a cada camada.
           \item Em $\mathbf{A}^{(4)}$ a distribuição é uma agulha em zero.
           \item Sintoma de \textit{vanishing} em forward.
         \end{itemize}
       \end{column}
       \begin{column}{.6\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/01-mlp/init-hist-uniform.png}
+        \inithist{uniform}{1.6cm}{3cm}\\
         \footnotesize Distribuição encolhe a cada camada.
       \end{column}
     \end{columns}
@@ -217,12 +257,8 @@
       \item Inicializações ad-hoc falham de formas opostas dependendo da escala.
       \item A escala certa depende do número de unidades de entrada de cada camada
         e da função de ativação utilizada.
-      \item Visualização interativa que motiva a derivação:
-        \begin{center}
-          \href{https://lucaskup.github.io/deep-learning-course/weight-init/}{%
-            \textit{\color{blue}\underline{Demo interativo: Inicialização de Pesos}}
-          }
-        \end{center}
+      \item \href{https://lucaskup.github.io/deep-learning-course/weight-init/}{%
+          \textcolor{blue}{Visualização interativa}} que motiva a derivação.
     \end{itemize}
   \end{frame}
 
@@ -248,7 +284,8 @@
     \vfill
     \begin{block}{Hipóteses}
       $\theta^{(l)}_{ij}$ independentes entre si e independentes de
-      $\varphi(z^{(l-1)}_j)$. A distribuição de $z^{(l-1)}_j$ é simétrica em zero.
+      $\varphi(z^{(l-1)}_j)$. Todas as $z^{(l-1)}_j$ têm a mesma variância
+      $\sigma^2_{z^{(l-1)}}$.
     \end{block}
   \end{frame}
 
@@ -312,7 +349,7 @@
     \]
     \begin{itemize}
       \item Como $b^{(l)}_i = 0$, expandimos sem o termo do bias.
-      \item Cross-terms entre pesos diferentes desaparecem por independência
+      \item Os termos cruzados ($j\neq k$) desaparecem por independência
         e $\mathbb{E}[\theta]=0$.
     \end{itemize}
     \[
@@ -342,14 +379,16 @@
 
   %--- Slide: ReLU sobre simétrica ---
   \begin{frame}{Para ReLU sobre $z$ simétrica em zero}
-    Vamos provar (próximo slide) que, se $z$ é simétrica em zero com variância $\sigma_z^2$,
+    No exercício desta seção, vamos provar que, se $z$ é simétrica em zero com
+    variância $\sigma_z^2$,
     \[
       \mathbb{E}[\mathrm{ReLU}(z)^2] = \frac{\sigma_z^2}{2}.
     \]
     \begin{itemize}
-      \item ReLU corta os valores negativos, mantendo metade da massa.
-      \item A simetria garante que a metade positiva tem o mesmo segundo momento da
-        distribuição inteira, dividido por 2.
+      \item A simetria vale em toda camada: $z^{(l)}_i$ é uma soma de produtos por
+        $\theta^{(l)}_{ij}$, que é simétrico em zero e independente do outro fator.
+      \item ReLU zera a parte negativa da distribuição, e a parte positiva contribui
+        com metade do segundo momento.
     \end{itemize}
   \end{frame}
 
@@ -371,6 +410,8 @@
     \begin{itemize}
       \item Se a constante $\tfrac{n^{(l-1)}}{2}\,\sigma_\theta^2$ for maior que 1, exploding.
       \item Se for menor que 1, vanishing. Queremos exatamente 1.
+      \item Na primeira camada a entrada é $\mathbf{x}$, sem ReLU, e o termo
+        vira $\mathbb{E}[x_j^2]$: a recorrência vale a partir de $l=2$.
     \end{itemize}
   \end{frame}
 
@@ -402,12 +443,13 @@
       \mathbb{E}[\mathrm{ReLU}(a)^2] = \int_{-\infty}^{\infty} \max(0,a)^2 p(a)\,da
         = \int_{0}^{\infty} a^2 p(a)\,da.
     \]
-    Pela simetria de $p$ em torno de zero, $\int_{-\infty}^{0} a^2 p(a)\,da = \int_{0}^{\infty} a^2 p(a)\,da$.
-    Logo,
+    Pela simetria, $p(-a)=p(a)$, e a troca $a\to -a$ dá
+    $\int_{-\infty}^{0} a^2 p(a)\,da = \int_{0}^{\infty} a^2 p(a)\,da$. Logo,
     \[
-      \mathbb{E}[a^2] = 2 \int_{0}^{\infty} a^2 p(a)\,da
-        \quad\Longrightarrow\quad
-      \int_{0}^{\infty} a^2 p(a)\,da = \frac{\mathbb{E}[a^2]}{2} = \frac{\sigma^2}{2}.
+      \sigma^2 = \mathbb{E}[a^2]
+        = \int_{-\infty}^{\infty} a^2 p(a)\,da
+        = \int_{-\infty}^{0} a^2 p(a)\,da + \int_{0}^{\infty} a^2 p(a)\,da
+        = 2 \int_{0}^{\infty} a^2 p(a)\,da.
     \]
     \[
       \boxed{\mathbb{E}[\mathrm{ReLU}(a)^2] = \frac{\sigma^2}{2}.}
@@ -435,7 +477,7 @@
       \]
     \end{block}
     \begin{itemize}
-      \item $n^{(l-1)}$ é o número de \textit{fan-in} da camada (entradas).
+      \item $n^{(l-1)}$ é o \textit{fan-in} da camada (número de entradas).
       \item Padrão de fato para ReLU e GELU.
     \end{itemize}
   \end{frame}
@@ -444,9 +486,10 @@
   \begin{frame}{Origem da inicialização He\footfullcite{he2015delving}}
     \begin{itemize}
       \item Apresentada em 2015 por Kaiming He et al. para redes muito profundas com ReLU.
-      \item Permitiu treinar redes com mais de 30 camadas convolucionais sem
-        \textit{batch norm}.
-      \item Variante uniforme: $\thetav\sim\mathcal{U}\!\left(-\sqrt{6/n},\;\sqrt{6/n}\right)$,
+      \item Permitiu treinar do zero uma rede com 30 camadas convolucionais sem
+        \textit{batch norm}, profundidade em que a inicialização Xavier estagnava.
+      \item Variante uniforme, comum nos frameworks:
+        $\thetav\sim\mathcal{U}\!\left(-\sqrt{6/n},\;\sqrt{6/n}\right)$,
         que tem a mesma variância $2/n$.
     \end{itemize}
   \end{frame}
@@ -458,13 +501,17 @@
         \textbf{tanh} ao redor de zero.
       \item Para tanh, $\varphi(z)\approx z$ perto da origem, então $\mathbb{E}[\varphi(z)^2]\approx \sigma_z^2$
         sem o fator $1/2$.
-      \item Isso leva a $\sigma_\theta^2 = 1/n^{(l-1)}$.
+      \item A condição do forward leva a $\sigma_\theta^2 = 1/n^{(l-1)}$
+        (também chamada de inicialização LeCun).
       \[
         \boxed{\;\sigma_\theta^2 = \dfrac{1}{n^{(l-1)}}\;}
         \qquad
         \theta^{(l)}_{ij} \sim \mathcal{N}\!\left(0,\;\tfrac{1}{n^{(l-1)}}\right).
       \]
-      \item Padrão para sigmoid, tanh e softmax.
+      \item A proposta final de Glorot combina forward e backward
+        (\textit{fan\_avg}, discutido ao fim da seção).
+      \item Padrão para tanh e softmax. Na sigmoid é usada por convenção, mas
+        $\varphi(0)=1/2$ quebra a aproximação $\varphi(z)\approx z$.
     \end{itemize}
   \end{frame}
 
@@ -472,18 +519,18 @@
   % Bloco: voltando ao MNIST
   %======================================================================
 
-  %--- Slide: He resolve o problema ---
-  \begin{frame}{Mesmo MLP, agora com inicialização He}
+  %--- Slide: Xavier resolve o problema ---
+  \begin{frame}{Mesmo MLP, agora com inicialização Xavier}
     \begin{columns}
       \begin{column}{.6\linewidth}
         \centering
-        \includegraphics[width=\linewidth,height=0.7\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-he.png}
+        \inithist{xavier}{1.6cm}{3.6cm}
       \end{column}
       \begin{column}{.4\linewidth}
         \begin{itemize}
-          \item Histogramas das ativações $\mathbf{A}^{(1)},\ldots,\mathbf{A}^{(4)}$ ficam estáveis
-            ao longo das camadas.
-          \item A magnitude não cresce nem encolhe, e a tanh não satura.
+          \item A tanh não satura e a distribuição não colapsa em zero.
+          \item O desvio ainda cai devagar: $\tanh(z)\approx z$ só perto da
+            origem, e $|\tanh(z)|<|z|$ tira um pouco de variância a cada camada.
           \item A rede consegue treinar.
         \end{itemize}
       \end{column}
@@ -495,17 +542,17 @@
     \begin{columns}
       \begin{column}{.5\linewidth}
         \centering
-        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-zero.png}\\
+        \inithist{zero}{1.05cm}{1.1cm}\\
         \footnotesize $\thetav = 0$\\[0.3em]
-        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-uniform.png}\\
-        \footnotesize $\thetav\sim\mathcal{U}(-1,1)$
+        \inithist{uniform}{1.05cm}{1.1cm}\\
+        \footnotesize $\thetav\sim\mathcal{U}(-1/\sqrt{n},1/\sqrt{n})$
       \end{column}
       \begin{column}{.5\linewidth}
         \centering
-        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-normal.png}\\
+        \inithist{normal}{1.05cm}{1.1cm}\\
         \footnotesize $\thetav\sim\mathcal{N}(0,1)$\\[0.3em]
-        \includegraphics[width=.9\linewidth,height=.36\textheight,keepaspectratio]{slides/img/01-mlp/init-hist-he.png}\\
-        \footnotesize He: $\thetav\sim\mathcal{N}(0,2/n)$
+        \inithist{xavier}{1.05cm}{1.1cm}\\
+        \footnotesize Xavier: $\thetav\sim\mathcal{N}(0,1/n)$
       \end{column}
     \end{columns}
   \end{frame}
@@ -539,7 +586,7 @@
       \item Em camadas onde $n^{(l-1)} = n^{(l)}$, recupera as fórmulas originais.
     \end{itemize}
     \vspace{0.3em}
-    {\footnotesize\color{gray!50!black}A versão He original (He et al.\ 2015) usa apenas \textit{fan\_in} ($2/n^{(l-1)}$). A média \textit{fan\_avg} vem de Glorot/Xavier e é o default do \texttt{Dense} no Keras (\texttt{glorot\_uniform}); o PyTorch usa \textit{fan\_in} por padrão (ver próximo slide).}
+    {\footnotesize\color{gray!50!black}He et al.\ (2015) derivam \textit{fan\_in} no forward e \textit{fan\_out} no backward, e mostram que satisfazer qualquer uma das duas condições basta. A média \textit{fan\_avg} vem de Glorot/Xavier e é o default do \texttt{Dense} no Keras (\texttt{glorot\_uniform}); a versão com fator 2 é \texttt{VarianceScaling(scale=2, mode='fan\_avg')}. O PyTorch usa \textit{fan\_in} por padrão.}
   \end{frame}
 
   %======================================================================
@@ -553,7 +600,8 @@
       \toprule
       Ativação principal & Inicialização recomendada & Variância $\sigma_\theta^2$ \\
       \midrule
-      ReLU, Leaky ReLU, ELU & He / Kaiming           & $2/n^{(l-1)}$            \\
+      ReLU, ELU            & He / Kaiming           & $2/n^{(l-1)}$            \\
+      Leaky ReLU (inclinação $\alpha$) & He / Kaiming & $2/\big((1+\alpha^2)\,n^{(l-1)}\big)$ \\
       GELU                 & He / Kaiming           & $2/n^{(l-1)}$            \\
       Sigmoid, tanh        & Xavier / Glorot        & $1/n^{(l-1)}$            \\
       Softmax (saída)      & Xavier / Glorot        & $1/n^{(l-1)}$            \\
@@ -566,18 +614,6 @@
     \end{itemize}
   \end{frame}
 
-  %--- Slide: PyTorch ---
-  \begin{frame}{Em PyTorch}
-    \begin{itemize}
-      \item He (Kaiming): \texttt{torch.nn.init.kaiming\_normal\_(tensor, mode='fan\_in')}
-      \item Xavier (Glorot): \texttt{torch.nn.init.xavier\_normal\_(tensor)}
-      \item Padrão dos módulos \texttt{nn.Linear} e \texttt{nn.Conv2d}: \alert{Kaiming uniform}
-        com \texttt{fan\_in}, $a=\sqrt{5}$. Bom o suficiente na maioria dos casos.
-      \item Para arquiteturas grandes (transformers, ResNet), inicializações específicas
-        por bloco (DeepNorm, MUP) podem dar resultados ainda melhores.
-    \end{itemize}
-  \end{frame}
-
   %--- Slide: leituras ---
   \section*{Referências e Leituras}
   \begin{frame}{Leituras Recomendadas}
@@ -585,8 +621,8 @@
     \sloppy
     \begin{itemize}
       \item Capítulo 7 de \fullcite{prince2023understanding}
-      \item Xavier (Glorot e Bengio, 2010): \citeauthoryear{glorot2010xavier}
-      \item Kaiming (He et al., 2015): \citeauthoryear{he2015delving}
+      \item Xavier: \fullcite{glorot2010xavier}
+      \item Kaiming: \fullcite{he2015delving}
       \item Visualização interativa:
         \href{https://lucaskup.github.io/deep-learning-course/weight-init/}{%
           \textit{lucaskup.github.io/deep-learning-course/weight-init}}

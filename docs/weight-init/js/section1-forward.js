@@ -5,30 +5,18 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
-  const N = 300;         // largura (= fan-in n^(l-1) de todas as camadas), como nos slides
-  const B = 100;         // tamanho do batch de entradas x ~ N(0, I), como nos slides
   const FLOOR = 1e-13;   // piso para a escala log (zeros dão desvio 0)
   const NBINS = 36;
 
   /* Estado compartilhado entre as seções 1 e 2. */
   const S = DL.winit = {
-    cfg: { init: 'normal', sigma: 1.0, act: 'tanh', L: 10, seed: 42 },
+    cfg: { init: 'normal', sigma: 1.0, act: 'tanh', L: 10, seed: 42, input: 'mnist' },
     data: null,
     listeners: [],
   };
   S.notify = function () { for (const fn of S.listeners) fn(); };
 
-  /* ── helpers numéricos ── */
-
-  function stdOf(arr) {
-    const n = arr.length;
-    let m = 0;
-    for (let i = 0; i < n; i++) m += arr[i];
-    m /= n;
-    let v = 0;
-    for (let i = 0; i < n; i++) { const d = arr[i] - m; v += d * d; }
-    return Math.sqrt(v / n);
-  }
+  /* ── helpers de formatação ── */
 
   const SUPS = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
   function sup(e) {
@@ -52,91 +40,10 @@
   S.sup = sup;
   S.sciUni = sciUni;
 
-  /* ── rede: pesos, forward e backward, tudo com semente ── */
+  /* ── rede: pesos, forward e backward, tudo com semente (winit-core.js) ── */
 
   S.recompute = function () {
-    const U = DL.utils;
-    const cfg = S.cfg;
-    const L = cfg.L;
-    const rng = U.mulberry32(cfg.seed);
-
-    let sw;                                      // desvio dos pesos σ_θ
-    if (cfg.init === 'zeros') sw = 0;
-    else if (cfg.init === 'normal') sw = cfg.sigma;
-    else if (cfg.init === 'xavier') sw = Math.sqrt(1 / N);   // σ_θ² = 1/n^(l-1)
-    else sw = Math.sqrt(2 / N);                              // He: σ_θ² = 2/n^(l-1)
-
-    /* batch de entradas */
-    const X = new Float32Array(B * N);
-    for (let i = 0; i < X.length; i++) X[i] = U.randn(rng);
-
-    /* pesos θ^(l), bias = 0 */
-    const Ws = [];
-    for (let l = 0; l < L; l++) {
-      const W = new Float32Array(N * N);
-      if (sw > 0) for (let i = 0; i < W.length; i++) W[i] = sw * U.randn(rng);
-      Ws.push(W);
-    }
-
-    /* forward: acts[l] = a^(l) (acts[0] = x), derivs[l-1] = φ'(z^(l)) */
-    const acts = [X], derivs = [];
-    const act = cfg.act;
-    let aPrev = X;
-    for (let l = 0; l < L; l++) {
-      const W = Ws[l];
-      const a = new Float32Array(B * N), d = new Float32Array(B * N);
-      for (let b = 0; b < B; b++) {
-        const off = b * N;
-        for (let j = 0; j < N; j++) {
-          let s = 0;
-          const wr = j * N;
-          for (let k = 0; k < N; k++) s += W[wr + k] * aPrev[off + k];
-          let av, dv;
-          if (act === 'relu') { av = s > 0 ? s : 0; dv = s > 0 ? 1 : 0; }
-          else if (act === 'sigmoid') { av = 1 / (1 + Math.exp(-s)); dv = av * (1 - av); }
-          else { av = Math.tanh(s); dv = 1 - av * av; }
-          a[off + j] = av; d[off + j] = dv;
-        }
-      }
-      acts.push(a); derivs.push(d);
-      aPrev = a;
-    }
-
-    /* backward: gradiente com desvio 1 injetado em a^(L),
-       g^(l) = (θ^(l+1))^T (g^(l+1) ⊙ φ'(z^(l+1))) */
-    const grads = new Array(L + 1);
-    const gTop = new Float32Array(B * N);
-    for (let i = 0; i < gTop.length; i++) gTop[i] = U.randn(rng);
-    grads[L] = gTop;
-    for (let l = L - 1; l >= 1; l--) {
-      const W = Ws[l];                  // θ^(l+1)
-      const gNext = grads[l + 1], d = derivs[l];   // φ'(z^(l+1))
-      const g = new Float32Array(B * N);
-      for (let b = 0; b < B; b++) {
-        const off = b * N;
-        for (let j = 0; j < N; j++) {
-          const t = gNext[off + j] * d[off + j];
-          if (t === 0) continue;
-          const wr = j * N;
-          for (let k = 0; k < N; k++) g[off + k] += W[wr + k] * t;
-        }
-      }
-      grads[l] = g;
-    }
-
-    /* estatísticas por camada */
-    const actStd = new Array(L + 1), gradStd = new Array(L + 1);
-    for (let l = 0; l <= L; l++) actStd[l] = stdOf(acts[l]);
-    gradStd[0] = NaN;
-    for (let l = 1; l <= L; l++) gradStd[l] = stdOf(grads[l]);
-
-    /* camadas exibidas nos histogramas: 1, ⌈L/4⌉, ⌈L/2⌉, ⌈3L/4⌉, L (sem repetição) */
-    const sel = [];
-    for (const l of [1, Math.ceil(L / 4), Math.ceil(L / 2), Math.ceil(3 * L / 4), L]) {
-      if (!sel.includes(l)) sel.push(l);
-    }
-
-    S.data = { L, acts, grads, actStd, gradStd, sel };
+    S.data = DL.winitCore.simulate(S.cfg);
   };
 
   /* ── helpers de desenho compartilhados ── */
@@ -213,19 +120,57 @@
     const $ = (id) => document.getElementById(id);
 
     const cvHist = $('s1-hist'), cvStd = $('s1-std');
-    const selInit = $('s1-init'), selAct = $('s1-act');
+    const selInit = $('s1-init'), selAct = $('s1-act'), selInput = $('s1-input');
     const sliderSigma = $('s1-sigma'), sigmaWrap = $('s1-sigma-wrap');
     const sliderDepth = $('s1-depth');
     const btnResample = $('s1-resample');
+
+    /* Presets: as tentativas do estudo de caso dos slides, com a mesma semente
+       usada por scripts/export_init_histograms.js (histogramas idênticos). */
+    const PRESET_BASE = { act: 'tanh', L: 4, seed: 42, input: 'mnist' };
+    const PRESETS = {
+      zeros: { init: 'zeros' },
+      normal: { init: 'normal', sigma: 1 },
+      uniform: { init: 'uniform' },
+      xavier: { init: 'xavier' },
+    };
+
+    /* Copia S.cfg para os controles (usado depois de aplicar um preset). */
+    function syncControls() {
+      const cfg = S.cfg;
+      selInit.value = cfg.init;
+      selAct.value = cfg.act;
+      selInput.value = cfg.input;
+      sliderSigma.value = cfg.sigma;
+      $('s1-sigma-val').textContent = cfg.sigma.toFixed(2);
+      sliderDepth.value = cfg.L;
+      $('s1-depth-val').textContent = cfg.L;
+      sigmaWrap.classList.toggle('hidden', cfg.init !== 'normal');
+    }
+
+    /* Destaca o preset que coincide com a configuração atual, se houver. */
+    function updatePresetTabs() {
+      const cfg = S.cfg;
+      for (const key of Object.keys(PRESETS)) {
+        const p = Object.assign({}, PRESET_BASE, PRESETS[key]);
+        const match = Object.keys(p).every((k) => cfg[k] === p[k]);
+        $('s1-preset-' + key).classList.toggle('active', match);
+      }
+    }
 
     function updateReadout() {
       const cfg = S.cfg;
       let txt;
       if (cfg.init === 'zeros') txt = 'θ = 0';
       else if (cfg.init === 'normal') txt = 'σ<sub>θ</sub> = ' + cfg.sigma.toFixed(2);
-      else if (cfg.init === 'xavier') txt = 'σ<sub>θ</sub>² = 1/300, σ<sub>θ</sub> ≈ 0.058';
-      else txt = 'σ<sub>θ</sub>² = 2/300, σ<sub>θ</sub> ≈ 0.082';
+      else if (cfg.init === 'uniform') txt = 'σ<sub>θ</sub>² = 1/(3n)';
+      else if (cfg.init === 'xavier') txt = 'σ<sub>θ</sub>² = 1/n';
+      else txt = 'σ<sub>θ</sub>² = 2/n';
+      if (cfg.init !== 'zeros' && cfg.init !== 'normal') {
+        txt += cfg.input === 'mnist' ? ' (n = 784 na camada 1, 300 nas demais)' : ' (n = 300)';
+      }
       $('s1-readout').innerHTML = txt;
+      updatePresetTabs();
     }
 
     function redraw() {
@@ -242,7 +187,7 @@
         lo = 0; hi = Math.max(3.5 * m, 1e-6);
       }
       S.drawHistRow(cvHist, d.sel, (l) => d.acts[l], (l) => d.actStd[l], lo, hi, th.cyan);
-      S.drawStdCurve(cvStd, d.actStd, 0, d.sel, th.cyan, 'σ do input = 1');
+      S.drawStdCurve(cvStd, d.actStd, 0, d.sel, th.cyan, 'σ do input ≈ 1');
       updateReadout();
     }
 
@@ -259,6 +204,14 @@
       });
     }
 
+    for (const key of Object.keys(PRESETS)) {
+      $('s1-preset-' + key).addEventListener('click', () => {
+        Object.assign(S.cfg, PRESET_BASE, PRESETS[key]);
+        syncControls();
+        update();
+      });
+    }
+
     selInit.addEventListener('change', () => {
       S.cfg.init = selInit.value;
       sigmaWrap.classList.toggle('hidden', S.cfg.init !== 'normal');
@@ -267,6 +220,10 @@
     sliderSigma.addEventListener('input', () => {
       S.cfg.sigma = +sliderSigma.value;
       $('s1-sigma-val').textContent = S.cfg.sigma.toFixed(2);
+      update();
+    });
+    selInput.addEventListener('change', () => {
+      S.cfg.input = selInput.value;
       update();
     });
     selAct.addEventListener('change', () => {

@@ -96,7 +96,7 @@ Notes: `Open(file, ReadOnly, Untitled, WithWindow)` with `WithWindow=$false` kee
 
 **Interactive demos** (`docs/`) are the course's static website, the fourth artifact family. `docs/index.html` is the landing page (lists every lecture with PDF links plus an `exercise-chip chip-demo` linking its demo); each lecture demo lives at `docs/<slug>/` (kebab-case, e.g. `self-attention`, `lstm-gru`). A demo is `index.html` + `js/sectionN-*.js`, vanilla JS + canvas, **no external dependencies**, pt-BR prose, 3–4 sections each pushed onto `DL.sections` as `{name, init}`. Shared assets are `docs/shared/demo.css` and `docs/shared/js/{utils,plot,boot}.js`; `boot.js` must be the **last** deferred script. Always read colors from `DL.plot.theme()` inside `draw()` so the light/dark toggle works. Canonical reference demo: `docs/gradient-descent/`. Exceptions: `diffusion` and `lm` are self-contained (own `utils`/`plot`/`boot`, not `shared/js/boot.js`). The CI deploy step copies `docs/.` wholesale into `deploy/`, so new demos publish to gh-pages automatically with no allowlist to update. `docs/index.html` links PDFs by the flat deploy layout (`slides/<basename>.pdf`, `problems/<unit>/<basename>.pdf`, `exams/<basename>.pdf`), so a new lecture, lista, or prova only appears on the site once its entry is added there by hand. There is no build step for demos; serve `docs/` with `python3 -m http.server` to preview locally (see the interactive-demo-pattern memory for WSL screenshotting via headless Edge).
 
-**Helper scripts** (`scripts/`) are Python utilities that generate figures consumed by slides, e.g. `train_vae_mnist.py` trains a small conv VAE on MNIST and writes `slides/img/05-geradores/vae-{samples,interpolation}.png`. Run from the repo root (`python scripts/train_vae_mnist.py --epochs 15`); not part of the LaTeX or CI pipelines.
+**Helper scripts** (`scripts/`) are Python utilities that generate figures consumed by slides, e.g. `train_vae_mnist.py` trains a small conv VAE on MNIST and writes `slides/img/05-geradores/vae-{samples,interpolation}.png`. Run from the repo root (`python scripts/train_vae_mnist.py --epochs 15`); not part of the LaTeX or CI pipelines. `export_init_histograms.js` is the exception: a node script that runs the `docs/weight-init` demo's own `winit-core.js` to write the CSVs and σ macros in `slides/data/01-mlp/` that the weight-init deck plots with pgfplots (`node scripts/export_init_histograms.js`); rerun it whenever the demo's numerics change.
 
 ## Skills available for content authoring
 
@@ -115,6 +115,8 @@ Three project-specific skills generate course material end-to-end and follow the
 ### Prose style for course content
 
 Avoid `-` and `---` as parenthetical or explanatory punctuation in slide body text, problem statements, exam questions, and gabarito explanations. Introduce clarifications with a comma, with parentheses, or after a colon. This rule applies to authored prose only, hyphens in compound terms (`self-attention`, `encoder-only`), filenames, code listings, math, and numeric ranges stay as written.
+
+Avoid constructions that first state what something is not and only then state what it is ("X não é A, é B", "não se trata de A, mas de B", "mais do que A, é B"). State the positive claim directly ("X é B"). If contrasting with a common misconception is pedagogically necessary, make it a separate sentence after the direct statement rather than the lead-in.
 
 ### Objective-question authoring (problem sets and exams)
 
