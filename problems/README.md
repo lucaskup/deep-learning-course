@@ -14,7 +14,7 @@ Sempre a partir da **raiz do repositório** (a classe é resolvida via `TEXINPUT
 
 ```bash
 make problems                                    # todas as listas
-latexmk -lualatex problems/01-mlp/lista01_mlp.tex  # uma lista específica
+latexmk -lualatex problems/01-mlp/lista02_perceptron.tex  # uma lista específica
 ```
 
 Os PDFs são gerados em `build/` e publicados no GitHub Pages quando um release é criado.

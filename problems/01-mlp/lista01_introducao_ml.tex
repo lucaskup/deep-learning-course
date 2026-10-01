@@ -1,0 +1,95 @@
+\documentclass{dlproblemset}
+
+\title{Introdução a Machine Learning}
+\subtitle{Lista de Exercícios}
+
+\begin{document}
+
+\begin{enumerate}[1)]
+
+    \item Segundo a discussão feita em aula sobre \textit{software} com e sem \textit{Machine Learning}, em qual das situações abaixo \textit{Machine Learning} é uma abordagem mais adequada do que escrever uma solução programada explicitamente?
+    \begin{enumerate}[(a)]
+        \item Problemas em que as regras que transformam a entrada na saída são conhecidas e podem ser enumeradas como uma sequência finita de instruções.
+        \item Problemas em que a solução exata tem custo computacional baixo, mas a equipe deseja reduzir o tempo de desenvolvimento do sistema.
+        \item Problemas em que não sabemos escrever diretamente um algoritmo para a tarefa, mas dispomos de exemplos nos quais é possível encontrar padrões.
+        \item Problemas em que a saída esperada é determinística e uma mesma entrada deve produzir sempre exatamente o mesmo resultado.
+    \end{enumerate}
+    %c
+
+    \item A tabela abaixo apresenta o erro médio de quatro modelos no conjunto de treino e em um conjunto de teste formado apenas por dados novos, que não foram utilizados durante o treinamento. Considerando que o objetivo é obter o menor erro esperado para novos dados, qual modelo deve ser escolhido?
+
+    \begin{center}
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Modelo & Erro no treino & Erro no teste \\
+        \hline
+        A & 12.0 & 12.4 \\
+        \hline
+        B & 5.8 & 6.3 \\
+        \hline
+        C & 1.5 & 13.9 \\
+        \hline
+        D & 0.2 & 19.7 \\
+        \hline
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item Modelo A.
+        \item Modelo B.
+        \item Modelo C.
+        \item Modelo D.
+    \end{enumerate}
+    %b
+
+    \item Você precisa treinar uma Regressão Linear em um conjunto de dados com um número muito grande de atributos ($M$ na ordem de centenas de milhares). Sobre a escolha entre a equação normal $\boldsymbol{\theta} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{y}$ e a descida de gradiente nesse cenário, é correto afirmar que:
+    \begin{enumerate}[(a)]
+        \item A equação normal é preferível, pois encontra exatamente o melhor $\boldsymbol{\theta}$ sem depender da escolha de uma taxa de aprendizado.
+        \item A descida de gradiente é preferível, pois a função de custo $J_{\text{SSR}}$ deixa de ser convexa quando o número de atributos é grande.
+        \item A equação normal é preferível, pois seu custo cresce linearmente com o número de atributos, enquanto o da descida de gradiente cresce cubicamente.
+        \item A descida de gradiente é preferível, pois o custo de inverter a matriz $\mathbf{X}^\top\mathbf{X}$ cresce cubicamente com o número de atributos.
+    \end{enumerate}
+    %d
+
+    \item Ao adaptar a Regressão Linear para a tarefa de classificação binária obtemos a Regressão Logística, $\hat{y}^{(i)} = \frac{1}{1+e^{-\mathbf{X}^{(i)}\boldsymbol{\theta}}}$. Nessa adaptação, a função de custo $J_{\text{SSR}}$ é substituída pela $J_{\text{BCE}}$. Qual alternativa apresenta a justificativa correta para essa substituição?
+    \begin{enumerate}[(a)]
+        \item A função $J_{\text{SSR}}$ deixa de ser convexa para a Regressão Logística, e a otimização pode ficar presa em mínimos que não são o global.
+        \item A função $J_{\text{SSR}}$ deixa de ser diferenciável quando composta com a função sigmoide, e o gradiente fica indefinido em parte do domínio.
+        \item A função $J_{\text{BCE}}$ admite solução analítica semelhante à equação normal, e o treinamento passa a dispensar métodos iterativos.
+        \item A função $J_{\text{BCE}}$ torna a fronteira de decisão não linear, e o modelo passa a resolver problemas que não são linearmente separáveis.
+    \end{enumerate}
+    %a
+
+    \item Dentre as alternativas abaixo, qual melhor descreve o processo de \textit{hyperparameter tuning}?
+    \begin{enumerate}[(a)]
+	    \item É um processo de otimização de parâmetros da rede neural que é feito via decida de gradiente.
+	    \item É um processo de busca cujo objetivo é encontrar valores ideais para parâmetros que não são aprendidos durante o processo de treino.
+	    \item É o processo de busca pela hipótese que melhor descreve a relação entre um conjunto de atributos e a variável alvo conforme uma função loss.
+	    \item É o processo equivalente a regularização, que visa limitar a complexidade do modelo para melhorar a sua capacidade de generalizar.
+    \end{enumerate}
+    %b
+
+    \item No exemplo numérico do efeito tesoura (\textit{Scissor Effect}) visto em aula, um polinômio de grau 4 passa exatamente pelos cinco pontos do conjunto de treino, obtendo erro de treino igual a zero, enquanto a reta $\hat{y} = 2x + 0.1$ apresenta erro de treino maior do que zero. No entanto, no ponto de teste $(6, 12)$ a reta prediz $12.1$ e o polinômio prediz $27.5$. Explique com suas próprias palavras a diferença entre ajustar bem o conjunto de treino e generalizar para novos dados. Em seguida, relacione o comportamento dos dois modelos com os termos da decomposição do erro de teste (viés, variância e ruído) e com o efeito tesoura: em qual regime de quantidade de dados a hipótese mais simples tende a ser a melhor escolha?
+
+\end{enumerate}
+
+\newpage
+
+\subsection*{Gabarito}
+\color{blue}
+\begin{enumerate}[1)]
+
+    \item c. \textit{Machine Learning} é indicado justamente quando não sabemos escrever o algoritmo que transforma a entrada na saída, mas dispomos de exemplos nos quais um padrão pode ser aprendido. As alternativas (a) e (d) descrevem cenários ideais para uma solução programada explicitamente, e em (b) o desejo de reduzir tempo de desenvolvimento não justifica a troca de paradigma quando a solução exata é conhecida e barata.
+
+    \item b. O erro no conjunto de teste é a estimativa do desempenho em dados novos, e o modelo B tem o menor erro de teste ($6.3$). O modelo A sofre de viés alto (erros altos em treino e teste), enquanto C e D exibem \textit{overfitting}: erro de treino baixo com erro de teste alto.
+
+    \item d. A equação normal exige inverter $\mathbf{X}^\top\mathbf{X}$, uma matriz $M \times M$, operação de custo cúbico em $M$; com centenas de milhares de atributos isso é inviável, enquanto a descida de gradiente escala bem. A alternativa (a) afirma algo verdadeiro sobre a equação normal, mas não a torna preferível nesse cenário; (b) é falsa pois $J_{\text{SSR}}$ permanece convexa na Regressão Linear; (c) inverte os custos dos dois métodos.
+
+    \item a. Ao compor $J_{\text{SSR}}$ com a sigmoide, a função de custo deixa de ser convexa e a descida de gradiente pode estacionar em mínimos locais; a $J_{\text{BCE}}$ é convexa para a Regressão Logística. Em (b), a composição continua diferenciável; em (c), a $J_{\text{BCE}}$ não admite solução analítica; em (d), a fronteira de decisão da Regressão Logística continua linear.
+
+    \item b. Hiperparâmetros (taxa de aprendizado, \textit{batch size}, arquitetura) não são aprendidos pela descida de gradiente, então seus valores são encontrados por um processo de busca externo ao treino. A alternativa (a) descreve o treinamento dos parâmetros, (c) descreve o próprio aprendizado da hipótese e (d) confunde o processo com regularização.
+
+    \item Ajustar bem o conjunto de treino significa encontrar uma hipótese que minimiza a função de custo sobre os exemplos já observados. Generalizar significa obter erro baixo em dados novos, vindos da mesma relação entre atributos e variável alvo, que é o objetivo real de um sistema de \textit{Machine Learning}. As duas coisas não são equivalentes: o polinômio de grau 4 tem parâmetros suficientes para passar exatamente por todos os pontos de treino, então ele ajusta inclusive as flutuações particulares daquela amostra e não apenas a tendência geral. Fora dos pontos de treino ele oscila, e por isso erra muito no ponto de teste. Em termos da decomposição $\text{Erro}_{\text{teste}} = \text{Viés}^2 + \text{Variância} + \sigma^2$, o polinômio é um modelo de variância alta: se sorteássemos outro conjunto de treino de mesmo tamanho, a curva ajustada mudaria drasticamente. A reta pertence a uma família de hipóteses mais simples, então tem viés maior (não consegue representar qualquer padrão) e erro de treino diferente de zero, mas tem variância baixa e captura a tendência geral dos dados, o que resulta em erro de teste menor. O termo $\sigma^2$ é o ruído irredutível, que nenhum dos dois modelos consegue eliminar. Isso ilustra o efeito tesoura: com poucos dados, regras mais simples tendem a obter erros menores em novos dados, pois a variância domina o erro dos modelos complexos; com muitos dados, a variância dos modelos complexos diminui e eles passam a obter erros menores, pois seu viés é menor.
+\end{enumerate}
+
+\end{document}
