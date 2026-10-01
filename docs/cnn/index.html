@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação, crescimento do campo receptivo e convolução em imagens reais com Sobel, DoG e blur gaussiano." />
+  <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação, crescimento do campo receptivo, convolução em imagens reais com Sobel, DoG e blur gaussiano, e uma CNN completa em miniatura treinada no navegador com todos os valores visíveis." />
   <title>Redes Convolucionais — Demo Interativa</title>
   <script>
     (function () {
@@ -26,6 +26,28 @@
       width: 100%;
       box-sizing: border-box;
     }
+    #s6-row1 { height: 480px; }
+    #s6-row2 { height: 300px; }
+    #s6-row3 { height: 132px; }
+    #s6-loss { height: 220px; }
+    #s6-calc {
+      color: var(--fg);
+      font-size: .85rem;
+      line-height: 1.55;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: .6rem .8rem;
+      margin-top: .6rem;
+      min-height: 3.2em;
+      overflow-wrap: anywhere;
+    }
+    #s6-calc .formula { font-size: .98em; }
+    @media (max-width: 900px) {
+      #s6-row1 { height: 380px; }
+      #s6-row2 { height: 280px; }
+      #s6-row3 { height: 120px; }
+    }
   </style>
 </head>
 <body>
@@ -40,6 +62,7 @@
       <li><a href="#s3">Pooling</a></li>
       <li><a href="#s4">Campo receptivo</a></li>
       <li><a href="#s5">Imagem real</a></li>
+      <li><a href="#s6">CNN completa</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -49,15 +72,17 @@
       <h1 class="course-title">Redes <span>Convolucionais</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de introdução a redes convolucionais</p>
       <p class="course-desc">
-        Cinco visualizações que acompanham os slides: a convolução 2D
+        Seis visualizações que acompanham os slides: a convolução 2D
         <span class="formula">z<sub>i,j</sub> = Σ<sub>m,n</sub> w<sub>m,n</sub>·x<sub>i+m−2, j+n−2</sub></span>
         com kernels clássicos e pesos compartilhados, o efeito de <em>padding</em>,
         <em>stride</em> e <em>dilation</em> no tamanho da saída, o pooling
         (max e average) e sua relação com invariância a translação, o crescimento
         do campo receptivo camada a camada pela recursão
         <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>,
-        e a convolução aplicada a uma imagem real (a sua, se quiser) com
-        kernels clássicos como Sobel, DoG e blur gaussiano.
+        a convolução aplicada a uma imagem real (a sua, se quiser) com
+        kernels clássicos como Sobel, DoG e blur gaussiano, e uma CNN completa em
+        miniatura (duas convoluções, pooling e classificador linear) com todos os
+        números à mostra e treinada ao vivo no navegador.
       </p>
     </div>
   </header>
@@ -398,6 +423,87 @@
     </div>
   </section>
 
+  <!-- ════════ Seção 6: CNN completa em miniatura ════════ -->
+  <section id="s6" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">6 · Uma CNN completa em miniatura</h2>
+      <p class="demo-text">
+        Tudo o que as seções anteriores mostraram separadamente, agora encadeado em uma rede
+        de verdade, pequena o bastante para exibir cada número. Uma imagem
+        <span class="formula">6×6</span> com dois canais (pense em duas cores) passa por uma
+        convolução <span class="formula">3×3</span> com dois filtros (padding 1, ReLU), por um
+        max pooling <span class="formula">2×2</span>, por uma segunda convolução
+        <span class="formula">3×3</span> com dois filtros (padding 1, ReLU), é achatada em um
+        vetor <span class="formula">v ∈ ℝ<sup>18</sup></span> e chega a um classificador linear
+        com sigmoide. A tarefa é binária: o traço da imagem é vertical (classe 0) ou horizontal
+        (classe 1). Cada filtro soma sobre todos os canais de entrada, por isso
+        <span class="formula">w<sup>(1)</sup></span> tem
+        <span class="formula">2 filtros × 2 canais × 3 × 3 = 36</span> pesos e a rede inteira
+        tem 95 parâmetros. Passe o mouse sobre qualquer célula para ver a janela que ela leu e a
+        conta completa, use ⏭ para percorrer o cálculo posição a posição, pinte a entrada e
+        treine a rede por SGD para ver filtros, mapas e predição mudarem ao vivo.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <button class="btn-ctl" id="s6-new" type="button">🎲 Nova imagem</button>
+          <button class="btn-ctl" id="s6-clear" type="button">↺ Limpar imagem</button>
+          <span class="readout" id="s6-img-readout"></span>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl primary" id="s6-train" type="button">▶ Treinar</button>
+          <button class="btn-ctl" id="s6-reset" type="button">↺ Reiniciar pesos</button>
+          <label class="slider-label">η = <span id="s6-lr-val">0.10</span>
+            <input type="range" id="s6-lr" min="0.01" max="0.50" value="0.10" step="0.01" />
+          </label>
+          <span class="readout" id="s6-train-readout"></span>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s6-step" type="button">⏭ Passo</button>
+          <button class="btn-ctl" id="s6-anim" type="button">▶ Animar cálculo</button>
+          <button class="btn-ctl" id="s6-showall" type="button">↺ Mostrar tudo</button>
+          <span class="readout" id="s6-step-readout"></span>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box" style="flex-basis:100%;">
+            <p class="canvas-caption">Etapa 1: entrada x (2 canais) ∗ filtros w<sup>(1)</sup> + b<sup>(1)</sup>, ReLU, max pooling 2×2. Laranja: janela lida pela célula sob o mouse; linhas fortes em a<sup>(1)</sup>: janelas do pooling</p>
+            <canvas id="s6-row1"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box" style="flex-basis:100%;">
+            <p class="canvas-caption">Etapa 2: p<sup>(1)</sup> ∗ filtros w<sup>(2)</sup> + b<sup>(2)</sup>, ReLU. Cada filtro tem um kernel por mapa de entrada e os dois resultados são somados</p>
+            <canvas id="s6-row2"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box" style="flex-basis:100%;">
+            <p class="canvas-caption">Etapa 3: flatten de a<sup>(2)</sup> no vetor v ∈ ℝ<sup>18</sup>, produto escalar com os pesos w do classificador, logit = Σ w<sub>k</sub>·v<sub>k</sub> + b e p = σ(logit)</p>
+            <canvas id="s6-row3"></canvas>
+          </div>
+        </div>
+        <div id="s6-calc"></div>
+        <div class="canvas-row" style="margin-top:.8rem;">
+          <div class="canvas-box" style="flex-basis:100%;">
+            <p class="canvas-caption">Treinamento: perda BCE média por época (treino, 240 imagens) e acurácia em 80 imagens de teste; minibatch de 16, SGD</p>
+            <canvas id="s6-loss"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Antes de treinar, a rede responde <span class="formula">p ≈ 0.5</span> para quase
+          tudo. Treine algumas épocas e inspecione <span class="formula">w<sup>(1)</sup></span>:
+          com frequência um filtro passa a responder a transições verticais e o outro a
+          transições horizontais, a versão aprendida dos Sobel da seção 1. Repare que um mesmo
+          filtro tem um kernel por canal e os dois resultados são somados antes do bias, a
+          convolução mistura canais em cada posição. Depois de treinada, pinte um traço
+          diagonal, apague o canal 1 ou desenhe dois traços e veja como a predição reage a
+          entradas que nunca apareceram no treino. Passe o mouse sobre
+          <span class="formula">p<sup>(1)</sup></span> para ver que só uma das quatro células
+          de cada janela sobrevive ao max pooling.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>Demo interativa da aula de <span>Introdução a Redes Convolucionais</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
   </footer>
@@ -409,7 +515,9 @@
   <script defer src="js/section2-saida.js"></script>
   <script defer src="js/section3-pooling.js"></script>
   <script defer src="js/section4-campo-receptivo.js"></script>
+  <script defer src="js/tinycnn.js"></script>
   <script defer src="js/section5-imagem.js"></script>
+  <script defer src="js/section6-cnn-completa.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

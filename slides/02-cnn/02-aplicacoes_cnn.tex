@@ -7,6 +7,201 @@
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
 
+\usetikzlibrary{decorations.pathreplacing}
+
+%----------------------------------------------------------------------------------------
+%    CONTAGEM ANIMADA DE PARÂMETROS DA VGG16
+%    \vstep indica o passo atual: cada elemento do diagrama e cada bloco da pilha
+%    é "futuro" (apagado/oculto), "atual" (destacado) ou "contado" (normal).
+%----------------------------------------------------------------------------------------
+\newcommand{\vstep}{14}
+\newcommand{\vgpitch}{0.27}
+\tikzset{
+    % elemento do diagrama: {passo}{cor}
+    vgsty/.code 2 args={%
+        \ifnum#1>\vstep\space \pgfkeysalso{fill=black!6, draw=black!25, thin}%
+        \else\ifnum#1=\vstep\space \pgfkeysalso{fill=#2, draw=black, line width=1.3pt}%
+        \else \pgfkeysalso{fill=#2, draw=black!50, thin}\fi\fi},
+    % rótulo do diagrama: passo
+    vglab/.code={%
+        \ifnum#1>\vstep\space \pgfkeysalso{text=black!35}%
+        \else\ifnum#1=\vstep\space \pgfkeysalso{text=black, font=\tiny\bfseries}%
+        \else \pgfkeysalso{text=black!75}\fi\fi},
+    % bloco da pilha: {passo}{cor de fundo}{cor do texto}
+    vgchip/.code n args={3}{%
+        \ifnum#1>\vstep\space \pgfkeysalso{opacity=0}%
+        \else\ifnum#1=\vstep\space \pgfkeysalso{fill=#2, text=#3, draw=black, line width=1.2pt}%
+        \else \pgfkeysalso{fill=#2, text=#3, draw=black!50, thin}\fi\fi},
+    vgchipbase/.style={minimum width=1.9cm, minimum height=0.22cm, inner sep=1pt, rounded corners=1pt, font=\tiny},
+}
+\newcommand{\chipconv}[1]{conv $3{\times}3$, #1}
+\newcommand{\chipfc}[1]{fc, #1}
+
+% Pilha de camadas (de baixo para cima) com centro do primeiro bloco em (#1,#2)
+\newcommand{\vggstack}[2]{%
+    \foreach \i/\s/\txt/\col/\tcol in {
+        0/0/entrada/black!55/white,
+        1/1/\chipconv{64}/BrickRed!75/white,
+        2/1/\chipconv{64}/BrickRed!75/white,
+        3/2/pooling/PastelGreen/black,
+        4/3/\chipconv{128}/BrickRed!75/white,
+        5/3/\chipconv{128}/BrickRed!75/white,
+        6/4/pooling/PastelGreen/black,
+        7/5/\chipconv{256}/BrickRed!75/white,
+        8/5/\chipconv{256}/BrickRed!75/white,
+        9/5/\chipconv{256}/BrickRed!75/white,
+        10/6/pooling/PastelGreen/black,
+        11/7/\chipconv{512}/BrickRed!75/white,
+        12/7/\chipconv{512}/BrickRed!75/white,
+        13/7/\chipconv{512}/BrickRed!75/white,
+        14/8/pooling/PastelGreen/black,
+        15/9/\chipconv{512}/BrickRed!75/white,
+        16/9/\chipconv{512}/BrickRed!75/white,
+        17/9/\chipconv{512}/BrickRed!75/white,
+        18/10/pooling/PastelGreen/black,
+        19/11/\chipfc{4096}/PastelBlue2!80/white,
+        20/11/\chipfc{4096}/PastelBlue2!80/white,
+        21/12/\chipfc{1000}/PastelBlue2!80/white,
+        22/13/softmax/Goldenrod!70/black}{
+        \node[vgchipbase, vgchip={\s}{\col}{\tcol}] at (#1, #2 + \i*\vgpitch) {\txt};
+    }%
+}
+
+% Texto da caixa de total acumulado
+\newcommand{\vggtotaltext}{%
+    \ifcase\vstep
+        \textbf{Total de parâmetros treináveis: 0}\\ a entrada não possui parâmetros\or
+        \textbf{Total de parâmetros treináveis: 38.592}\\ \mbox{$3{\cdot}3{\cdot}3{\cdot}64 + 3{\cdot}3{\cdot}64{\cdot}64$}\\ \mbox{$= 1.728 + 36.864 = 38.592$}\or
+        \textbf{Total de parâmetros treináveis: 38.592}\\ \textit{max pooling} não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 259.776}\\ \mbox{$3{\cdot}3{\cdot}64{\cdot}128 + 3{\cdot}3{\cdot}128{\cdot}128$}\\ \mbox{$= 73.728 + 147.456 = 221.184$}\or
+        \textbf{Total de parâmetros treináveis: 259.776}\\ \textit{max pooling} não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 1.734.336}\\ \mbox{$3{\cdot}3{\cdot}128{\cdot}256 + 3{\cdot}3{\cdot}256{\cdot}256 + 3{\cdot}3{\cdot}256{\cdot}256$}\\ \mbox{$= 294.912 + 589.824 + 589.824 = 1.474.560$}\or
+        \textbf{Total de parâmetros treináveis: 1.734.336}\\ \textit{max pooling} não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 7.632.576}\\ \mbox{$3{\cdot}3{\cdot}256{\cdot}512 + 3{\cdot}3{\cdot}512{\cdot}512 + 3{\cdot}3{\cdot}512{\cdot}512$}\\ \mbox{$= 1.179.648 + 2.359.296 + 2.359.296 = 5.898.240$}\or
+        \textbf{Total de parâmetros treináveis: 7.632.576}\\ \textit{max pooling} não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 14.710.464}\\ \mbox{$3 \times (3{\cdot}3{\cdot}512{\cdot}512)$}\\ \mbox{$= 3 \times 2.359.296 = 7.077.888$}\or
+        \textbf{Total de parâmetros treináveis: 14.710.464}\\ \textit{max pooling} não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 134.248.128}\\ \mbox{$7{\cdot}7{\cdot}512{\cdot}4096 + 4096{\cdot}4096$}\\ \mbox{$= 102.760.448 + 16.777.216 = 119.537.664$}\or
+        \textbf{Total de parâmetros treináveis: 138.344.128}\\ \mbox{$4096{\cdot}1000 = 4.096.000$}\or
+        \textbf{Total de parâmetros treináveis: 138.344.128}\\ softmax não possui parâmetros (\mbox{$+0$})\or
+        \textbf{Total de parâmetros treináveis: 138.344.128}\\ Observação: não contamos os \textit{bias}\\ (mais \mbox{$13.416$}, totalizando \mbox{$138.357.544$})\fi
+}
+
+% Figura completa: caixa de total, diagrama com destaque e pilha à direita
+\newcommand{\vggcountpic}{%
+\begin{tikzpicture}[every node/.style={font=\tiny}]
+    % caixa de total acumulado
+    \node[rounded corners=4pt, fill=black!70, text=white, align=center, text width=10.3cm,
+          minimum height=1.6cm, inner sep=4pt, font=\small] at (5.15,5.45) {\vggtotaltext};
+
+    % diagrama da arquitetura
+    \begin{scope}[shift={(0,1.8)}, scale=0.75]
+        \def\bw{0.55}
+        % entrada
+        \draw[vgsty={0}{black!20}] (0,0) rectangle ++(\bw,2.6);
+        \node[vglab=0, align=center] at (\bw/2,-0.35) {$224{\times}224$\\$\times 3$};
+        % bloco 1
+        \draw[vgsty={1}{BrickRed!25}] (1.0,0) rectangle ++(\bw,2.6);
+        \draw[vgsty={1}{BrickRed!25}] (1.6,0) rectangle ++(\bw,2.6);
+        \node[vglab=1, align=center] at (1.55,-0.35) {$224{\times}224$\\$\times 64$};
+        % pooling 1
+        \draw[vgsty={2}{PastelGreen}] (2.3,0.3) rectangle ++(0.22,2.0);
+        % bloco 2
+        \draw[vgsty={3}{BrickRed!40}] (2.75,0.3) rectangle ++(\bw,2.0);
+        \draw[vgsty={3}{BrickRed!40}] (3.35,0.3) rectangle ++(\bw,2.0);
+        \node[vglab=3, align=center] at (3.3,-0.35) {$112{\times}112$\\$\times 128$};
+        % pooling 2
+        \draw[vgsty={4}{PastelGreen}] (4.05,0.55) rectangle ++(0.22,1.5);
+        % bloco 3
+        \draw[vgsty={5}{BrickRed!55}] (4.5,0.55) rectangle ++(\bw,1.5);
+        \draw[vgsty={5}{BrickRed!55}] (5.1,0.55) rectangle ++(\bw,1.5);
+        \draw[vgsty={5}{BrickRed!55}] (5.7,0.55) rectangle ++(\bw,1.5);
+        \node[vglab=5, align=center] at (5.35,-0.35) {$56{\times}56$\\$\times 256$};
+        % pooling 3
+        \draw[vgsty={6}{PastelGreen}] (6.4,0.75) rectangle ++(0.22,1.1);
+        % bloco 4
+        \draw[vgsty={7}{BrickRed!70}] (6.85,0.75) rectangle ++(\bw,1.1);
+        \draw[vgsty={7}{BrickRed!70}] (7.45,0.75) rectangle ++(\bw,1.1);
+        \draw[vgsty={7}{BrickRed!70}] (8.05,0.75) rectangle ++(\bw,1.1);
+        \node[vglab=7, align=center] at (7.7,-0.35) {$28{\times}28$\\$\times 512$};
+        % pooling 4
+        \draw[vgsty={8}{PastelGreen}] (8.75,0.95) rectangle ++(0.22,0.7);
+        % bloco 5
+        \draw[vgsty={9}{BrickRed!85}] (9.2,0.95) rectangle ++(\bw,0.7);
+        \draw[vgsty={9}{BrickRed!85}] (9.8,0.95) rectangle ++(\bw,0.7);
+        \draw[vgsty={9}{BrickRed!85}] (10.4,0.95) rectangle ++(\bw,0.7);
+        \node[vglab=9, align=center] at (10.05,-0.35) {$14{\times}14$\\$\times 512$};
+        % pooling 5 (saída achatada)
+        \draw[vgsty={10}{PastelGreen}] (11.15,1.15) rectangle ++(0.4,0.3);
+        \node[vglab=10, align=center] at (11.35,-0.35) {$7{\times}7$\\$\times 512$};
+        % densas
+        \draw[vgsty={11}{PastelBlue2!80}] (11.95,1.2) rectangle ++(0.25,0.2);
+        \draw[vgsty={11}{PastelBlue2!80}] (12.35,1.2) rectangle ++(0.25,0.2);
+        \node[vglab=11, align=center] at (12.28,-0.35) {fc\\4096};
+        \draw[vgsty={12}{PastelBlue2!80}] (12.95,1.2) rectangle ++(0.25,0.2);
+        \node[vglab=12, align=center] at (13.07,-0.35) {fc\\1000};
+        % softmax
+        \draw[vgsty={13}{Goldenrod!70}] (13.6,1.2) rectangle ++(0.25,0.2);
+        \node[vglab=13, align=center] at (13.72,-0.35) {soft\\max};
+        % legenda
+        \node[anchor=west, text=black!75] at (0,-1.2) {%
+            \tikz \fill[BrickRed!50] (0,0) rectangle (0.25,0.15); ~conv $3\times 3$ + ReLU \quad
+            \tikz \fill[PastelGreen] (0,0) rectangle (0.25,0.15); ~\textit{max pooling} \quad
+            \tikz \fill[PastelBlue2!80] (0,0) rectangle (0.25,0.15); ~totalmente conectada \quad
+            \tikz \fill[Goldenrod!70] (0,0) rectangle (0.25,0.15); ~softmax};
+    \end{scope}
+
+    % pilha de camadas à direita
+    \vggstack{11.6}{0}
+\end{tikzpicture}}
+
+%----------------------------------------------------------------------------------------
+%    PILHA PARA TRANSFERÊNCIA DE APRENDIZADO
+%    \vgtransferstack{x}{y}{modo}: modo 1 = convoluções congeladas + cabeça nova,
+%    modo 2 = fine-tuning da rede inteira (cabeça nova continua destacada).
+%    Cada bloco carrega uma parte: 0 = entrada, 1 = extrator convolucional, 2 = cabeça.
+%----------------------------------------------------------------------------------------
+\tikzset{
+    % bloco da pilha de transferência: {parte}{modo}
+    vgtchip/.code 2 args={%
+        \ifnum#2=1
+            \ifnum#1=2 \pgfkeysalso{draw=black, line width=1.2pt}%
+            \else\ifnum#1=1 \pgfkeysalso{fill opacity=0.3, text opacity=1, text=black!60, draw=black!45, thin, dashed}%
+            \else \pgfkeysalso{draw=black!50, thin}\fi\fi
+        \else
+            \ifnum#1=2 \pgfkeysalso{draw=black, line width=1.2pt}%
+            \else \pgfkeysalso{draw=black!50, thin}\fi
+        \fi},
+}
+\newcommand{\vgtransferstack}[3]{%
+    \foreach \i/\p/\txt/\col/\tcol in {
+        0/0/entrada/black!55/white,
+        1/1/\chipconv{64}/BrickRed!75/white,
+        2/1/\chipconv{64}/BrickRed!75/white,
+        3/1/pooling/PastelGreen/black,
+        4/1/\chipconv{128}/BrickRed!75/white,
+        5/1/\chipconv{128}/BrickRed!75/white,
+        6/1/pooling/PastelGreen/black,
+        7/1/\chipconv{256}/BrickRed!75/white,
+        8/1/\chipconv{256}/BrickRed!75/white,
+        9/1/\chipconv{256}/BrickRed!75/white,
+        10/1/pooling/PastelGreen/black,
+        11/1/\chipconv{512}/BrickRed!75/white,
+        12/1/\chipconv{512}/BrickRed!75/white,
+        13/1/\chipconv{512}/BrickRed!75/white,
+        14/1/pooling/PastelGreen/black,
+        15/1/\chipconv{512}/BrickRed!75/white,
+        16/1/\chipconv{512}/BrickRed!75/white,
+        17/1/\chipconv{512}/BrickRed!75/white,
+        18/1/pooling/PastelGreen/black,
+        19/2/\chipfc{4096}/PastelBlue2!80/white,
+        20/2/\chipfc{4096}/PastelBlue2!80/white,
+        21/2/\chipfc{4}/PastelBlue2!80/white,
+        22/2/sigmoide/Goldenrod!70/black}{
+        \node[vgchipbase, fill=\col, text=\tcol, vgtchip={\p}{#3}] at (#1, #2 + \i*\vgpitch) {\txt};
+    }%
+}
+
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
 %----------------------------------------------------------------------------------------
@@ -46,11 +241,11 @@
     \item Arquitetura de CNN proposta em 2014, publicada no ICLR 2015\footfullcite{simonyan2014vgg}.
     \item Continua sendo usada em muitos cenários, especialmente como \textit{backbone} pré-treinado.
     \item No ILSVRC-2014 (\textit{ImageNet Large Scale Visual Recognition Challenge}) ficou em \textbf{1º na localização} e \textbf{2º na classificação} (vencida pelo GoogLeNet).
-    \item Taxa de erro no ImageNet (ensemble multi-crop reportado no paper):
+    \item Taxa de erro no ImageNet (\textit{ensemble multi-crop} reportado no artigo):
     \begin{itemize}
         \item \textit{Top-5}: $6.8\%$.
         \item \textit{Top-1}: $23.7\%$.
-        \item VGG-16 \textit{single-model} fica em torno de $7.3\%$ \textit{top-5} e $24.7\%$ \textit{top-1}.
+        \item VGG16 \textit{single-model} fica em torno de $7.3\%$ \textit{top-5} e $24.7\%$ \textit{top-1}.
     \end{itemize}
     \item $\sim 140$M parâmetros treináveis.
 \end{itemize}
@@ -151,74 +346,43 @@
 \end{tikzpicture}
 
 \vspace{0.3em}
-\footnotesize Cada \textit{max pooling} reduz a dimensão espacial pela metade e dobra (ou estabiliza) o número de canais.
+\footnotesize Cada \textit{max pooling} reduz a dimensão espacial pela metade e a convolução seguinte dobra (ou mantém) o número de canais.
 \end{frame}
 
-\begin{frame}{Contando Parâmetros: Primeiro Bloco}
+\begin{frame}{Contando Parâmetros: Regras}
 \begin{itemize}
-    \item Bloco inicial: duas convoluções $3\times 3$ produzindo 64 canais.
-    \begin{itemize}
-        \item Cada filtro convolucional tem $K_h \cdot K_w \cdot C_{in}$ pesos, e há $C_{out}$ filtros.
-        \item Primeira: kernel $3\times 3$, $C_{in}=3$ (RGB), $C_{out}=64$, portanto $3 \cdot 3 \cdot 3 \cdot 64 = 9 \cdot 192 = 1.728$ pesos.
-        \item Segunda: kernel $3\times 3$, $C_{in}=64$ (saída da primeira), $C_{out}=64$, portanto $3 \cdot 3 \cdot 64 \cdot 64 = 9 \cdot 4.096 = 36.864$ pesos.
-    \end{itemize}
-    \item Total parcial: $1.728 + 36.864 = 38.592$ parâmetros.
-    \item O \textit{max pooling} não adiciona parâmetros.
+    \item Convolução com \textit{kernel} $K_h \times K_w$, $C_{in}$ canais de entrada e $C_{out}$ filtros: $K_h \cdot K_w \cdot C_{in} \cdot C_{out}$ pesos.
+    \item Camada densa com $n_{in}$ entradas e $n_{out}$ saídas: $n_{in} \cdot n_{out}$ pesos.
+    \item \textit{Max pooling}, ReLU e softmax não possuem parâmetros treináveis.
+    \item Na VGG16 toda convolução é $3 \times 3$, então cada uma custa $9 \cdot C_{in} \cdot C_{out}$.
 \end{itemize}
 \begin{block}{Observação}
-Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro tem um \textit{bias} associado.
+Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro e cada neurônio denso têm um \textit{bias} associado.
 \end{block}
 \end{frame}
 
-\begin{frame}{Contando Parâmetros: Convoluções}
-\begin{itemize}
-    \item Crescimento por bloco convolucional:
-\end{itemize}
-\vspace{0.2em}
+\begin{frame}{Contando Parâmetros da VGG16}
 \centering
-\begin{tabular}{lccc}
-\toprule
-Bloco & Convoluções & Parâmetros do bloco & Total acumulado \\
-\midrule
-1 & $2 \times$ conv $3\times 3 \times 64$ & $38.592$ & $38.592$ \\
-2 & $2 \times$ conv $3\times 3 \times 128$ & $221.184$ & $259.776$ \\
-3 & $3 \times$ conv $3\times 3 \times 256$ & $1.474.560$ & $1.734.336$ \\
-4 & $3 \times$ conv $3\times 3 \times 512$ & $5.898.240$ & $7.632.576$ \\
-5 & $3 \times$ conv $3\times 3 \times 512$ & $7.077.888$ & $14.710.464$ \\
-\bottomrule
-\end{tabular}
-\vspace{0.6em}
-\begin{itemize}
-    \item Após cinco blocos convolucionais: $\sim 14.7$M parâmetros.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Contando Parâmetros: Camadas Densas}
-\begin{itemize}
-    \item Após o último \textit{pooling}, achatamos um tensor $7\times 7\times 512 = 25.088$.
-\end{itemize}
-\vspace{0.2em}
-\centering
-\begin{tabular}{lcc}
-\toprule
-Camada & Cálculo & Parâmetros \\
-\midrule
-fc1 & $25.088 \times 4.096$ & $102.760.448$ \\
-fc2 & $4.096 \times 4.096$ & $16.777.216$ \\
-fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
-\midrule
-\textbf{Subtotal denso} & & $\mathbf{123.633.664}$ \\
-\bottomrule
-\end{tabular}
-\vspace{0.6em}
-\begin{itemize}
-    \item Total da rede: $14.710.464 + 123.633.664 \approx 138.3$M parâmetros.
-\end{itemize}
+\only<1>{\renewcommand{\vstep}{0}\vggcountpic}%
+\only<2>{\renewcommand{\vstep}{1}\vggcountpic}%
+\only<3>{\renewcommand{\vstep}{2}\vggcountpic}%
+\only<4>{\renewcommand{\vstep}{3}\vggcountpic}%
+\only<5>{\renewcommand{\vstep}{4}\vggcountpic}%
+\only<6>{\renewcommand{\vstep}{5}\vggcountpic}%
+\only<7>{\renewcommand{\vstep}{6}\vggcountpic}%
+\only<8>{\renewcommand{\vstep}{7}\vggcountpic}%
+\only<9>{\renewcommand{\vstep}{8}\vggcountpic}%
+\only<10>{\renewcommand{\vstep}{9}\vggcountpic}%
+\only<11>{\renewcommand{\vstep}{10}\vggcountpic}%
+\only<12>{\renewcommand{\vstep}{11}\vggcountpic}%
+\only<13>{\renewcommand{\vstep}{12}\vggcountpic}%
+\only<14>{\renewcommand{\vstep}{13}\vggcountpic}%
+\only<15>{\renewcommand{\vstep}{14}\vggcountpic}%
 \end{frame}
 
 \begin{frame}{Onde Estão os Parâmetros?}
 \begin{columns}
-    \begin{column}{.55\linewidth}
+    \begin{column}{.58\linewidth}
         \begin{itemize}
             \item A maioria dos parâmetros treináveis está nas \textbf{camadas densas}.
             \begin{itemize}
@@ -229,24 +393,17 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
             \item Por isso é comum trocar as densas por uma cabeça menor quando se reaproveita a VGG em outras tarefas.
         \end{itemize}
     \end{column}
-    \begin{column}{.45\linewidth}
+    \begin{column}{.42\linewidth}
         \centering
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            % Stacked horizontal bar for param distribution
-            \def\barH{0.6}
-            \def\totalW{6}
-            \pgfmathsetmacro{\convW}{\totalW * 14 / 138}
-            \pgfmathsetmacro{\denseW}{\totalW * 124 / 138}
-            % Conv slice
-            \fill[BrickRed!60] (0,0) rectangle (\convW,\barH);
-            \fill[PastelBlue2!70] (\convW,0) rectangle (\totalW,\barH);
-            \draw[thick] (0,0) rectangle (\totalW,\barH);
-            % Labels above
-            \node[anchor=south, BrickRed] at (\convW/2,\barH) {\tiny $\sim 14$M};
-            \node[anchor=south, PastelBlue2] at (\convW + \denseW/2,\barH) {\tiny $\sim 124$M};
-            % Legend below
-            \node[anchor=north west, font=\tiny] at (0,-0.2) {\tikz \fill[BrickRed!60] (0,0) rectangle (0.25,0.18); ~Convolucionais};
-            \node[anchor=north west, font=\tiny] at (0,-0.7) {\tikz \fill[PastelBlue2!70] (0,0) rectangle (0.25,0.18); ~Densas};
+        \renewcommand{\vstep}{14}%
+        \begin{tikzpicture}[every node/.style={font=\tiny}]
+            \vggstack{0}{0}
+            \draw[decorate, decoration={brace, amplitude=6pt}, BrickRed, thick]
+                (-1.05, 1*\vgpitch - 0.12) -- (-1.05, 18*\vgpitch + 0.12)
+                node[midway, left=8pt, BrickRed, font=\Large\bfseries] {$\sim 14$M};
+            \draw[decorate, decoration={brace, amplitude=6pt}, PastelBlue2, thick]
+                (-1.05, 19*\vgpitch - 0.12) -- (-1.05, 21*\vgpitch + 0.12)
+                node[midway, left=8pt, PastelBlue2, font=\Large\bfseries] {$\sim 124$M};
         \end{tikzpicture}
     \end{column}
 \end{columns}
@@ -328,8 +485,8 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
     \item Para regressão dos 4 valores da \textit{bounding box}, a saída precisa de \textbf{4 unidades sigmoide} (em vez de \textit{softmax} para 1000 classes).
     \begin{itemize}
         \item A sigmoide garante saídas em $[0, 1]$, compatíveis com coordenadas normalizadas.
-        \item Hipótese implícita: assumimos que a caixa cabe inteiramente dentro da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$.
-        \item Caixas que estouram a borda exigem outra parametrização (por exemplo, logits sem ativação, ou regressão de \textit{offsets} em relação a uma \textit{anchor}).
+        \item Hipótese implícita: a caixa cabe inteiramente dentro da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$.
+        \item Caixas que estouram a borda exigem outra parametrização (por exemplo, \textit{logits} sem ativação ou regressão de \textit{offsets} em relação a uma \textit{anchor}).
     \end{itemize}
     \item A função de custo passa a ser o \textbf{erro quadrático médio} (MSE):
 \end{itemize}
@@ -342,18 +499,53 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
 \end{frame}
 
 \begin{frame}{Reaproveitando uma Rede Pré-treinada}
-\begin{itemize}
-    \item Imagine que já treinamos a rede para \textbf{classificar} as fotos.
-    \begin{itemize}
-        \item Os parâmetros das convoluções já estão ajustados para extrair \textit{features} úteis.
-    \end{itemize}
-    \item Estratégia comum: \textbf{congelar} os pesos da convolução e treinar apenas a cabeça densa para a nova tarefa\footfullcite{sermanet2013overfeat}.
-    \begin{itemize}
-        \item Reduz drasticamente o tempo de treinamento.
-        \item Funciona bem quando o conjunto de dados novo é pequeno.
-    \end{itemize}
-    \item Alternativa: \textit{fine-tuning} da rede inteira com \textit{learning rate} baixa.
-\end{itemize}
+\begin{columns}[T]
+    \begin{column}{.55\linewidth}
+        \begin{itemize}
+            \item<1-> Imagine que já treinamos a rede para \textbf{classificar} as imagens.
+            \begin{itemize}
+                \item Os parâmetros das convoluções já estão ajustados para extrair \textit{features} úteis.
+            \end{itemize}
+            \item<2-> Estratégia comum: \textbf{congelar} os pesos da convolução e treinar apenas uma \textbf{cabeça densa nova} para a nova tarefa\footfullcite{sermanet2013overfeat}.
+            \begin{itemize}
+                \item Reduz drasticamente o tempo de treinamento.
+                \item Funciona bem quando o conjunto de dados novo é pequeno.
+            \end{itemize}
+            \item<3-> Alternativa: \textit{fine-tuning} da rede inteira com \textit{learning rate} baixa.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.45\linewidth}
+        \centering
+        \renewcommand{\vgpitch}{0.245}%
+        \begin{tikzpicture}[every node/.style={font=\tiny}]
+            \only<1>{%
+                \renewcommand{\vstep}{14}%
+                \vggstack{0}{0}
+                \draw[decorate, decoration={brace, amplitude=6pt}, black!70, thick]
+                    (-1.05, 1*\vgpitch - 0.1) -- (-1.05, 22*\vgpitch + 0.1)
+                    node[midway, left=8pt, black!70, font=\small\bfseries, align=center] {rede treinada\\para classificar\\1000 classes};
+            }%
+            \only<2>{%
+                \vgtransferstack{0}{0}{1}
+                \draw[decorate, decoration={brace, amplitude=6pt}, black!60, thick]
+                    (-1.05, 1*\vgpitch - 0.1) -- (-1.05, 18*\vgpitch + 0.1)
+                    node[midway, left=8pt, black!60, font=\small\bfseries, align=center] {congelado\\(reaproveitado)};
+                \draw[decorate, decoration={brace, amplitude=6pt}, PastelBlue2, thick]
+                    (-1.05, 19*\vgpitch - 0.1) -- (-1.05, 22*\vgpitch + 0.1)
+                    node[midway, left=8pt, PastelBlue2, font=\small\bfseries, align=center] {cabeça nova\\(treinada)};
+            }%
+            \only<3>{%
+                \vgtransferstack{0}{0}{2}
+                \draw[decorate, decoration={brace, amplitude=6pt}, BrickRed, thick]
+                    (-1.05, 1*\vgpitch - 0.1) -- (-1.05, 22*\vgpitch + 0.1)
+                    node[midway, left=8pt, BrickRed, font=\small\bfseries, align=center] {rede inteira\\treinada\\(\textit{learning rate}\\baixa)};
+                \draw[decorate, decoration={brace, amplitude=6pt, mirror}, PastelBlue2, thick]
+                    (1.05, 19*\vgpitch - 0.1) -- (1.05, 22*\vgpitch + 0.1)
+                    node[midway, right=6pt, PastelBlue2, font=\small\bfseries, align=center] {cabeça\\nova};
+            }%
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Métricas de Localização: \textit{Intersection over Union}}
@@ -362,10 +554,10 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
         \begin{itemize}
             \item Computa a interseção entre a \textit{bounding box} prevista e o \textit{ground truth}, sobre a união das duas áreas.
             \begin{equation*}
-                IoU = \frac{A \cap B}{A \cup B}
+                \mathrm{IoU} = \frac{A \cap B}{A \cup B}
             \end{equation*}
-            \item Valor ideal: $IoU = 1$ (sobreposição perfeita).
-            \item Ignora o tamanho absoluto das caixas, só importa a sobreposição relativa.
+            \item Valor ideal: $\mathrm{IoU} = 1$ (sobreposição perfeita).
+            \item Ignora o tamanho absoluto das caixas: só importa a sobreposição relativa.
         \end{itemize}
     \end{column}
     \begin{column}{.45\linewidth}
@@ -391,10 +583,10 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
         \begin{itemize}
             \item Computa o dobro da interseção sobre a soma das áreas.
             \begin{equation*}
-                Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)}
+                \mathrm{Dice} = \frac{2 \cdot (A \cap B)}{\mathrm{Area}(A) + \mathrm{Area}(B)}
             \end{equation*}
-            \item Valor ideal: $Dice = 1$.
-            \item Penaliza menos diferenças de tamanho que o IoU.
+            \item Valor ideal: $\mathrm{Dice} = 1$.
+            \item Penaliza diferenças de tamanho menos que o IoU.
         \end{itemize}
     \end{column}
     \begin{column}{.45\linewidth}
@@ -414,22 +606,22 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
 \begin{itemize}
     \item Suponha duas caixas com:
     \begin{itemize}
-        \item $Area(A) = 10$.
-        \item $Area(B) = 10$.
+        \item $\mathrm{Area}(A) = 10$.
+        \item $\mathrm{Area}(B) = 10$.
         \item $A \cap B = 5$.
-        \item $A \cup B = Area(A) + Area(B) - A \cap B = 15$.
+        \item $A \cup B = \mathrm{Area}(A) + \mathrm{Area}(B) - A \cap B = 15$.
     \end{itemize}
 \end{itemize}
 \vspace{0.2em}
 \begin{columns}
     \begin{column}{.5\linewidth}
         \begin{equation*}
-            IoU = \frac{5}{15} \approx 0.333
+            \mathrm{IoU} = \frac{5}{15} \approx 0.333
         \end{equation*}
     \end{column}
     \begin{column}{.5\linewidth}
         \begin{equation*}
-            Dice = \frac{2 \cdot 5}{10 + 10} = 0.5
+            \mathrm{Dice} = \frac{2 \cdot 5}{10 + 10} = 0.5
         \end{equation*}
     \end{column}
 \end{columns}
@@ -516,7 +708,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
 
 \begin{frame}{Segmentação Semântica}
 \begin{itemize}
-    \item É basicamente uma classificação em \textbf{nível de pixel}.
+    \item É uma classificação em \textbf{nível de pixel}.
     \item Cada pixel da imagem recebe uma probabilidade de pertencer a cada classe.
     \item Aplicações típicas: direção autônoma, imagens médicas, sensoriamento remoto.
 \end{itemize}
@@ -531,7 +723,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
     \node[above=2pt of out] {Máscara por classe};
     \draw[->, very thick] (in.east) -- (out.west);
 \end{tikzpicture}\\[4pt]
-{\tiny Cada pixel recebe uma classe (\textit{notebook}, \textit{copo}, \textit{mesa}, fundo). Exemplo CC0 de Martin Thoma, \textit{Wikimedia Commons}.}
+{\tiny Cada pixel recebe uma classe (\textit{notebook}, copo, mesa, fundo). Exemplo CC0 de Martin Thoma, \textit{Wikimedia Commons}.}
 \end{frame}
 
 \begin{frame}{Primeira Ideia (Ingênua)}
@@ -578,7 +770,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
     \draw[fill=PastelBlue2, opacity=0.9] (6.0,0.0) rectangle ++(\bw,1.8);
 
     % Labels
-    \node[align=center] at (1.2,-0.3) {\scriptsize Encoder (VGG-16)};
+    \node[align=center] at (1.2,-0.3) {\scriptsize Encoder (VGG16)};
     \node[align=center] at (4.8,-0.3) {\scriptsize Decoder (conv transposta)};
 
     % Arrows
@@ -626,7 +818,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
     \item \textbf{R-CNN}\footfullcite{girshick2014rcnn}: gera $\sim 2.000$ \textit{region proposals} (via \textit{selective search}), recorta cada uma e roda a CNN separadamente. Lento, mas estabeleceu a base do paradigma.
     \item \textbf{Fast R-CNN}: a CNN processa a imagem inteira uma só vez; \textit{ROI pooling} extrai \textit{features} de cada região a partir do mesmo \textit{feature map}.
     \item \textbf{Faster R-CNN}\footfullcite{ren2015fasterrcnn}: substitui \textit{selective search} por uma \textbf{Region Proposal Network} (RPN), também convolucional. Treino \textit{end-to-end}.
-    \item Característica comum, primeiro propõe regiões, depois classifica cada uma. Tipicamente mais precisos, porém mais lentos.
+    \item Característica comum: primeiro propõem regiões, depois classificam cada uma. Tipicamente mais precisos, porém mais lentos.
 \end{itemize}
 \end{frame}
 
@@ -634,7 +826,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
 \begin{itemize}
     \item \textbf{YOLO}\footfullcite{redmon2016yolo} (\textit{You Only Look Once}): divide a imagem em uma grade $S\times S$ e prediz, em \textbf{uma única passada}, a classe e a \textit{bounding box} para cada célula.
     \begin{itemize}
-        \item Muito mais rápido, opera em tempo real, ao custo de menor precisão em objetos pequenos.
+        \item Muito mais rápido (opera em tempo real), ao custo de menor precisão em objetos pequenos.
         \item Variantes posteriores (YOLOv3-v8) recuperam grande parte dessa diferença de precisão.
     \end{itemize}
     \item \textbf{SSD} (\textit{Single Shot MultiBox Detector}): também \textit{one-stage}, prediz caixas em vários níveis de resolução simultaneamente.
@@ -654,7 +846,7 @@ fc3 (saída) & $4.096 \times 1.000$ & $4.096.000$ \\
 \begin{itemize}
     \item Muito parecida com detecção de objetos:
     \begin{itemize}
-        \item Cada objeto recebe um valor por pixel, e não apenas uma \textit{bounding box}.
+        \item Cada objeto recebe uma máscara em nível de pixel, além da \textit{bounding box}.
         \item Instâncias diferentes da mesma classe são \textbf{diferenciadas} entre si.
     \end{itemize}
     \item Diferença em relação à segmentação semântica: dois gatos lado a lado aparecem como duas máscaras distintas, não como uma só.
@@ -687,11 +879,11 @@ na de \textbf{instâncias}, cada balão recebe uma cor \textbf{distinta}.}\\[2pt
     \begin{itemize}
         \item Disponível em \url{https://udlbook.github.io/udlbook/}.
     \end{itemize}
-    \item Os artigos abaixo são acessíveis e fornecem a visão original dos autores sobre as ideias apresentadas nessa aula:
+    \item Os artigos abaixo são acessíveis e fornecem a visão original dos autores sobre as ideias apresentadas nesta aula:
     \begin{itemize}
-        \item \textit{Very deep convolutional networks for large-scale image recognition}~\cite{simonyan2014vgg}.
-        \item \textit{OverFeat: Integrated recognition, localization and detection using convolutional networks}~\cite{sermanet2013overfeat}.
-        \item \textit{Learning deconvolution network for semantic segmentation}~\cite{noh2015deconv}.
+        \item \fullcite{simonyan2014vgg}
+        \item \fullcite{sermanet2013overfeat}
+        \item \fullcite{noh2015deconv}
     \end{itemize}
 \end{itemize}
 \end{frame}

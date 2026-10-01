@@ -1,0 +1,234 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 1}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+e & c & g & a & b & h & d & f & e & b \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+Com vieses nulos, a análise vista em aula dá, na primeira camada (a entrada não passa por ReLU e, como $\mathbb{E}[x_j] = 0$, o segundo momento é $\mathbb{E}[x_j^2] = \mathrm{Var}[x_j] = 1$),
+\[
+\sigma^2_{z^{(1)}} = n\,\sigma_\theta^2 ,
+\]
+e, a partir da segunda camada, $\sigma^2_{z^{(l)}} = \tfrac{n}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$: a ReLU zera metade da distribuição e o segundo momento cai pela metade. Assim, o desvio padrão da primeira camada é $\sqrt{n\sigma_\theta^2}$ e, a cada camada seguinte, ele é multiplicado por $\sqrt{n\sigma_\theta^2/2}$:
+\[
+\begin{array}{c|c|c|cccc|c}
+ & n\sigma_\theta^2 & \text{fator por camada} & \mathbf{Z}^{(1)} & \mathbf{Z}^{(2)} & \mathbf{Z}^{(3)} & \mathbf{Z}^{(4)} & \text{linha}\\\hline
+1/(4n) & 0{,}25 & \sqrt{0{,}125} \approx 0{,}35 & 0{,}50 & 0{,}18 & 0{,}06 & 0{,}02 & \text{S}\\
+1/n & 1 & \sqrt{0{,}5} \approx 0{,}71 & 1{,}00 & 0{,}71 & 0{,}50 & 0{,}35 & \text{P}\\
+2/n & 2 & 1 & 1{,}41 & 1{,}41 & 1{,}41 & 1{,}41 & \text{R}\\
+4/n & 4 & \sqrt{2} \approx 1{,}41 & 2{,}00 & 2{,}83 & 4{,}00 & 5{,}66 & \text{Q}
+\end{array}
+\]
+Os desvios padrão medidos na simulação que gerou a figura ficam próximos desses valores (o maior desvio é em Q, $\mathbf{Z}^{(4)}$: $5{,}54$ medido contra $5{,}66$ previsto). A leitura da figura: R mantém a mesma largura nas quatro camadas (inicialização de He); Q se alarga a cada camada (\textit{exploding}); P e S encolhem, mas S já começa mais estreita que P em $\mathbf{Z}^{(1)}$ e vira uma agulha em $\mathbf{Z}^{(2)}$, enquanto P ainda tem largura visível em $\mathbf{Z}^{(4)}$. Logo, 1-S, 2-P, 3-R e 4-Q.\\
+\textbf{(a)} troca $1/n$ e $2/n$, como se $\sigma_\theta^2 = 1/n$ (Xavier com \textit{fan-in}) preservasse a variância; isso vale para a tanh perto da origem, mas a ReLU exige o fator $2$.
+\textbf{(b)} troca os dois pares vizinhos, $1/(4n)$ com $1/n$ e $2/n$ com $4/n$: ignora que S já é a mais estreita na primeira camada e toma a linha que se alarga pela estável.
+\textbf{(c)} inverte toda a ordem, como se pesos com variância maior produzissem pré-ativações mais estreitas.
+\textbf{(d)} coloca $1/n$ na linha que explode e $2/n$ na que colapsa, deixando $4/n$ na estável.
+\textbf{(f)} coloca $1/(4n)$ na linha estável e $4/n$ em P, que encolhe a cada camada.
+\textbf{(g)} troca apenas os extremos, $1/(4n)$ e $4/n$.
+\textbf{(h)} coloca $1/(4n)$ na linha estável, $1/n$ na que explode, $2/n$ na que colapsa e $4/n$ em P, que encolhe.
+As oito alternativas foram montadas de modo que nenhuma se destaque por repetição: cada componente aparece o mesmo número de vezes, e escolher a alternativa ``mais parecida com as outras não ajuda.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (c)}
+Lendo os gráficos: $h_1 = \mathrm{ReLU}[0{,}6 - 0{,}5x]$ (ativa para $x < 1{,}2$), $h_2 = \mathrm{ReLU}[-0{,}2 + 0{,}5x]$ (ativa para $x > 0{,}4$) e $h_3 = \mathrm{ReLU}[-0{,}8 + 0{,}5x]$ (ativa para $x > 1{,}6$), com $\phi_1 = 1$, $\phi_2 = -1$ e $\phi_3 = 3$. Somando as três ativações ponderadas e $\phi_0 = 0{,}2$, as dobras ficam em $x = 0{,}4$, $1{,}2$ e $1{,}6$:
+\[
+\begin{array}{c|ccccc}
+x & 0 & 0{,}4 & 1{,}2 & 1{,}6 & 2 \\\hline
+\phi_1 h_1 & 0{,}6 & 0{,}4 & 0 & 0 & 0 \\
+\phi_2 h_2 & 0 & 0 & -0{,}4 & -0{,}6 & -0{,}8 \\
+\phi_3 h_3 & 0 & 0 & 0 & 0 & 0{,}6 \\\hline
+y & 0{,}8 & 0{,}6 & -0{,}2 & -0{,}4 & 0
+\end{array}
+\]
+A saída é linear por partes, com inclinações $-0{,}5$, $-1$, $-0{,}5$ e $+1$, o que corresponde ao gráfico (c).\\
+\textbf{(a)} esquece o viés $\phi_0$ e fica deslocada $0{,}2$ para baixo.
+\textbf{(b)} combina dois erros: esquece o viés $\phi_0$ e soma as ativações $h_k$ sem ponderá-las por $\phi_k$.
+\textbf{(d)} soma as pré-ativações em vez das ativações; sem a ReLU a rede colapsa em uma reta, $y = -1{,}4 + 0{,}5x$.
+\textbf{(e)} ativa $h_2$ no lado errado da dobra, como se a unidade valesse $\mathrm{ReLU}[0{,}2 - 0{,}5x]$.
+\textbf{(f)} soma as ativações $h_k$ sem ponderá-las por $\phi_k$.
+\textbf{(g)} ignora a contribuição de $h_3$ e mantém a descida após $x = 1{,}6$.
+\textbf{(h)} ativa $h_1$ no lado errado da dobra, como se a unidade valesse $\mathrm{ReLU}[-0{,}6 + 0{,}5x]$.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (g)}
+As unidades ocultas calculam $h_1 = \mathrm{sinal}(1 - x_1 + x_2)$, que vale $+1$ acima (e sobre) da reta $x_2 = x_1 - 1$, e $h_2 = \mathrm{sinal}(-3 + x_1 + x_2)$, que vale $+1$ acima da reta $x_2 = 3 - x_1$. As retas se cruzam em $(2;\ 1)$. A saída calcula $\mathrm{sinal}(-1 + h_1 + h_2)$; como $h_1 + h_2 \in \{2, 0, -2\}$, ela só vale $+1$ quando $h_1 = h_2 = +1$, isto é, a saída é um E lógico. A região positiva é a interseção dos dois semiplanos superiores, um V com vértice em $(2;\ 1)$ aberto para cima: gráfico (g).\\
+\textbf{(a)} combina as unidades com OU (que exigiria viés $+1$ na saída), sombreando tudo exceto o triângulo abaixo das duas retas.
+\textbf{(b)} inverte a saída do E, sombreando o complemento da região correta.
+\textbf{(c)} lê o viés de $h_1$ com o sinal trocado, usando a reta $x_2 = x_1 + 1$ e deslocando o vértice para $(1;\ 2)$.
+\textbf{(d)} toma o lado negativo de $h_1$, formando uma cunha aberta para a direita.
+\textbf{(e)} toma o lado negativo de $h_2$, formando uma cunha aberta para a esquerda.
+\textbf{(f)} considera apenas $h_1$, como se a saída copiasse essa unidade.
+\textbf{(h)} toma o lado negativo das duas unidades, sombreando apenas o triângulo abaixo do vértice.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (a)}
+Com classe correta $1$, a entropia cruzada é $-\ln \mathrm{softmax}(\mathbf{z})_1 = -z_1 + \ln\sum_j e^{z_j}$.
+\textbf{Original:} $-1 + \ln(e^1 + e^3 + e^1) = -1 + 1 + \ln(2 + e^{2}) = \ln 9{,}39 \approx 2{,}24$.
+\textbf{(A):} somar a mesma constante $c$ a todos os \textit{logits} multiplica numerador e denominador da SoftMax por $e^{c}$, então as probabilidades e o custo não mudam: $2{,}24$. É exatamente a propriedade que o truque do log-sum-exp explora.
+\textbf{(B):} $-2 + \ln(2e^{2} + e^{6}) = \ln(2 + e^{4}) = \ln 56{,}60 \approx 4{,}04$. Multiplicar os \textit{logits} por $2$ aumenta a diferença entre a classe errada ($z_2$) e a correta, a SoftMax fica mais confiante na classe errada e o custo cresce, mas sem dobrar.\\
+O segundo valor distingue quem sabe que a SoftMax é invariante a deslocamentos ($2{,}24$) de quem soma a constante ao custo ($7{,}24$), como se a entropia cruzada fosse linear nos \textit{logits}. O terceiro valor distingue o resultado correto ($4{,}04$) de três erros sobre a mudança de escala: supor que a SoftMax também é invariante a ela ($2{,}24$), tratar $\ln\sum_j e^{2z_j}$ como $2\ln\sum_j e^{z_j}$ e dobrar o custo ($4{,}48$), ou dividi-lo por dois ($1{,}12$), invertendo o efeito de aumentar a escala.\\
+\textbf{(b)} erra o deslocamento e acerta a escala.
+\textbf{(c)}, \textbf{(d)} e \textbf{(g)} acertam o deslocamento e erram a escala (invariância, dobro e metade, respectivamente).
+\textbf{(e)}, \textbf{(f)} e \textbf{(h)} erram as duas modificações.
+As oito alternativas foram montadas de modo que nenhuma se destaque por repetição: cada componente aparece o mesmo número de vezes, e escolher a alternativa ``mais parecida com as outras não ajuda.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (b)}
+\textbf{Camada 1:} $\mathbf{z}^{(1)} = x\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)} = 2\begin{bmatrix} -1 & 2 \end{bmatrix} + \begin{bmatrix} 3 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 5 \end{bmatrix} = \mathbf{a}^{(1)}$ (os dois valores são positivos e a ReLU não os altera).
+
+\textbf{\textit{Dropout}} ($p = 0{,}5$, escala $1/(1-p) = 2$): $\widetilde{\mathbf{a}}^{(1)} = 2\begin{bmatrix} 1 & 0 \end{bmatrix} \odot \begin{bmatrix} 1 & 5 \end{bmatrix} = \begin{bmatrix} 2 & 0 \end{bmatrix}$.
+
+\textbf{Camada 2:}
+\[
+\mathbf{z}^{(2)} = \widetilde{\mathbf{a}}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + \mathbf{b}^{(2)}
+= \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} 3 & -2 \\ 0{,}5 & -2 \end{bmatrix} + \begin{bmatrix} 1 & 0 \end{bmatrix}
+= \begin{bmatrix} 7 & -4 \end{bmatrix},
+\qquad
+\mathbf{a}^{(2)} = \begin{bmatrix} 7 & 0 \end{bmatrix}.
+\]
+\textbf{Saída:} $\hat{y} = \mathbf{a}^{(2)}{\mathbf{\Theta}^{(3)}}^{\top} + b^{(3)} = 7\cdot(-1) + 0\cdot(-3) + 1 = -6$.\\
+\textbf{(a)} ignora o \textit{dropout}, como se fosse inferência: $\mathbf{a}^{(2)} = \begin{bmatrix} 5{,}5 & 0 \end{bmatrix}$ e $\hat{y} = -5{,}5$.
+\textbf{(c)} aplica a máscara, mas esquece a escala $1/(1-p)$: $\widetilde{\mathbf{a}}^{(1)} = \begin{bmatrix} 1 & 0 \end{bmatrix}$.
+\textbf{(d)} escala as ativações mantidas por $(1-p)$ em vez de $1/(1-p)$.
+\textbf{(e)} interpreta a máscara ao contrário e descarta a posição marcada com $1$: $\widetilde{\mathbf{a}}^{(1)} = \begin{bmatrix} 0 & 10 \end{bmatrix}$.
+\textbf{(f)} esquece a ReLU da segunda camada oculta e propaga $z^{(2)}_2 = -4$.
+\textbf{(g)} aplica ReLU também na saída, que é linear.
+\textbf{(h)} aplica o \textit{dropout} depois da segunda camada oculta, sobre $\mathbf{a}^{(2)}$, e não sobre $\mathbf{a}^{(1)}$.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (h)}
+\textbf{1-(ii):} o \textit{momentum} é uma média móvel exponencial dos gradientes; componentes que trocam de sinal a cada passo (transversais ao vale) se cancelam, e os que mantêm o sinal (ao longo do vale) se acumulam.
+\textbf{2-(iv):} o Nesterov avalia o gradiente em $\boldsymbol{\theta}_t - \eta\beta\mathbf{v}_t$, o ponto para onde a memória levaria, e por isso reage à curvatura antes do \textit{momentum} clássico.
+\textbf{3-(iii):} o AdaGrad acumula $\mathbf{G}_{t+1} = \mathbf{G}_t + (\nabla\mathcal{L})^2$, que só cresce, então a taxa efetiva $\eta/(\sqrt{\mathbf{G}_{t+1}} + \epsilon)$ só diminui e o treinamento pode estacionar.
+\textbf{4-(i):} o RMSProp troca a soma por uma média móvel exponencial, $\mathbb{E}[g^2]$ esquece gradientes antigos e, quando os gradientes recentes ficam pequenos, a taxa efetiva volta a crescer.\\
+As alternativas combinam três confusões. \textbf{(a)} troca \textit{momentum} e Nesterov. \textbf{(c)} troca AdaGrad e RMSProp, atribuindo ao AdaGrad a capacidade de esquecer o histórico. \textbf{(e)} troca os dois pares ao mesmo tempo. \textbf{(b)}, \textbf{(d)}, \textbf{(f)} e \textbf{(g)} confundem as duas famílias: atribuem aos métodos com memória (\textit{momentum} e Nesterov) os comportamentos da taxa adaptativa, e vice-versa; (d), (f) e (g) ainda trocam, respectivamente, AdaGrad e RMSProp, \textit{momentum} e Nesterov, e os dois pares.
+As oito alternativas foram montadas de modo que nenhuma se destaque por repetição: cada componente aparece o mesmo número de vezes, e escolher a alternativa ``mais parecida com as outras não ajuda.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (d)}
+Pela aproximação dada no enunciado, o sinal da variação de cada objetivo é o sinal de $\Delta\boldsymbol{\theta}^{\top}\nabla_{\boldsymbol{\theta}}\mathcal{L}_k$, isto é, de $\cos(\alpha_k)$. Reduzir $\mathcal{L}_1$ exige $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta} < 0$ ($\alpha_1 > 90^{\circ}$), e manter $\mathcal{L}_2$ inalterada exige $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta} = 0$ ($\alpha_2 = 90^{\circ}$), ou seja, $\Delta\boldsymbol{\theta}$ ortogonal a $\nabla\mathcal{L}_2$. O passo do SGD, $\Delta\boldsymbol{\theta} = -\nabla\mathcal{L}_1$, falha porque $(\nabla\mathcal{L}_2)^{\top}(-\nabla\mathcal{L}_1) = -(-8 + 1) = 7 > 0$: os gradientes formam um ângulo maior que $90^{\circ}$, e descer em $\mathcal{L}_1$ significa subir em $\mathcal{L}_2$.
+
+\textbf{Construção da direção.} Removemos de $\nabla\mathcal{L}_1$ a sua componente na direção de $\nabla\mathcal{L}_2$ (projeção no complemento ortogonal, a ideia do \textit{gradient surgery}/PCGrad):
+\[
+\mathbf{g} = \nabla\mathcal{L}_1 - \frac{(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2}{\|\nabla\mathcal{L}_2\|^{2}}\,\nabla\mathcal{L}_2
+= \begin{bmatrix} 4 \\ 1 \end{bmatrix} - \frac{-7}{5}\begin{bmatrix} -2 \\ 1 \end{bmatrix}
+= \begin{bmatrix} 1{,}2 \\ 2{,}4 \end{bmatrix},
+\]
+e descemos ao longo dela, $\Delta\boldsymbol{\theta} \propto -\mathbf{g} \propto \bigl[\,-1 \quad -2\,\bigr]^{\top}$. Verificando: $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta} = -4 - 2 = -6 < 0$ e $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta} = 2 - 2 = 0$. Em duas dimensões essa é a única direção (a menos de escala positiva) que atende às duas condições; basta testar os produtos escalares das alternativas, sem precisar da fórmula de projeção.
+
+\begin{center}
+\begin{tabular}{clrrl}
+& $\Delta\boldsymbol{\theta}$ & $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta}$ & $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta}$ & estratégia que a alternativa representa \\\hline
+(a) & $[-4\ \ -1]^{\top}$ & $-17$ & $+7$ & SGD puro, ou qualquer reescala dele \\
+(b) & $[-1\ \ -1]^{\top}$ & $-5$ & $+1$ & sinal do gradiente (Adam com histórico estável) \\
+(c) & $[-2\ \ -2]^{\top}$ & $-10$ & $+2$ & soma dos gradientes dos dois objetivos \\
+(d) & $[-1\ \ -2]^{\top}$ & $-6$ & $0$ & projeção no complemento ortogonal de $\nabla\mathcal{L}_2$ \\
+(e) & $[-2\ \ 1]^{\top}$ & $-7$ & $+5$ & projeção \emph{sobre} $\nabla\mathcal{L}_2$ \\
+(f) & $[1\ \ 2]^{\top}$ & $+6$ & $0$ & projeção correta com o sinal do passo trocado \\
+(g) & $[1\ \ -4]^{\top}$ & $0$ & $-6$ & direção ortogonal a $\nabla\mathcal{L}_1$ \\
+(h) & $[-6\ \ 0]^{\top}$ & $-24$ & $+12$ & $-\nabla\mathcal{L}_1 + \nabla\mathcal{L}_2$ \\
+\end{tabular}
+\end{center}
+
+\textbf{(a)} é o próprio passo do SGD; reduzir $\eta$, normalizar ou aplicar \textit{clipping} na norma só mudam o tamanho do passo, e a degradação de $\mathcal{L}_2$ continua.
+\textbf{(b)} é o que o Adam faz com histórico estável: normalizar entrada a entrada muda a direção, mas não a torna ortogonal a $\nabla\mathcal{L}_2$.
+\textbf{(c)} desce na soma $\mathcal{L}_1 + \mathcal{L}_2$; como $\|\nabla\mathcal{L}_2\|^2 = 5 < 7 = -(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2$, o conflito domina e $\mathcal{L}_2$ ainda piora.
+\textbf{(e)} guarda exatamente a componente que devia ser removida: é a direção de $\nabla\mathcal{L}_2$, que sobe em $\mathcal{L}_2$.
+\textbf{(f)} é ortogonal a $\nabla\mathcal{L}_2$, mas sobe em $\mathcal{L}_1$, porque aplica $+\mathbf{g}$ em vez de $-\mathbf{g}$.
+\textbf{(g)} melhora apenas $\mathcal{L}_2$ e deixa $\mathcal{L}_1$ parada em primeira ordem, invertendo o papel dos objetivos.
+\textbf{(h)} soma $\nabla\mathcal{L}_2$ ao passo em vez de subtraí-lo, agravando a degradação.
+
+\textbf{Observação para a correção:} ortogonalizar a matriz de atualização, como faz o Muon, é diferente de tornar a atualização ortogonal a uma direção dada; nenhum dos otimizadores vistos em aula resolve esse conflito sozinho.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (f)}
+\textbf{Adam.} Com histórico estável, $\widetilde{\mathbf{m}}/\sqrt{\widetilde{\mathbf{v}}} = \mathbf{M}_{t+1}/|\mathbf{M}_{t+1}|$ entrada a entrada: cada entrada anda com a mesma magnitude, no sentido do seu próprio sinal. Todas as entradas de $\mathbf{M}_{t+1}$ são positivas, então
+\[
+\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix},
+\]
+uma matriz de \textit{rank} 1: a SVD de $\mathbf{M}_{t+1}$ não é usada, e o Adam descarta a segunda direção singular por completo.
+
+\textbf{Muon.} O Muon troca $\mathbf{M}_{t+1}$ pela matriz ortogonal mais próxima, mantendo as direções singulares e fazendo todos os valores singulares iguais a $1$, isto é, trocando $\boldsymbol{\Sigma}$ pela identidade:
+\[
+\mathbf{D}_{\text{Muon}} = \mathbf{U}\mathbf{V}^{\top}
+= \frac{1}{25}\begin{bmatrix} 3 & -4 \\ 4 & 3 \end{bmatrix}\begin{bmatrix} 4 & 3 \\ -3 & 4 \end{bmatrix}
+= \frac{1}{25}\begin{bmatrix} 24 & -7 \\ 7 & 24 \end{bmatrix}
+= \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}.
+\]
+A direção dominante ($\sigma_1 = 20$) e a secundária ($\sigma_2 = 5$) passam a receber passos do mesmo tamanho, enquanto no SGD com \textit{momentum} a segunda recebe um passo quatro vezes menor.
+
+As alternativas cruzam duas escolhas para o Adam com quatro para o Muon, e cada matriz aparece o mesmo número de vezes, de modo que a resposta não se destaca por repetição.\\
+\textbf{(a)} e \textbf{(e)} calculam $\mathbf{V}\mathbf{U}^{\top}$ para o Muon, a transposta da resposta, que gira no sentido oposto.
+\textbf{(b)}, \textbf{(d)}, \textbf{(e)} e \textbf{(h)} atribuem ao Adam a ortogonalização da matriz inteira; o Adam normaliza cada entrada separadamente.
+\textbf{(c)} e \textbf{(h)} atribuem ao Muon a normalização entrada a entrada do Adam.
+\textbf{(d)} e \textbf{(g)} tomam como direção do Muon $\mathbf{M}_{t+1}/\sigma_1$, que só reescala o \textit{momentum} e mantém a razão $\sigma_1/\sigma_2 = 4$, como no SGD.
+
+\subsection*{Questão 9 \textemdash{} Resposta: (e)}
+\textbf{Forward:} $\mathbf{z}^{(1)} = x\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)} = 2\begin{bmatrix} 1 & -0{,}5 \end{bmatrix} + \begin{bmatrix} -1 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \end{bmatrix}$, $\mathbf{a}^{(1)} = \begin{bmatrix} 1 & 1 \end{bmatrix}$, $z^{(2)} = \mathbf{a}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + b^{(2)} = 2 - 1{,}5 - 0{,}5 = 0$ e $\hat{y} = \sigma(0) = 0{,}5$.
+
+\textbf{Backward:} com a derivada dada no enunciado, $\partial J/\partial \hat{y} = -1/0{,}5 + 0 = -2$, e a derivada da sigmoide é $\sigma'(0) = \sigma(0)\bigl(1 - \sigma(0)\bigr) = 0{,}25$. Logo $\partial J/\partial z^{(2)} = -2 \cdot 0{,}25 = -0{,}5$, que coincide com a forma simplificada $\hat{y} - y$ (a derivada da sigmoide se cancela com a do logaritmo). Seguindo a regra da cadeia até $\theta^{(1)}_2$:
+\[
+\frac{\partial J}{\partial \theta^{(1)}_{21}}
+= (\hat{y} - y)\cdot \theta^{(2)}_{12} \cdot \mathrm{ReLU}'(z^{(1)}_2) \cdot x
+= (-0{,}5)(-1{,}5)(1)(2) = +1{,}5 .
+\]
+\textbf{(a)} esquece o fator $x = 2$.
+\textbf{(b)} esquece o peso $\theta^{(2)}_{12}$.
+\textbf{(c)} usa $y - \hat{y}$, trocando o sinal do gradiente.
+\textbf{(d)} aplica o fator $\sigma'(0) = 0{,}25$ duas vezes, por exemplo multiplicando a forma simplificada $\hat{y} - y$ por $\sigma'(0)$.
+\textbf{(f)} usa a derivada dada, $\partial J/\partial \hat{y} = -2$, mas esquece a derivada da sigmoide ao passar de $\hat{y}$ para $z^{(2)}$.
+\textbf{(g)} calcula $\partial J/\partial \theta^{(1)}_{11} = (-0{,}5)(2)(1)(2)$, o gradiente do outro peso.
+\textbf{(h)} combina a troca de sinal de (c) com o fator extra de (d).
+
+\subsection*{Questão 10 \textemdash{} Resposta: (b)}
+A NLL das $N$ observações é
+\[
+-\sum_{i}\ln\Pr\bigl(y^{(i)} \mid \lambda^{(i)}\bigr) = \sum_{i}\Bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)} + \ln y^{(i)}!\Bigr],
+\]
+e $\ln y^{(i)}!$ não depende de $\boldsymbol{\theta}$, logo $\mathcal{L} = \sum_i\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$. A saída da rede precisa ser estritamente positiva e sem limite superior, porque $\lambda$ é a média de uma contagem; a \textit{softplus}, $\ln(1 + e^{z})$, atende as duas exigências.\\
+\textbf{(a)} usa a sigmoide, que limita $\lambda$ a $(0, 1)$ e impede prever médias acima de uma chamada por hora.
+\textbf{(c)} usa a identidade, que permite $\lambda \leq 0$ e deixa $\ln\lambda$ indefinido.
+\textbf{(d)} usa ReLU, que produz $\lambda = 0$ em toda a região negativa: $\ln 0$ diverge e o gradiente se anula.
+\textbf{(e)} escreve a log-verossimilhança sem o sinal negativo; minimizá-la equivale a \emph{minimizar} a verossimilhança.
+\textbf{(f)}, \textbf{(g)} e \textbf{(h)} combinam o sinal trocado de (e) com as ativações inadequadas de (a), (d) e (c), respectivamente.
+As oito alternativas foram montadas de modo que nenhuma se destaque por repetição: cada componente aparece o mesmo número de vezes, e escolher a alternativa ``mais parecida com as outras não ajuda.
+
+\end{document}
