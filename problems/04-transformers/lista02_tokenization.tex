@@ -3,6 +3,10 @@
 \usepackage{emoji}
 \tikzset{every picture/.style={line width=0.75pt}}
 
+% Boxed token marker for tokenization questions (mirrors the \tok command
+% of slides/04-transformers/02-tokenizacao.tex, in print-friendly gray).
+\newcommand{\tok}[1]{{\setlength{\fboxsep}{2pt}\fcolorbox{black!50}{gray!10}{\strut\texttt{#1}}}}
+
 \title{Tokenização}
 \subtitle{Lista de Exercícios}
 
@@ -291,6 +295,52 @@
           pois a matriz é duplicada na saída.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+% Q17 — Médio (asserções sobre BPE, WordPiece e tokenização por caractere)
+% ------------------------------------------------------------------
+\item Sobre as asserções abaixo a respeito de algoritmos de tokenização:
+
+\textbf{I.} O \textbf{BPE} (\textit{Byte-Pair Encoding}) inicia com um vocabulário de caracteres (ou \textit{bytes}) e \emph{cresce} o vocabulário fundindo iterativamente o par de tokens mais \emph{frequente} no corpus de treinamento, até atingir o tamanho-alvo.
+
+\textbf{II.} O \textbf{WordPiece} difere do BPE no critério de seleção: em vez do par mais frequente, mescla o par que \emph{maximiza a verossimilhança} dos dados de treinamento; assim como o BPE, parte de um vocabulário pequeno e cresce o vocabulário a cada iteração.
+
+\textbf{III.} A \textbf{tokenização em nível de caractere} (cada letra/caractere vira um token) é, em geral, preferível aos métodos sub-palavra (BPE/WordPiece) em LLMs modernos, pois produz um vocabulário muito menor, elimina por completo o problema de \textit{out-of-vocabulary} e não acarreta custos adicionais relevantes de modelagem ou de tempo de treinamento.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q18 — Difícil (inferência do BPE em palavra nova)
+% ------------------------------------------------------------------
+\item Um tokenizer BPE foi treinado sobre o corpus \texttt{car} ($\times$8), \texttt{cart} ($\times$4), \texttt{art} ($\times$2), \texttt{care} ($\times$2), com marcador de fim de palavra \texttt{\_}. A tabela de \textit{merges} aprendida (com $k = 5$) é, em ordem:
+\begin{center}
+1.\ \texttt{(a,r)} $\rightarrow$ \texttt{ar} \quad
+2.\ \texttt{(c,ar)} $\rightarrow$ \texttt{car} \quad
+3.\ \texttt{(car,\_)} $\rightarrow$ \texttt{car\_} \quad
+4.\ \texttt{(t,\_)} $\rightarrow$ \texttt{t\_} \quad
+5.\ \texttt{(car,t\_)} $\rightarrow$ \texttt{cart\_}
+\end{center}
+Em tempo de inferência, como fica a tokenização da palavra \texttt{tart}? Nas alternativas, cada caixa representa um \textit{token} da sequência resultante.
+
+\begin{enumerate}[a)]
+    \item \tok{t}~\tok{ar}~\tok{t}~\tok{\_}
+    \item \tok{t}~\tok{ar}~\tok{t\_}
+    \item \tok{tar}~\tok{t\_}
+    \item \tok{t}~\tok{art\_}
+    \item \tok{t}~\tok{a}~\tok{r}~\tok{t}~\tok{\_}
+    \item \tok{tart\_}
+    \item \tok{ta}~\tok{r}~\tok{t\_}
+    \item \tok{tar}~\tok{t}~\tok{\_}
+\end{enumerate}
+
 \end{enumerate}
 
 
@@ -575,6 +625,56 @@ a mesma matriz é reutilizada nas duas pontas, eliminando uma das cópias: o tot
 cai para 51,2M. O GPT-2 usa essa técnica. O custo é relevante sobretudo em modelos
 pequenos: no GPT-2 Small ($|V| = 50.257$, $d = 768$), a tabela de embedding sozinha
 responde por cerca de um terço dos 117M de parâmetros do modelo.
+% ---
+
+% --- Solução Q17 ---
+\subsection*{XVII — Resposta: (d)}
+\textbf{I é correta:} é a descrição padrão do BPE (Sennrich et al., 2016, a partir de
+Gage, 1994): vocabulário inicial de caracteres ou bytes, crescimento iterativo pela
+fusão do par adjacente mais frequente.
+
+\textbf{II é correta:} o WordPiece cresce o vocabulário exatamente como o BPE; a única
+diferença está no critério de seleção do par, que passa de frequência bruta para ganho
+de verossimilhança (ver questão VII).
+
+\textbf{III é incorreta:} a tokenização em nível de caractere de fato produz um
+vocabulário pequeno e elimina o problema de \textit{out-of-vocabulary}, mas não é a
+escolha preferida em LLMs modernos. Cada texto se decompõe em uma sequência muito mais
+longa do que com BPE/WordPiece (tipicamente 4--8$\times$); como a atenção tem custo
+$O(n^2)$ no comprimento da sequência, o tempo e a memória de treinamento e inferência
+crescem substancialmente. Além disso, cada token carrega muito pouca informação
+semântica, dificultando o aprendizado. Por isso os LLMs atuais usam tokenização
+sub-palavra.
+
+Logo, apenas I e II estão corretas. As opções (a), (b) e (c) excluem asserções
+corretas; as opções (e), (f) e (g) incluem a asserção III; a opção (h) contradiz I e II.
+% ---
+
+% --- Solução Q18 ---
+\subsection*{XVIII — Resposta: (b)}
+Na inferência, os \textit{merges} são aplicados na ordem aprendida, sempre que o par
+estiver presente:
+\begin{enumerate}
+  \item Início: \texttt{t a r t \_}
+  \item \textit{Merge} 1, \texttt{(a,r)} $\rightarrow$ \texttt{ar}: \quad \texttt{t ar t \_}
+  \item \textit{Merges} 2 e 3 não se aplicam: não há \texttt{(c,ar)} nem \texttt{(car,\_)} na palavra.
+  \item \textit{Merge} 4, \texttt{(t,\_)} $\rightarrow$ \texttt{t\_}: \quad \texttt{t ar t\_}
+  \item \textit{Merge} 5 não se aplica: não há \texttt{(car,t\_)}.
+\end{enumerate}
+Resultado: \texttt{t}~\texttt{ar}~\texttt{t\_}, com 3 \textit{tokens}. Mesmo sem
+\texttt{tart} ter aparecido no corpus, a palavra é composta por \textit{subwords}
+aprendidos: \texttt{ar} é compartilhado com \texttt{car}, \texttt{cart} e \texttt{art},
+e \texttt{t\_} com \texttt{cart} e \texttt{art}.
+
+A opção (a) aplica o \textit{merge} 1 mas esquece o \textit{merge} 4, que está
+disponível no final da palavra. A opção (c) usa um \textit{merge} \texttt{(t,ar)} que
+nunca foi aprendido; \texttt{tar} não está no vocabulário. A opção (d) usa um
+\textit{merge} \texttt{(ar,t\_)} inexistente; \texttt{art\_} nunca virou \textit{token}
+único no treinamento. A opção (e) não aplica nenhum \textit{merge}, ignorando a tabela
+aprendida. A opção (f) trata a palavra inteira como um \textit{token}, mas
+\texttt{tart\_} não está no vocabulário. A opção (g) usa um \textit{merge}
+\texttt{(t,a)} que nunca foi aprendido; o par aprendido foi \texttt{(a,r)}. A opção (h)
+combina o \texttt{tar} inexistente com a omissão do \textit{merge} 4.
 % ---
 
 \end{document}

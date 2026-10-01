@@ -157,6 +157,54 @@
     \end{enumerate}
     % R: a
 
+
+    % ------------------------------------------------------------------
+    % Q13 — Medium (numerical KL, det Sigma = 1)
+    % ------------------------------------------------------------------
+    \item Em um VAE com latente $D_z = 2$, o \textit{encoder} produz, para certa entrada, $\boldsymbol{\mu} = (2,\; 0)$ e $\boldsymbol{\Sigma} = \mathrm{diag}(0.5,\; 2)$. Usando a forma fechada
+    \[
+      D_{KL}\!\left[\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\,\|\,\mathcal{N}(0,\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\boldsymbol{\Sigma}] + \boldsymbol{\mu}^{\top}\boldsymbol{\mu} - D_z - \log\det\boldsymbol{\Sigma}\right),
+    \]
+    qual o valor de $D_{KL}$? (Note que $\det\boldsymbol{\Sigma} = 1$.)
+    \begin{enumerate}[(a)]
+        \item $3.25$
+        \item $2.25$
+        \item $4.50$
+        \item $0.25$
+        \item $1.50$
+        \item $4.25$
+        \item $2.00$
+        \item $5.00$
+    \end{enumerate}
+    % R: b
+
+    % ------------------------------------------------------------------
+    % Q14 — Medium (five statements: ELBO, reparametrization, AE sampling)
+    % ------------------------------------------------------------------
+    \item Avalie as cinco afirmações a seguir sobre autoencoders e VAEs:
+
+    \textbf{I.} A ELBO se decompõe como $\mathbb{E}_{q(\mathbf{z}|\mathbf{x},\phi)}[\log p(\mathbf{x}|\mathbf{z},\thetav)] - D_{KL}[q(\mathbf{z}|\mathbf{x},\phi)\,\|\,p(\mathbf{z})]$ e é um limite \emph{inferior} de $\log p(\mathbf{x}|\thetav)$.
+
+    \textbf{II.} O \textit{reparametrization trick} ($\mathbf{z} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}$, com $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$) é necessário para permitir a retropropagação \emph{através} da amostragem do latente.
+
+    \textbf{III.} No termo $\tfrac{1}{2}(\mathrm{Tr}[\boldsymbol{\Sigma}] + \boldsymbol{\mu}^{\top}\boldsymbol{\mu} - D_z - \log\det\boldsymbol{\Sigma})$, a parcela $-\log\det\boldsymbol{\Sigma}$ cresce sem limite quando a variância do posterior tende a zero, penalizando o colapso do posterior a uma massa pontual.
+
+    \textbf{IV.} Um autoencoder determinístico comum pode gerar novas amostras simplesmente amostrando $\mathbf{z} \sim \mathcal{N}(0,\mathbf{I})$ e passando pelo \textit{decoder}, pois seu espaço latente já é gaussiano.
+
+    {\sloppy \textbf{V.} A ELBO é um limite \emph{superior} de $\log p(\mathbf{x}|\thetav)$, e a diferença para $\log p(\mathbf{x}|\thetav)$ é $D_{KL}[q(\mathbf{z}|\mathbf{x},\phi)\,\|\,p(\mathbf{z}|\mathbf{x},\thetav)]$.\par}
+
+    \begin{enumerate}[(a)]
+        \item Apenas I, II, III e IV estão corretas.
+        \item Apenas I e II estão corretas.
+        \item Apenas II, III e IV estão corretas.
+        \item Apenas I, III e V estão corretas.
+        \item Apenas I, II, IV e V estão corretas.
+        \item Apenas III e IV estão corretas.
+        \item Todas as afirmações estão corretas.
+        \item Apenas I, II e III estão corretas.
+    \end{enumerate}
+    % R: h
+
 \end{enumerate}
 
 \subsection*{Gabarito - Objetivas}
@@ -173,6 +221,8 @@
 \item   a
 \item   c
 \item   a
+\item   b
+\item   h
 \end{enumerate}
 
 \subsection*{Resoluções - Objetivas}
@@ -201,6 +251,10 @@
     \item \textbf{(c)} $D_{KL}^{A} = \tfrac{1}{2}\left(0.02 + 0 - 2 - \ln(10^{-4})\right) = \tfrac{1}{2}(0.02 - 2 + 9.21) \approx 3.6$, enquanto $D_{KL}^{B} = \tfrac{1}{2}(2 + 0 - 2 - 0) = 0$. O termo $-\log\det\boldsymbol{\Sigma}$ explode quando as variâncias tendem a zero, logo $D_{KL}^{A} > D_{KL}^{B}$. A (a) inverte a intuição, uma massa quase pontual está longe de uma gaussiana de variância unitária. A (b) considera apenas as médias e ignora as covariâncias. A (d) ignora o termo de determinante, que é justamente o dominante aqui.
 
     \item \textbf{(a)} A penalidade de esparsidade força poucas unidades ativas por instância, criando um gargalo de capacidade efetiva mesmo com latente \textit{overcomplete}: a rede precisa selecionar o que representar. A (b) não impede a cópia pelo restante das conexões. A (c) e a (d) alteram a dinâmica de otimização e a função de perda, mas nenhuma das duas remove a solução de identidade.
+
+    \item \textbf{(b)} $\mathrm{Tr}[\boldsymbol{\Sigma}] = 0.5 + 2 = 2.5$; $\boldsymbol{\mu}^{\top}\boldsymbol{\mu} = 2^2 + 0^2 = 4$; $\det\boldsymbol{\Sigma} = 0.5\cdot 2 = 1 \Rightarrow \log\det\boldsymbol{\Sigma} = 0$; $D_z = 2$. Logo $D_{KL} = \tfrac{1}{2}(2.5 + 4 - 2 - 0) = \tfrac{1}{2}(4.5) = 2.25$. A (a) esquece o termo $-D_z$. A (c) esquece o fator $\tfrac{1}{2}$. A (d) esquece o termo $\boldsymbol{\mu}^{\top}\boldsymbol{\mu}$. A (e) usa $\det\boldsymbol{\Sigma}$ no lugar de $\mathrm{Tr}[\boldsymbol{\Sigma}]$. A (f) soma $+D_z$ em vez de subtrair. A (g) corresponde a $\tfrac{1}{2}\boldsymbol{\mu}^{\top}\boldsymbol{\mu} = 2$, descartando os demais termos. A (h) não resulta de nenhum erro isolado de termo ou de sinal na fórmula.
+
+    \item \textbf{(h)} \textbf{I (V):} decomposição reconstrução $-$ KL; a ELBO é limite \emph{inferior} de $\log p(\mathbf{x})$. \textbf{II (V):} sem o \textit{reparametrization trick} não se retropropaga através do nó aleatório de amostragem; movê-lo para $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$ mantém o caminho por $\boldsymbol{\mu}, \boldsymbol{\Sigma}^{1/2}$ diferenciável. \textbf{III (V):} $-\log\det\boldsymbol{\Sigma} \to +\infty$ quando $\det\boldsymbol{\Sigma} \to 0$, penalizando variância nula (colapso a massa pontual). \textbf{IV (F):} no AE determinístico o espaço latente \emph{não} tem distribuição conhecida; amostrar $\mathbf{z}\sim\mathcal{N}(0,\mathbf{I})$ cai em regiões sem suporte e o \textit{decoder} produz lixo. É justamente o que o VAE corrige ao regularizar o posterior. \textbf{V (F):} a ELBO é limite \emph{inferior} (não superior); a diferença para $\log p(\mathbf{x})$ é $D_{KL}[q(\mathbf{z}|\mathbf{x},\phi)\,\|\,p(\mathbf{z}|\mathbf{x},\thetav)]$ (KL ao posterior \emph{verdadeiro}, não ao \textit{prior}). Verdadeiras: I, II e III. As (a) e (c) incluem IV (falsa). As (d) e (e) incluem V (falsa). A (b) omite III. A (f) troca verdadeiras por falsas. A (g) marca tudo.
 \end{enumerate}
 \color{black}
 
@@ -238,6 +292,19 @@
         \item Nomeie o fenômeno observado e explique o que ele significa em termos da informação que o latente $\mathbf{z}$ carrega sobre $\mathbf{x}$.
         \item Por que esse fenômeno é especialmente comum quando o \textit{decoder} é muito expressivo (por exemplo, autoregressivo)?
         \item Cite uma estratégia conhecida para mitigar o problema e explique, em uma frase, como ela age sobre o ELBO.
+    \end{enumerate}
+
+
+    \item Considere um VAE com latente bidimensional ($D_z = 2$) e \textit{decoder} $p(\mathbf{x} \mid \mathbf{z}, \thetav) = \mathcal{N}_{\mathbf{x}}\!\left(f[\mathbf{z},\thetav],\, \mathbf{I}\right)$. Para a entrada $\mathbf{x} = (2.4,\; -1.0)$, o \textit{encoder} $g[\mathbf{x},\boldsymbol{\phi}]$ produz
+    \[
+      \boldsymbol{\mu} = (2,\; -1), \qquad \boldsymbol{\Sigma} = \mathrm{diag}(0.25,\; 4) \quad (\text{logo } \boldsymbol{\sigma} = (0.5,\; 2)).
+    \]
+    Use a forma fechada $D_{KL}\!\left[\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\,\|\,\mathcal{N}(0,\mathbf{I})\right] = \tfrac{1}{2}\!\left(\mathrm{Tr}[\boldsymbol{\Sigma}] + \boldsymbol{\mu}^{\top}\boldsymbol{\mu} - D_z - \log\det\boldsymbol{\Sigma}\right)$.
+    \begin{enumerate}[(a)]
+        \item Calcule $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$, mostrando o valor de cada um dos quatro termos.
+        \item Foi amostrado $\boldsymbol{\epsilon}^{*} = (0.2,\; -0.3)$. Calcule $\mathbf{z}^{*}$ pelo \textit{reparametrization trick}.
+        \item O \textit{decoder} devolve $f[\mathbf{z}^{*},\thetav] = (2.0,\; -1.3)$. Calcule o termo de reconstrução $\tfrac{1}{2}\lVert \mathbf{x} - f[\mathbf{z}^{*},\thetav]\rVert^{2}$ e monte o valor aproximado de $-\mathrm{ELBO} \approx \text{reconstrução} + D_{KL}$.
+        \item Suponha que, para todas as entradas, o \textit{encoder} passasse a produzir $\boldsymbol{\Sigma} = \mathrm{diag}(10^{-6},\, 10^{-6})$. O que acontece com o termo $-\log\det\boldsymbol{\Sigma}$ da KL e qual comportamento indesejado do \textit{encoder} essa penalização evita?
     \end{enumerate}
 
 \end{enumerate}
@@ -291,6 +358,37 @@
         \item O fenômeno é o \emph{posterior collapse}: o \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} para qualquer $\mathbf{x}$, de modo que o latente $\mathbf{z}$ deixa de carregar informação sobre a entrada. A consequência é que amostras geradas a partir do \textit{prior} se concentram em torno de uma reconstrução média, com pouca diversidade.
         \item Quando o \textit{decoder} é poderoso o bastante para modelar $p(\mathbf{x} \mid \mathbf{z}, \thetav)$ ignorando $\mathbf{z}$ (por exemplo, modelos autoregressivos sobre os \textit{pixels}), o otimizador encontra um ótimo barato em zerar o termo KL: a contribuição de $\mathbf{z}$ para o ELBO fica marginal e o gradiente empurra $q$ na direção de $p(\mathbf{z})$.
         \item Estratégias comuns incluem \textit{KL annealing} (introduzir o termo KL gradualmente, começando com peso baixo) e \textit{free bits} (não penalizar a KL abaixo de um limiar por dimensão do latente). Ambas reduzem a pressão do termo de regularização nas fases iniciais, permitindo que o \textit{decoder} aprenda a usar $\mathbf{z}$ antes que o KL force o colapso.
+    \end{enumerate}
+
+
+    \item KL, reparametrização e reconstrução. Dados: $\mathbf{x} = (2.4,\, -1.0)$, $\boldsymbol{\mu} = (2,\, -1)$, $\boldsymbol{\Sigma} = \mathrm{diag}(0.25,\, 4)$, $\boldsymbol{\sigma} = (0.5,\, 2)$, $D_z = 2$.
+    \begin{enumerate}[(a)]
+        \item Termo KL:
+        \begin{align*}
+            \mathrm{Tr}[\boldsymbol{\Sigma}] &= 0.25 + 4 = 4.25 \\
+            \boldsymbol{\mu}^{\top}\boldsymbol{\mu} &= 2^{2} + (-1)^{2} = 5 \\
+            \log\det\boldsymbol{\Sigma} &= \log(0.25 \cdot 4) = \log 1 = 0 \\
+            D_z &= 2 \\
+            D_{KL} &= \tfrac{1}{2}\left(4.25 + 5 - 2 - 0\right) = \tfrac{1}{2}\,(7.25) = 3.625.
+        \end{align*}
+        As variâncias $0.25$ e $4$ se compensam no determinante, zerando o termo de volume.
+        \item Reparametrização com $\boldsymbol{\epsilon}^{*} = (0.2,\, -0.3)$:
+        \[
+            \mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\sigma} \odot \boldsymbol{\epsilon}^{*}
+            = \left(2 + 0.5 \cdot 0.2,\;\; -1 + 2 \cdot (-0.3)\right)
+            = (2.1,\; -1.6).
+        \]
+        \item Termo de reconstrução, com $f[\mathbf{z}^{*},\thetav] = (2.0,\, -1.3)$:
+        \[
+            \mathbf{x} - f[\mathbf{z}^{*},\thetav] = (0.4,\; 0.3), \qquad
+            \tfrac{1}{2}\lVert \mathbf{x} - f \rVert^{2} = \tfrac{1}{2}\left(0.4^{2} + 0.3^{2}\right) = \tfrac{1}{2}\,(0.25) = 0.125.
+        \]
+        Montando o objetivo: $-\mathrm{ELBO} \approx 0.125 + 3.625 = 3.75$.
+        \item Com $\boldsymbol{\Sigma} = \mathrm{diag}(10^{-6}, 10^{-6})$, o termo
+        \[
+            -\log\det\boldsymbol{\Sigma} = -\log\!\left(10^{-12}\right) = 12\ln 10 \approx 27.6
+        \]
+        \textbf{explode}, dominando a KL. Essa penalização evita que o \textit{encoder} colapse $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ para (quase) uma massa pontual, isto é, que ele se torne determinístico. Sem ela, o VAE degeneraria em um \textit{autoencoder} clássico: o espaço latente perderia a suavidade garantida pela sobreposição das distribuições $q$, e a amostragem ancestral a partir de $p(\mathbf{z})$ deixaria de produzir reconstruções plausíveis entre os pontos de treino.
     \end{enumerate}
 
 \end{enumerate}

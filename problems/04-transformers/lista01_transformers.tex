@@ -1,6 +1,6 @@
 \documentclass{dlproblemset}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta}
+\usetikzlibrary{arrows.meta,positioning}
 
 \definecolor{EncFill}{HTML}{FCE4D6}
 \definecolor{EncArrow}{HTML}{F4B183}
@@ -74,6 +74,39 @@
 
     \item Qual a vantagem de utilizarmos \textit{multi-head self-attention} em comparação a \textit{self-attention}?
 
+
+    \item Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+
+    \begin{enumerate}[a)]
+        \item ( )\,V \quad ( )\,F \quad Em \textit{Multi-Head Attention} com $H$ cabeças e dimensão $d_\text{model}$, cada cabeça opera com dimensão $d_k = d_\text{model}/H$ e a saída final é a concatenação das $H$ projeções, seguida por uma projeção linear $\mathbf{W}^O$ que recompõe a dimensão $d_\text{model}$.
+
+        \item ( )\,V \quad ( )\,F \quad O \textit{positional encoding} sinusoidal proposto por Vaswani et al.\ (2017) introduz, para cada uma das $d$ dimensões do \textit{embedding}, um vetor de parâmetros treináveis aprendidos por descida de gradiente durante o treinamento, o que permite à rede adaptar a representação posicional ao corpus específico.
+
+        \item ( )\,V \quad ( )\,F \quad Modelos \textit{encoder-only} (e.g., BERT) usam atenção bidirecional e são tipicamente pré-treinados com objetivo de \textit{masked language modeling}; modelos \textit{decoder-only} (e.g., GPT) usam atenção mascarada (causal) e são pré-treinados com objetivo de \textit{next-token prediction}.
+
+        \item ( )\,V \quad ( )\,F \quad O algoritmo BPE inicia com um vocabulário pequeno (caracteres ou \textit{bytes} individuais) e cresce iterativamente o vocabulário fundindo o par de tokens \emph{menos} frequente, até atingir o tamanho-alvo do vocabulário.
+
+        \item ( )\,V \quad ( )\,F \quad \textit{Multi-Query Attention} (MQA) usa $H$ cabeças independentes para Q, K e V; portanto, reduzir o número de cabeças \emph{de Q} é a forma de diminuir o tamanho do \textit{KV-cache} durante a inferência.
+    \end{enumerate}
+
+    \item Considere uma camada de \textit{self-attention} causal de \textbf{cabeça única} aplicada a uma sequência de 3 tokens $(\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3)$. As matrizes $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ já foram calculadas e têm dimensão $3 \times 1$ (sequência de comprimento 3, dimensão de chave $d_k = 1$):
+    \[
+        \mathbf{Q} = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+        \mathbf{K} = \begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix},\quad
+        \mathbf{V} = \begin{bmatrix} 2 \\ 4 \\ 6 \end{bmatrix}.
+    \]
+    A operação aplicada é $\mathbf{O} = \mathrm{softmax}\!\left(\mathrm{mask}(\mathbf{Q}\mathbf{K}^\top)/\sqrt{d_k}\right) \mathbf{V}$, onde $\mathrm{mask}(\cdot)$ aplica a máscara causal.
+
+    \begin{enumerate}[a)]
+        \item Compute a matriz de pontuações $\mathbf{S} = \mathbf{Q}\mathbf{K}^\top$.
+
+        \item Aplique a máscara causal a $\mathbf{S}$ e indique a matriz $\mathbf{S}_\text{mask}$ resultante.
+
+        \item Aplique \textit{softmax} linha a linha em $\mathbf{S}_\text{mask}$ e indique a matriz de pesos de atenção $\mathbf{A}$.
+
+        \item Compute a saída $\mathbf{O} = \mathbf{A} \cdot \mathbf{V}$. Apresente os três valores $O_1$, $O_2$, $O_3$.
+    \end{enumerate}
+
 \end{enumerate}
 
 % ============================================================
@@ -83,7 +116,7 @@
 \paragraph{Instruções:} Cada questão possui exatamente uma alternativa correta.
 
 \begin{enumerate}[I)]
-\setcounter{enumi}{8}
+\setcounter{enumi}{10}
 
 % ------------------------------------------------------------------
 % Q9 — Fácil (variância do produto escalar e fator de escala)
@@ -323,6 +356,232 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
 \end{enumerate}
 % R: b
 
+% ------------------------------------------------------------------
+% Q23 — Médio (dimensões na multi-head attention)
+% ------------------------------------------------------------------
+\item Uma entrada $\mathbf{X} \in \mathbb{R}^{n \times d_{\text{model}}}$ com $n = 10$ \textit{tokens} e $d_{\text{model}} = 512$ passa por uma camada de \textit{multi-head self-attention} com $H = 8$ cabeças (logo $d_k = d_{\text{model}}/H$). Quais são, respectivamente, as dimensões de (i) $\mathbf{Q}_i$ \emph{de uma cabeça}, (ii) da matriz de \textit{scores} $\mathbf{Q}_i \mathbf{K}_i^\top$ \emph{de uma cabeça}, e (iii) da saída final da camada (após concatenar as cabeças e aplicar $\mathbf{W}_O$)?
+
+\begin{enumerate}[a)]
+    \item $\mathbf{Q}_i$: $10 \times 512$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $64 \times 64$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $10 \times 64$.
+    \item $\mathbf{Q}_i$: $64 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $8 \times 8$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 8$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $10 \times 512$.
+    \item $\mathbf{Q}_i$: $10 \times 64$; \quad $\mathbf{Q}_i \mathbf{K}_i^\top$: $10 \times 10$; \quad saída: $512 \times 512$.
+\end{enumerate}
+% R: f
+
+% ------------------------------------------------------------------
+% Q24 — Difícil (contagem de parâmetros de um bloco Transformer completo)
+% ------------------------------------------------------------------
+\item Considere \textbf{um} bloco Transformer (esquematizado ao lado) com $d_{\text{model}} = 64$. A atenção é \textit{multi-head} com $H = 8$ cabeças e usa as quatro projeções $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O$, cada uma $64 \times 64$ \textbf{com viés}. A FFN expande para $d_{\text{ff}} = 256$ (ReLU, ambas as camadas \textbf{com viés}). Há dois \textit{LayerNorm}, cada um com parâmetros $\boldsymbol{\gamma}$ e $\boldsymbol{\beta}$ de dimensão $64$. Qual o número total de parâmetros \emph{treináveis} do bloco?
+
+\begin{center}
+\begin{minipage}[c]{0.54\linewidth}
+\centering
+\begin{tikzpicture}[>=stealth, font=\scriptsize,
+  box/.style={draw, rounded corners, minimum width=2.8cm, minimum height=0.4cm, inner sep=2pt},
+  op/.style={draw, circle, inner sep=0.5pt}]
+  \node (x) {entrada $\mathbf{x}$};
+  \node[box, above=0.22cm of x]   (ln1) {LayerNorm};
+  \node[box, above=0.22cm of ln1] (mha) {Multi-Head Attention};
+  \node[op,  above=0.22cm of mha] (a1)  {$+$};
+  \node[box, above=0.22cm of a1]  (ln2) {LayerNorm};
+  \node[box, above=0.22cm of ln2] (ffn) {FFN (ReLU)};
+  \node[op,  above=0.22cm of ffn] (a2)  {$+$};
+  \node[above=0.22cm of a2] (out) {saída};
+  \draw[->] (x)--(ln1); \draw[->](ln1)--(mha); \draw[->](mha)--(a1);
+  \draw[->] (a1)--(ln2); \draw[->](ln2)--(ffn); \draw[->](ffn)--(a2); \draw[->](a2)--(out);
+  \draw[->] (x.east)  -- ++(1.6,0) |- (a1.east);
+  \draw[->] (a1.west) -- ++(-1.6,0) |- (a2.west);
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.42\linewidth}
+\begin{enumerate}[a)]
+    \item $49\,408$
+    \item $45\,824$
+    \item $49\,984$
+    \item $49\,152$
+    \item $33\,088$
+    \item $16\,640$
+    \item $49\,728$
+    \item $50\,240$
+\end{enumerate}
+\end{minipage}
+\end{center}
+% R: c
+
+% ------------------------------------------------------------------
+% Q25 — Médio (cinco afirmações sobre a mecânica da self-attention)
+% ------------------------------------------------------------------
+\item Avalie as cinco afirmações a seguir sobre \textit{self-attention}:
+
+\textbf{I.} O fator de escala $\sqrt{d}$ em $\mathrm{softmax}(\mathbf{Q}\mathbf{K}^\top/\sqrt{d})\mathbf{V}$ mantém a variância dos \textit{scores} em torno de $1$ (o produto escalar de vetores com componentes i.i.d.\ de variância $1$ tem variância $d$), evitando a saturação do \textit{softmax}.
+
+\textbf{II.} A operação de \textit{self-attention} ``crua'' (apenas $\mathrm{softmax}(\mathbf{Q}\mathbf{K}^\top/\sqrt{d})\mathbf{V}$, sem as projeções) não possui parâmetros treináveis.
+
+\textbf{III.} A \textit{self-attention} é permutação-equivariante; por isso é necessário acrescentar \textit{positional encoding} à entrada.
+
+\textbf{IV.} Dividir os \textit{scores} por $d$ (em vez de $\sqrt{d}$) também manteria a variância dos \textit{scores} em $1$.
+
+\textbf{V.} A máscara causal atribui o valor $0$ às posições futuras \emph{antes} do \textit{softmax}.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I, III e V estão corretas.
+    \item Apenas III, IV e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas I e II estão corretas.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q26 — Difícil (self-attention causal numérica com projeções Q, K, V)
+% ------------------------------------------------------------------
+\item Considere uma camada de \textit{self-attention} \textbf{causal} (\textit{scaled dot-product}) sobre uma sequência de 3 \textit{tokens}, com $d_\text{model} = d_k = d_v = 2$. A matriz de entradas $\mathbf{X}$ e as matrizes de projeção são:
+\[
+\mathbf{X} = \begin{bmatrix} -1 & 1 \\ 2 & -1 \\ 1 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_Q = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_K = \begin{bmatrix} 1 & 0 \\ 1 & 1 \end{bmatrix},
+\quad
+\mathbf{W}_V = \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}.
+\]
+Qual é a representação contextualizada (vetor de contexto) do \textbf{segundo} \textit{token}?
+
+\begin{enumerate}[a)]
+    \item $[\,1,\;-2\,]$
+    \item $[\,3,\;2\,]$
+    \item $[\,0,\;4\,]$
+    \item $[\,1,\;2\,]$
+    \item $[\,0.5,\;1\,]$
+    \item $[\,2,\;1\,]$
+    \item $[\,0.5,\;0\,]$
+    \item $[\,1.5,\;3\,]$
+\end{enumerate}
+% R: e
+
+% ------------------------------------------------------------------
+% Q27 — Fácil (skip connections no padrão Add & Norm)
+% ------------------------------------------------------------------
+\item Nos blocos do \textit{transformer}, cada sub-bloco (\textit{Multi-Head Attention} e \textit{Feed Forward}) é envolvido por uma \textit{skip connection} no padrão \textit{Add \& Norm}:
+\[
+\text{output} = \mathrm{LayerNorm}\bigl(\mathbf{x} + \mathrm{Subblock}(\mathbf{x})\bigr).
+\]
+Por que essas conexões residuais estão presentes na arquitetura?
+
+\begin{enumerate}[a)]
+    \item Para reduzir o número de parâmetros treináveis do bloco, já que parte do sinal segue adiante sem passar por matrizes de peso.
+    \item Para introduzir a não linearidade do bloco, uma vez que atenção e projeções lineares seriam operações lineares sem o resíduo.
+    \item Para manter o gradiente fluindo através da pilha de blocos, permitindo empilhar muitas camadas mitigando a degradação do gradiente.
+    \item Para carregar a informação posicional às camadas profundas, dispensando a soma do \textit{positional encoding} na entrada da rede.
+    \item Para atuar como regularização estocástica, desligando aleatoriamente sub-blocos inteiros durante cada iteração de treinamento.
+    \item Para garantir a causalidade da atenção, impedindo que posições futuras contaminem o resíduo somado à posição atual.
+    \item Para permitir sequências de comprimento variável, pois a soma residual ajusta a dimensão temporal da entrada de cada bloco.
+    \item Para normalizar a variância dos \textit{scores} de atenção, substituindo o fator $1/\sqrt{d}$ nas camadas mais profundas da pilha.
+\end{enumerate}
+% R: c
+
+% ------------------------------------------------------------------
+% Q28 — Médio (asserções sobre a FFN pointwise e MoE)
+% ------------------------------------------------------------------
+\item Sobre as asserções abaixo a respeito da \textit{Feed-Forward Network} (FFN) do \textit{transformer}:
+
+\textbf{I.} A FFN é aplicada a cada posição da sequência de forma independente; por isso, seu número de parâmetros não depende do comprimento da sequência processada.
+
+\textbf{II.} Os papéis dos sub-blocos do \textit{transformer} se complementam: no sub-bloco de \textit{self-attention} os \textit{tokens} trocam informação entre si; na FFN cada posição processa isoladamente a representação que coletou.
+
+\textbf{III.} Em uma camada com \textit{Mixture of Experts} (MoE), a FFN densa é substituída por $N_E$ especialistas, e cada \textit{token} é processado por todos os $N_E$ especialistas.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+% R: d
+
+% ------------------------------------------------------------------
+% Q29 — Fácil (padrões de máscara de atenção: qual é causal)
+% ------------------------------------------------------------------
+\item Os três padrões abaixo representam matrizes de atenção $A_{ij}$ de uma sequência de 4 tokens. Células \textbf{cinzas} indicam pares $(i, j)$ atendidos (peso possivelmente não-nulo após \textit{softmax}); células \textbf{brancas} indicam pares mascarados ($-\infty$ antes do \textit{softmax}, peso 0 depois).
+
+\begin{center}
+\begin{tikzpicture}[scale=0.45, every node/.style={font=\footnotesize}]
+    %% Pattern A: lower-triangular (causal)
+    \begin{scope}[xshift=0cm]
+        \node at (2, 5) {\textbf{Padrão A}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \pgfmathparse{ifthenelse(\j<=\i, 1, 0)}
+                \ifnum\pgfmathresult=1
+                    \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \fi
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+    %% Pattern B: full matrix
+    \begin{scope}[xshift=7cm]
+        \node at (2, 5) {\textbf{Padrão B}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+    %% Pattern C: diagonal only
+    \begin{scope}[xshift=14cm]
+        \node at (2, 5) {\textbf{Padrão C}};
+        \foreach \i in {0,1,2,3} {
+            \foreach \j in {0,1,2,3} {
+                \pgfmathparse{ifthenelse(\j==\i, 1, 0)}
+                \ifnum\pgfmathresult=1
+                    \fill[gray!50] (\j, 3-\i) rectangle ++(1,1);
+                \fi
+                \draw (\j, 3-\i) rectangle ++(1,1);
+            }
+        }
+        \node at (-0.6, 3.5) {\scriptsize $i{=}1$};
+        \node at (-0.6, 0.5) {\scriptsize $i{=}4$};
+        \node at (0.5, -0.6) {\scriptsize $j{=}1$};
+        \node at (3.5, -0.6) {\scriptsize $j{=}4$};
+    \end{scope}
+\end{tikzpicture}
+\end{center}
+
+Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-only} autorregressivo (GPT, Llama)?
+\begin{enumerate}[a)]
+    \item Padrão A: atenção causal, necessária para \textit{next-token prediction} sem ver tokens futuros.
+    \item Padrão A: ele permite que cada posição $i$ veja apenas a si mesma, garantindo independência entre os tokens durante o treino.
+    \item Padrão B: \textit{decoder-only} requer atenção bidirecional para construir representações contextualizadas dos tokens passados.
+    \item Padrão B: sem máscara o modelo aprende mais rapidamente; a propriedade autorregressiva é imposta apenas em inferência.
+    \item Padrão C: cada token só atende a si mesmo, o que evita vazamento de informação futura.
+    \item A e B são equivalentes do ponto de vista do treinamento autorregressivo.
+    \item A e C bloqueiam tokens futuros, então ambos são corretos para \textit{decoder-only}.
+    \item Nenhum: \textit{decoder-only} não usa atenção mascarada; apenas \textit{cross-attention} é mascarada.
+\end{enumerate}
+% R: a
+
 \end{enumerate}
 
 % ============================================================
@@ -361,12 +620,71 @@ Por exemplo, temos que garantir que exista vram suficiente para o treinamento e 
 
 \item A principal vantagem é representacional: cada cabeça aprende a atender a um \textbf{tipo de relação diferente} entre os \textit{tokens} da sequência, por exemplo, relações sintáticas (sujeito-verbo, modificador-substantivo), semânticas (referente de um pronome), posicionais (próximo \textit{token}) ou de longo alcance. Trabalhos como \textit{Voita et al.\ (2019)} \textit{Analyzing Multi-Head Self-Attention} mostram empiricamente que cabeças individuais especializam-se em diferentes funções linguísticas. Como benefício secundário, o cômputo das múltiplas cabeças é trivialmente paralelizável (operação \textit{batched} em GPU), mas esse não é o motivo principal, uma única cabeça de mesma dimensão total seria igualmente paralelizável.
 
+
+\item Verdadeiro/Falso com modificação:
+\begin{enumerate}[a)]
+    \item \textbf{V.} Descrição padrão de \textit{Multi-Head Attention}.
+
+    \item \textbf{F.} O \textit{positional encoding} sinusoidal de Vaswani et al.\ (2017) é \emph{determinístico} (uma função fixa em $\sin$ e $\cos$ aplicada a cada posição) e \emph{não} introduz nenhum parâmetro treinável adicional na rede. A confusão é com o esquema \emph{alternativo} de \textit{positional encoding} \emph{aprendido} (utilizado, por exemplo, no BERT), em que cada posição corresponde a um vetor treinável da tabela de \textit{embeddings} posicionais. \textit{Modificação:} substituir ``introduz \ldots\ um vetor de parâmetros treináveis aprendidos por descida de gradiente'' por ``é determinístico e não introduz parâmetros treináveis adicionais à rede''.
+
+    \item \textbf{V.} Pareamento clássico \{encoder-only, MLM\} vs \{decoder-only, NTP\}.
+
+    \item \textbf{F.} O critério de seleção do BPE é o oposto: ele funde o par \emph{mais} frequente, não o menos frequente. \textit{Modificação:} substituir ``menos frequente'' por ``mais frequente''; o BPE é guiado pela frequência das adjacências no corpus, e fundir pares raros não traria nenhum ganho de cobertura.
+
+    \item \textbf{F.} A descrição da MQA está invertida. \textit{Modificação:} ``\textit{Multi-Query Attention} (MQA) mantém $H$ cabeças \emph{apenas em Q}, mas usa \emph{uma única cabeça compartilhada} para K e V. É justamente essa \emph{redução das cabeças de K e V} (não de Q) que diminui o \textit{KV-cache} durante a inferência. \textit{Grouped-Query Attention} (GQA) generaliza isso: $G$ grupos para K/V com $1 < G < H$.''
+\end{enumerate}
+
+\item Dados: $\mathbf{Q} = \mathbf{K} = [1, 1, 1]^\top$, $\mathbf{V} = [2, 4, 6]^\top$, $d_k = 1$.
+
+\textbf{(a)} \textit{Matriz de pontuações.} Cada entrada é $S_{ij} = \mathbf{q}_i \cdot \mathbf{k}_j = 1 \cdot 1 = 1$:
+\[
+\mathbf{S} = \mathbf{Q}\mathbf{K}^\top = \begin{bmatrix}
+1 & 1 & 1 \\
+1 & 1 & 1 \\
+1 & 1 & 1
+\end{bmatrix}
+\]
+
+\textbf{(b)} \textit{Máscara causal.} Substituir entradas com $j > i$ por $-\infty$:
+\[
+\mathbf{S}_\text{mask} = \begin{bmatrix}
+1      & -\infty & -\infty \\
+1      & 1       & -\infty \\
+1      & 1       & 1
+\end{bmatrix}
+\]
+
+\textbf{(c)} \textit{Softmax linha a linha.} Como $d_k = 1$, não há escalonamento. Para $-\infty$ a contribuição é $e^{-\infty} = 0$:
+\begin{itemize}
+    \item Linha 1: $\mathrm{softmax}(1, -\infty, -\infty) = \left(\tfrac{e^1}{e^1}, 0, 0\right) = (1, 0, 0)$.
+    \item Linha 2: $\mathrm{softmax}(1, 1, -\infty) = \left(\tfrac{e}{2e}, \tfrac{e}{2e}, 0\right) = (\tfrac{1}{2}, \tfrac{1}{2}, 0)$.
+    \item Linha 3: $\mathrm{softmax}(1, 1, 1) = (\tfrac{1}{3}, \tfrac{1}{3}, \tfrac{1}{3})$.
+\end{itemize}
+\[
+\mathbf{A} = \begin{bmatrix}
+1            & 0            & 0            \\
+\tfrac{1}{2} & \tfrac{1}{2} & 0            \\
+\tfrac{1}{3} & \tfrac{1}{3} & \tfrac{1}{3}
+\end{bmatrix}
+\]
+
+\textbf{(d)} \textit{Saída.} $\mathbf{O} = \mathbf{A} \cdot \mathbf{V}$:
+\begin{align*}
+O_1 &= 1 \cdot 2 + 0 \cdot 4 + 0 \cdot 6 = 2 \\
+O_2 &= \tfrac{1}{2} \cdot 2 + \tfrac{1}{2} \cdot 4 + 0 \cdot 6 = 1 + 2 = 3 \\
+O_3 &= \tfrac{1}{3} \cdot 2 + \tfrac{1}{3} \cdot 4 + \tfrac{1}{3} \cdot 6 = \tfrac{12}{3} = 4
+\end{align*}
+\[
+\mathbf{O} = \begin{bmatrix} 2 \\ 3 \\ 4 \end{bmatrix}
+\]
+Cada $O_i$ é a média (com pesos uniformes pela máscara causal e $\mathbf{Q} = \mathbf{K} = $ constantes) dos valores $V_j$ até a posição $i$, capturando a interpretação intuitiva da \textit{self-attention} como uma soma ponderada do passado.
+
 \end{enumerate}
 
 \subsection*{Parte 2: Questões Objetivas}
 
 % --- Solução Q9 ---
-\subsubsection*{IX — Resposta: (c)}
+\subsubsection*{XI — Resposta: (c)}
 Como $s_i, h_i \sim \mathcal{N}(0, 1)$ são independentes,
 $\mathbb{E}[s_i] = \mathbb{E}[h_i] = 0$ e $\mathrm{var}(s_i) = \mathrm{var}(h_i) = 1$.
 Assim,
@@ -384,7 +702,7 @@ $d$ com $\sqrt{d}$. A opção~(d) eleva o resultado ao quadrado.
 % ---
 
 % --- Solução Q10 ---
-\subsubsection*{X — Resposta: (b)}
+\subsubsection*{XII — Resposta: (b)}
 A variante \textbf{dot-product} ($\mathbf{h}^\top \mathbf{s}$) não introduz parâmetros
 aprendidos: o score depende apenas dos vetores que entram no cálculo. A
 \textbf{bilinear} ($\mathbf{h}^\top \mathbf{W} \mathbf{s}$) adiciona uma matriz $\mathbf{W}$ aprendida que
@@ -397,7 +715,7 @@ de número de parâmetros.
 % ---
 
 % --- Solução Q11 ---
-\subsubsection*{XI — Resposta: (a)}
+\subsubsection*{XIII — Resposta: (a)}
 A multiplicação $\mathbf{q} = \mathbf{x}\, \mathbf{W}_q$ produz um vetor de duas componentes:
 \[
   q_0 = 1\cdot 2 + 2\cdot 0 + 3\cdot 1 = 5, \qquad
@@ -411,7 +729,7 @@ opção~(d) usa a primeira coluna de $\mathbf{W}_q$ para ambas as posições da 
 % ---
 
 % --- Solução Q12 ---
-\subsubsection*{XII — Resposta: (c)}
+\subsubsection*{XIV — Resposta: (c)}
 O contexto é a soma das linhas de $\mathbf{V}$ ponderada por $\mathbf{a}$:
 \[
   \mathbf{c} = 0.7 \cdot [10,\,0] + 0.2 \cdot [0,\,10] + 0.1 \cdot [5,\,5]
@@ -425,7 +743,7 @@ o peso $a_1 = 0.7$ à primeira linha de $\mathbf{V}$ e ignora os demais
 % ---
 
 % --- Solução Q13 ---
-\subsubsection*{XIII — Resposta: (a)}
+\subsubsection*{XV — Resposta: (a)}
 Sem as projeções $\mathbf{W}_q$, $\mathbf{W}_k$, $\mathbf{W}_v$, o cálculo de scores e do contexto
 depende apenas dos próprios \textit{embeddings} de entrada. Não há
 parâmetros do bloco de atenção que possam ser ajustados durante o
@@ -440,7 +758,7 @@ não-linearidade: a softmax permanece não linear mesmo no caso ``cru''.
 % ---
 
 % --- Solução Q14 ---
-\subsubsection*{XIV — Resposta: (b)}
+\subsubsection*{XVI — Resposta: (b)}
 Sem \textit{positional encoding}, os vetores $\mathbf{q}_t$, $\mathbf{k}_t$ e $\mathbf{v}_t$
 dependem apenas do \textit{token} (do conteúdo de $\mathbf{x}_t$), não da posição
 $t$. As duas frases $S_1$ e $S_2$ contêm exatamente o mesmo conjunto de
@@ -457,7 +775,7 @@ softmax uma capacidade de recuperar ordem que ela não possui.
 % ---
 
 % --- Solução Q15 ---
-\subsubsection*{XV — Resposta: (d)}
+\subsubsection*{XVII — Resposta: (d)}
 Cada cabeça de \textit{self-attention} produz uma matriz de scores
 $N \times N$ com $N^2 = 256$ entradas. Com $H = 8$ cabeças trabalhando em
 paralelo, há $256 \cdot 8 = 2\,048$ scores escalares por camada.
@@ -467,7 +785,7 @@ de $H$ e $N$ ($H^2 \cdot N$).
 % ---
 
 % --- Solução Q16 ---
-\subsubsection*{XVI — Resposta: (d)}
+\subsubsection*{XVIII — Resposta: (d)}
 \textit{BatchNorm} computa média e variância \emph{por feature}, agregando
 sobre o eixo do \textit{batch} e (em sequências) sobre o eixo temporal.
 Com sequências de comprimentos muito distintos, o número de \textit{tokens}
@@ -484,7 +802,7 @@ da sua definição.
 % ---
 
 % --- Solução Q17 ---
-\subsubsection*{XVII — Resposta: (a)}
+\subsubsection*{XIX — Resposta: (a)}
 Após somar a máscara, os scores efetivos passam a ser
 $[\,1.5,\; 0.5,\; -\infty,\; -\infty\,]$. Aplicando $\exp$:
 \[
@@ -504,7 +822,7 @@ das probabilidades.
 % ---
 
 % --- Solução Q18 ---
-\subsubsection*{XVIII — Resposta: (c)}
+\subsubsection*{XX — Resposta: (c)}
 Em \textit{cross-attention} (também chamado \textit{encoder-decoder
 attention}), a \textit{query} é construída a partir do estado atual do
 \textit{decoder} (``o que estou gerando agora''), enquanto \textit{keys}
@@ -519,7 +837,7 @@ com \textit{self-attention} do próprio \textit{decoder}, não com
 % ---
 
 % --- Solução Q19 ---
-\subsubsection*{XIX — Resposta: (d)}
+\subsubsection*{XXI — Resposta: (d)}
 Contagem direta dos parâmetros:
 \[
   |\mathbf{W}_1| = d \cdot d_{ff} = 512 \cdot 2\,048 = 1\,048\,576,
@@ -542,7 +860,7 @@ $4\cdot 512\cdot 2\,048 = 4\,194\,304$.
 % ---
 
 % --- Solução Q20 ---
-\subsubsection*{XX — Resposta: (b)}
+\subsubsection*{XXII — Resposta: (b)}
 \textbf{(i)~Parâmetros das projeções.} Cada uma das matrizes $\mathbf{W}_Q$, $\mathbf{W}_K$,
 $\mathbf{W}_V$ e $\mathbf{W}_O$ tem formato $d \times d$, contribuindo $d^2$ parâmetros, em
 um total de $4d^2 = \Theta(d^2)$. Note que esse total \emph{não depende}
@@ -559,6 +877,154 @@ A opção~(a) subestima o custo de $\mathbf{Q}\mathbf{K}^\top$ ao ignorar a depe
 quadrática em $N$. A opção~(c) faz os parâmetros escalarem com $N$,
 contradizendo a propriedade de invariância em comprimento da atenção.
 A opção~(d) infla parâmetros e FLOPs por confundir os dois regimes.
+% ---
+
+% --- Solução Q23 ---
+\subsubsection*{XXIII — Resposta: (f)}
+Com $H = 8$ e $d_{\text{model}} = 512$, cada cabeça tem $d_k = 512/8 = 64$. Logo
+$\mathbf{Q}_i = \mathbf{X} \mathbf{W}_Q^i \in \mathbb{R}^{10 \times 64}$; os
+\textit{scores} $\mathbf{Q}_i \mathbf{K}_i^\top \in \mathbb{R}^{10 \times 10}$ (uma
+entrada por par de \textit{tokens}); após concatenar as $8$ cabeças ($10 \times 512$)
+e aplicar $\mathbf{W}_O$ ($512\times 512$), a saída é $10 \times 512$.
+A opção~(a) usa $\mathbf{Q}_i$ com $d_{\text{model}}$ inteiro (não dividiu por $H$).
+A opção~(b) tem \textit{scores} $64\times 64$, confundindo dimensão de chave com
+comprimento de sequência. A opção~(c) tem saída $10\times 64$, esquecendo a
+concatenação das cabeças. As opções~(d), (e) e~(g) trocam dimensões de sequência,
+cabeças e chave. A opção~(h) tem saída $512\times 512$, confundindo a matriz
+$\mathbf{W}_O$ com a saída.
+% ---
+
+% --- Solução Q24 ---
+\subsubsection*{XXIV — Resposta: (c)}
+Cada projeção de atenção é $64\times 64 + 64 = 4160$; com
+$\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O$: $4 \times 4160 = 16\,640$ (o
+número de cabeças $H$ \emph{não} altera o total, pois as cabeças particionam
+$d_{\text{model}}$). FFN: $\mathbf{W}_1 = 64\times 256 + 256 = 16\,640$ e
+$\mathbf{W}_2 = 256\times 64 + 64 = 16\,448$, total $33\,088$. Dois \textit{LayerNorm}:
+$2 \times (64 + 64) = 256$. Soma: $16\,640 + 33\,088 + 256 = 49\,984$.
+A opção~(a), $49\,408$, ignora os vieses das projeções e da FFN (mantém os
+\textit{LayerNorm}). A opção~(b), $45\,824$, esquece a projeção de saída
+$\mathbf{W}_O$. A opção~(d), $49\,152$, ignora todos os vieses e os \textit{LayerNorm}.
+A opção~(e), $33\,088$, conta apenas a FFN. A opção~(f), $16\,640$, conta apenas a
+atenção. A opção~(g), $49\,728$, esquece os \textit{LayerNorm}. A opção~(h),
+$50\,240$, conta os \textit{LayerNorm} em dobro.
+% ---
+
+% --- Solução Q25 ---
+\subsubsection*{XXV — Resposta: (a)}
+\textbf{I (V):} as componentes do produto escalar somam variância $d$; dividir por
+$\sqrt{d}$ devolve variância $\approx 1$, evitando que o \textit{softmax} sature (ver
+questão XI).
+\textbf{II (V):} sem as projeções $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O$,
+a atenção ``crua'' é só \textit{softmax} e somas ponderadas, sem parâmetros (ver
+questão XV).
+\textbf{III (V):} \textit{self-attention} é permutação-equivariante; sem
+\textit{positional encoding} a ordem dos \textit{tokens} não seria distinguida.
+\textbf{IV (F):} dividir por $d$ levaria a variância a $d/d^2 = 1/d$ (\textit{softmax}
+``frio'' demais); o correto é $\sqrt{d}$.
+\textbf{V (F):} a máscara causal soma $-\infty$ às posições futuras \emph{antes} do
+\textit{softmax}; o peso $0$ aparece \emph{depois} do \textit{softmax}.
+Verdadeiras: I, II e III.
+As opções~(b) e~(d) incluem IV (falsa). As opções~(e) e~(f) incluem V (falsa). A
+opção~(c) omite II. A opção~(g) marca tudo. A opção~(h) omite III.
+% ---
+
+% --- Solução Q26 ---
+\subsubsection*{XXVI — Resposta: (e)}
+Primeiro as três projeções (uma linha por \textit{token}):
+\[
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q = \begin{bmatrix} -1 & 0 \\ 2 & 1 \\ 1 & 2 \end{bmatrix},
+\qquad
+\mathbf{K} = \mathbf{X}\mathbf{W}_K = \begin{bmatrix} 0 & 1 \\ 1 & -1 \\ 2 & 1 \end{bmatrix},
+\qquad
+\mathbf{V} = \mathbf{X}\mathbf{W}_V = \begin{bmatrix} 1 & -2 \\ 0 & 4 \\ 3 & 2 \end{bmatrix}.
+\]
+Para o segundo \textit{token}, $\mathbf{q}_2 = [2,\,1]$, e os \textit{scores} contra
+cada \textit{key} são:
+\[
+\mathbf{q}_2 \cdot \mathbf{k}_1 = 1, \qquad \mathbf{q}_2 \cdot \mathbf{k}_2 = 1, \qquad \mathbf{q}_2 \cdot \mathbf{k}_3 = 5.
+\]
+A máscara causal elimina o terceiro \textit{score} ($-\infty$). Os dois restantes são
+iguais, e a divisão por $\sqrt{d_k} = \sqrt{2}$ preserva a igualdade, logo a
+\textit{softmax} devolve pesos $[\,0.5,\;0.5,\;0\,]$. A representação contextualizada
+do segundo \textit{token} é:
+\[
+\mathbf{o}_2 = 0.5 \cdot [1,\,-2] + 0.5 \cdot [0,\,4] = [\,0.5,\;1\,].
+\]
+A opção~(a) é $\mathbf{v}_1$: assume que o \textit{token} atende apenas ao primeiro da
+sequência. A opção~(b) é $\mathbf{v}_3$, o resultado aproximado de \emph{esquecer a
+máscara causal}: sem ela o \textit{score} $\mathbf{q}_2 \cdot \mathbf{k}_3 = 5$ domina a
+\textit{softmax} e a saída fica $\approx [2.7,\,1.9]$, praticamente $\mathbf{v}_3$. A
+opção~(c) é $\mathbf{v}_2$: assume que o \textit{token} atende apenas a si mesmo. A
+opção~(d) soma $\mathbf{v}_1 + \mathbf{v}_2$ sem aplicar os pesos $0.5$ da
+\textit{softmax}. A opção~(f) devolve a própria \textit{query} $\mathbf{q}_2$,
+confundindo a projeção com a saída da atenção. A opção~(g) pondera as linhas de
+$\mathbf{K}$ em vez das de $\mathbf{V}$
+($0.5\,\mathbf{k}_1 + 0.5\,\mathbf{k}_2 = [0.5,\,0]$); coincide com a média de
+$\mathbf{x}_1$ e $\mathbf{x}_2$, o erro de dispensar a projeção $\mathbf{W}_V$. A
+opção~(h) desloca as linhas de $\mathbf{V}$ em uma posição
+($0.5\,\mathbf{v}_2 + 0.5\,\mathbf{v}_3 = [1.5,\,3]$).
+% ---
+
+% --- Solução Q27 ---
+\subsubsection*{XXVII — Resposta: (c)}
+As conexões residuais mantêm um caminho direto da entrada à saída de cada bloco: o
+gradiente flui por esse caminho sem atravessar as matrizes do sub-bloco, o que evita a
+degradação do sinal ao empilhar $N$ blocos. É a mesma motivação das ResNets; sem
+\textit{skip connections}, o \textit{transformer} não treinaria em profundidade.
+A opção~(a) é falsa: o resíduo não remove nenhum parâmetro; a soma é uma operação sem
+pesos adicionada em paralelo aos sub-blocos. A opção~(b) é falsa: a não linearidade
+vem da \textit{softmax} da atenção e da ativação da FFN, não da soma residual. A
+opção~(d) é falsa: a informação posicional propaga-se pelas próprias representações; o
+resíduo não substitui o \textit{positional encoding}. A opção~(e) descreve
+\textit{stochastic depth}, técnica distinta; o resíduo do \textit{transformer} é
+determinístico. A opção~(f) é falsa: a causalidade é responsabilidade da máscara na
+atenção, não das conexões residuais. A opção~(g) é falsa: a soma residual exige
+dimensões iguais e não altera o comprimento da sequência. A opção~(h) é falsa: o fator
+$1/\sqrt{d}$ continua presente em todas as camadas; o resíduo não interage com os
+\textit{scores}.
+% ---
+
+% --- Solução Q28 ---
+\subsubsection*{XXVIII — Resposta: (d)}
+\textbf{I é correta:} a FFN aplica as mesmas matrizes $\mathbf{W}_1, \mathbf{W}_2$ a
+cada posição, de forma independente; o número de parâmetros depende de $d$ e
+$d_{ff}$, nunca do comprimento da sequência (ver questão XXI).
+
+\textbf{II é correta:} é exatamente a divisão de trabalho do bloco; a atenção mistura
+informação entre posições e a FFN processa cada posição isoladamente.
+
+\textbf{III é incorreta:} a asserção inverte o ponto central do MoE. O \textit{router}
+seleciona apenas os top-$k$ especialistas para cada \textit{token} ($k \ll N_E$; no
+Mixtral 8$\times$7B, $2$ de $8$), e somente esses processam a entrada. Por isso o
+número total de parâmetros cresce com $N_E$ enquanto o compute por \textit{token} fica
+próximo ao de $k$ FFNs pequenas: é exatamente o desacoplamento entre parâmetros e
+compute que motiva a arquitetura.
+
+Logo, apenas I e II estão corretas. As opções~(a) e~(b) excluem uma asserção correta.
+As opções~(c), (e), (f) e~(g) incluem a asserção III, que descreve ativação densa de
+todos os especialistas em vez do \textit{routing} esparso top-$k$. A opção~(h)
+contradiz I e II.
+% ---
+
+% --- Solução Q29 ---
+\subsubsection*{XXIX — Resposta: (a)}
+O Padrão A é a máscara triangular inferior (causal): a posição $i$ atende a si mesma e
+a todas as anteriores ($j \le i$), bloqueando posições futuras. Isso é exatamente o que
+torna o objetivo de \textit{next-token prediction} bem-definido: ao prever $x_{i+1}$,
+o modelo só pode usar $x_1, \ldots, x_i$.
+A opção~(b) confunde Padrão A (triangular inferior) com Padrão C (diagonal). A
+opção~(c) é falsa: Padrão B é atenção bidirecional, característica de
+\textit{encoder-only} (BERT) com objetivo de \textit{masked language modeling}, não
+\textit{decoder-only} autorregressivo. A opção~(d) é falsa: sem máscara o modelo
+enxerga o alvo no treino (vazamento), e a propriedade não pode ser ``imposta apenas em
+inferência'' sem destruir a coerência aprendida. A opção~(e) é falsa: Padrão C torna a
+atenção inútil (cada token só vê a si mesmo); o modelo ficaria sem capacidade de
+mistura entre posições. A opção~(f) é falsa: A e B \emph{não} são equivalentes; B vaza
+o alvo. A opção~(g) é falsa: Padrão C bloqueia também o passado, eliminando a
+capacidade de o modelo usar contexto. A opção~(h) é falsa: \textit{decoder-only}
+\emph{usa} atenção mascarada na sua \textit{self-attention}; \textit{cross-attention}
+aparece em \textit{encoder-decoder}, não em \textit{decoder-only}.
 % ---
 
 \end{document}

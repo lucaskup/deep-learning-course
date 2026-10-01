@@ -149,6 +149,62 @@
         %c
     \end{enumerate}
 
+
+    % --------------------------------------------------------------
+    % Q11 (medium) -- affine coupling: y^B e log|det J| numéricos
+    % --------------------------------------------------------------
+    \item Uma camada \textit{affine coupling} de um \textit{normalizing flow} recebe $\mathbf{h} = (\mathbf{h}^A, \mathbf{h}^B)$, copia $\mathbf{h}^A$ e transforma $\mathbf{h}^B$ por $\mathbf{y}^B = \mathbf{h}^B \odot \exp(\mathbf{s}) + \mathbf{t}$, onde $(\mathbf{s}, \mathbf{t})$ são produzidos por uma rede a partir de $\mathbf{h}^A$. Para $\mathbf{h}^B = (3,\; 4)$, $\mathbf{s} = (\ln 2,\; 0)$ e $\mathbf{t} = (1,\; -1)$, calcule $\mathbf{y}^B$ e o log-determinante $\log\lvert\det J\rvert$ da camada.
+    \begin{enumerate}[(a)]
+        \item $\mathbf{y}^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 2$.
+        \item $\mathbf{y}^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 3$.
+        \item $\mathbf{y}^B = (6,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+        \item $\mathbf{y}^B = (7,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+        \item $\mathbf{y}^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = \ln 2 \approx 0.693$.
+        \item $\mathbf{y}^B = (3,\; 4)$ \quad e \quad $\log\lvert\det J\rvert = 0$.
+        \item $\mathbf{y}^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 0$.
+        \item $\mathbf{y}^B = (7,\; 3)$ \quad e \quad $\log\lvert\det J\rvert = 0.5$.
+        %e
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q12 (medium) -- asserções I/II/III sobre flows
+    % --------------------------------------------------------------
+    \item Sobre as asserções abaixo a respeito de \textit{normalizing flows}:
+
+    \textbf{I.} Em uma camada \textit{affine coupling}, o log-determinante da Jacobiana vale $\sum_i s_i$, e a \textit{coupling network} que produz $(\mathbf{s}, \mathbf{t})$ não precisa ser inversível, pois nunca é invertida, apenas reavaliada a partir de $\mathbf{x}^{A}$.
+
+    \textbf{II.} Empilhar várias camadas de \textit{linear flow} $f(\mathbf{x}) = \mathbf{\Theta}\mathbf{x} + \mathbf{b}$ com matrizes $\mathbf{\Theta}$ distintas aumenta progressivamente a expressividade do modelo, permitindo representar densidades que uma única camada linear não consegue representar.
+
+    \textbf{III.} Por exigirem uma bijeção, \textit{normalizing flows} preservam a dimensão ($\dim \mathbf{z} = \dim \mathbf{x}$), de modo que não há gargalo de compressão como no latente de um VAE.
+
+    \begin{enumerate}[(a)]
+        \item Apenas I está correta.
+        \item Apenas II está correta.
+        \item Apenas III está correta.
+        \item Apenas I e II estão corretas.
+        \item Apenas I e III estão corretas.
+        \item Apenas II e III estão corretas.
+        \item Todas estão corretas.
+        \item Nenhuma está correta.
+        %e
+    \end{enumerate}
+
+    % --------------------------------------------------------------
+    % Q13 (medium) -- mudança de variável em flow linear Y = 3X + 1
+    % --------------------------------------------------------------
+    \item Um \textit{normalizing flow} de camada única usa a transformação linear $Y = 3X + 1$ sobre a variável de base $X \sim \mathcal{N}(0, 1)$. Usando a fórmula de mudança de variável e sabendo que $p_X(0) = \tfrac{1}{\sqrt{2\pi}} \approx 0{,}399$, qual o valor aproximado da densidade $p_Y(1)$?
+    \begin{enumerate}[(a)]
+        \item $1{,}197$
+        \item $0{,}798$
+        \item $0{,}399$
+        \item $0{,}242$
+        \item $0{,}199$
+        \item $0{,}133$
+        \item $0{,}081$
+        \item $0{,}044$
+        %f
+    \end{enumerate}
+
 \end{enumerate}
 
 \subsection*{Gabarito - Objetivas}
@@ -163,6 +219,9 @@
     \item b
     \item d
     \item c
+    \item e
+    \item e
+    \item f
 \end{enumerate}
 
 \newpage
@@ -244,6 +303,20 @@
     \item \textbf{(d)} Uma única camada \textit{coupling} mantém $\mathbf{x}^A$ idêntico, então nada acontece com essas dimensões. Alternar permutações entre camadas faz com que diferentes subconjuntos de coordenadas alternem entre o papel de "$A$" (copiadas) e "$B$" (transformadas), garantindo que toda dimensão seja eventualmente afetada. As demais alternativas descrevem efeitos que não correspondem ao papel da permutação.
 
     \item \textbf{(c)} A inversibilidade é uma exigência da família \textit{flow}, então estruturas como LU ou convoluções $1{\times}1$ não a comprometem. O ganho é puramente computacional: matrizes estruturadas têm determinante e inversa em tempo subcúbico (LU custa $\mathcal{O}(d)$ no determinante depois de fatorada; $1{\times}1$ convolução tem custo proporcional ao número de canais). A (a) é falsa, transformações lineares continuam lineares mesmo estruturadas. A (b) zera o termo da NLL e perde expressividade. A (d) confunde com mapas isométricos.
+
+    \item \textbf{(e)} Com $\exp(\mathbf{s}) = (e^{\ln 2}, e^{0}) = (2, 1)$:
+    \[
+    \mathbf{y}^B = (3\cdot 2 + 1,\; 4\cdot 1 + (-1)) = (7,\; 3).
+    \]
+    O log-determinante de uma \textit{affine coupling} é $\log\lvert\det J\rvert = \sum_i s_i = \ln 2 + 0 = \ln 2 \approx 0.693$ (a parte copiada contribui com Jacobiano identidade). A (a) reporta $\det J = 2$ no lugar de seu log. A (b) soma $\exp(s_i) = 2 + 1$ em vez de $\sum s_i$. A (c) esquece o deslocamento $\mathbf{t}$. A (d) aplica $\mathbf{t}$ só na primeira componente. A (f) não transforma $\mathbf{h}^B$. As (g) e (h) acertam $\mathbf{y}^B$, mas reportam log-determinante incorreto ($0$ ignora $\mathbf{s}$; $0.5$ não corresponde a $\sum_i s_i$).
+
+    \item \textbf{(e)} \textbf{I é correta:} a Jacobiana da camada \textit{affine coupling} é triangular por blocos com bloco inferior-direito diagonal $\mathrm{diag}(e^{s_i})$, logo $\log|\det J| = \sum_i s_i$; a \textit{coupling network} nunca é invertida, apenas reavaliada em $\mathbf{x}^{A}$ (que é copiado para a saída), então pode ser qualquer rede neural. \textbf{II é incorreta:} a composição de transformações afins é afim: $\mathbf{\Theta}_2(\mathbf{\Theta}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = (\mathbf{\Theta}_2\mathbf{\Theta}_1)\mathbf{x} + (\mathbf{\Theta}_2\mathbf{b}_1 + \mathbf{b}_2)$. Empilhar \textit{linear flows} não ganha expressividade alguma; a expressividade dos \textit{flows} vem das camadas não lineares (como as \textit{coupling layers}). \textbf{III é correta:} a bijeção exige $\dim\mathbf{z} = \dim\mathbf{x}$; não existe gargalo dimensional, o que gera custo alto em imagens e motiva arquiteturas \textit{multi-scale}. Logo, apenas I e III estão corretas. As (a), (b) e (c) excluem afirmações corretas ou aceitam a II. As (d), (f) e (g) incluem a afirmação II, que é falsa. A (h) contradiz I e III.
+
+    \item \textbf{(f)} Pela mudança de variável, $p_Y(y) = p_X\!\left(\tfrac{y - 1}{3}\right) \cdot \left|\tfrac{dX}{dY}\right| = p_X\!\left(\tfrac{y - 1}{3}\right) \cdot \tfrac{1}{3}$. Em $y = 1$:
+    \[
+    p_Y(1) = p_X(0) \cdot \tfrac{1}{3} \approx \frac{0{,}399}{3} \approx 0{,}133.
+    \]
+    A (a) multiplica por $3$ em vez de dividir; a transformação \emph{estica} o espaço, logo a densidade deve \emph{diminuir}. A (b) multiplica por $2$: coeficiente errado e direção errada da correção de volume. A (c) ignora o Jacobiano por completo. A (d) é $p_X(1)$: avalia no ponto errado e ignora o Jacobiano. A (e) divide por $2$, reproduzindo o coeficiente do exemplo visto em aula em vez do da questão. A (g) avalia a densidade base em $y = 1$ em vez de em $x = (y-1)/3 = 0$ ($p_X(1)/3$). A (h) divide por $9$, elevando o Jacobiano ao quadrado.
 \end{enumerate}
 
 \paragraph{Dissertativas.}

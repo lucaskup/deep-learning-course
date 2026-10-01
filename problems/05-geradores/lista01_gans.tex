@@ -1,6 +1,7 @@
 \documentclass{dlproblemset}
 \usepackage{emoji}
 \usepackage{booktabs}
+\usepackage{tikz}
 \newcommand{\thetav}{\boldsymbol{\theta}}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -136,6 +137,102 @@
 \end{enumerate}
 % R: b
 
+
+% ------------------------------------------------------------------
+% Q11 — Medium (five statements: D*, JS, NS loss, disjoint support, mode collapse)
+% ------------------------------------------------------------------
+\item Avalie as cinco afirmações a seguir sobre GANs:
+
+\textbf{I.} O discriminador ótimo é $D^{*}(x) = \dfrac{P(x)}{P(x) + P^{*}(x)}$, em que $P$ é a densidade dos dados reais e $P^{*}$ a dos dados gerados.
+
+\textbf{II.} Sob o discriminador ótimo, a \emph{loss} do GAN equivale (a menos de uma constante aditiva) à divergência de Jensen--Shannon entre $P$ e $P^{*}$.
+
+\textbf{III.} A \emph{loss} não-saturante do gerador, $-\ln\sigma(f[\cdot])$, fornece gradiente útil mesmo quando o discriminador vence ($\sigma \to 0$), ao contrário da \emph{loss} original $\ln(1 - \sigma(f[\cdot]))$.
+
+\textbf{IV.} Quando os suportes de $P$ e $P^{*}$ são disjuntos, a divergência de Jensen--Shannon satura em seu valor máximo $\ln 2$ e o gradiente para o gerador desaparece.
+
+\textbf{V.} O \textit{mode collapse} ocorre porque o termo de cobertura da Jensen--Shannon gera um gradiente forte que força o gerador a cobrir as modas ignoradas.
+
+\begin{enumerate}[(a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, III e IV estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Apenas II, III, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I e II estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas III, IV e V estão corretas.
+\end{enumerate}
+% R: c
+
+% ------------------------------------------------------------------
+% Q12 — Medium (scenario diagnostic: generator vanishing gradient)
+% ------------------------------------------------------------------
+\item Você treina uma GAN com a \emph{loss} original do gerador, $L[\thetav] = \sum_{j} \ln\!\left[1 - \sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\boldsymbol{\phi}\right]\right)\right]$. Nas primeiras épocas, a acurácia do discriminador sobe para perto de $100\%$ e $\sigma(f[\mathbf{x}^{*},\boldsymbol{\phi}]) \approx 0$ em todas as amostras geradas; a \emph{loss} do gerador fica praticamente constante e $\|\nabla_{\thetav} L\| \approx 0$. Qual é o diagnóstico mais consistente com esses sintomas e a mitigação mais direta?
+\begin{enumerate}[(a)]
+    \item O discriminador venceu o jogo cedo demais; com $\sigma \approx 0$ a \emph{loss} original satura e o gradiente do gerador some; trocar para a \textit{non-saturating loss} $-\ln \sigma(\cdot)$ recupera o sinal.
+    \item O gerador entrou em \textit{mode collapse} e produz amostras idênticas entre si; adicionar \textit{minibatch discrimination} restaura a diversidade das amostras e o gradiente.
+    \item A taxa de aprendizado do gerador está alta demais e ele saltou por cima do mínimo; reduzi-la em uma ordem de grandeza devolve o progresso normal do treinamento.
+    \item O discriminador sofre de \textit{overfitting} sobre as imagens reais do conjunto de treino; aplicar \textit{Dropout} nas camadas do gerador equilibra o jogo adversarial.
+    \item O treinamento atingiu o equilíbrio de Nash ($P^{*} = P$), no qual o gradiente nulo é o comportamento esperado; basta interromper o treino e amostrar do gerador.
+    \item Os \textit{manifolds} de $P$ e $P^{*}$ estão sobrepostos demais desde o início; reduzir a dimensão do latente $\mathbf{z}$ separa as distribuições e recria o sinal de gradiente.
+    \item A última camada do gerador deveria usar ReLU em vez de \emph{Tanh}; o intervalo de saída incorreto impede o discriminador de aprender qualquer fronteira útil.
+    \item O \textit{batch size} está pequeno demais para estimar a esperança da \emph{loss}; aumentá-lo reduz a variância do gradiente e elimina a saturação observada.
+\end{enumerate}
+% R: a
+
+% ------------------------------------------------------------------
+% Q13 — Medium (figure: mode collapse, quality vs coverage terms)
+% ------------------------------------------------------------------
+\item A figura abaixo mostra a densidade dos dados reais $P(x)$ (linha cheia, com duas modas $A$ e $B$) e a densidade gerada $P^{*}(x)$ (linha tracejada) de uma GAN durante o treinamento.
+
+\begin{center}
+\begin{tikzpicture}[font=\small, scale=1.15]
+    % eixos
+    \draw[->, thick] (-3.4,0) -- (3.8,0) node[right] {$x$};
+    \draw[->, thick] (-3.4,0) -- (-3.4,1.9) node[above] {densidade};
+    % P(x) real: bimodal (linha cheia)
+    \draw[domain=-3.2:3.5, samples=180, thick]
+      plot (\x, {1.1*exp(-(\x+1.5)^2/0.35) + 1.1*exp(-(\x-1.8)^2/0.35)});
+    % P*(x) gerada: unimodal tracejada na moda A
+    \draw[domain=-3.2:3.5, samples=180, thick, dashed]
+      plot (\x, {1.55*exp(-(\x+1.35)^2/0.28)});
+    \node[below] at (-1.5,-0.05) {moda $A$};
+    \node[below] at (1.8,-0.05) {moda $B$};
+    \node[anchor=west] at (-1.05,1.65) {$P^{*}(x)$ gerada (tracejada)};
+    \node[anchor=west] at (2.25,1.05) {$P(x)$ real};
+\end{tikzpicture}
+\end{center}
+
+Considerando a decomposição $D_{JS}[P^{*}\|P] = \underbrace{\tfrac{1}{2}D_{KL}[P^{*}\|M]}_{\text{qualidade}} + \underbrace{\tfrac{1}{2}D_{KL}[P\|M]}_{\text{cobertura}}$, com $M = \tfrac{1}{2}(P + P^{*})$, qual afirmação descreve corretamente o fenômeno ilustrado e o comportamento do gradiente do gerador?
+\begin{enumerate}[(a)]
+    \item Trata-se de \textit{vanishing gradient} por suportes disjuntos: como $P^{*}$ não toca a moda $B$, $D_{JS}$ já atingiu o teto $\ln 2$ e nenhum dos dois termos produz gradiente para o gerador.
+    \item Trata-se de \textit{mode collapse}: na moda $B$, onde $P^{*} \approx 0$, o integrando da cobertura satura em $\tfrac{1}{2}P\ln 2$, quase insensível a $P^{*}$, então o incentivo para cobrir $B$ é fraco.
+    \item Trata-se de \textit{mode collapse}: o termo de qualidade é o que satura na moda $B$, e o gerador recebe incentivo forte para cobrir $B$, mas o discriminador ótimo bloqueia esse movimento.
+    \item Trata-se de \textit{posterior collapse}: a KL entre o posterior aproximado e o \textit{prior} foi a zero, então o latente deixou de carregar informação sobre qual das duas modas gerar.
+    \item Trata-se de \textit{overfitting} do discriminador: $P^{*}$ concentrada na moda $A$ indica que o discriminador memorizou essa moda; reiniciar os pesos $\phi$ recupera a moda $B$.
+    \item Trata-se de \textit{mode collapse}: a KL da cobertura diverge para infinito na moda $B$, o gradiente correspondente domina o treino e força o gerador a cobrir $B$ nas iterações seguintes.
+    \item Trata-se de \textit{vanishing gradient}: a sigmóide do discriminador satura na moda $A$, onde $P$ e $P^{*}$ se sobrepõem, e o treinamento congela com $D_{JS} = 0$.
+    \item Trata-se de \textit{mode collapse}: como $D_{JS}$ é simétrica, qualidade e cobertura geram gradientes de mesma magnitude, e o colapso resulta apenas da inicialização infeliz do gerador.
+\end{enumerate}
+% R: b
+
+% ------------------------------------------------------------------
+% Q14 — Medium (saturating vs non-saturating gradient at sigma = 0.05)
+% ------------------------------------------------------------------
+\item Em uma GAN, seja $d = f[g[\mathbf{z},\thetav],\phi]$ o \textit{logit} do discriminador para uma amostra gerada; a \textit{loss} original do gerador contribui com $L = \ln(1 - \sigma(d))$ e a \textit{non-saturating} com $L_{\text{ns}} = -\ln \sigma(d)$. No início do treino o discriminador rejeita as amostras geradas: $\sigma(d) = 0{,}05$. Sabendo que $\sigma'(d) = \sigma(d)\,(1 - \sigma(d))$, quais os módulos de $\left|\partial L / \partial d\right|$ e $\left|\partial L_{\text{ns}} / \partial d\right|$, e qual \textit{loss} fornece sinal útil ao gerador?
+\begin{enumerate}[(a)]
+    \item $0{,}05$ e $0{,}95$; a \textit{loss} original fornece o maior sinal de aprendizado.
+    \item $0{,}95$ e $0{,}05$; a \textit{loss} original fornece o maior sinal de aprendizado.
+    \item $0{,}05$ e $0{,}05$; as duas \textit{losses} saturam igualmente no início do treino.
+    \item $0{,}05$ e $0{,}95$; a \textit{loss} \textit{non-saturating} fornece o maior sinal de aprendizado.
+    \item $0{,}95$ e $0{,}05$; a \textit{loss} \textit{non-saturating} fornece o maior sinal de aprendizado.
+    \item $0{,}0475$ e $0{,}0475$; as duas \textit{losses} fornecem exatamente o mesmo sinal.
+    \item $0{,}95$ e $0{,}95$; as duas \textit{losses} fornecem sinal forte no início do treino.
+    \item $0$ e $1$; apenas a \textit{loss} \textit{non-saturating} tem gradiente definido nesse ponto.
+\end{enumerate}
+% R: d
+
 \end{enumerate}
 
 \subsection*{Gabarito - Objetivas}
@@ -150,6 +247,10 @@
     \item d
     \item a
     \item b
+    \item c
+    \item a
+    \item b
+    \item d
 \end{enumerate}
 
 \subsection*{Resoluções - Objetivas}
@@ -174,6 +275,19 @@
     \item A combinação ``rápido na amostragem $+$ má cobertura $+$ instável'' é o canto \emph{qualidade $+$ velocidade} do trilema, ocupado por GANs. A (b) descreve difusores, que estão no canto \emph{qualidade $+$ cobertura} (custosos na amostragem). A (c) e a (d) descrevem famílias do canto \emph{velocidade $+$ cobertura}, que costumam ter cobertura boa e estabilidade alta, em troca de qualidade mais limitada.
 
     \item Verificando cada candidato: $f = (2, 1, 0)$ (alternativa b) é 1-Lipschitz ($|1 - 2| = |0 - 1| = 1$) e produz $(2 \cdot 0.6 + 1 \cdot 0.3 + 0 \cdot 0.1) - (2 \cdot 0.1 + 1 \cdot 0.3 + 0 \cdot 0.6) = 1.5 - 0.5 = 1$, atingindo $D_{w}$. A (a) é 1-Lipschitz mas tem orientação invertida, $0.5 - 1.5 = -1$; o dual exige o máximo, não o mínimo. A (c) atinge soma $5$, porém viola Lipschitz ($|5 - 10| = 5 > 1$), ficando fora da região viável. A (d) é constante: 1-Lipschitz, mas produz soma $0$, não distinguindo $P$ de $Q$.
+
+    \item \textbf{I (V):} pela regra de Bayes com \textit{priors} iguais, $D^{*}(x) = P(x)/(P(x)+P^{*}(x))$. \textbf{II (V):} substituindo $D^{*}$, a \emph{loss} vira $2\,D_{JS}[P^{*}\|P] - 2\ln 2$, ou seja, Jensen--Shannon a menos de constante. \textbf{III (V):} $\partial(-\ln\sigma)/\partial d = -(1-\sigma) \to -1$ quando $\sigma\to 0$, ao passo que a \emph{loss} original tem gradiente $\to 0$ (satura). \textbf{IV (V):} suportes disjuntos $\Rightarrow D_{JS} = \ln 2$ (máximo), constante, com gradiente nulo para o gerador. \textbf{V (F):} o termo de cobertura \emph{satura} em $\approx \tfrac{1}{2}P\ln 2$, quase insensível a $P^{*}$, e por isso gera gradiente \emph{fraco} para cobrir modas ignoradas; essa assimetria é justamente a causa do \textit{mode collapse}. Verdadeiras: I, II, III e IV (alternativa c). As (a), (e) e (f) omitem alguma afirmação verdadeira. A (b) omite II. As (d) e (h) incluem V (falsa). A (g) marca tudo.
+
+    \item Os sintomas (discriminador quase perfeito, $\sigma \approx 0$ nas geradas, \emph{loss} do gerador constante, gradiente nulo) são sinais do \textit{vanishing gradient} da \emph{loss} original: $|\partial L/\partial d| = \sigma(d) \approx 0$ quando o discriminador vence. A \textit{non-saturating loss} $-\ln\sigma(\cdot)$ tem $|\partial L/\partial d| = 1 - \sigma(d) \approx 1$ nessa mesma região, devolvendo gradiente útil (um crítico Wasserstein também resolveria, por produzir gradientes lineares); alternativa a. A (b) descreve \textit{mode collapse}, que é perda de diversidade entre amostras; o sintoma aqui é gradiente nulo com discriminador vencendo, outra patologia. A (c) descreve taxa de aprendizado alta, que produz oscilação ou divergência da \emph{loss}, e não uma \emph{loss} constante com gradiente nulo. Na (d) não há evidência de \textit{overfitting} do discriminador, e \textit{Dropout} no gerador não ataca a saturação de $\ln[1-\sigma]$. Na (e), no equilíbrio de Nash $\sigma \approx \tfrac{1}{2}$ em todo ponto; aqui $\sigma \approx 0$, o oposto de equilíbrio. A (f) inverte o diagnóstico: a acurácia de $100\%$ indica que as distribuições estão (quase) disjuntas. Na (g), a recomendação DCGAN é exatamente \emph{Tanh} na saída do gerador; a troca proposta criaria um problema. Na (h), variância da estimativa não explica gradiente sistematicamente nulo; o problema é a saturação da \emph{loss}.
+
+    \item A figura ilustra \textit{mode collapse}: $P^{*}$ cobre apenas a moda $A$. Na moda $B$, $P^{*}(x) \ll P(x)$ implica $M \approx P/2$, então o integrando da cobertura satura em $\tfrac{1}{2}P(x)\ln\!\tfrac{P}{P/2} = \tfrac{1}{2}P(x)\ln 2$, valor \emph{limitado} e quase insensível a pequenos aumentos de $P^{*}$. O gradiente que empurraria o gerador a cobrir $B$ é fraco, enquanto o termo de qualidade pune fortemente amostras implausíveis, então o gerador prefere refinar a moda $A$ (alternativa b). Na (a), os suportes não são disjuntos (há sobreposição na moda $A$), então $D_{JS} < \ln 2$ e o termo de qualidade ainda fornece gradiente. A (c) inverte os papéis: quem satura na moda $B$ é a cobertura. A (d) descreve \textit{posterior collapse}, patologia de VAE (KL do posterior contra o \textit{prior}). Na (e), a forma de $P^{*}$ é propriedade do gerador; reiniciar o discriminador não altera o que o gerador produz. Na (f), a cobertura é uma KL contra a mistura $M$, que contém $P$; o integrando fica limitado por $\tfrac{1}{2}P\ln 2$ (quem divergiria é $D_{KL}[P\|P^{*}]$). Na (g), a sigmóide do discriminador fica perto de $\tfrac{1}{2}$ onde as densidades se igualam; $D_{JS} = 0$ exigiria $P^{*} = P$ em todo ponto. Na (h), a simetria global da $D_{JS}$ não implica simetria de incentivos: a decomposição mostra exatamente a assimetria qualidade vs.\ cobertura que causa o colapso.
+
+    \item Pela regra da cadeia, com $\sigma'(d) = \sigma(d)(1 - \sigma(d))$:
+    \[
+    \frac{\partial L}{\partial d} = \frac{-\sigma'(d)}{1 - \sigma(d)} = -\sigma(d) = -0{,}05, \qquad
+    \frac{\partial L_{\text{ns}}}{\partial d} = \frac{-\sigma'(d)}{\sigma(d)} = -(1 - \sigma(d)) = -0{,}95.
+    \]
+    Logo $\left|\partial L / \partial d\right| = 0{,}05$ e $\left|\partial L_{\text{ns}} / \partial d\right| = 0{,}95$: quando o discriminador vence ($\sigma \to 0$), a \textit{loss} original satura (gradiente $\propto \sigma$) e o gerador para de aprender, enquanto a \textit{non-saturating} mantém gradiente $\propto 1 - \sigma$, próximo de $1$ (alternativa d). A (a) acerta os valores mas inverte a leitura: sinal maior vem do gradiente de maior módulo, o da \textit{non-saturating}. As (b) e (e) trocam as derivadas entre as duas \textit{losses}. A (c) aplica a derivada da \textit{loss} original às duas. A (f) esquece o denominador da regra da cadeia e fica com $\sigma'(d) = 0{,}0475$ para ambas. A (g) aplica a derivada da \textit{non-saturating} às duas. A (h) trata $\sigma(d) = 0{,}05$ como exatamente zero; ambos os gradientes são finitos e bem definidos nesse ponto.
 \end{enumerate}
 \color{black}
 

@@ -1,7 +1,117 @@
 \documentclass{dlproblemset}
 \usepackage{emoji}
 \usepackage{tikz}
+\usetikzlibrary{positioning}
 \tikzset{every picture/.style={line width=0.75pt}}
+
+% ---- Mini-diagramas de MLP usados nas alternativas da questão sobre a fronteira de decisão em faixa (MLP e Backpropagation) ----
+% Convenção: o viés fica dentro do círculo, os pesos ficam sobre as arestas
+% e as conexões de peso zero são omitidas.
+\tikzset{
+  mlpunit/.style={circle, draw, minimum size=7mm, inner sep=0pt, font=\scriptsize},
+  mlpin/.style={font=\scriptsize},
+  mlpw/.style={font=\tiny, inner sep=1.2pt}
+}
+% Rede de 3 unidades (2 ocultas + 1 de saída).
+% #1 entrada de h1 (1 ou 2), #2 peso de h1, #3 viés de h1,
+% #4 entrada de h2 (1 ou 2), #5 peso de h2, #6 viés de h2,
+% #7 peso das duas arestas de saída, #8 viés da unidade de saída.
+\newcommand{\mlpA}[8]{%
+\begin{tikzpicture}[>=stealth, baseline=(o.base), scale=0.86, transform shape]
+  \node[mlpin]   (x1) at (0,0.72)     {$x_1$};
+  \node[mlpin]   (x2) at (0,-0.72)    {$x_2$};
+  \node[mlpunit] (h1) at (1.28,0.72)  {$#3$};
+  \node[mlpunit] (h2) at (1.28,-0.72) {$#6$};
+  \node[mlpunit] (o)  at (2.62,0)     {$#8$};
+  \draw[->] (x#1) -- node[mlpw, above]{$#2$} (h1);
+  \draw[->] (x#4) -- node[mlpw, below]{$#5$} (h2);
+  \draw[->] (h1) -- node[mlpw, above right=-2pt]{$#7$} (o);
+  \draw[->] (h2) -- node[mlpw, below right=-2pt]{$#7$} (o);
+\end{tikzpicture}}
+% Rede de 4 unidades (3 ocultas + 1 de saída); h1 e h2 partem de x1, h3 parte de x2.
+% #1 peso de h1, #2 viés de h1, #3 peso de h2, #4 viés de h2,
+% #5 peso de h3, #6 viés de h3, #7 peso das três arestas de saída, #8 viés da saída.
+\newcommand{\mlpB}[8]{%
+\begin{tikzpicture}[>=stealth, baseline=(o.base), scale=0.86, transform shape]
+  \node[mlpin]   (x1) at (0,0.70)     {$x_1$};
+  \node[mlpin]   (x2) at (0,-1.15)    {$x_2$};
+  \node[mlpunit] (h1) at (1.28,1.15)  {$#2$};
+  \node[mlpunit] (h2) at (1.28,0)     {$#4$};
+  \node[mlpunit] (h3) at (1.28,-1.15) {$#6$};
+  \node[mlpunit] (o)  at (2.62,0)     {$#8$};
+  \draw[->] (x1) -- node[mlpw, above left=-3pt]{$#1$} (h1);
+  \draw[->] (x1) -- node[mlpw, below left=-3pt]{$#3$} (h2);
+  \draw[->] (x2) -- node[mlpw, below]{$#5$} (h3);
+  \draw[->] (h1) -- node[mlpw, above right=-3pt]{$#7$} (o);
+  \draw[->] (h2) -- node[mlpw, above=0pt, pos=0.42]{$#7$} (o);
+  \draw[->] (h3) -- node[mlpw, below right=-3pt]{$#7$} (o);
+\end{tikzpicture}}
+
+% ---- Nodos de grafo computacional usados na questão do backward do nodo de dropout (Softmax, Entropia Cruzada e Grafo Computacional) ----
+% Mesma convenção da aula: variáveis em círculo, operações em caixa,
+% gradientes anotados abaixo de cada aresta.
+\tikzset{
+  cgvar/.style  ={circle, draw=black, minimum size=0.8cm, inner sep=1pt, font=\small},
+  cgopw/.style  ={rectangle, rounded corners=2pt, draw=black, fill=black!8,
+                  minimum height=0.8cm, inner sep=4pt, font=\small},
+  cgedge/.style ={->, >=stealth, thick, gray!70},
+  cggrad/.style ={font=\scriptsize, fill=white, inner sep=1.5pt},
+}
+
+% ---- Painéis de função 1D usados na questão da composição de ReLUs (MLP e Backpropagation) ----
+% \fpA: eixo vertical em [-1, 1]; #1 coordenadas da poligonal, #2 rótulo.
+% \fpB: eixo vertical em [-1,6; 1,6], usado nas alternativas; #1 coordenadas.
+% Eixo horizontal sempre em [0, 2]; grade a cada 0,4 em x e a cada 0,2 em y.
+\newcommand{\fpA}[2]{%
+\begin{tikzpicture}[x=1.45cm, y=0.95cm, baseline=(current bounding box.center)]
+  \foreach \gx in {0.4,0.8,1.2,1.6} \draw[gray!25] (\gx,-1) -- (\gx,1);
+  \foreach \gy in {-0.8,-0.6,-0.4,-0.2,0.2,0.4,0.6,0.8} \draw[gray!20] (0,\gy) -- (2,\gy);
+  \draw[gray!60, dashed] (0,0) -- (2,0);
+  \draw[gray!70] (0,-1) rectangle (2,1);
+  \draw[very thick, black!80] #1;
+  \foreach \ty/\tl in {1/1,0.6/0{,}6,0.2/0{,}2,-0.2/-0{,}2,-0.6/-0{,}6,-1/-1}
+    \node[font=\tiny, left, inner sep=1pt] at (0,\ty) {$\tl$};
+  \foreach \tx/\tl in {0/0,0.4/0{,}4,0.8/0{,}8,1.2/1{,}2,1.6/1{,}6,2/2} \node[font=\tiny, below, inner sep=1.5pt] at (\tx,-1) {$\tl$};
+  \node[font=\small, below, inner sep=1pt] at (1,-1.28) {#2};
+\end{tikzpicture}}
+\newcommand{\fpB}[1]{%
+\begin{tikzpicture}[x=1.45cm, y=1.2cm, baseline=(current bounding box.center)]
+  \foreach \gx in {0.4,0.8,1.2,1.6} \draw[gray!25] (\gx,-1.6) -- (\gx,1.6);
+  \foreach \gy in {-1.4,-1.2,-1,-0.8,-0.6,-0.4,-0.2,0.2,0.4,0.6,0.8,1,1.2,1.4} \draw[gray!20] (0,\gy) -- (2,\gy);
+  \draw[gray!60, dashed] (0,0) -- (2,0);
+  \draw[gray!70] (0,-1.6) rectangle (2,1.6);
+  \draw[very thick, black!80] #1;
+  \foreach \ty/\tl in {1.6/1{,}6,1.2/1{,}2,0.8/0{,}8,0.4/0{,}4,0/0,-0.4/-0{,}4,-0.8/-0{,}8,-1.2/-1{,}2,-1.6/-1{,}6}
+    \node[font=\tiny, left, inner sep=1pt] at (0,\ty) {$\tl$};
+  \foreach \tx/\tl in {0/0,0.4/0{,}4,0.8/0{,}8,1.2/1{,}2,1.6/1{,}6,2/2} \node[font=\tiny, below, inner sep=1.5pt] at (\tx,-1.6) {$\tl$};
+\end{tikzpicture}}
+
+% ---- Histogramas de pré-ativações usados na questão das quatro inicializações (Inicialização de Pesos) ----
+% Pré-ativações de uma MLP ReLU simulada (n = 256, minilote de 1000 instâncias).
+% Eixo horizontal comum em [-8, 8]; altura normalizada pelo pico de cada painel.
+\newcommand{\histpanel}[1]{%
+\begin{tikzpicture}[x=0.19cm, y=1.1cm, baseline=(current bounding box.center)]
+  \foreach \gx in {-4,0,4} \draw[gray!25] (\gx,0) -- (\gx,1.05);
+  \fill[black!22] plot[const plot] coordinates {#1} -- (8,0) -- (-8,0) -- cycle;
+  \draw[black!75, thick] plot[const plot] coordinates {#1};
+  \draw[gray!70] (-8,0) rectangle (8,1.05);
+  \foreach \t in {-8,-4,0,4,8} \node[font=\tiny, below, inner sep=1.5pt] at (\t,0) {$\t$};
+\end{tikzpicture}}
+
+% ---- Região classificada como +1 nas alternativas da questão da rede de Perceptrons com fronteira em V (Perceptron) ----
+% Quadrado [0,4] x [0,4]; #1 é o polígono sombreado.
+\newcommand{\regpanel}[1]{%
+\begin{tikzpicture}[scale=0.64, baseline=(current bounding box.center)]
+  \begin{scope}
+    \clip (0,0) rectangle (4,4);
+    \fill[black!18] #1;
+  \end{scope}
+  \foreach \g in {1,2,3} { \draw[gray!35] (\g,0) -- (\g,4); \draw[gray!35] (0,\g) -- (4,\g); }
+  \draw[gray!70] (0,0) rectangle (4,4);
+  \foreach \t in {0,1,2,3,4} { \node[font=\tiny, below, inner sep=1.5pt] at (\t,0) {$\t$}; \node[font=\tiny, left, inner sep=1.5pt] at (0,\t) {$\t$}; }
+  \node[font=\scriptsize, below] at (2,-0.55) {$x_1$};
+  \node[font=\scriptsize, left] at (-0.55,2) {$x_2$};
+\end{tikzpicture}}
 
 \title{Multilayer Perceptron}
 \subtitle{Lista de Exercícios da Unidade 1}
@@ -93,6 +203,75 @@
 
     \item Crie um Perceptron que se comporta como uma função \textit{and}.
 
+    \item Por que uma rede de Perceptrons de Rosenblatt, na sua formulação original com saída $\hat{y} = \mathrm{sign}(\mathbf{x}^\top \boldsymbol{\theta})$, não pode ser organizada em uma rede multicamadas treinada por descida de gradiente e \textit{backpropagation}?
+    \begin{enumerate}[(a)]
+        \item Porque o produto escalar $\mathbf{x}^\top \boldsymbol{\theta}$ não é diferenciável em relação aos pesos $\boldsymbol{\theta}$.
+        \item Porque a derivada de $\mathrm{sign}(z)$ é zero em $z \neq 0$ e indefinida em $z = 0$, bloqueando a regra da cadeia.
+        \item Porque o Perceptron tem como limitação modelar apenas problemas linearmente separáveis; com função de ativação contínua, esse problema desapareceria automaticamente.
+        \item Porque a função $\mathrm{sign}$ é descontínua, o que impede que a função de custo de entropia cruzada seja calculada.
+        \item Porque a regra de atualização original do PLA (\textit{Perceptron Learning Algorithm}) é incompatível com descida de gradiente; basta substituir o PLA pelo SGD para o problema desaparecer.
+        \item Porque o número de parâmetros do Perceptron é grande demais para ser otimizado por descida de gradiente em hardware atual.
+        \item Porque o Perceptron já realiza descida de gradiente internamente; encadeá-los em rede multicamadas dobraria a operação e levaria a divergência.
+        \item Porque a saída $\hat{y} \in \{-1, +1\}$ não é interpretável como probabilidade, e a descida de gradiente exige saídas probabilísticas.
+    \end{enumerate}
+    %b
+
+    \item Considere um Perceptron de Rosenblatt com duas entradas $X_1, X_2 \in \{-1, +1\}$ e saída $\hat{y} = \mathrm{sinal}(\theta_0 + \theta_1 X_1 + \theta_2 X_2)$, em que $\mathrm{sinal}(z) = +1$ se $z \geq 0$ e $-1$ caso contrário. Codificando \emph{verdadeiro} como $+1$ e \emph{falso} como $-1$, qual configuração de pesos $(\theta_0, \theta_1, \theta_2)$ implementa a porta lógica \textbf{OR}, isto é, $\hat{y} = +1$ se e somente se $X_1 = +1$ ou $X_2 = +1$?
+    \begin{enumerate}[(a)]
+        \item $(\theta_0, \theta_1, \theta_2) = (-3,\ 1,\ 1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (-1,\ -1,\ -1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (-1,\ 1,\ 1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (1,\ 1,\ 1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (1,\ 1,\ -1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (1,\ -1,\ -1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (-1,\ 1,\ -1)$
+        \item $(\theta_0, \theta_1, \theta_2) = (3,\ 1,\ 1)$
+    \end{enumerate}
+    %d
+
+    \item Na rede abaixo, cada círculo é uma unidade que aplica $\mathrm{sinal}$ à soma ponderada das suas entradas somada ao viés indicado \emph{dentro} do círculo, e os números sobre as arestas são os pesos. Considere $\mathrm{sinal}(z) = +1$ para $z \geq 0$ e $\mathrm{sinal}(z) = -1$ para $z < 0$.
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth,
+        mlpunit/.style={circle, draw, minimum size=8mm, inner sep=0pt, font=\small},
+        mlpin/.style={font=\small}, mlpw/.style={font=\scriptsize, inner sep=1.2pt}]
+      \node[mlpin]   (x1) at (0,0.9)   {$x_1$};
+      \node[mlpin]   (x2) at (0,-0.9)  {$x_2$};
+      \node[mlpunit] (h1) at (2.6,0.9)  {$1$};
+      \node[mlpunit] (h2) at (2.6,-0.9) {$-3$};
+      \node[mlpunit] (o)  at (5.0,0)    {$-1$};
+      \node[font=\scriptsize, above=0pt of h1] {$h_1$};
+      \node[font=\scriptsize, below=0pt of h2] {$h_2$};
+      \node[mlpin, right=0.6cm of o] (yh) {$\hat{y}$};
+      \draw[->] (x1) -- node[mlpw, above]{$-1$} (h1);
+      \draw[->] (x2) -- node[mlpw, pos=0.25, above left=-1pt]{$1$} (h1);
+      \draw[->] (x1) -- node[mlpw, pos=0.25, below left=-1pt]{$1$} (h2);
+      \draw[->] (x2) -- node[mlpw, below]{$1$} (h2);
+      \draw[->] (h1) -- node[mlpw, above right=-2pt]{$1$} (o);
+      \draw[->] (h2) -- node[mlpw, below right=-2pt]{$1$} (o);
+      \draw[->] (o) -- (yh);
+    \end{tikzpicture}
+    \end{center}
+
+    Em qual dos gráficos abaixo a região sombreada corresponde exatamente ao conjunto de pontos $(x_1, x_2)$ classificados como $\hat{y} = +1$?
+
+    \begin{center}
+    \setlength{\tabcolsep}{1pt}
+    \scalebox{0.93}{%
+    \begin{tabular}{r@{\,}lr@{\,}lr@{\,}lr@{\,}l}
+    \textbf{(a)} & \regpanel{(0,0) -- (1,0) -- (2,1) -- (3,0) -- (4,0) -- (4,4) -- (0,4) -- cycle} &
+    \textbf{(b)} & \regpanel{(0,0) -- (4,0) -- (4,3) -- (2,1) -- (0,3) -- cycle} &
+    \textbf{(c)} & \regpanel{(0,3) -- (1,2) -- (3,4) -- (0,4) -- cycle} &
+    \textbf{(d)} & \regpanel{(2,1) -- (4,3) -- (4,0) -- (3,0) -- cycle} \\[0.5em]
+    \textbf{(e)} & \regpanel{(2,1) -- (0,3) -- (0,0) -- (1,0) -- cycle} &
+    \textbf{(f)} & \regpanel{(0,0) -- (1,0) -- (4,3) -- (4,4) -- (0,4) -- cycle} &
+    \textbf{(g)} & \regpanel{(0,3) -- (2,1) -- (4,3) -- (4,4) -- (0,4) -- cycle} &
+    \textbf{(h)} & \regpanel{(1,0) -- (2,1) -- (3,0) -- cycle} \\
+    \end{tabular}
+    }
+    \end{center}
+    %g
+
 \subsection*{MLP e Backpropagation}
 
     \item Em uma unidade (neurônio) de uma rede neural artificial, qual a operação realizada entre as entradas e os pesos durante o \textit{forward pass}?
@@ -133,6 +312,294 @@
         \item Compute o \textit{Backward Pass}.
         \item Realize a atualização de todos os parâmetros treináveis da rede conforme o otimizador SGD $\theta_{t+1}=\theta_t - \eta \nabla J$.
     \end{enumerate}
+
+    \item Considere o MLP abaixo, com duas unidades ocultas de ativações $a_1$ e $a_2$ (ReLU) e uma unidade de saída $\hat{y}$ com ativação linear (todos os vieses são nulos). As entradas são $X_1 = 1$ e $X_2 = 2$, a saída esperada é $y = 4$ e a função de custo é $J = \tfrac{1}{2}(y - \hat{y})^2$. Os pesos iniciais são
+    $\theta^{(1)}_{11} = 1,\ \theta^{(1)}_{12} = -1$ (de $X_1, X_2$ para $a_1$),
+    $\theta^{(1)}_{21} = 1,\ \theta^{(1)}_{22} = 1$ (de $X_1, X_2$ para $a_2$),
+    $\theta^{(2)}_{1} = 1,\ \theta^{(2)}_{2} = 2$ (de $a_1, a_2$ para $\hat{y}$).
+    Após \textbf{uma} atualização de descida de gradiente estocástica com $\eta = 0.1$, quais os novos valores de $\theta^{(1)}_{11}$ e $\theta^{(1)}_{21}$?
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+        \node[circle, draw] (x1) at (0, 1.2)  {$X_1$};
+        \node[circle, draw] (x2) at (0, -1.2) {$X_2$};
+        \node[circle, draw] (h1) at (3, 1.2)  {$a_1$};
+        \node[circle, draw] (h2) at (3, -1.2) {$a_2$};
+        \node[circle, draw] (y)  at (6, 0)    {$\hat{y}$};
+        \draw[->] (x1) -- node[above, font=\footnotesize]{$\theta^{(1)}_{11}$} (h1);
+        \draw[->] (x1) -- node[pos=0.3, above, font=\footnotesize]{$\theta^{(1)}_{21}$} (h2);
+        \draw[->] (x2) -- node[pos=0.3, below, font=\footnotesize]{$\theta^{(1)}_{12}$} (h1);
+        \draw[->] (x2) -- node[below, font=\footnotesize]{$\theta^{(1)}_{22}$} (h2);
+        \draw[->] (h1) -- node[above, font=\footnotesize]{$\theta^{(2)}_{1}$} (y);
+        \draw[->] (h2) -- node[below, font=\footnotesize]{$\theta^{(2)}_{2}$} (y);
+        \node[below=0.15cm of h1, font=\footnotesize] {ReLU};
+        \node[below=0.15cm of h2, font=\footnotesize] {ReLU};
+        \node[below=0.15cm of y, font=\footnotesize] {linear};
+    \end{tikzpicture}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item $\theta^{(1)}_{11} = 0.8$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+        \item $\theta^{(1)}_{11} = 0.6$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+        \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.8$
+        \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+        \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 1.0$
+        \item $\theta^{(1)}_{11} = 0.6$ \quad e \quad $\theta^{(1)}_{21} = 0.8$
+        \item $\theta^{(1)}_{11} = 1.0$ \quad e \quad $\theta^{(1)}_{21} = 0.4$
+        \item $\theta^{(1)}_{11} = 0.96$ \quad e \quad $\theta^{(1)}_{21} = 0.6$
+    \end{enumerate}
+    %d
+
+    \item Um MLP totalmente conectado recebe entradas com $10$ atributos e possui três camadas ocultas com $20$, $20$ e $10$ unidades (todas com ReLU e \textbf{com} viés), seguidas de uma camada de saída com $5$ unidades (também com viés). Qual o número total de parâmetros \emph{treináveis} da rede?
+    \begin{enumerate}[(a)]
+        \item $1810$
+        \item $850$
+        \item $900$
+        \item $855$
+        \item $760$
+        \item $925$
+        \item $905$
+        \item $705$
+    \end{enumerate}
+    %g
+
+    \item Considere o MLP abaixo, com função de ativação ReLU na camada oculta (1 unidade) e saída linear. As entradas são $X_1 = 1$ e $X_2 = 2$, e a saída esperada é $y = 5$. Os pesos iniciais são $\theta^{(1)}_1 = 1$, $\theta^{(1)}_2 = 1$ e $\theta^{(2)} = 2$ (todos sem viés). A função de custo é $J(\theta) = \tfrac{1}{2}(y - \hat{y})^2$.
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+        \node[circle, draw] (x1) at (0, 0.7) {$X_1$};
+        \node[circle, draw] (x2) at (0, -0.7) {$X_2$};
+        \node[circle, draw] (h)  at (3, 0)   {$a^{(1)}$};
+        \node[circle, draw] (y)  at (6, 0)   {$\hat{y}$};
+        \draw[->] (x1) -- node[above]{$\theta^{(1)}_1$} (h);
+        \draw[->] (x2) -- node[below]{$\theta^{(1)}_2$} (h);
+        \draw[->] (h)  -- node[above]{$\theta^{(2)}$}   (y);
+        \node[below=0.2cm of h, font=\footnotesize] {ReLU};
+        \node[below=0.2cm of y, font=\footnotesize] {linear};
+    \end{tikzpicture}
+    \end{center}
+
+    \begin{enumerate}[a)]
+        \item Compute o \textit{forward pass} e indique o valor de $\hat{y}$.
+        \item Compute o valor da função de custo $J(\theta)$.
+        \item Compute os gradientes $\dfrac{\partial J}{\partial \theta^{(2)}}$, $\dfrac{\partial J}{\partial \theta^{(1)}_1}$ e $\dfrac{\partial J}{\partial \theta^{(1)}_2}$.
+        \item Realize uma atualização dos três parâmetros usando descida de gradiente estocástica $\theta_{t+1} = \theta_t - \eta \nabla_\theta J$ com taxa de aprendizado $\eta = 0.1$.
+    \end{enumerate}
+
+    \item A figura abaixo apresenta seis instâncias de um problema de classificação binária com rótulos $y \in \{-1, +1\}$. A região delimitada pela linha tracejada é a fronteira de decisão de um MLP: tudo que está dentro dela é classificado como $-1$ e tudo que está fora como $+1$.
+
+    \begin{center}
+    \begin{tikzpicture}[scale=0.88, >=stealth, font=\small]
+        % região classificada como +1 (sombreada); a região branca é classificada como -1.
+        % Ambas se estendem abaixo de x2 = 0: a faixa negativa não é limitada por baixo.
+        \fill[black!8] (0,-0.85) rectangle (3.7,3.7);
+        \fill[white] (1.5,-0.85) rectangle (2.5,2);
+        \draw[dashed, thick] (1.5,-0.85) -- (1.5,2) -- (2.5,2) -- (2.5,-0.85);
+        % eixos
+        \draw[->] (-0.2,0) -- (4.0,0) node[right] {$x_1$};
+        \draw[->] (0,-1.0) -- (0,4.0) node[above] {$x_2$};
+        \foreach \x in {1,2,3} { \draw (\x,0.08) -- (\x,-0.08); \node[below, inner sep=1.5pt, fill=none] at (\x,-0.08) {\x}; }
+        \foreach \y in {1,2,3} { \draw (0.08,\y) -- (-0.08,\y) node[left] {\y}; }
+        % instâncias positivas
+        \foreach \p in {(1,1),(1,3),(2,3),(3,1),(3,3)} {
+            \draw[very thick] \p ++(-0.15,0) -- ++(0.30,0);
+            \draw[very thick] \p ++(0,-0.15) -- ++(0,0.30);
+        }
+        % instância negativa
+        \draw[very thick] (2,1) ++(-0.15,0) -- ++(0.30,0);
+    \end{tikzpicture}
+    \end{center}
+
+    \vspace{-0.7em}
+    \centerline{\footnotesize As instâncias marcadas com $+$ têm $y = +1$ e a instância marcada com $-$ tem $y = -1$.}
+    \centerline{\footnotesize A região sombreada é classificada como $+1$ e a região branca como $-1$.}
+
+    Nas redes abaixo, cada círculo é uma unidade que aplica $\mathrm{sinal}$ à soma ponderada das suas entradas somada ao viés indicado \emph{dentro} do círculo; os números sobre as arestas são os pesos, e as conexões de peso zero foram omitidas. Considere $\mathrm{sinal}(z) = +1$ para $z \geq 0$ e $\mathrm{sinal}(z) = -1$ para $z < 0$. Qual das redes gera exatamente a fronteira de decisão apresentada?
+
+    \begin{center}
+    \begin{tabular}{@{}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{\hspace{0.5em}}r@{\,}l@{}}
+    \textbf{(a)} & \mlpA{1}{1}{-1{,}5}{1}{-1}{2{,}5}{-1}{1} &
+    \textbf{(b)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{1}{-2}{-1}{2} &
+    \textbf{(c)} & \mlpA{1}{1}{-1{,}5}{2}{-1}{2}{-1}{1} &
+    \textbf{(d)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{1}{-2} \\[4em]
+    \textbf{(e)} & \mlpA{1}{-1}{2{,}5}{2}{-1}{2}{-1}{1} &
+    \textbf{(f)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{-1}{2} &
+    \textbf{(g)} & \mlpA{1}{1}{-1{,}5}{1}{-1}{2{,}5}{1}{-1} &
+    \textbf{(h)} & \mlpB{1}{-1{,}5}{-1}{2{,}5}{-1}{2}{-1}{4} \\
+    \end{tabular}
+    \end{center}
+    %f
+
+    \item Considere um MLP vetorizado com $\mathbf{Z}^{(l)} = \mathbf{A}^{(l-1)}{\mathbf{\Theta}^{(l)}}^{\top} + \mathbf{b}^{(l)}$, ReLU na camada oculta e sigmoide na camada de saída. Para o minilote de duas instâncias
+    \[
+    \mathbf{X} = \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}, \quad
+    \mathbf{\Theta}^{(1)} = \begin{bmatrix} 1 & -1 \\ 0 & 2 \end{bmatrix}, \quad
+    \mathbf{b}^{(1)} = \begin{bmatrix} 0 & -1 \end{bmatrix}, \quad
+    \mathbf{\Theta}^{(2)} = \begin{bmatrix} 1 & 2 \end{bmatrix}, \quad
+    b^{(2)} = -2 ,
+    \]
+    e sabendo que $\sigma(0) = 0{,}500$, $\sigma(2) \approx 0{,}881$, $\sigma(3) \approx 0{,}953$, $\sigma(4) \approx 0{,}982$ e $\sigma(6) \approx 0{,}998$, qual é o vetor de saídas $\hat{\mathbf{y}}$ do minilote?
+
+    \begin{enumerate}[(a)]
+        \item $\hat{\mathbf{y}} = (0{,}953;\ 0{,}119)$
+        \item $\hat{\mathbf{y}} = (0{,}998;\ 0{,}881)$
+        \item $\hat{\mathbf{y}} = (0{,}500;\ 0{,}982)$
+        \item $\hat{\mathbf{y}} = (0{,}982;\ 0{,}500)$
+        \item $\hat{\mathbf{y}} = (0{,}953;\ 0{,}500)$
+        \item $\hat{\mathbf{y}} = (0{,}998;\ 0{,}500)$
+        \item $\hat{\mathbf{y}} = (0{,}982;\ 0{,}982)$
+        \item $\hat{\mathbf{y}} = (0{,}119;\ 0{,}953)$
+    \end{enumerate}
+    %d
+
+    \item Considere o MLP abaixo, com duas unidades ReLU na camada oculta e saída linear. A entrada é $x = 2$ e a saída esperada é $y = 3$. A função de custo é $J = \tfrac{1}{2}(y - \hat{y})^2$ e os parâmetros são
+    \[
+    \mathbf{\Theta}^{(1)} = \begin{bmatrix} 0{,}5 \\ -1 \end{bmatrix}, \quad
+    \mathbf{b}^{(1)} = \begin{bmatrix} 1 & 0{,}5 \end{bmatrix}, \quad
+    \mathbf{\Theta}^{(2)} = \begin{bmatrix} 1{,}5 & 2 \end{bmatrix}, \quad
+    b^{(2)} = -0{,}5 .
+    \]
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+        \node[circle, draw] (x)  at (0, 0)      {$x$};
+        \node[circle, draw] (h1) at (2.8, 1.15)  {$a^{(1)}_1$};
+        \node[circle, draw] (h2) at (2.8, -1.15) {$a^{(1)}_2$};
+        \node[circle, draw] (y)  at (5.6, 0)    {$\hat{y}$};
+        % pesos
+        \draw[->] (x)  -- node[above left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_1$} (h1);
+        \draw[->] (x)  -- node[below left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_2$} (h2);
+        \draw[->] (h1) -- node[above right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_1$} (y);
+        \draw[->] (h2) -- node[below right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_2$} (y);
+        % vieses como arestas que chegam nas unidades
+        \draw[->] (2.8, 2.35)  -- node[right, font=\footnotesize]{$b^{(1)}_1$} (h1);
+        \draw[->] (2.8, -2.35) -- node[right, font=\footnotesize]{$b^{(1)}_2$} (h2);
+        \draw[->] (5.6, 1.15)  -- node[right, font=\footnotesize]{$b^{(2)}$}   (y);
+        % funções de ativação, junto de cada unidade
+        \node[left=0.10cm of h1, font=\footnotesize] {ReLU};
+        \node[left=0.10cm of h2, font=\footnotesize] {ReLU};
+        \node[below=0.30cm of y, font=\footnotesize] {linear};
+    \end{tikzpicture}
+    \end{center}
+
+    Qual o valor de $\dfrac{\partial J}{\partial b^{(1)}_1}$?
+
+    \begin{enumerate}[(a)]
+        \item $0$
+        \item $-0{,}25$
+        \item $-0{,}50$
+        \item $+0{,}75$
+        \item $-0{,}75$
+        \item $-1{,}00$
+        \item $-1{,}25$
+        \item $-1{,}50$
+    \end{enumerate}
+    %e
+
+    \item Considere o MLP da figura abaixo, com uma entrada $x$, três unidades ocultas com ativação $\mathrm{a}[z] = \mathrm{ReLU}[z] = \max(0, z)$ e uma saída linear
+    \[
+    y = \phi_0 + \phi_1 h_1 + \phi_2 h_2 + \phi_3 h_3, \qquad h_k = \mathrm{a}[\theta_{k0} + \theta_{k1} x],
+    \]
+    com $\phi_0 = 0{,}2$. Os gráficos mostram, para $x \in [0, 2]$, as pré-ativações, as ativações, as ativações ponderadas pelos pesos da camada de saída e o viés $\phi_0$ da saída.
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, scale=0.85, every node/.style={font=\small}]
+        \node[circle, draw, minimum size=8mm] (one) at (0, 1.3) {$1$};
+        \node[circle, draw, minimum size=8mm] (x)   at (0, 0)   {$x$};
+        \node[circle, draw, minimum size=8mm] (h1)  at (3, 1.3)  {$h_1$};
+        \node[circle, draw, minimum size=8mm] (h2)  at (3, 0)    {$h_2$};
+        \node[circle, draw, minimum size=8mm] (h3)  at (3, -1.3) {$h_3$};
+        \node[circle, draw, minimum size=8mm] (one2) at (3, 2.6) {$1$};
+        \node[circle, draw, minimum size=8mm] (y)   at (6, 0.65)   {$y$};
+        \draw[->, gray!70] (one) -- (h1); \draw[->, gray!70] (one) -- (h2); \draw[->, gray!70] (one) -- (h3);
+        \draw[->] (x) -- (h1); \draw[->] (x) -- (h2); \draw[->] (x) -- (h3);
+        \node[font=\scriptsize] at (1.5, 1.55) {$\theta_{k0}$};
+        \node[font=\scriptsize] at (1.5, -0.95) {$\theta_{k1}$};
+        \draw[->, gray!70] (one2) -- node[above right=-2pt, font=\scriptsize]{$\phi_0$} (y);
+        \draw[->] (h1) -- node[above, font=\scriptsize]{$\phi_1$} (y);
+        \draw[->] (h2) -- node[above, font=\scriptsize, pos=0.4]{$\phi_2$} (y);
+        \draw[->] (h3) -- node[below right=-2pt, font=\scriptsize]{$\phi_3$} (y);
+    \end{tikzpicture}
+
+    \vspace{0.4em}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{cccc}
+    \fpA{(0,0.6) -- (2,-0.4)}{$\theta_{10} + \theta_{11}x$} &
+    \fpA{(0,-0.2) -- (2,0.8)}{$\theta_{20} + \theta_{21}x$} &
+    \fpA{(0,-0.8) -- (2,0.2)}{$\theta_{30} + \theta_{31}x$} & \\[0.5em]
+    \fpA{(0,0.6) -- (1.2,0) -- (2,0)}{$h_1$} &
+    \fpA{(0,0) -- (0.4,0) -- (2,0.8)}{$h_2$} &
+    \fpA{(0,0) -- (1.6,0) -- (2,0.2)}{$h_3$} & \\[0.5em]
+    \fpA{(0,0.6) -- (1.2,0) -- (2,0)}{$\phi_1 h_1$} &
+    \fpA{(0,0) -- (0.4,0) -- (2,-0.8)}{$\phi_2 h_2$} &
+    \fpA{(0,0) -- (1.6,0) -- (2,0.6)}{$\phi_3 h_3$} &
+    \fpA{(0,0.2) -- (2,0.2)}{$\phi_0$} \\
+    \end{tabular}
+    \end{center}
+
+    Qual dos gráficos abaixo representa a saída $y$ desse MLP para $x \in [0, 2]$?
+
+    \begin{center}
+    \setlength{\tabcolsep}{1pt}
+    \scalebox{0.93}{%
+    \begin{tabular}{r@{\,}lr@{\,}lr@{\,}lr@{\,}l}
+    \textbf{(a)} & \fpB{(0,0.6) -- (0.4,0.4) -- (1.2,-0.4) -- (1.6,-0.6) -- (2,-0.2)} &
+    \textbf{(b)} & \fpB{(0,0.6) -- (0.4,0.4) -- (1.2,0.4) -- (1.6,0.6) -- (2,1.0)} &
+    \textbf{(c)} & \fpB{(0,0.8) -- (0.4,0.6) -- (1.2,-0.2) -- (1.6,-0.4) -- (2,0)} &
+    \textbf{(d)} & \fpB{(0,-1.4) -- (2,-0.4)} \\[1.4em]
+    \textbf{(e)} & \fpB{(0,0.6) -- (0.4,0.6) -- (1.2,0.2) -- (1.6,0.2) -- (2,0.8)} &
+    \textbf{(f)} & \fpB{(0,0.8) -- (0.4,0.6) -- (1.2,0.6) -- (1.6,0.8) -- (2,1.2)} &
+    \textbf{(g)} & \fpB{(0,0.8) -- (0.4,0.6) -- (1.2,-0.2) -- (1.6,-0.4) -- (2,-0.6)} &
+    \textbf{(h)} & \fpB{(0,0.2) -- (0.4,0.2) -- (1.2,-0.2) -- (1.6,-0.2) -- (2,0.4)} \\
+    \end{tabular}
+    }
+    \end{center}
+    %c
+
+    \item Considere o MLP abaixo, com duas unidades ReLU na camada oculta e uma unidade sigmoide na saída, treinado com a entropia cruzada binária $J = -\bigl(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\bigr)$. A entrada é $x = 2$, o rótulo é $y = 1$ e os parâmetros são
+    \[
+    \mathbf{\Theta}^{(1)} = \begin{bmatrix} 1 \\ -0{,}5 \end{bmatrix}, \quad
+    \mathbf{b}^{(1)} = \begin{bmatrix} -1 & 2 \end{bmatrix}, \quad
+    \mathbf{\Theta}^{(2)} = \begin{bmatrix} 2 & -1{,}5 \end{bmatrix}, \quad
+    b^{(2)} = -0{,}5 .
+    \]
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+        \node[circle, draw] (x)  at (0, 0)      {$x$};
+        \node[circle, draw] (h1) at (2.8, 1.15)  {$a^{(1)}_1$};
+        \node[circle, draw] (h2) at (2.8, -1.15) {$a^{(1)}_2$};
+        \node[circle, draw] (y)  at (5.6, 0)    {$\hat{y}$};
+        \draw[->] (x)  -- node[above left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_{11}$} (h1);
+        \draw[->] (x)  -- node[below left=-0.08cm, font=\footnotesize]{$\theta^{(1)}_{21}$} (h2);
+        \draw[->] (h1) -- node[above right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_{11}$} (y);
+        \draw[->] (h2) -- node[below right=-0.08cm, font=\footnotesize]{$\theta^{(2)}_{12}$} (y);
+        \draw[->] (2.8, 2.35)  -- node[right, font=\footnotesize]{$b^{(1)}_1$} (h1);
+        \draw[->] (2.8, -2.35) -- node[right, font=\footnotesize]{$b^{(1)}_2$} (h2);
+        \draw[->] (5.6, 1.15)  -- node[right, font=\footnotesize]{$b^{(2)}$}   (y);
+        \node[left=0.10cm of h1, font=\footnotesize] {ReLU};
+        \node[left=0.10cm of h2, font=\footnotesize] {ReLU};
+        \node[below=0.30cm of y, font=\footnotesize] {sigmoide};
+    \end{tikzpicture}
+    \end{center}
+
+    Sabendo que $\sigma(0) = 0{,}5$ e que a derivada da entropia cruzada binária em relação à saída é
+    \[
+    \frac{\partial J}{\partial \hat{y}} = -\frac{y}{\hat{y}} + \frac{1 - y}{1 - \hat{y}},
+    \]
+    qual o valor de $\dfrac{\partial J}{\partial \theta^{(1)}_{21}}$?
+
+    \begin{enumerate}[(a)]
+        \item $+0{,}75$
+        \item $-1{,}0$
+        \item $-1{,}5$
+        \item $+0{,}375$
+        \item $+1{,}5$
+        \item $+6{,}0$
+        \item $-2{,}0$
+        \item $-0{,}375$
+    \end{enumerate}
+    %e
 
 \subsection*{Softmax, Entropia Cruzada e Grafo Computacional}
 
@@ -183,6 +650,92 @@
         \item Execute o \textit{forward pass} nodo a nodo, informando $\mathbf{Z}^{(1)}$, $\mathbf{A}^{(1)}$, $\mathbf{Z}^{(2)}$, $\hat{y}$ e $J$.
         \item Execute o \textit{backward pass} nodo a nodo, iniciando com $\partial J/\partial J = 1$, informando o gradiente na saída de cada nodo e, ao final, $\partial J/\partial \mathbf{\Theta}^{(1)}$ e $\partial J/\partial \mathbf{\Theta}^{(2)}$. Em cada passo, indique qual regra de \textit{backward} foi aplicada (nodo \textit{loss}, nodo de ativação ou nodo \textit{matmul}).
     \end{enumerate}
+
+    \item Os dois nodos vetorizados abaixo foram vistos em aula. Em ambos, $\mathbf{G}$ é o gradiente \textit{upstream} que chega pela saída do nodo, e as expressões anotadas abaixo das arestas de entrada são os gradientes que o nodo envia para trás.
+
+    \begin{center}
+    \begin{tikzpicture}[node distance=0.9cm and 1.3cm]
+        % nodo matmul
+        \node[cgvar] (A) {$\mathbf{A}$};
+        \node[cgvar, below=of A] (T) {$\mathbf{\Theta}$};
+        \node[cgopw, right=of A, yshift=-0.75cm] (mm) {\textit{matmul}};
+        \node[right=of mm, xshift=-0.55cm] (Z) {$\mathbf{Z}$};
+        \draw[cgedge] (A) -- (mm);
+        \draw[cgedge] (T) -- (mm);
+        \draw[cgedge] (mm) -- (Z);
+        \node[cggrad, below right=0.05cm and 0.05cm of mm] {$\mathbf{G}$};
+        \node[cggrad, below right=0.0cm and 0.05cm of A] {$\mathbf{G}\,\mathbf{\Theta}$};
+        \node[cggrad, below right=0.0cm and 0.05cm of T] {$\mathbf{G}^{\top}\mathbf{A}$};
+        % nodo ReLU
+        \node[cgvar, right=3.4cm of Z] (Z2) {$\mathbf{Z}$};
+        \node[cgopw, right=of Z2] (rl) {ReLU};
+        \node[right=of rl, xshift=-0.55cm] (A2) {$\mathbf{A}$};
+        \draw[cgedge] (Z2) -- (rl);
+        \draw[cgedge] (rl) -- (A2);
+        \node[cggrad, below right=0.05cm and 0.05cm of rl] {$\mathbf{G}$};
+        \node[cggrad, below right=0.24cm and 0.02cm of Z2] {$\mathbf{G} \odot \mathrm{ReLU}'(\mathbf{Z})$};
+    \end{tikzpicture}
+    \end{center}
+
+    O nodo de \textit{dropout} abaixo multiplica a entrada, elemento a elemento, por uma máscara binária aleatória $\mathbf{u} \in \{0,1\}^{d}$:
+    \[
+    \mathbf{s} = \mathbf{u} \odot \mathbf{x},
+    \qquad
+    u_i =
+    \begin{cases}
+    1, & v_i > p,\\
+    0, & v_i \leq p,
+    \end{cases}
+    \qquad
+    v_i \sim \mathrm{Uniforme}(0,1),
+    \]
+    com a máscara sorteada no \textit{forward pass} e mantida fixa no \textit{backward pass} do mesmo minilote.
+
+    \begin{center}
+    \begin{tikzpicture}[node distance=0.9cm and 1.3cm]
+        \node[cgvar] (X) {$\mathbf{x}$};
+        \node[cgopw, right=of X] (dp) {\textit{dropout}};
+        \node[right=of dp, xshift=-0.55cm] (S) {$\mathbf{s}$};
+        \draw[cgedge] (X) -- (dp);
+        \draw[cgedge] (dp) -- (S);
+        \node[cggrad, below right=0.05cm and 0.05cm of dp] {$\mathbf{G}$};
+        \node[cggrad, below right=0.0cm and 0.05cm of X, font=\normalsize\bfseries] {?};
+    \end{tikzpicture}
+    \end{center}
+
+    Em uma iteração com $d = 4$ temos
+    \[
+    \mathbf{x} = (2;\ -1;\ 3;\ 0{,}5), \qquad
+    \mathbf{u} = (1;\ 0;\ 1;\ 1), \qquad
+    \mathbf{G} = \frac{\partial J}{\partial \mathbf{s}} = (4;\ 6;\ -2;\ 8).
+    \]
+    Qual é o gradiente $\partial J / \partial \mathbf{x}$ que o nodo de \textit{dropout} envia pela sua aresta de entrada?
+
+    \begin{enumerate}[(a)]
+        \item $(4;\ 6;\ -2;\ 8)$
+        \item $(8;\ -6;\ -6;\ 4)$
+        \item $(2;\ 0;\ 3;\ 0{,}5)$
+        \item $(0;\ 6;\ 0;\ 0)$
+        \item $(1;\ 0;\ 1;\ 1)$
+        \item $(8;\ 0;\ -6;\ 4)$
+        \item $(4;\ 0;\ -2;\ 8)$
+        \item $(0;\ 0;\ 0;\ 0)$
+    \end{enumerate}
+    %g
+
+    \item Um classificador com três classes produz os \textit{logits} $\mathbf{z} = \begin{bmatrix} 1 & 3 & 1 \end{bmatrix}$ para uma instância cuja classe correta é a primeira. A saída passa por uma SoftMax e o custo é a entropia cruzada. Considere também duas modificações dos \textit{logits}: \textbf{(A)} somar $5$ a todos os componentes, obtendo $\begin{bmatrix} 6 & 8 & 6 \end{bmatrix}$, e \textbf{(B)} multiplicar todos os componentes por $2$, obtendo $\begin{bmatrix} 2 & 6 & 2 \end{bmatrix}$. Use $e^{2} \approx 7{,}39$, $e^{4} \approx 54{,}60$, $\ln 9{,}39 \approx 2{,}24$ e $\ln 56{,}60 \approx 4{,}04$. Quais são os valores da entropia cruzada para os \textit{logits} originais, para (A) e para (B), nessa ordem?
+
+    \begin{enumerate}[(a)]
+        \item $2{,}24$; $2{,}24$; $4{,}04$
+        \item $2{,}24$; $7{,}24$; $4{,}04$
+        \item $2{,}24$; $2{,}24$; $2{,}24$
+        \item $2{,}24$; $2{,}24$; $4{,}48$
+        \item $2{,}24$; $7{,}24$; $4{,}48$
+        \item $2{,}24$; $7{,}24$; $2{,}24$
+        \item $2{,}24$; $2{,}24$; $1{,}12$
+        \item $2{,}24$; $7{,}24$; $1{,}12$
+    \end{enumerate}
+    %a
 
 \subsection*{Descida de Gradiente}
 
@@ -293,6 +846,238 @@
         \item Como fica $\boldsymbol{\theta}_{2}$ ao seguir a regra de atualização da descida de gradiente com \textit{momentum}?
         \item \emoji{skull-and-crossbones} Como fica $\boldsymbol{\theta}_{2}$ ao seguir a regra de atualização do otimizador \textsc{Adam}? (\textit{Nota}: ignore o $\beta = 0.8$ usado nos itens anteriores; aqui usamos os hiperparâmetros padrão do Adam, $\beta_1 = 0.9$ e $\beta_2 = 0.999$)
     \end{enumerate}
+
+    \item Você treina o mesmo MLP quatro vezes, alterando apenas a taxa de aprendizado $\eta$ entre os treinos. As curvas A, B, C e D abaixo mostram a evolução da função de custo $\mathcal{L}$ ao longo das iterações em cada treino (todas partem da mesma inicialização). Assinale a alternativa que associa corretamente cada curva ao regime da taxa de aprendizado.
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}, xscale=1.05, yscale=0.8]
+        \draw[->] (0,0) -- (6.4,0) node[below left] {iterações};
+        \draw[->] (0,0) -- (0,3.6) node[above] {$\mathcal{L}$};
+        % A: diverges
+        \draw[thick] plot[smooth] coordinates {(0,1.8) (0.8,1.55) (1.6,1.9) (2.6,2.5) (3.6,3.3)}
+            node[right] {A};
+        % B: fast drop then oscillates around plateau
+        \draw[thick] plot[smooth] coordinates {(0,1.8) (0.5,1.15) (1.0,0.85) (1.5,1.15) (2.0,0.8) (2.5,1.1) (3.0,0.85) (3.5,1.1) (4.0,0.85) (4.5,1.05) (5.0,0.9) (5.5,1.05)}
+            node[right] {B};
+        % C: smooth convergence to low value
+        \draw[thick] plot[smooth] coordinates {(0,1.8) (0.7,0.95) (1.5,0.5) (2.5,0.3) (3.5,0.22) (4.5,0.19) (5.5,0.18)}
+            node[right] {C};
+        % D: very slow, almost linear decline
+        \draw[thick] plot[smooth] coordinates {(0,1.8) (1.1,1.72) (2.2,1.64) (3.3,1.56) (4.4,1.48) (5.5,1.4)}
+            node[right] {D};
+    \end{tikzpicture}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item A: $\eta$ alta; \quad B: $\eta$ muito alta (divergência); \quad C: $\eta$ adequada; \quad D: $\eta$ muito baixa.
+        \item A: $\eta$ muito alta (divergência); \quad B: $\eta$ adequada; \quad C: $\eta$ alta; \quad D: $\eta$ muito baixa.
+        \item A: $\eta$ muito baixa; \quad B: $\eta$ alta; \quad C: $\eta$ adequada; \quad D: $\eta$ muito alta (divergência).
+        \item A: $\eta$ muito alta (divergência); \quad B: $\eta$ alta; \quad C: $\eta$ muito baixa; \quad D: $\eta$ adequada.
+        \item A: $\eta$ muito alta (divergência); \quad B: $\eta$ alta; \quad C: $\eta$ adequada; \quad D: $\eta$ muito baixa.
+        \item A: $\eta$ alta; \quad B: $\eta$ muito baixa; \quad C: $\eta$ adequada; \quad D: $\eta$ muito alta (divergência).
+        \item A: $\eta$ muito alta (divergência); \quad B: $\eta$ muito baixa; \quad C: $\eta$ alta; \quad D: $\eta$ adequada.
+        \item A: $\eta$ adequada; \quad B: $\eta$ alta; \quad C: $\eta$ muito alta (divergência); \quad D: $\eta$ muito baixa.
+    \end{enumerate}
+    %e
+
+    \item Um único parâmetro $\theta$ é otimizado por descida de gradiente com \textit{momentum}, na formulação vista em aula:
+    \[
+    v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\theta}\mathcal{L}(\theta_{t}), \qquad \theta_{t+1} = \theta_{t} - \eta\,v_{t+1},
+    \]
+    com $\eta = 0{,}1$, $\beta = 0{,}5$, $v_0 = 0$ e $\theta_0 = 1$. Os gradientes observados nas duas primeiras iterações são $\nabla_{\theta}\mathcal{L}(\theta_0) = 4$ e $\nabla_{\theta}\mathcal{L}(\theta_1) = 2$. Qual o valor de $\theta_2$ após \textbf{duas} atualizações?
+    \begin{enumerate}[(a)]
+        \item $0{,}2$
+        \item $0{,}4$
+        \item $0{,}5$
+        \item $0{,}6$
+        \item $0{,}7$
+        \item $0{,}8$
+        \item $1{,}0$
+        \item $1{,}4$
+    \end{enumerate}
+    %d
+
+    \item Um único parâmetro $\theta$ é otimizado com Adam (hiperparâmetros $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\eta = 0.01$, $\epsilon \approx 10^{-8}$). Os acumuladores começam zerados ($m_0 = v_0 = 0$). Na primeira iteração ($t = 1$) o gradiente é $g_1 = 3$. Lembrando que Adam aplica correção de viés $\hat{m} = m / (1 - \beta_1^{t})$ e $\hat{v} = v / (1 - \beta_2^{t})$ e atualiza $\theta \leftarrow \theta - \eta\,\hat{m}/(\sqrt{\hat{v}} + \epsilon)$, qual é, aproximadamente, o módulo da atualização $|\Delta\theta| = |\theta_1 - \theta_0|$ neste primeiro passo?
+    \begin{enumerate}[(a)]
+        \item $0.0316$
+        \item $0.03$
+        \item $0.01$
+        \item $0.003$
+        \item $0.1$
+        \item $0.3$
+        \item $0.0001$
+        \item $1.0$
+    \end{enumerate}
+    %c
+
+    \item Avalie as cinco afirmações a seguir sobre otimização em MLPs:
+
+    \textbf{I.} Na descida de gradiente em lote (\textit{batch GD}), cada iteração usa o gradiente médio sobre \emph{todo} o conjunto de treinamento; já no SGD, cada iteração usa o gradiente de uma \emph{única} instância.
+
+    \textbf{II.} O momentum acumula uma média móvel exponencial dos gradientes; com $\beta = 0$, a atualização reduz-se à descida de gradiente padrão.
+
+    \textbf{III.} No AdaGrad, o acumulador de gradientes ao quadrado cresce monotonicamente, de modo que a taxa de aprendizado efetiva por parâmetro tende a diminuir ao longo do treinamento.
+
+    \textbf{IV.} O momentum de Nesterov avalia o gradiente na posição atual $\theta_t$.
+
+    \textbf{V.} Em Adam, a correção de viés ($\hat{m}_t = m_t/(1-\beta_1^{t})$ e $\hat{v}_t = v_t/(1-\beta_2^{t})$) torna-se progressivamente mais relevante à medida que $t$ cresce, pois os denominadores $1-\beta_1^{t}$ e $1-\beta_2^{t}$ se afastam cada vez mais de $1$.
+
+    \begin{enumerate}[(a)]
+        \item Apenas I, III e V estão corretas.
+        \item Apenas I, II, III e IV estão corretas.
+        \item Apenas II, III e IV estão corretas.
+        \item Apenas I e III estão corretas.
+        \item Apenas I, II e III estão corretas.
+        \item Apenas I, II e V estão corretas.
+        \item Todas as afirmações estão corretas.
+        \item Apenas III e V estão corretas.
+    \end{enumerate}
+    %e
+
+    \item A aproximação de primeira ordem da série de Taylor prevê que, ao aplicar a atualização $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta\,\nabla_{\boldsymbol{\theta}}\mathcal{L}$, a variação da loss é $\Delta\mathcal{L} \approx -\eta\,\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2$. Considere $\mathcal{L}(\theta_1, \theta_2) = \theta_1^2 + 2\theta_2^2$, o ponto $\boldsymbol{\theta}_t = (2;\ 1)$ e a taxa de aprendizado $\eta = 0{,}1$. Quais são, respectivamente, a variação \emph{prevista} pela aproximação linear e a variação \emph{real} da loss após um passo?
+
+    \begin{enumerate}[(a)]
+        \item Prevista $-3{,}20$ e real $-2{,}72$.
+        \item Prevista $-2{,}72$ e real $-3{,}20$.
+        \item Prevista $-3{,}20$ e real $-3{,}20$.
+        \item Prevista $-0{,}32$ e real $-2{,}72$.
+        \item Prevista $-3{,}20$ e real $-3{,}08$.
+        \item Prevista $-2{,}00$ e real $-2{,}16$.
+        \item Prevista $-3{,}20$ e real $-3{,}68$.
+        \item Prevista $-6{,}40$ e real $-2{,}72$.
+    \end{enumerate}
+    %a
+
+    \item Em um modelo com apenas dois parâmetros treináveis, o gradiente no ponto atual é $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ 2)$. Considere os cinco candidatos a direção de atualização $\Delta\boldsymbol{\theta}$ abaixo, todos aplicados com a mesma taxa de aprendizado $\eta > 0$ pequena:
+    \[
+    \mathbf{v}_1 = (-2;\ -2), \qquad
+    \mathbf{v}_2 = (-3;\ 1), \qquad
+    \mathbf{v}_3 = (2;\ -2), \qquad
+    \mathbf{v}_4 = (3;\ 1), \qquad
+    \mathbf{v}_5 = (-1;\ 3).
+    \]
+    Quais desses candidatos reduzem o valor da loss segundo a aproximação de primeira ordem?
+
+    \begin{enumerate}[(a)]
+        \item Apenas $\mathbf{v}_1$.
+        \item Apenas $\mathbf{v}_1$ e $\mathbf{v}_3$.
+        \item Apenas $\mathbf{v}_2$ e $\mathbf{v}_5$.
+        \item Apenas $\mathbf{v}_1$, $\mathbf{v}_2$ e $\mathbf{v}_3$.
+        \item Apenas $\mathbf{v}_1$, $\mathbf{v}_2$ e $\mathbf{v}_5$.
+        \item Apenas $\mathbf{v}_1$ e $\mathbf{v}_2$.
+        \item Apenas $\mathbf{v}_3$ e $\mathbf{v}_4$.
+        \item $\mathbf{v}_1$, $\mathbf{v}_2$, $\mathbf{v}_3$ e $\mathbf{v}_5$.
+    \end{enumerate}
+    %f
+
+    \item Compare dois otimizadores na \textbf{primeira} iteração ($t = 0$, com $\mathbf{m}_0 = \mathbf{v}_0 = \mathbf{0}$ e $\epsilon \approx 0$). Ambos acumulam as mesmas médias móveis,
+    \[
+    \mathbf{m}_{1} = \beta_1\,\mathbf{m}_{0} + (1 - \beta_1)\,\nabla_{\boldsymbol{\theta}}\mathcal{L}, \qquad
+    \mathbf{v}_{1} = \beta_2\,\mathbf{v}_{0} + (1 - \beta_2)\,\bigl(\nabla_{\boldsymbol{\theta}}\mathcal{L}\bigr)^{2} ,
+    \]
+    mas o primeiro atualiza com $\boldsymbol{\theta}_{1} = \boldsymbol{\theta}_{0} - \eta\,\mathbf{m}_{1} / (\sqrt{\mathbf{v}_{1}} + \epsilon)$, sem correção de viés, enquanto o Adam aplica a correção antes de dividir. Com $\eta = 0{,}1$, $\beta_1 = \beta_2 = 0{,}99$, $\boldsymbol{\theta}_0 = (4;\ -2)$ e $\nabla_{\boldsymbol{\theta}}\mathcal{L}(\boldsymbol{\theta}_0) = (2;\ -4)$, quais são os dois valores de $\boldsymbol{\theta}_1$?
+    \begin{enumerate}[(a)]
+        \item Sem correção $(3{,}90;\ -1{,}90)$ e Adam $(3{,}99;\ -1{,}99)$.
+        \item Sem correção $(3{,}80;\ -1{,}60)$ e Adam $(3{,}90;\ -1{,}90)$.
+        \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}90;\ -1{,}90)$.
+        \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}00;\ -1{,}00)$.
+        \item Sem correção $(3{,}90;\ -1{,}90)$ e Adam $(3{,}90;\ -1{,}90)$.
+        \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}99;\ -1{,}99)$.
+        \item Sem correção $(3{,}99;\ -1{,}99)$ e Adam $(3{,}80;\ -1{,}60)$.
+        \item Sem correção $(3{,}00;\ -1{,}00)$ e Adam $(3{,}90;\ -1{,}90)$.
+    \end{enumerate}
+    %c
+
+    \item Associe cada otimizador (coluna da esquerda) ao comportamento observado durante o treinamento (coluna da direita).
+
+    \begin{center}
+    \begin{tabular}{p{0.22\linewidth} p{0.70\linewidth}}
+    \textbf{1.} \textit{Momentum} & \textbf{(i)} a taxa efetiva de cada parâmetro volta a crescer quando os gradientes recentes desse parâmetro ficam pequenos. \\
+    \textbf{2.} Nesterov & \textbf{(ii)} em um vale estreito, as oscilações transversais se cancelam e o avanço ao longo do vale acelera. \\
+    \textbf{3.} AdaGrad & \textbf{(iii)} a taxa efetiva de cada parâmetro só diminui, e após muitas iterações o treinamento praticamente estaciona. \\
+    \textbf{4.} RMSProp & \textbf{(iv)} o gradiente é avaliado no ponto para onde a memória levaria, e o passo é corrigido antes de uma curva do vale. \\
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item 1-(iv); 2-(ii); 3-(iii); 4-(i)
+        \item 1-(iii); 2-(i); 3-(ii); 4-(iv)
+        \item 1-(ii); 2-(iv); 3-(i); 4-(iii)
+        \item 1-(i); 2-(iii); 3-(ii); 4-(iv)
+        \item 1-(iv); 2-(ii); 3-(i); 4-(iii)
+        \item 1-(iii); 2-(i); 3-(iv); 4-(ii)
+        \item 1-(i); 2-(iii); 3-(iv); 4-(ii)
+        \item 1-(ii); 2-(iv); 3-(iii); 4-(i)
+    \end{enumerate}
+    %h
+
+    \item Uma rede é treinada com dois objetivos, representados pelas funções de custo $\mathcal{L}_1$ e $\mathcal{L}_2$. No ponto atual dos parâmetros, os gradientes são os mostrados abaixo.
+
+    \begin{center}
+    \begin{minipage}{0.3\linewidth}
+    \[
+    \nabla_{\boldsymbol{\theta}}\mathcal{L}_1 = \begin{bmatrix} 4 \\ 1 \end{bmatrix}
+    \]
+    \[
+    \nabla_{\boldsymbol{\theta}}\mathcal{L}_2 = \begin{bmatrix} -2 \\ 1 \end{bmatrix}
+    \]
+    \end{minipage}%
+    \begin{minipage}{0.68\linewidth}\centering
+    \begin{tikzpicture}[scale=0.98, >=stealth]
+      \foreach \g in {-3,-2,-1,1,2,3,4} { \draw[gray!20] (\g,-2.5) -- (\g,2.5); }
+      \foreach \g in {-2,-1,1,2} { \draw[gray!20] (-3.5,\g) -- (4.5,\g); }
+      \draw[gray!60, ->] (-3.5,0) -- (4.7,0) node[right, font=\small, black] {$\theta_1$};
+      \draw[gray!60, ->] (0,-2.5) -- (0,2.7) node[above, font=\small, black] {$\theta_2$};
+      \foreach \t in {-3,-2,-1,1,2,3,4} \node[font=\scriptsize, below, gray!60!black, inner sep=1.5pt] at (\t,0) {$\t$};
+      \foreach \t in {-2,-1,1,2} \node[font=\scriptsize, left, gray!60!black, inner sep=1.5pt] at (0,\t) {$\t$};
+      \draw[->, very thick] (0,0) -- (4,1) node[above right, font=\small] {$\nabla_{\boldsymbol{\theta}}\mathcal{L}_1$};
+      \draw[->, very thick, black!55] (0,0) -- (-2,1) node[above left, font=\small, black] {$\nabla_{\boldsymbol{\theta}}\mathcal{L}_2$};
+    \end{tikzpicture}
+    \end{minipage}
+    \end{center}
+
+    Você percebe que o passo usual do SGD sobre $\mathcal{L}_1$ melhora o objetivo 1, mas degrada o objetivo 2.
+
+    Considere atualizações da forma $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t + \eta\,\Delta\boldsymbol{\theta}$, com $\eta > 0$ pequeno. Pela aproximação de primeira ordem, a variação de cada função de custo é
+    \[
+    \mathcal{L}_k(\boldsymbol{\theta}_t + \eta\,\Delta\boldsymbol{\theta}) - \mathcal{L}_k(\boldsymbol{\theta}_t)
+    \approx \eta\,\Delta\boldsymbol{\theta}^{\top}\nabla_{\boldsymbol{\theta}}\mathcal{L}_k
+    = \eta\,\|\Delta\boldsymbol{\theta}\|\,\|\nabla_{\boldsymbol{\theta}}\mathcal{L}_k\|\cos(\alpha_k),
+    \]
+    em que $\alpha_k$ é o ângulo entre $\Delta\boldsymbol{\theta}$ e $\nabla_{\boldsymbol{\theta}}\mathcal{L}_k$. Qual direção $\Delta\boldsymbol{\theta}$ reduz $\mathcal{L}_1$ e mantém $\mathcal{L}_2$ inalterada segundo essa aproximação?
+
+    \begin{enumerate}[(a)]
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-4 \quad -1\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-1 \quad -1\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-2 \quad -2\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-1 \quad -2\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-2 \quad 1\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,1 \quad 2\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,1 \quad -4\,\bigr]^{\top}$
+        \item $\Delta\boldsymbol{\theta} = \bigl[\,-6 \quad 0\,\bigr]^{\top}$
+    \end{enumerate}
+    %d
+
+    \item Em uma camada com matriz de pesos $\mathbf{W}$ de formato $2 \times 2$, o \textit{momentum} acumulado nesta iteração e a sua SVD, $\mathbf{M}_{t+1} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^{\top}$, são
+    \[
+    \mathbf{M}_{t+1} = \begin{bmatrix} 12 & 4 \\ 11 & 12 \end{bmatrix}, \qquad
+    \mathbf{U} = \frac{1}{5}\begin{bmatrix} 3 & -4 \\ 4 & 3 \end{bmatrix}, \qquad
+    \boldsymbol{\Sigma} = \begin{bmatrix} 20 & 0 \\ 0 & 5 \end{bmatrix}, \qquad
+    \mathbf{V} = \frac{1}{5}\begin{bmatrix} 4 & -3 \\ 3 & 4 \end{bmatrix}.
+    \]
+    Os dois otimizadores atualizam a camada como $\mathbf{W}_{t+1} = \mathbf{W}_t - \eta\,\mathbf{D}$, cada um com a sua matriz de direção $\mathbf{D}$. Suponha que o Adam tenha histórico de gradientes estável, com $\widetilde{\mathbf{m}}_{t+1} = \mathbf{M}_{t+1}$ e $\widetilde{\mathbf{v}}_{t+1} = \widetilde{\mathbf{m}}_{t+1}^{2}$ (entrada a entrada, $\epsilon \approx 0$), e que o Muon receba o mesmo $\mathbf{M}_{t+1}$. Quais são $\mathbf{D}_{\text{Adam}}$ e $\mathbf{D}_{\text{Muon}}$?
+
+    \begin{enumerate}[(a)]
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}96 & 0{,}28 \\ -0{,}28 & 0{,}96 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}6 & 0{,}2 \\ 0{,}55 & 0{,}6 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}96 & 0{,}28 \\ -0{,}28 & 0{,}96 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 0{,}6 & 0{,}2 \\ 0{,}55 & 0{,}6 \end{bmatrix}$
+        \item $\mathbf{D}_{\text{Adam}} = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}$, \quad $\mathbf{D}_{\text{Muon}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$
+    \end{enumerate}
+    %f
 
 \subsection*{Funções de Custo e Funções de Ativação}
 
@@ -418,6 +1203,165 @@
     \noindent onde $\lambda$ é o único parâmetro, que representa a média da distribuição.
     Crie uma função de custo assumindo que temos acesso a $I$ instâncias de treinamento compostas por pares $\{x^{i},y^{i}\}$.
 
+    \item Sobre as asserções abaixo a respeito de funções de ativação:
+
+    \textbf{I.} A função sigmoide $\sigma(z) = 1/(1 + e^{-z})$ satura para entradas com módulo grande, fazendo com que a sua derivada tenda a zero. Em redes profundas, isso contribui para o problema do desaparecimento do gradiente nas camadas iniciais.
+
+    \textbf{II.} A função ReLU é estritamente positiva para qualquer entrada, garantindo que nenhuma unidade da rede possa ``morrer'' (deixar permanentemente de produzir saída diferente de zero) durante o treinamento.
+
+    \textbf{III.} A derivada da função tanh tem magnitude máxima maior do que a da sigmoide ($\tanh'(0) = 1$ contra $\sigma'(0) = 0.25$), de modo que, em regiões não saturadas, o gradiente propagado é tipicamente maior, o que costuma permitir uma convergência mais rápida do treinamento em comparação com a sigmoide.
+
+    \begin{enumerate}[(a)]
+        \item Apenas I está correta.
+        \item Apenas II está correta.
+        \item Apenas III está correta.
+        \item Apenas I e II estão corretas.
+        \item Apenas I e III estão corretas.
+        \item Apenas II e III estão corretas.
+        \item Todas estão corretas.
+        \item Nenhuma está correta.
+    \end{enumerate}
+    %e
+
+    \item Você está treinando um MLP profundo com 10 camadas ocultas para um problema de classificação binária. Optou por sigmoide em todas as camadas ocultas, sigmoide na camada de saída, função de custo entropia cruzada binária, otimizador SGD com taxa de aprendizado padrão e inicialização $\mathcal{N}(0, 1)$ para todos os pesos. Após muitas épocas, o erro de treino permanece alto e os gradientes em relação aos pesos das primeiras camadas são extremamente próximos de zero. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+    \begin{enumerate}[(a)]
+        \item A taxa de aprendizado está baixa demais; aumentá-la em duas ordens de grandeza compensa os gradientes pequenos e resolve o problema.
+        \item O modelo está sofrendo \textit{overfitting}; reduzir o número de camadas para uma única camada oculta resolve o problema.
+        \item Os gradientes nas camadas iniciais ficam próximos de zero devido à saturação da sigmoide nas camadas profundas; trocar a sigmoide das ocultas por ReLU com inicialização de He resolve.
+        \item A função de custo entropia cruzada binária é inadequada para classificação; substituí-la por L2 loss resolve o problema.
+        \item Os pesos devem ser inicializados em zero para evitar que comecem em regiões saturadas da sigmoide.
+        \item Trocar a sigmoide da camada de saída por SoftMax resolve o desaparecimento do gradiente nas camadas iniciais.
+        \item Adicionar Dropout com probabilidade alta nas camadas iniciais aumenta o gradiente nessas camadas.
+        \item O problema decorre exclusivamente do otimizador SGD; substituí-lo por Adam, sem outras alterações, é suficiente para que o erro caia.
+    \end{enumerate}
+    %c
+
+    \item Por que, na prática, a função de ativação da camada de saída de uma rede neural é escolhida \emph{em conjunto} com a função de custo (por exemplo, sigmoide com entropia cruzada binária; SoftMax com entropia cruzada multinomial)?
+    \begin{enumerate}[(a)]
+        \item Porque é a única forma de evitar \textit{overfitting} na camada de saída.
+        \item Porque sem essa combinação a rede é incapaz, em princípio, de produzir saídas no intervalo correto (por exemplo, $[0, 1]$ para sigmoide).
+        \item Porque o algoritmo de \textit{backpropagation} só funciona quando função de custo e ativação da saída são compostas algebricamente.
+        \item Porque o teorema da aproximação universal exige especificamente esse pareamento para garantir convergência da descida de gradiente.
+        \item Porque essa combinação é o único caso em que a função de custo é convexa em relação aos pesos da rede como um todo.
+        \item Porque essa combinação simplifica o gradiente em relação aos \textit{logits}, resultando em $\partial \mathcal{L} / \partial z = \hat{y} - y$.
+        \item Porque essa combinação reduz o número de parâmetros treináveis na última camada.
+        \item Porque, sem ela, a derivada da função de custo em relação aos pesos da última camada é sempre zero.
+    \end{enumerate}
+    %f
+
+    \item Avalie as cinco afirmações a seguir sobre funções de custo, verossimilhança e ativações:
+
+    \textbf{I.} A entropia cruzada binária corresponde à máxima verossimilhança sob a hipótese $y \mid \mathbf{x} \sim \mathrm{Bernoulli}(\hat{y})$, enquanto o erro quadrático médio corresponde à máxima verossimilhança sob hipótese Gaussiana com variância fixa.
+
+    \textbf{II.} A derivada da sigmoide atinge seu valor máximo em $z = 0$, com $\sigma'(0) = \tfrac{1}{4}$, enquanto a da tangente hiperbólica atinge $\tanh'(0) = 1$.
+
+    \textbf{III.} Sendo $S_i = \mathrm{softmax}(\mathbf{z})_i$, a matriz Jacobiana da \textit{softmax} em relação aos seus \textit{logits} é diagonal, isto é, $\partial S_i / \partial z_j = 0$ para todo $i \neq j$.
+
+    \textbf{IV.} O erro quadrático médio não pode, em hipótese alguma, ser usado como função de custo em classificação binária: a rede não treina.
+
+    \textbf{V.} A ReLU satisfaz $\mathrm{ReLU}'(z) = 1$ para $z > 0$ e $\mathrm{ReLU}'(z) = 0$ para $z < 0$; portanto, ao contrário da sigmoide, não satura para entradas positivas grandes, o que ajuda a mitigar o desaparecimento do gradiente.
+
+    \begin{enumerate}[(a)]
+        \item Apenas I, II e V estão corretas.
+        \item Apenas I e II estão corretas.
+        \item Apenas I, II, IV e V estão corretas.
+        \item Apenas II, III e V estão corretas.
+        \item Apenas I, II e III estão corretas.
+        \item Apenas I, IV e V estão corretas.
+        \item Todas as afirmações estão corretas.
+        \item Apenas III e IV estão corretas.
+    \end{enumerate}
+    %a
+
+    \item Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+    \begin{enumerate}[a)]
+        \item ( )\,V \quad ( )\,F \quad Um MLP com $1$ unidade de entrada, $K$ camadas ocultas com $D$ unidades cada (todas com viés) e $1$ unidade de saída possui exatamente $3D + 1 + (K - 1)\,D^2$ parâmetros treináveis.
+        \item ( )\,V \quad ( )\,F \quad A descida de gradiente em lote (\textit{batch gradient descent}) calcula o gradiente sobre uma única instância (ou um \textit{mini-batch} pequeno) a cada iteração; já a SGD (\textit{Stochastic Gradient Descent}) calcula o gradiente da função de custo sobre todo o conjunto de treinamento a cada iteração.
+        \item ( )\,V \quad ( )\,F \quad O problema do desaparecimento do gradiente é particularmente severo com a função de ativação sigmoide em redes profundas, pois a derivada $\sigma'(z) = \sigma(z)(1-\sigma(z))$ tem valor máximo $0.25$ e tende a zero quando a sigmoide satura (i.e., para $|z|$ grande), fazendo com que o gradiente decaia multiplicativamente ao longo das camadas.
+        \item ( )\,V \quad ( )\,F \quad A função de custo de entropia cruzada binária pode ser obtida a partir da estimação por máxima verossimilhança dos rótulos $y_i \in \{0, 1\}$ assumindo que cada rótulo segue uma distribuição \emph{Gaussiana} de média $\hat{y}_i$ e variância fixa.
+        \item ( )\,V \quad ( )\,F \quad Inicializar todos os pesos de uma camada oculta com zero é adequado, pois o algoritmo de \textit{backpropagation} naturalmente quebra a simetria entre as unidades nas primeiras iterações da descida de gradiente.
+    \end{enumerate}
+
+    \item A distribuição paramétrica \textit{Krék Normal}, com parâmetro de posição $\mu$ e escala $\sigma$ fixa e conhecida (não predita pela rede), tem densidade
+    \[
+    \Pr(y \mid \mu, \sigma) \;\propto\;
+    \exp\!\left(-\frac{(y - \mu)^2}{2\sigma^2}\right) \cdot
+    \bigl|\cos(y - \mu)\bigr|^{\,1/(2\sigma^2)} .
+    \]
+    Você quer treinar uma rede que prediz $\mu^{(i)} = f(\mathbf{x}^{(i)}; \boldsymbol{\theta})$ para $N$ observações independentes, seguindo a receita de máxima verossimilhança vista em aula. Descartando tudo que não altera o ponto de mínimo em $\boldsymbol{\theta}$, qual é a função de custo a ser minimizada?
+
+    \begin{enumerate}[(a)]
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 + \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \frac{\bigl(y^{(i)} - \mu^{(i)}\bigr)^2}{2\sigma^2} - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ -\bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 \cdot \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = \displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(\mu^{(i)})\bigr| \right]$
+        \item $\mathcal{L} = -\displaystyle\sum_{i=1}^{N} \left[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \right]$
+    \end{enumerate}
+    %b
+
+    \item Associe cada escolha de função de ativação (coluna da esquerda) ao comportamento observado durante o treinamento (coluna da direita).
+
+    \begin{center}
+    \begin{tabular}{p{0.34\linewidth} p{0.58\linewidth}}
+    \textbf{1.} Sigmoide em todas as camadas ocultas de uma rede profunda & \textbf{(i)} as ativações ficam centradas em zero, mas o gradiente ainda decai nas regiões em que as unidades operam saturadas. \\
+    \textbf{2.} ReLU com vieses deslocados para valores muito negativos & \textbf{(ii)} parte das unidades passa a produzir saída zero para todas as instâncias e deixa de receber gradiente. \\
+    \textbf{3.} Tangente hiperbólica em todas as camadas ocultas & \textbf{(iii)} o gradiente que chega às camadas iniciais é multiplicado por um fator de no máximo $0{,}25$ a cada camada. \\
+    \textbf{4.} Identidade (linear) em todas as camadas ocultas & \textbf{(iv)} a rede inteira equivale a uma única transformação afim, qualquer que seja o número de camadas. \\
+    \end{tabular}
+    \end{center}
+
+    \begin{enumerate}[(a)]
+        \item 1-(i); 2-(ii); 3-(iii); 4-(iv)
+        \item 1-(iii); 2-(i); 3-(ii); 4-(iv)
+        \item 1-(ii); 2-(iii); 3-(i); 4-(iv)
+        \item 1-(iii); 2-(ii); 3-(iv); 4-(i)
+        \item 1-(i); 2-(iii); 3-(ii); 4-(iv)
+        \item 1-(iv); 2-(ii); 3-(i); 4-(iii)
+        \item 1-(ii); 2-(i); 3-(iii); 4-(iv)
+        \item 1-(iii); 2-(ii); 3-(i); 4-(iv)
+    \end{enumerate}
+    %h
+
+    \item Um colega propõe treinar um classificador binário linear com saída sigmoide usando a função de custo quadrática $J = \tfrac{1}{2}(y - \hat{y})^2$ no lugar da entropia cruzada binária. Sobre a superfície de custo resultante, qual afirmação é correta?
+    \begin{enumerate}[(a)]
+        \item O custo quadrático composto com a sigmoide permanece convexo nos parâmetros, apenas com o mínimo deslocado em relação ao da entropia cruzada.
+        \item É a entropia cruzada que perde a convexidade quando composta com a sigmoide, enquanto o custo quadrático preserva essa propriedade.
+        \item As duas funções perdem a convexidade quando compostas com a sigmoide, de modo que a escolha entre elas é indiferente para a otimização.
+        \item A convexidade não depende da função de custo escolhida, mas apenas do número de camadas ocultas presentes na arquitetura da rede.
+        \item O custo quadrático composto com a sigmoide deixa de ser convexo nos parâmetros, e a otimização pode parar em mínimos locais em vez do global.
+        \item O custo quadrático deixa de ser diferenciável nos pontos em que a sigmoide satura, o que impede o uso de descida de gradiente no treinamento.
+        \item O custo quadrático passa a ter derivada constante em todo o domínio, fazendo a descida de gradiente divergir para qualquer taxa de aprendizado.
+        \item A perda de convexidade é irrelevante na prática, pois a descida de gradiente sempre encontra o mínimo global de qualquer função diferenciável.
+    \end{enumerate}
+    %e
+
+    \item Você quer prever o número de chamadas que uma central telefônica recebe por hora, $y \in \{0, 1, 2, \ldots\}$, modelando a saída com a distribuição de Poisson
+    \[
+    \Pr(y \mid \lambda) = \frac{\lambda^{y}\,e^{-\lambda}}{y!}, \qquad \lambda > 0 ,
+    \]
+    em que a rede prediz $\lambda^{(i)} = f(\mathbf{x}^{(i)}; \boldsymbol{\theta})$ para cada uma das $N$ observações independentes. Seguindo a receita de máxima verossimilhança vista em aula e descartando tudo que não altera o ponto de mínimo em $\boldsymbol{\theta}$, qual combinação de função de custo e função de ativação na saída é adequada? As ativações consideradas nas alternativas são
+    \[
+    \sigma(z) = \frac{1}{1 + e^{-z}}, \qquad
+    \mathrm{softplus}(z) = \ln\bigl(1 + e^{z}\bigr), \qquad
+    \text{identidade: } f(z) = z, \qquad
+    \mathrm{ReLU}(z) = \max(0, z).
+    \]
+
+    \begin{enumerate}[(a)]
+        \item $\mathcal{L} = \sum_{i}\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$, com sigmoide na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$, com \textit{softplus} na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$, com identidade (linear) na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$, com ReLU na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[y^{(i)}\ln\lambda^{(i)} - \lambda^{(i)}\bigr]$, com \textit{softplus} na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[y^{(i)}\ln\lambda^{(i)} - \lambda^{(i)}\bigr]$, com sigmoide na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[y^{(i)}\ln\lambda^{(i)} - \lambda^{(i)}\bigr]$, com ReLU na camada de saída.
+        \item $\mathcal{L} = \sum_{i}\bigl[y^{(i)}\ln\lambda^{(i)} - \lambda^{(i)}\bigr]$, com identidade (linear) na camada de saída.
+    \end{enumerate}
+    %b
+
 \subsection*{Inicialização de Pesos}
 
     \item Você inicializa todos os pesos de um MLP com um mesmo valor constante $c \neq 0$ e todos os bias com zero. As camadas ocultas usam a função de ativação tanh. Qual o principal problema que esse esquema de inicialização causa durante o treinamento?
@@ -464,6 +1408,50 @@
         \item Supondo agora $\varphi=\tanh$ e usando a aproximação $\varphi(z)\approx z$ para $z$ próximo da origem, refaça o argumento dos itens (b) e (c) e derive a variância da inicialização \textit{Xavier}.
     \end{enumerate}
 
+    \item Sobre a inicialização dos pesos de uma rede neural profunda com função de ativação ReLU, qual afirmação é correta?
+    \begin{enumerate}[(a)]
+        \item Inicializar todos os pesos com zero é adequado para ReLU; o gradiente assimétrico da ReLU faz com que diferentes unidades aprendam características distintas mesmo partindo de pesos idênticos.
+        \item Inicializar todos os pesos com a mesma constante não-nula é adequado, desde que a constante seja calibrada em função do número de camadas.
+        \item A inicialização de Xavier (variância $1/n_{\text{in}}$ ou $2/(n_{\text{in}} + n_{\text{out}})$) é a recomendada para ReLU, pois assume que a função de ativação se comporta de forma aproximadamente linear.
+        \item A inicialização de He (variância $2/n_{\text{in}}$) é recomendada para ReLU, compensando o fato de cerca de metade das pré-ativações serem zeradas.
+        \item Qualquer inicialização aleatória uniforme em $[-1, 1]$ funciona igualmente bem, independentemente da profundidade da rede e da função de ativação utilizada.
+        \item Para ReLU, recomenda-se uma inicialização determinística baseada na projeção PCA do conjunto de treinamento sobre os pesos da primeira camada.
+        \item A inicialização aleatória dos pesos é desnecessária; basta inicializar os vieses (\textit{biases}) com valores aleatórios para quebrar a simetria.
+        \item Pesos amostrados de $\mathcal{N}(0, 1)$ (variância 1, sem reescala) são apropriados para qualquer arquitetura com ReLU, desde que a taxa de aprendizado seja suficientemente pequena.
+    \end{enumerate}
+    %d
+
+    \item Um MLP tem entrada de dimensão $256$ e $4$ camadas ocultas com $n = 256$ unidades ReLU cada. As componentes da entrada são independentes, com distribuição $\mathcal{N}(0, 1)$, os vieses são inicializados em zero e os pesos com $\theta^{(l)}_{ij} \sim \mathcal{N}(0, \sigma_\theta^2)$. A rede foi inicializada com quatro valores diferentes de $\sigma_\theta^2$ e, para cada um, mediu-se o histograma das pré-ativações $\mathbf{Z}^{(1)}, \ldots, \mathbf{Z}^{(4)}$ em um minilote de $1000$ instâncias. Cada linha (P, Q, R e S) corresponde a uma inicialização. O eixo horizontal é o mesmo em todos os painéis, e a altura de cada painel está normalizada pelo seu próprio pico.
+
+    \begin{center}
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{c@{\hspace{6pt}}cccc}
+     & $\mathbf{Z}^{(1)}$ & $\mathbf{Z}^{(2)}$ & $\mathbf{Z}^{(3)}$ & $\mathbf{Z}^{(4)}$ \\
+    \textbf{P} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0002) (-4.2,0.0003) (-4.0,0.0004) (-3.8,0.0010) (-3.6,0.0025) (-3.4,0.0049) (-3.2,0.0080) (-3.0,0.0154) (-2.8,0.0286) (-2.6,0.0483) (-2.4,0.0750) (-2.2,0.1118) (-2.0,0.1662) (-1.8,0.2334) (-1.6,0.3302) (-1.4,0.4315) (-1.2,0.5589) (-1.0,0.6683) (-0.8,0.7911) (-0.6,0.8984) (-0.4,0.9539) (-0.2,1.0000) (0.0,0.9889) (0.2,0.9646) (0.4,0.8935) (0.6,0.7910) (0.8,0.6685) (1.0,0.5409) (1.2,0.4260) (1.4,0.3307) (1.6,0.2295) (1.8,0.1693) (2.0,0.1123) (2.2,0.0742) (2.4,0.0458) (2.6,0.0265) (2.8,0.0168) (3.0,0.0083) (3.2,0.0053) (3.4,0.0027) (3.6,0.0014) (3.8,0.0008) (4.0,0.0002) (4.2,0.0000) (4.4,0.0001) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0001) (-3.2,0.0001) (-3.0,0.0004) (-2.8,0.0011) (-2.6,0.0029) (-2.4,0.0066) (-2.2,0.0141) (-2.0,0.0313) (-1.8,0.0622) (-1.6,0.1152) (-1.4,0.1978) (-1.2,0.3102) (-1.0,0.4550) (-0.8,0.6305) (-0.6,0.8029) (-0.4,0.9377) (-0.2,1.0000) (0.0,0.9893) (0.2,0.8887) (0.4,0.7502) (0.6,0.5812) (0.8,0.4017) (1.0,0.2626) (1.2,0.1576) (1.4,0.0863) (1.6,0.0452) (1.8,0.0214) (2.0,0.0095) (2.2,0.0040) (2.4,0.0019) (2.6,0.0005) (2.8,0.0004) (3.0,0.0002) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0002) (-2.0,0.0006) (-1.8,0.0023) (-1.6,0.0072) (-1.4,0.0202) (-1.2,0.0549) (-1.0,0.1355) (-0.8,0.2918) (-0.6,0.5443) (-0.4,0.8085) (-0.2,1.0000) (0.0,0.9973) (0.2,0.8191) (0.4,0.5652) (0.6,0.3119) (0.8,0.1454) (1.0,0.0596) (1.2,0.0214) (1.4,0.0075) (1.6,0.0018) (1.8,0.0004) (2.0,0.0001) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0000) (-2.0,0.0000) (-1.8,0.0000) (-1.6,0.0001) (-1.4,0.0013) (-1.2,0.0085) (-1.0,0.0403) (-0.8,0.1341) (-0.6,0.3412) (-0.4,0.6837) (-0.2,1.0000) (0.0,0.9993) (0.2,0.6824) (0.4,0.3201) (0.6,0.1117) (0.8,0.0283) (1.0,0.0054) (1.2,0.0006) (1.4,0.0001) (1.6,0.0000) (1.8,0.0000) (2.0,0.0000) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} \\[0.4em]
+    \textbf{Q} & \histpanel{(-8.0,0.0004) (-7.8,0.0008) (-7.6,0.0003) (-7.4,0.0010) (-7.2,0.0021) (-7.0,0.0027) (-6.8,0.0041) (-6.6,0.0040) (-6.4,0.0073) (-6.2,0.0103) (-6.0,0.0125) (-5.8,0.0162) (-5.6,0.0228) (-5.4,0.0282) (-5.2,0.0388) (-5.0,0.0479) (-4.8,0.0597) (-4.6,0.0763) (-4.4,0.0961) (-4.2,0.1188) (-4.0,0.1496) (-3.8,0.1776) (-3.6,0.2132) (-3.4,0.2452) (-3.2,0.2967) (-3.0,0.3533) (-2.8,0.4026) (-2.6,0.4559) (-2.4,0.5169) (-2.2,0.5604) (-2.0,0.6292) (-1.8,0.6916) (-1.6,0.7478) (-1.4,0.8241) (-1.2,0.8594) (-1.0,0.9059) (-0.8,0.9593) (-0.6,0.9930) (-0.4,0.9950) (-0.2,0.9888) (0.0,1.0000) (0.2,0.9924) (0.4,0.9851) (0.6,0.9430) (0.8,0.9168) (1.0,0.8490) (1.2,0.8132) (1.4,0.7601) (1.6,0.6936) (1.8,0.6366) (2.0,0.5755) (2.2,0.5081) (2.4,0.4543) (2.6,0.3941) (2.8,0.3440) (3.0,0.2995) (3.2,0.2577) (3.4,0.2085) (3.6,0.1794) (3.8,0.1485) (4.0,0.1214) (4.2,0.1030) (4.4,0.0707) (4.6,0.0635) (4.8,0.0471) (5.0,0.0420) (5.2,0.0282) (5.4,0.0250) (5.6,0.0179) (5.8,0.0131) (6.0,0.0106) (6.2,0.0073) (6.4,0.0039) (6.6,0.0031) (6.8,0.0027) (7.0,0.0018) (7.2,0.0016) (7.4,0.0007) (7.6,0.0010) (7.8,0.0001) (8.0,0)} & \histpanel{(-8.0,0.0207) (-7.8,0.0277) (-7.6,0.0260) (-7.4,0.0380) (-7.2,0.0399) (-7.0,0.0467) (-6.8,0.0588) (-6.6,0.0644) (-6.4,0.0817) (-6.2,0.0909) (-6.0,0.0999) (-5.8,0.1206) (-5.6,0.1377) (-5.4,0.1550) (-5.2,0.1718) (-5.0,0.1984) (-4.8,0.2264) (-4.6,0.2550) (-4.4,0.2801) (-4.2,0.3219) (-4.0,0.3681) (-3.8,0.3852) (-3.6,0.4293) (-3.4,0.4774) (-3.2,0.5005) (-3.0,0.5459) (-2.8,0.5835) (-2.6,0.6350) (-2.4,0.6702) (-2.2,0.7243) (-2.0,0.7582) (-1.8,0.8047) (-1.6,0.8490) (-1.4,0.8652) (-1.2,0.8985) (-1.0,0.9313) (-0.8,0.9394) (-0.6,0.9567) (-0.4,0.9827) (-0.2,0.9849) (0.0,1.0000) (0.2,0.9705) (0.4,0.9684) (0.6,0.9433) (0.8,0.9262) (1.0,0.9102) (1.2,0.8848) (1.4,0.8491) (1.6,0.8167) (1.8,0.7732) (2.0,0.7167) (2.2,0.7045) (2.4,0.6554) (2.6,0.6096) (2.8,0.5750) (3.0,0.5166) (3.2,0.4954) (3.4,0.4493) (3.6,0.4027) (3.8,0.3684) (4.0,0.3333) (4.2,0.3040) (4.4,0.2593) (4.6,0.2399) (4.8,0.2049) (5.0,0.1756) (5.2,0.1607) (5.4,0.1454) (5.6,0.1121) (5.8,0.1101) (6.0,0.0876) (6.2,0.0730) (6.4,0.0675) (6.6,0.0523) (6.8,0.0467) (7.0,0.0393) (7.2,0.0316) (7.4,0.0309) (7.6,0.0216) (7.8,0.0190) (8.0,0)} & \histpanel{(-8.0,0.1451) (-7.8,0.1544) (-7.6,0.1620) (-7.4,0.1762) (-7.2,0.2013) (-7.0,0.2163) (-6.8,0.2403) (-6.6,0.2580) (-6.4,0.2833) (-6.2,0.2918) (-6.0,0.3051) (-5.8,0.3530) (-5.6,0.3724) (-5.4,0.4030) (-5.2,0.4234) (-5.0,0.4608) (-4.8,0.4964) (-4.6,0.5131) (-4.4,0.5342) (-4.2,0.5549) (-4.0,0.6025) (-3.8,0.6337) (-3.6,0.6601) (-3.4,0.6894) (-3.2,0.7196) (-3.0,0.7433) (-2.8,0.7587) (-2.6,0.8266) (-2.4,0.8209) (-2.2,0.8515) (-2.0,0.8624) (-1.8,0.9040) (-1.6,0.8985) (-1.4,0.9348) (-1.2,0.9570) (-1.0,0.9618) (-0.8,0.9800) (-0.6,0.9641) (-0.4,1.0000) (-0.2,0.9842) (0.0,0.9740) (0.2,0.9643) (0.4,0.9532) (0.6,0.9810) (0.8,0.9601) (1.0,0.9382) (1.2,0.9363) (1.4,0.9038) (1.6,0.8899) (1.8,0.8568) (2.0,0.8260) (2.2,0.8101) (2.4,0.8011) (2.6,0.7656) (2.8,0.7477) (3.0,0.6966) (3.2,0.6865) (3.4,0.6667) (3.6,0.6468) (3.8,0.5924) (4.0,0.5709) (4.2,0.5422) (4.4,0.5171) (4.6,0.4776) (4.8,0.4479) (5.0,0.4175) (5.2,0.3726) (5.4,0.3719) (5.6,0.3348) (5.8,0.3072) (6.0,0.2913) (6.2,0.2766) (6.4,0.2439) (6.6,0.2340) (6.8,0.2169) (7.0,0.2063) (7.2,0.1768) (7.4,0.1675) (7.6,0.1544) (7.8,0.1308) (8.0,0)} & \histpanel{(-8.0,0.2992) (-7.8,0.3500) (-7.6,0.3401) (-7.4,0.3920) (-7.2,0.3887) (-7.0,0.4218) (-6.8,0.4205) (-6.6,0.4345) (-6.4,0.4744) (-6.2,0.5075) (-6.0,0.5088) (-5.8,0.5182) (-5.6,0.5630) (-5.4,0.5825) (-5.2,0.6026) (-5.0,0.6258) (-4.8,0.6372) (-4.6,0.6660) (-4.4,0.7192) (-4.2,0.7024) (-4.0,0.7278) (-3.8,0.7235) (-3.6,0.7777) (-3.4,0.7937) (-3.2,0.7856) (-3.0,0.8067) (-2.8,0.8166) (-2.6,0.8731) (-2.4,0.8649) (-2.2,0.9125) (-2.0,0.9361) (-1.8,0.9191) (-1.6,0.9570) (-1.4,0.9423) (-1.2,0.9316) (-1.0,0.9415) (-0.8,0.9679) (-0.6,0.9819) (-0.4,0.9791) (-0.2,1.0000) (0.0,0.9763) (0.2,0.9845) (0.4,0.9921) (0.6,0.9789) (0.8,0.9524) (1.0,0.9506) (1.2,0.9359) (1.4,0.9428) (1.6,0.9303) (1.8,0.9387) (2.0,0.8949) (2.2,0.8692) (2.4,0.8603) (2.6,0.8408) (2.8,0.8293) (3.0,0.8123) (3.2,0.7833) (3.4,0.7738) (3.6,0.7693) (3.8,0.7548) (4.0,0.7108) (4.2,0.6909) (4.4,0.6467) (4.6,0.6383) (4.8,0.6324) (5.0,0.5714) (5.2,0.5843) (5.4,0.5495) (5.6,0.5429) (5.8,0.5162) (6.0,0.4765) (6.2,0.4864) (6.4,0.4582) (6.6,0.4172) (6.8,0.3984) (7.0,0.3773) (7.2,0.3625) (7.4,0.3661) (7.6,0.3284) (7.8,0.2989) (8.0,0)} \\[0.4em]
+    \textbf{R} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0001) (-6.2,0.0000) (-6.0,0.0002) (-5.8,0.0001) (-5.6,0.0010) (-5.4,0.0010) (-5.2,0.0017) (-5.0,0.0025) (-4.8,0.0043) (-4.6,0.0060) (-4.4,0.0089) (-4.2,0.0151) (-4.0,0.0237) (-3.8,0.0312) (-3.6,0.0445) (-3.4,0.0629) (-3.2,0.0892) (-3.0,0.1196) (-2.8,0.1591) (-2.6,0.2022) (-2.4,0.2625) (-2.2,0.3245) (-2.0,0.3977) (-1.8,0.4713) (-1.6,0.5594) (-1.4,0.6373) (-1.2,0.7382) (-1.0,0.8258) (-0.8,0.8843) (-0.6,0.9382) (-0.4,0.9670) (-0.2,1.0000) (0.0,0.9905) (0.2,0.9637) (0.4,0.9250) (0.6,0.8881) (0.8,0.8026) (1.0,0.7248) (1.2,0.6562) (1.4,0.5501) (1.6,0.4810) (1.8,0.4096) (2.0,0.3252) (2.2,0.2673) (2.4,0.2070) (2.6,0.1620) (2.8,0.1211) (3.0,0.0890) (3.2,0.0620) (3.4,0.0454) (3.6,0.0343) (3.8,0.0230) (4.0,0.0140) (4.2,0.0108) (4.4,0.0053) (4.6,0.0049) (4.8,0.0017) (5.0,0.0020) (5.2,0.0011) (5.4,0.0010) (5.6,0.0003) (5.8,0.0001) (6.0,0.0001) (6.2,0.0001) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0001) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0003) (-6.2,0.0002) (-6.0,0.0004) (-5.8,0.0004) (-5.6,0.0010) (-5.4,0.0013) (-5.2,0.0024) (-5.0,0.0047) (-4.8,0.0075) (-4.6,0.0102) (-4.4,0.0135) (-4.2,0.0228) (-4.0,0.0314) (-3.8,0.0413) (-3.6,0.0600) (-3.4,0.0777) (-3.2,0.1059) (-3.0,0.1442) (-2.8,0.1880) (-2.6,0.2438) (-2.4,0.2939) (-2.2,0.3605) (-2.0,0.4287) (-1.8,0.5107) (-1.6,0.5769) (-1.4,0.6748) (-1.2,0.7465) (-1.0,0.8360) (-0.8,0.8968) (-0.6,0.9282) (-0.4,0.9790) (-0.2,1.0000) (0.0,0.9960) (0.2,0.9712) (0.4,0.9303) (0.6,0.8618) (0.8,0.8161) (1.0,0.7234) (1.2,0.6382) (1.4,0.5546) (1.6,0.4737) (1.8,0.4029) (2.0,0.3260) (2.2,0.2728) (2.4,0.2051) (2.6,0.1600) (2.8,0.1209) (3.0,0.0894) (3.2,0.0679) (3.4,0.0475) (3.6,0.0336) (3.8,0.0219) (4.0,0.0172) (4.2,0.0118) (4.4,0.0086) (4.6,0.0052) (4.8,0.0033) (5.0,0.0027) (5.2,0.0012) (5.4,0.0011) (5.6,0.0006) (5.8,0.0005) (6.0,0.0001) (6.2,0.0001) (6.4,0.0000) (6.6,0.0000) (6.8,0.0001) (7.0,0.0001) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0001) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0001) (-6.6,0.0000) (-6.4,0.0003) (-6.2,0.0002) (-6.0,0.0008) (-5.8,0.0010) (-5.6,0.0013) (-5.4,0.0030) (-5.2,0.0037) (-5.0,0.0050) (-4.8,0.0074) (-4.6,0.0110) (-4.4,0.0164) (-4.2,0.0202) (-4.0,0.0320) (-3.8,0.0410) (-3.6,0.0574) (-3.4,0.0756) (-3.2,0.1030) (-3.0,0.1339) (-2.8,0.1800) (-2.6,0.2261) (-2.4,0.2870) (-2.2,0.3525) (-2.0,0.4241) (-1.8,0.4993) (-1.6,0.5979) (-1.4,0.6756) (-1.2,0.7714) (-1.0,0.8382) (-0.8,0.9103) (-0.6,0.9438) (-0.4,0.9863) (-0.2,1.0000) (0.0,0.9916) (0.2,0.9533) (0.4,0.9271) (0.6,0.8647) (0.8,0.8161) (1.0,0.7314) (1.2,0.6583) (1.4,0.5683) (1.6,0.4868) (1.8,0.4253) (2.0,0.3398) (2.2,0.2852) (2.4,0.2178) (2.6,0.1741) (2.8,0.1366) (3.0,0.1041) (3.2,0.0740) (3.4,0.0531) (3.6,0.0397) (3.8,0.0270) (4.0,0.0176) (4.2,0.0118) (4.4,0.0082) (4.6,0.0052) (4.8,0.0030) (5.0,0.0019) (5.2,0.0011) (5.4,0.0007) (5.6,0.0004) (5.8,0.0001) (6.0,0.0001) (6.2,0.0001) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0001) (-7.2,0.0001) (-7.0,0.0000) (-6.8,0.0001) (-6.6,0.0001) (-6.4,0.0003) (-6.2,0.0003) (-6.0,0.0011) (-5.8,0.0012) (-5.6,0.0010) (-5.4,0.0019) (-5.2,0.0030) (-5.0,0.0042) (-4.8,0.0062) (-4.6,0.0101) (-4.4,0.0136) (-4.2,0.0218) (-4.0,0.0266) (-3.8,0.0379) (-3.6,0.0523) (-3.4,0.0698) (-3.2,0.0930) (-3.0,0.1230) (-2.8,0.1558) (-2.6,0.1977) (-2.4,0.2637) (-2.2,0.3338) (-2.0,0.4050) (-1.8,0.4861) (-1.6,0.5879) (-1.4,0.6653) (-1.2,0.7569) (-1.0,0.8493) (-0.8,0.9285) (-0.6,0.9612) (-0.4,0.9932) (-0.2,1.0000) (0.0,0.9963) (0.2,0.9660) (0.4,0.9234) (0.6,0.8554) (0.8,0.7935) (1.0,0.7182) (1.2,0.6268) (1.4,0.5377) (1.6,0.4629) (1.8,0.3834) (2.0,0.3139) (2.2,0.2556) (2.4,0.1982) (2.6,0.1563) (2.8,0.1208) (3.0,0.0938) (3.2,0.0684) (3.4,0.0498) (3.6,0.0375) (3.8,0.0263) (4.0,0.0182) (4.2,0.0126) (4.4,0.0095) (4.6,0.0066) (4.8,0.0045) (5.0,0.0024) (5.2,0.0011) (5.4,0.0014) (5.6,0.0004) (5.8,0.0005) (6.0,0.0001) (6.2,0.0001) (6.4,0.0001) (6.6,0.0001) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} \\[0.4em]
+    \textbf{S} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0001) (-2.0,0.0009) (-1.8,0.0036) (-1.6,0.0119) (-1.4,0.0353) (-1.2,0.0910) (-1.0,0.2062) (-0.8,0.3788) (-0.6,0.6189) (-0.4,0.8588) (-0.2,1.0000) (0.0,0.9958) (0.2,0.8527) (0.4,0.6224) (0.6,0.3854) (0.8,0.2042) (1.0,0.0942) (1.2,0.0356) (1.4,0.0118) (1.6,0.0029) (1.8,0.0011) (2.0,0.0001) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0000) (-2.0,0.0000) (-1.8,0.0000) (-1.6,0.0000) (-1.4,0.0000) (-1.2,0.0000) (-1.0,0.0000) (-0.8,0.0007) (-0.6,0.0229) (-0.4,0.2741) (-0.2,0.9679) (0.0,1.0000) (0.2,0.3095) (0.4,0.0287) (0.6,0.0010) (0.8,0.0000) (1.0,0.0000) (1.2,0.0000) (1.4,0.0000) (1.6,0.0000) (1.8,0.0000) (2.0,0.0000) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0000) (-2.0,0.0000) (-1.8,0.0000) (-1.6,0.0000) (-1.4,0.0000) (-1.2,0.0000) (-1.0,0.0000) (-0.8,0.0000) (-0.6,0.0000) (-0.4,0.0016) (-0.2,1.0000) (0.0,0.9333) (0.2,0.0023) (0.4,0.0000) (0.6,0.0000) (0.8,0.0000) (1.0,0.0000) (1.2,0.0000) (1.4,0.0000) (1.6,0.0000) (1.8,0.0000) (2.0,0.0000) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} & \histpanel{(-8.0,0.0000) (-7.8,0.0000) (-7.6,0.0000) (-7.4,0.0000) (-7.2,0.0000) (-7.0,0.0000) (-6.8,0.0000) (-6.6,0.0000) (-6.4,0.0000) (-6.2,0.0000) (-6.0,0.0000) (-5.8,0.0000) (-5.6,0.0000) (-5.4,0.0000) (-5.2,0.0000) (-5.0,0.0000) (-4.8,0.0000) (-4.6,0.0000) (-4.4,0.0000) (-4.2,0.0000) (-4.0,0.0000) (-3.8,0.0000) (-3.6,0.0000) (-3.4,0.0000) (-3.2,0.0000) (-3.0,0.0000) (-2.8,0.0000) (-2.6,0.0000) (-2.4,0.0000) (-2.2,0.0000) (-2.0,0.0000) (-1.8,0.0000) (-1.6,0.0000) (-1.4,0.0000) (-1.2,0.0000) (-1.0,0.0000) (-0.8,0.0000) (-0.6,0.0000) (-0.4,0.0000) (-0.2,0.9388) (0.0,1.0000) (0.2,0.0000) (0.4,0.0000) (0.6,0.0000) (0.8,0.0000) (1.0,0.0000) (1.2,0.0000) (1.4,0.0000) (1.6,0.0000) (1.8,0.0000) (2.0,0.0000) (2.2,0.0000) (2.4,0.0000) (2.6,0.0000) (2.8,0.0000) (3.0,0.0000) (3.2,0.0000) (3.4,0.0000) (3.6,0.0000) (3.8,0.0000) (4.0,0.0000) (4.2,0.0000) (4.4,0.0000) (4.6,0.0000) (4.8,0.0000) (5.0,0.0000) (5.2,0.0000) (5.4,0.0000) (5.6,0.0000) (5.8,0.0000) (6.0,0.0000) (6.2,0.0000) (6.4,0.0000) (6.6,0.0000) (6.8,0.0000) (7.0,0.0000) (7.2,0.0000) (7.4,0.0000) (7.6,0.0000) (7.8,0.0000) (8.0,0)} \\
+    \end{tabular}
+    \end{center}
+
+    Associe cada inicialização à linha de histogramas correspondente:
+    \textbf{1.} $\sigma_\theta^2 = 1/(4n)$; \quad
+    \textbf{2.} $\sigma_\theta^2 = 1/n$; \quad
+    \textbf{3.} $\sigma_\theta^2 = 2/n$; \quad
+    \textbf{4.} $\sigma_\theta^2 = 4/n$.
+
+    \begin{enumerate}[(a)]
+        \item 1-S; 2-R; 3-P; 4-Q
+        \item 1-R; 2-Q; 3-S; 4-P
+        \item 1-Q; 2-R; 3-P; 4-S
+        \item 1-P; 2-Q; 3-S; 4-R
+        \item 1-S; 2-P; 3-R; 4-Q
+        \item 1-R; 2-S; 3-Q; 4-P
+        \item 1-P; 2-S; 3-Q; 4-R
+        \item 1-Q; 2-P; 3-R; 4-S
+    \end{enumerate}
+    %e
+
 \subsection*{Regularização}
 
     \item \textit{Label Smoothing} é uma técnica de regularização que visa diminuir a tendência de \textit{overfitting} do modelo combatendo principalmente inferências com \textit{overconfidence}. Essa técnica redefine os valores alvo da seguinte forma:
@@ -508,6 +1496,70 @@
 
     \item Explique o funcionamento do \textit{early stopping}: o que é monitorado durante o treinamento, qual o papel do hiperparâmetro \textit{patience} e por que a técnica tem efeito análogo ao da regularização L2. Cite também o benefício adicional que ela traz além do efeito regularizador.
 
+
+    \item Durante o treinamento, uma camada de \textit{dropout} com taxa $p$ sorteia, a cada iteração, uma máscara binária com o mesmo formato da sua entrada: cada posição vale $0$ com probabilidade $p$ e $1$ caso contrário. A camada multiplica a entrada, elemento a elemento, pela máscara e multiplica o resultado por $1/(1-p)$, para que o valor esperado de cada ativação não mude (\textit{inverted dropout}).
+
+    Considere o MLP $1 \times 2 \times 2 \times 1$ abaixo, com $\mathbf{z}^{(l)} = \mathbf{a}^{(l-1)}{\mathbf{\Theta}^{(l)}}^{\top} + \mathbf{b}^{(l)}$, ReLU nas duas camadas ocultas, saída linear e uma camada de \textit{dropout} com $p = 0{,}5$ aplicada sobre $\mathbf{a}^{(1)}$:
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, yscale=0.8, every node/.style={font=\small}]
+        % entrada
+        \node[circle, draw] (x) at (0, 0) {$x$};
+        % primeira camada oculta (ReLU)
+        \node[circle, draw] (a1) at (2.4, 1.1)  {$a^{(1)}_1$};
+        \node[circle, draw] (a2) at (2.4, -1.1) {$a^{(1)}_2$};
+        % dropout: um quadrado por unidade
+        \node[rectangle, draw, fill=black!8, minimum size=7mm] (d1) at (4.2, 1.1)  {};
+        \node[rectangle, draw, fill=black!8, minimum size=7mm] (d2) at (4.2, -1.1) {};
+        % segunda camada oculta (ReLU)
+        \node[circle, draw] (c1) at (6.6, 1.1)  {$a^{(2)}_1$};
+        \node[circle, draw] (c2) at (6.6, -1.1) {$a^{(2)}_2$};
+        % saída linear
+        \node[circle, draw] (y) at (9.0, 0) {$\hat{y}$};
+        \draw[->] (x) -- (a1); \draw[->] (x) -- (a2);
+        \draw[->] (a1) -- (d1); \draw[->] (a2) -- (d2);
+        \draw[->] (d1) -- (c1); \draw[->] (d1) -- (c2);
+        \draw[->] (d2) -- (c1); \draw[->] (d2) -- (c2);
+        \draw[->] (c1) -- (y); \draw[->] (c2) -- (y);
+        % rótulos das camadas
+        \node[font=\footnotesize] at (1.2, 2.0)  {$\mathbf{\Theta}^{(1)}, \mathbf{b}^{(1)}$};
+        \node[font=\footnotesize] at (5.4, 2.0)  {$\mathbf{\Theta}^{(2)}, \mathbf{b}^{(2)}$};
+        \node[font=\footnotesize] at (8.6, 1.1) {$\mathbf{\Theta}^{(3)}, b^{(3)}$};
+        \node[font=\footnotesize, below=0.12cm of a2] {ReLU};
+        \node[font=\footnotesize, below=0.12cm of d2] {\textit{dropout}};
+        \node[font=\footnotesize, below=0.12cm of c2] {ReLU};
+        \node[font=\footnotesize, below=0.12cm of y]  {linear};
+    \end{tikzpicture}
+    \end{center}
+
+    Os parâmetros, a instância de treino e a máscara sorteada nesta iteração são
+    \[
+    x = 2, \quad
+    \mathbf{\Theta}^{(1)} = \begin{bmatrix} -1 \\ 2 \end{bmatrix}, \quad
+    \mathbf{b}^{(1)} = \begin{bmatrix} 3 & 1 \end{bmatrix}, \quad
+    \mathbf{\Theta}^{(2)} = \begin{bmatrix} 3 & 0{,}5 \\ -2 & -2 \end{bmatrix}, \quad
+    \mathbf{b}^{(2)} = \begin{bmatrix} 1 & 0 \end{bmatrix},
+    \]
+    \[
+    \mathbf{\Theta}^{(3)} = \begin{bmatrix} -1 & -3 \end{bmatrix}, \quad
+    b^{(3)} = 1, \quad
+    p = 0{,}5, \quad
+    \text{máscara} = \begin{bmatrix} 1 & 0 \end{bmatrix}.
+    \]
+    Qual é a saída $\hat{y}$ da rede nesta iteração de treinamento?
+
+    \begin{enumerate}[(a)]
+        \item $\hat{y} = -5{,}5$
+        \item $\hat{y} = -6$
+        \item $\hat{y} = -3$
+        \item $\hat{y} = -1{,}5$
+        \item $\hat{y} = -5$
+        \item $\hat{y} = 6$
+        \item $\hat{y} = 0$
+        \item $\hat{y} = -12$
+    \end{enumerate}
+    %b
+
 \end{enumerate}
 
 \newpage
@@ -535,6 +1587,12 @@
     \item A fronteira de decisão é o conjunto de pontos onde o argumento da função sinal troca de sinal, isto é, onde $\theta_0 + X_1\theta_1 + X_2\theta_2=0$. Supondo $\theta_2 \neq 0$, isolamos $X_2 = -\frac{\theta_0 + \theta_1 X_1}{\theta_2}$, que é a equação de uma reta no plano $(X_1, X_2)$ com coeficiente angular $-\theta_1/\theta_2$ e intercepto $-\theta_0/\theta_2$. De um lado dessa reta a saída é $+1$ e do outro é $-1$, portanto a fronteira de decisão é linear.
 
     \item $\hat{y}=sinal(\theta_0 + X_1\theta_1 + X_2\theta_2)$, onde $\theta_0=-1$, $\theta_1=1$, $\theta_2=1$ e as entradas falsas são codificadas como $-1$ e as entradas verdadeiras como $+1$. Verificação nas quatro combinações: $(-1,-1)\!: z=-3 \Rightarrow -1$; $(+1,-1)\!: z=-1 \Rightarrow -1$; $(-1,+1)\!: z=-1 \Rightarrow -1$; $(+1,+1)\!: z=+1 \Rightarrow +1$, exatamente a tabela-verdade do \textit{and}.
+
+    \item b. A função $\mathrm{sign}(z)$ é constante em $\mathbb{R}^- \setminus \{0\}$ e em $\mathbb{R}^+ \setminus \{0\}$ (logo, derivada $0$) e descontínua em $z = 0$ (derivada indefinida). O \textit{backpropagation} multiplica gradientes camada a camada via regra da cadeia; com derivada zero em quase todo ponto, esses gradientes morrem e os pesos não são atualizados. A correção que historicamente viabilizou MLPs treináveis foi substituir $\mathrm{sign}$ por funções com derivada não nula (sigmoide, tanh, ReLU). Em (a), o produto escalar é trivialmente diferenciável em $\boldsymbol{\theta}$, a obstrução está na ativação; em (c), a separabilidade linear é uma limitação de capacidade do Perceptron único, que não desaparece automaticamente e não é o motivo de o gradiente não funcionar; em (d), a obstrução é da derivada (regra da cadeia), não da função de custo; em (e), a regra do PLA não tem ligação direta com a derivada da ativação, e trocar PLA por SGD ainda esbarra na derivada zero do $\mathrm{sign}$; em (f), o número de parâmetros é irrelevante para a derivabilidade; em (g), o PLA é uma regra de atualização específica do Perceptron, distinta da descida de gradiente; em (h), a interpretação probabilística é uma propriedade desejável da saída, não uma exigência da descida de gradiente.
+
+    \item d. Com a codificação $\pm 1$ e viés $\theta_0$, basta avaliar $z = \theta_0 + \theta_1 X_1 + \theta_2 X_2$ nas quatro combinações de entrada. Para $(\theta_0, \theta_1, \theta_2) = (1, 1, 1)$: $(-1,-1)\!: z = -1 \Rightarrow \hat{y} = -1$; $(+1,-1)\!: z = 1 \Rightarrow +1$; $(-1,+1)\!: z = 1 \Rightarrow +1$; $(+1,+1)\!: z = 3 \Rightarrow +1$, exatamente a tabela-verdade do OR: falso apenas quando as duas entradas são falsas. Geometricamente, a fronteira $X_1 + X_2 = -1$ separa o ponto $(-1,-1)$ dos outros três. Em (a), $(-3, 1, 1)$ dá $z < 0$ em todas as combinações e a saída é constante em $-1$ (sempre falso); (b) $(-1, -1, -1)$ implementa o NOR, respondendo $+1$ apenas em $(-1,-1)$; (c) $(-1, 1, 1)$ implementa o AND, exigindo as duas entradas em $+1$, o erro clássico de deslocar a fronteira para o lado errado; (e) $(1, 1, -1)$ implementa $X_1 \lor \lnot X_2$ e falha em $(-1, +1)$; (f) $(1, -1, -1)$ implementa o NAND, respondendo $-1$ em $(+1,+1)$; (g) $(-1, 1, -1)$ implementa $X_1 \land \lnot X_2$, respondendo $+1$ apenas em $(+1,-1)$; (h) $(3, 1, 1)$ dá $z > 0$ em todas as combinações e a saída é constante em $+1$ (sempre verdadeiro).
+
+    \item g. As unidades ocultas calculam $h_1 = \mathrm{sinal}(1 - x_1 + x_2)$, que vale $+1$ acima (e sobre) da reta $x_2 = x_1 - 1$, e $h_2 = \mathrm{sinal}(-3 + x_1 + x_2)$, que vale $+1$ acima da reta $x_2 = 3 - x_1$. As retas se cruzam em $(2;\ 1)$. A saída calcula $\mathrm{sinal}(-1 + h_1 + h_2)$; como $h_1 + h_2 \in \{2, 0, -2\}$, ela só vale $+1$ quando $h_1 = h_2 = +1$, isto é, a saída é um E lógico. A região positiva é a interseção dos dois semiplanos superiores, um V com vértice em $(2;\ 1)$ aberto para cima, que é o gráfico (g). Em (a), as unidades são combinadas com OU (o que exigiria viés $+1$ na saída), sombreando tudo exceto o triângulo abaixo das duas retas; em (b), a saída do E foi invertida, sombreando o complemento da região correta; em (c), o viés de $h_1$ foi lido com o sinal trocado, usando a reta $x_2 = x_1 + 1$ e deslocando o vértice para $(1;\ 2)$; em (d), tomou-se o lado negativo de $h_1$, formando uma cunha aberta para a direita; em (e), tomou-se o lado negativo de $h_2$, formando uma cunha aberta para a esquerda; em (f), considera-se apenas $h_1$, como se a saída copiasse essa unidade; em (h), tomou-se o lado negativo das duas unidades, sombreando apenas o triângulo abaixo do vértice.
 
     \item a. Cada unidade computa o produto escalar entre o vetor de entradas e o vetor de pesos (somado ao bias) para formar a pré-ativação; a função de ativação é aplicada depois, sobre esse resultado. \textit{Backpropagation} e descida de gradiente pertencem ao treinamento, não ao \textit{forward pass}.
 
@@ -569,6 +1627,106 @@
         \mathbf{\Theta}^{(2)} &\leftarrow \begin{bmatrix}0.2 & -0.1\end{bmatrix} - 0.1\begin{bmatrix}-0.86 & -0.258\end{bmatrix} = \begin{bmatrix}0.286 & -0.0742\end{bmatrix}\\
         \beta^{(2)} &\leftarrow 0.4 - 0.1(-0.86) = 0.486
     \end{align*}
+
+    \item d. \textit{Forward pass}:
+    \begin{align*}
+        z_1 &= X_1\,\theta^{(1)}_{11} + X_2\,\theta^{(1)}_{12} = 1\cdot 1 + 2\cdot(-1) = -1 \;\Rightarrow\; a_1 = \mathrm{ReLU}(-1) = 0 \\
+        z_2 &= X_1\,\theta^{(1)}_{21} + X_2\,\theta^{(1)}_{22} = 1\cdot 1 + 2\cdot 1 = 3 \;\Rightarrow\; a_2 = \mathrm{ReLU}(3) = 3 \\
+        \hat{y} &= a_1\,\theta^{(2)}_{1} + a_2\,\theta^{(2)}_{2} = 0\cdot 1 + 3\cdot 2 = 6
+    \end{align*}
+    $\partial J/\partial \hat{y} = \hat{y} - y = 6 - 4 = 2$. Os gradientes pedidos:
+    \begin{align*}
+        \frac{\partial J}{\partial \theta^{(1)}_{11}} &= \underbrace{(\hat{y}-y)}_{2}\cdot \underbrace{\theta^{(2)}_{1}}_{1}\cdot \underbrace{\mathrm{ReLU}'(z_1)}_{0}\cdot \underbrace{X_1}_{1} = 0 \quad (\text{unidade } a_1 \text{ inativa}) \\
+        \frac{\partial J}{\partial \theta^{(1)}_{21}} &= \underbrace{(\hat{y}-y)}_{2}\cdot \underbrace{\theta^{(2)}_{2}}_{2}\cdot \underbrace{\mathrm{ReLU}'(z_2)}_{1}\cdot \underbrace{X_1}_{1} = 4
+    \end{align*}
+    Atualização com $\eta = 0.1$: $\theta^{(1)}_{11} \leftarrow 1 - 0.1\cdot 0 = 1.0$ e $\theta^{(1)}_{21} \leftarrow 1 - 0.1\cdot 4 = 0.6$. O ponto-chave é que $a_1$ recebe pré-ativação negativa, logo $\mathrm{ReLU}' = 0$ e $\theta^{(1)}_{11}$ \emph{não é atualizado}. As alternativas (a), (b) e (f) tratam $a_1$ como ativa (atualizam $\theta^{(1)}_{11}$), ignorando $\mathrm{ReLU}'(-1) = 0$; (c) usa gradiente $2$ para $\theta^{(1)}_{21}$ (esquece o fator $\theta^{(2)}_2 = 2$), obtendo $1 - 0.1\cdot 2 = 0.8$; (g) usa gradiente $6$ ($1 - 0.1\cdot 6 = 0.4$); (e) não atualiza $\theta^{(1)}_{21}$; (h) aplica uma pequena atualização espúria a $\theta^{(1)}_{11}$.
+
+    \item g. Cada camada totalmente conectada tem $n_{\text{in}}\cdot n_{\text{out}} + n_{\text{out}}$ parâmetros (pesos mais vieses): entrada $\to h_1$: $10\cdot 20 + 20 = 220$; $h_1 \to h_2$: $20\cdot 20 + 20 = 420$; $h_2 \to h_3$: $20\cdot 10 + 10 = 210$; $h_3 \to$ saída: $10\cdot 5 + 5 = 55$. Total: $220 + 420 + 210 + 55 = 905$. A alternativa (b) $850$ ignora todos os vieses; (c) $900$ esquece o viés da camada de saída ($850 + 50$); (d) $855$ é um erro aritmético; (a) $1810$ dobra a contagem; (e), (f) e (h) são outros erros de contagem.
+
+    \item Dados: $X_1 = 1$, $X_2 = 2$, $y = 5$, $\theta^{(1)}_1 = 1$, $\theta^{(1)}_2 = 1$, $\theta^{(2)} = 2$, $\eta = 0.1$.
+    \begin{enumerate}[a)]
+        \item \textit{Forward pass}:
+        \begin{align*}
+            z^{(1)} &= X_1 \cdot \theta^{(1)}_1 + X_2 \cdot \theta^{(1)}_2 = 1 \cdot 1 + 2 \cdot 1 = 3 \\
+            a^{(1)} &= \mathrm{ReLU}(z^{(1)}) = \max(0, 3) = 3 \\
+            z^{(2)} &= a^{(1)} \cdot \theta^{(2)} = 3 \cdot 2 = 6 \\
+            \hat{y} &= z^{(2)} = 6 \quad \text{(saída linear)}
+        \end{align*}
+        \item \textit{Função de custo}: $J(\theta) = \tfrac{1}{2}(y - \hat{y})^2 = \tfrac{1}{2}(5 - 6)^2 = 0.5$.
+        \item \textit{Backward pass} (regra da cadeia):
+        \begin{align*}
+            \frac{\partial J}{\partial \hat{y}} &= -(y - \hat{y}) = -(5 - 6) = 1 \\
+            \frac{\partial J}{\partial \theta^{(2)}} &= \frac{\partial J}{\partial \hat{y}} \cdot a^{(1)} = 1 \cdot 3 = 3 \\
+            \frac{\partial J}{\partial a^{(1)}} &= \frac{\partial J}{\partial \hat{y}} \cdot \theta^{(2)} = 1 \cdot 2 = 2 \\
+            \frac{\partial a^{(1)}}{\partial z^{(1)}} &= \mathrm{ReLU}'(z^{(1)}) = 1 \quad (\text{pois } z^{(1)} = 3 > 0) \\
+            \frac{\partial J}{\partial z^{(1)}} &= \frac{\partial J}{\partial a^{(1)}} \cdot \frac{\partial a^{(1)}}{\partial z^{(1)}} = 2 \cdot 1 = 2 \\
+            \frac{\partial J}{\partial \theta^{(1)}_1} &= \frac{\partial J}{\partial z^{(1)}} \cdot X_1 = 2 \cdot 1 = 2 \\
+            \frac{\partial J}{\partial \theta^{(1)}_2} &= \frac{\partial J}{\partial z^{(1)}} \cdot X_2 = 2 \cdot 2 = 4
+        \end{align*}
+        \item \textit{Atualização SGD} com $\eta = 0.1$:
+        \begin{align*}
+            \theta^{(2)}_{t+1}      &= 2 - 0.1 \cdot 3 = 1.7 \\
+            \theta^{(1)}_{1,\,t+1}  &= 1 - 0.1 \cdot 2 = 0.8 \\
+            \theta^{(1)}_{2,\,t+1}  &= 1 - 0.1 \cdot 4 = 0.6
+        \end{align*}
+    \end{enumerate}
+
+    \item f. \textbf{Contagem de unidades.} A região negativa é a interseção de \emph{três} semiplanos: $x_1 > 1{,}5$, $x_1 < 2{,}5$ e $x_2 < 2$. Cada semiplano exige uma unidade oculta, e é preciso mais uma unidade na saída para combiná-los com um E lógico, totalizando \textbf{quatro} unidades. As redes de três unidades têm apenas duas ocultas e só conseguem representar a interseção de dois semiplanos, que é sempre uma região ilimitada; nenhuma delas isola a instância $(2;1)$ sem arrastar junto outra instância positiva. Isso elimina de imediato as alternativas (a), (c), (e) e (g), restando apenas quatro candidatas. \textbf{Verificação da alternativa (f).} As três unidades ocultas calculam $h_1 = \mathrm{sinal}(x_1 - 1{,}5)$, $h_2 = \mathrm{sinal}(2{,}5 - x_1)$ e $h_3 = \mathrm{sinal}(2 - x_2)$, e a saída calcula $\hat{y} = \mathrm{sinal}(2 - h_1 - h_2 - h_3)$. Como $h_1 + h_2 + h_3 \in \{3, 1, -1, -3\}$, a saída vale $-1$ apenas quando a soma é $3$, isto é, quando as três condições valem ao mesmo tempo. Conferindo: $(2;1)$ dá $h = (+1, +1, +1)$ e soma $3$, logo $\hat{y} = \mathrm{sinal}(-1) = -1$; $(1;1)$ e $(3;1)$ dão soma $1$ (falha um dos limiares em $x_1$) e $(1;3)$, $(2;3)$, $(3;3)$ dão soma $1$ ou $-1$ (falha o limiar em $x_2$), todas com $\hat{y} = +1$. Quanto às demais: (a) tem três unidades e nem sequer conecta $x_2$, as duas ocultas recortam a faixa vertical inteira $1{,}5 < x_1 < 2{,}5$ e classificam $(2;3)$ como $-1$; (b) tem quatro unidades, mas a terceira oculta usa peso $+1$ e viés $-2$, recortando $x_2 > 2$ em vez de $x_2 < 2$, e erra $(2;1)$ e $(2;3)$; (c) tem três unidades e define o quadrante $x_1 > 1{,}5$ e $x_2 < 2$, ilimitado à direita, classificando $(3;1)$ como $-1$; (d) tem as ocultas corretas, mas os pesos de saída são $+1$ e o viés é $-2$, o que inverte a decisão (prediz $+1$ dentro da região e $-1$ fora) e erra as seis instâncias; (e) tem três unidades e define o quadrante $x_1 < 2{,}5$ e $x_2 < 2$, ilimitado à esquerda, classificando $(1;1)$ como $-1$; (g) tem três unidades, ignora $x_2$ e ainda inverte a saída com pesos $+1$ e viés $-1$, errando cinco das seis instâncias; (h) tem as ocultas corretas, mas o viés da saída é $4$: como $\mathrm{sinal}(4 - 3) = +1$, a rede nunca prediz $-1$ e erra $(2;1)$.
+
+    \item d.
+    \[
+    \mathbf{Z}^{(1)} = \mathbf{X}\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)}
+    = \begin{bmatrix} 1 & 2 \\ 2 & 0 \end{bmatrix}\begin{bmatrix} 1 & 0 \\ -1 & 2 \end{bmatrix} + \begin{bmatrix} 0 & -1 \end{bmatrix}
+    = \begin{bmatrix} -1 & 4 \\ 2 & 0 \end{bmatrix} + \begin{bmatrix} 0 & -1 \end{bmatrix}
+    = \begin{bmatrix} -1 & 3 \\ 2 & -1 \end{bmatrix},
+    \]
+    \[
+    \mathbf{A}^{(1)} = \mathrm{ReLU}\bigl(\mathbf{Z}^{(1)}\bigr) = \begin{bmatrix} 0 & 3 \\ 2 & 0 \end{bmatrix},
+    \qquad
+    \mathbf{Z}^{(2)} = \mathbf{A}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + b^{(2)} = \begin{bmatrix} 6 \\ 2 \end{bmatrix} - 2 = \begin{bmatrix} 4 \\ 0 \end{bmatrix},
+    \]
+    \[
+    \hat{\mathbf{y}} = \sigma\bigl(\mathbf{Z}^{(2)}\bigr) = (0{,}982;\ 0{,}500).
+    \]
+    Em (a), a ReLU foi omitida e $\mathbf{Z}^{(1)}$ propagado direto, chegando a $\mathbf{Z}^{(2)} = (3; -2)$; em (b), o viés $b^{(2)} = -2$ foi esquecido, chegando a $\mathbf{Z}^{(2)} = (6; 2)$; em (c), a ordem das duas instâncias do minilote foi invertida; em (e), $\mathbf{\Theta}^{(1)}$ foi usado sem transpor, chegando a $\mathbf{Z}^{(2)} = (3; 0)$; em (f), o viés $\mathbf{b}^{(1)}$ foi esquecido, o que deixa $\mathbf{A}^{(1)} = [\,0\ \ 4\,;\ 2\ \ 0\,]$ e $\mathbf{Z}^{(2)} = (6; 0)$; em (g), a saída da primeira instância foi repetida nas duas linhas; (h) combina o erro de (a), omitir a ReLU, com a inversão das instâncias de (c).
+
+    \item e. \textit{Forward pass:}
+    \[
+    \mathbf{z}^{(1)} = x\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)}
+    = \begin{bmatrix} 0{,}5 \cdot 2 + 1 & -1 \cdot 2 + 0{,}5 \end{bmatrix} = \begin{bmatrix} 2 & -1{,}5 \end{bmatrix},
+    \qquad
+    \mathbf{a}^{(1)} = \mathrm{ReLU}(\mathbf{z}^{(1)}) = \begin{bmatrix} 2 & 0 \end{bmatrix},
+    \]
+    \[
+    z^{(2)} = 1{,}5 \cdot 2 + 2 \cdot 0 - 0{,}5 = 2{,}5, \qquad \hat{y} = 2{,}5, \qquad J = \tfrac{1}{2}(3 - 2{,}5)^2 = 0{,}125 .
+    \]
+    \textit{Backward pass:} com saída linear, $\dfrac{\partial J}{\partial z^{(2)}} = \hat{y} - y = -0{,}5$. Propagando para a primeira unidade oculta,
+    \[
+    \frac{\partial J}{\partial a^{(1)}_1} = -0{,}5 \cdot \theta^{(2)}_1 = -0{,}5 \cdot 1{,}5 = -0{,}75,
+    \qquad
+    \frac{\partial J}{\partial z^{(1)}_1} = -0{,}75 \cdot \mathrm{ReLU}'(2) = -0{,}75 .
+    \]
+    Como $z^{(1)}_1 = \theta^{(1)}_1 x + b^{(1)}_1$, temos $\partial z^{(1)}_1 / \partial b^{(1)}_1 = 1$ e portanto $\partial J / \partial b^{(1)}_1 = -0{,}75$. A alternativa (a) é o gradiente da \emph{segunda} unidade, que está morta ($z^{(1)}_2 = -1{,}5 < 0$, logo $\mathrm{ReLU}' = 0$); (b) deriva $\tfrac{1}{2}(y - \hat{y})^2$ mantendo o fator $\tfrac{1}{2}$ na derivada; (c) para em $\partial J / \partial z^{(2)}$ e não multiplica pelo peso $\theta^{(2)}_1$; (d) usa $y - \hat{y}$ em vez de $\hat{y} - y$, invertendo o sinal do gradiente; (f) usa $\theta^{(2)}_2 = 2$ no lugar de $\theta^{(2)}_1 = 1{,}5$; (g) soma indevidamente os gradientes dos dois caminhos, $-0{,}75$ e $-0{,}5$; (h) trata o viés como um peso e multiplica o gradiente pela entrada $x = 2$.
+
+    \item c. Lendo os gráficos: $h_1 = \mathrm{ReLU}[0{,}6 - 0{,}5x]$ (ativa para $x < 1{,}2$), $h_2 = \mathrm{ReLU}[-0{,}2 + 0{,}5x]$ (ativa para $x > 0{,}4$) e $h_3 = \mathrm{ReLU}[-0{,}8 + 0{,}5x]$ (ativa para $x > 1{,}6$), com $\phi_1 = 1$, $\phi_2 = -1$ e $\phi_3 = 3$. Somando as três ativações ponderadas e $\phi_0 = 0{,}2$, as dobras ficam em $x = 0{,}4$, $1{,}2$ e $1{,}6$:
+    \[
+    \begin{array}{c|ccccc}
+    x & 0 & 0{,}4 & 1{,}2 & 1{,}6 & 2 \\\hline
+    \phi_1 h_1 & 0{,}6 & 0{,}4 & 0 & 0 & 0 \\
+    \phi_2 h_2 & 0 & 0 & -0{,}4 & -0{,}6 & -0{,}8 \\
+    \phi_3 h_3 & 0 & 0 & 0 & 0 & 0{,}6 \\\hline
+    y & 0{,}8 & 0{,}6 & -0{,}2 & -0{,}4 & 0
+    \end{array}
+    \]
+    A saída é linear por partes, com inclinações $-0{,}5$, $-1$, $-0{,}5$ e $+1$, o que corresponde ao gráfico (c). Em (a), o viés $\phi_0$ foi esquecido e a curva fica deslocada $0{,}2$ para baixo; (b) combina dois erros, esquece o viés $\phi_0$ e soma as ativações $h_k$ sem ponderá-las por $\phi_k$; em (d), somaram-se as pré-ativações em vez das ativações, e sem a ReLU a rede colapsa em uma reta, $y = -1{,}4 + 0{,}5x$; em (e), $h_2$ foi ativada no lado errado da dobra, como se a unidade valesse $\mathrm{ReLU}[0{,}2 - 0{,}5x]$; em (f), as ativações $h_k$ foram somadas sem ponderação por $\phi_k$; em (g), a contribuição de $h_3$ foi ignorada e a descida continua após $x = 1{,}6$; em (h), $h_1$ foi ativada no lado errado da dobra, como se a unidade valesse $\mathrm{ReLU}[-0{,}6 + 0{,}5x]$.
+
+    \item e. \textit{Forward:} $\mathbf{z}^{(1)} = x\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)} = 2\begin{bmatrix} 1 & -0{,}5 \end{bmatrix} + \begin{bmatrix} -1 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \end{bmatrix}$, $\mathbf{a}^{(1)} = \begin{bmatrix} 1 & 1 \end{bmatrix}$, $z^{(2)} = \mathbf{a}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + b^{(2)} = 2 - 1{,}5 - 0{,}5 = 0$ e $\hat{y} = \sigma(0) = 0{,}5$. \textit{Backward:} com a derivada dada no enunciado, $\partial J/\partial \hat{y} = -1/0{,}5 + 0 = -2$, e a derivada da sigmoide é $\sigma'(0) = \sigma(0)\bigl(1 - \sigma(0)\bigr) = 0{,}25$. Logo $\partial J/\partial z^{(2)} = -2 \cdot 0{,}25 = -0{,}5$, que coincide com a forma simplificada $\hat{y} - y$ (a derivada da sigmoide se cancela com a do logaritmo). Seguindo a regra da cadeia até $\theta^{(1)}_{21}$:
+    \[
+    \frac{\partial J}{\partial \theta^{(1)}_{21}}
+    = (\hat{y} - y)\cdot \theta^{(2)}_{12} \cdot \mathrm{ReLU}'(z^{(1)}_2) \cdot x
+    = (-0{,}5)(-1{,}5)(1)(2) = +1{,}5 .
+    \]
+    Em (a), o fator $x = 2$ foi esquecido; em (b), o peso $\theta^{(2)}_{12}$ foi esquecido; em (c), usou-se $y - \hat{y}$, trocando o sinal do gradiente; em (d), o fator $\sigma'(0) = 0{,}25$ foi aplicado duas vezes, por exemplo multiplicando a forma simplificada $\hat{y} - y$ por $\sigma'(0)$; em (f), usou-se a derivada dada, $\partial J/\partial \hat{y} = -2$, mas a derivada da sigmoide foi esquecida ao passar de $\hat{y}$ para $z^{(2)}$; (g) é $\partial J/\partial \theta^{(1)}_{11} = (-0{,}5)(2)(1)(2)$, o gradiente do outro peso; (h) combina a troca de sinal de (c) com o fator extra de (d).
 
     \item a. A regra da cadeia local exige apenas o gradiente \textit{upstream}, que resume todo o caminho da \textit{loss} até a saída do nodo, e a derivada local da operação do nodo em relação a cada entrada. Essa localidade é o que torna o \textit{backpropagation} eficiente. A alternativa (b) descreve diferenciação simbólica e (c) descreve diferenças finitas, métodos que a diferenciação automática substitui; (d) inverte a lógica, pois os gradientes dos parâmetros são o resultado do percurso, não um pré-requisito.
 
@@ -643,6 +1801,20 @@
         \end{itemize}
         $\mathbf{X}$ e $y$ são dados do problema, então não recebem gradiente.
     \end{enumerate}
+
+    \item g. O \textit{dropout} é um nodo \textbf{elemento a elemento}, como a ReLU, e não um nodo que mistura posições, como o \textit{matmul}. Para nodos desse tipo o \textit{backward} é a regra escalar aplicada posição a posição: multiplica-se o gradiente \textit{upstream} pela derivada local. Como $s_i = u_i\,x_i$ e $u_i$ é uma constante no \textit{backward} (foi sorteada no \textit{forward} e não é um parâmetro treinável), a derivada local é
+    \[
+    \frac{\partial s_i}{\partial x_i} = u_i \in \{0, 1\},
+    \qquad\text{logo}\qquad
+    \frac{\partial J}{\partial \mathbf{x}} = \mathbf{G} \odot \mathbf{u}.
+    \]
+    A máscara age como uma \emph{chave}: nas posições sorteadas com $u_i = 1$ o gradiente passa intacto, e nas posições com $u_i = 0$ ele é zerado, exatamente como a unidade desligada não contribuiu para a saída no \textit{forward}. Substituindo,
+    \[
+    \frac{\partial J}{\partial \mathbf{x}} = (4;\ 6;\ -2;\ 8) \odot (1;\ 0;\ 1;\ 1) = (4;\ 0;\ -2;\ 8).
+    \]
+    Note o paralelo com a ReLU exibida no enunciado: lá a derivada local é $\mathrm{ReLU}'(\mathbf{Z})$, que também vale $1$ ou $0$ por posição. O \textit{dropout} tem a mesma estrutura, com a diferença de que quem decide entre $1$ e $0$ é a máscara sorteada, e não o sinal da pré-ativação. Em (a), $\mathbf{G}$ é repassado intacto, tratando o \textit{dropout} como nodo de soma (\textit{distribuidor}) e ignorando a máscara; em (b), a regra do \textit{matmul} é aplicada à entrada errada, usando $\mathbf{G} \odot \mathbf{x}$, quando o ``outro fator'' do produto é $\mathbf{u}$; (c) devolve $\mathbf{u} \odot \mathbf{x}$, que é a \emph{saída} do nodo no \textit{forward}, não o gradiente; (d) usa a máscara invertida $\mathbf{1} - \mathbf{u}$, deixando passar gradiente exatamente nas posições que foram desligadas; (e) devolve a derivada local $\mathbf{u}$ isolada, esquecendo de multiplicar pelo gradiente \textit{upstream}; (f) combina os dois erros anteriores, calculando $\mathbf{G} \odot \mathbf{x} \odot \mathbf{u}$; (h) zera o gradiente inteiro por supor que um nodo com componente aleatória bloqueia a retropropagação, mas a máscara, embora aleatória, é uma constante conhecida no \textit{backward} e o caminho até $\mathbf{x}$ continua diferenciável.
+
+    \item a. Com classe correta $1$, a entropia cruzada é $-\ln \mathrm{softmax}(\mathbf{z})_1 = -z_1 + \ln\sum_j e^{z_j}$. \textbf{Original:} $-1 + \ln(e^1 + e^3 + e^1) = -1 + 1 + \ln(2 + e^{2}) = \ln 9{,}39 \approx 2{,}24$. \textbf{(A):} somar a mesma constante $c$ a todos os \textit{logits} multiplica numerador e denominador da SoftMax por $e^{c}$, então as probabilidades e o custo não mudam: $2{,}24$. É exatamente a propriedade que o truque do log-sum-exp explora. \textbf{(B):} $-2 + \ln(2e^{2} + e^{6}) = \ln(2 + e^{4}) = \ln 56{,}60 \approx 4{,}04$. Multiplicar os \textit{logits} por $2$ aumenta a diferença entre a classe errada ($z_2$) e a correta, a SoftMax fica mais confiante na classe errada e o custo cresce, mas sem dobrar. O segundo valor distingue quem sabe que a SoftMax é invariante a deslocamentos ($2{,}24$) de quem soma a constante ao custo ($7{,}24$), como se a entropia cruzada fosse linear nos \textit{logits}. O terceiro valor distingue o resultado correto ($4{,}04$) de três erros sobre a mudança de escala: supor que a SoftMax também é invariante a ela ($2{,}24$), tratar $\ln\sum_j e^{2z_j}$ como $2\ln\sum_j e^{z_j}$ e dobrar o custo ($4{,}48$), ou dividi-lo por dois ($1{,}12$), invertendo o efeito de aumentar a escala. Assim, (b) erra o deslocamento e acerta a escala; (c), (d) e (g) acertam o deslocamento e erram a escala (invariância, dobro e metade, respectivamente); (e), (f) e (h) erram as duas modificações.
 
     \item c. Estimar o gradiente com uma única observação caracteriza o \textit{Stochastic Gradient Descent}. O \textit{Batch Gradient Descent} usa o conjunto de treino inteiro em cada passo e o \textit{Mini Batch} usa subconjuntos com mais de uma observação; \textit{Deterministic Gradient Descent} não é uma variação padrão do algoritmo.
 
@@ -808,6 +1980,95 @@ Portanto, o valor de $\boldsymbol{\theta}_{2}$ ao seguir a regra de atualizaçã
 $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
     \end{enumerate}
 
+    \item e. Leitura das curvas: \textbf{A} sobe após uma queda inicial, ou seja, o custo diverge, comportamento típico de $\eta$ muito alta. \textbf{B} cai rápido mas passa a oscilar em torno de um patamar acima do mínimo: os passos são grandes demais para entrar no vale, $\eta$ alta. \textbf{C} decai de forma suave e estabiliza em valor baixo: $\eta$ adequada. \textbf{D} decai quase linearmente e muito devagar: $\eta$ muito baixa. Os erros embutidos nas demais alternativas se agrupam em três confusões: tratar a oscilação de B como se fosse convergência ($\eta$ adequada), ou como divergência (alternativas (a), (b) e (h)); tratar o declínio lento e constante de D como se fosse o regime adequado, quando na prática o treino não converge em tempo útil (alternativas (d) e (g)); e inverter divergência com lentidão, associando a curva ascendente A a $\eta$ pequena (alternativas (c) e (f)). Os sinais de cada regime são: divergência = custo crescente; $\eta$ alta = oscilação em patamar; adequada = queda suave até valor baixo; muito baixa = queda lenta quase linear.
+
+    \item d. Primeira iteração: $v_1 = 0{,}5 \cdot 0 + 0{,}5 \cdot 4 = 2$ e $\theta_1 = 1 - 0{,}1 \cdot 2 = 0{,}8$. Segunda iteração: $v_2 = 0{,}5 \cdot 2 + 0{,}5 \cdot 2 = 2$ e $\theta_2 = 0{,}8 - 0{,}1 \cdot 2 = 0{,}6$. A alternativa (a) $0{,}2$ resulta de omitir o fator $(1-\beta)$ (convenção Polyak/PyTorch, $v_{t+1} = \beta v_t + \nabla\mathcal{L}$), que não é a formulação dada no enunciado; (b) $0{,}4$ é o resultado de SGD puro, ignorando o acumulador de \textit{momentum}; (c) $0{,}5$ resulta de aplicar $(1-\beta)$ apenas na primeira iteração ($v_2 = 0{,}5\cdot 2 + 2 = 3$); (e) $0{,}7$ corresponde a um único passo com o gradiente médio ($\theta = 1 - 0{,}1 \cdot 3$); (f) $0{,}8$ é o valor de $\theta_1$, apenas uma iteração; (g) $1{,}0$ assume que o \textit{momentum} se anula e $\theta$ volta ao valor inicial, o que não ocorre, pois os gradientes têm o mesmo sinal; (h) $1{,}4$ resulta de somar em vez de subtrair as atualizações (subida de gradiente).
+
+    \item c. Com $m_0 = v_0 = 0$ e $g_1 = 3$: $m_1 = 0.1\cdot 3 = 0.3$ e $v_1 = 0.001\cdot 3^2 = 0.009$. Correção de viés em $t = 1$: $\hat{m}_1 = 0.3/(1-0.9) = 3$ e $\hat{v}_1 = 0.009/(1-0.999) = 9$, logo $\sqrt{\hat{v}_1} = 3$. A atualização é $|\Delta\theta| = \eta\,\hat{m}_1/(\sqrt{\hat{v}_1} + \epsilon) = 0.01\cdot 3/3 = 0.01$. No primeiro passo, com correção de viés, o módulo do passo iguala $\eta$ \emph{independentemente} da magnitude do gradiente (a correção de viés cancela exatamente os fatores $(1-\beta_1)$ e $\sqrt{1-\beta_2}$ quando $\epsilon \to 0$). A alternativa (b) $0.03 = \eta\,g$ corresponde à descida de gradiente simples, sem o segundo momento; (a) $0.0316 = \eta\,m_1/\sqrt{v_1}$ esquece a correção de viés; (d) e (g) têm ordens de grandeza incorretas; (e), (f) e (h) confundem $\hat{m}$, $\eta$ ou o gradiente com o tamanho do passo.
+
+    \item e. \textbf{I (V):} definições corretas de \textit{batch GD} (gradiente médio sobre todo o conjunto) e SGD estrito (uma instância por iteração). \textbf{II (V):} o momentum acumula uma média móvel exponencial dos gradientes, $v_t = \beta v_{t-1} + (1-\beta)\nabla\mathcal{L}$; com $\beta = 0$ recupera-se $\theta_{t+1} = \theta_t - \eta\nabla\mathcal{L}$. \textbf{III (V):} o AdaGrad acumula $G_t = \sum_t (\nabla\mathcal{L})^2$ (soma monotônica), de modo que o passo efetivo $\eta/\sqrt{G_t}$ por parâmetro decai ao longo do treino (o que motiva RMSProp/Adam, que usam média móvel exponencial no lugar da soma). \textbf{IV (F):} o momentum de Nesterov avalia o gradiente em uma posição de \textit{lookahead} ($\theta_t - \eta\,\beta v_t$), e não na posição atual. \textbf{V (F):} o efeito é o oposto. Como $\beta_1, \beta_2 \in (0,1)$, à medida que $t$ cresce $\beta_1^{t}, \beta_2^{t} \to 0$ e os denominadores $1-\beta_1^{t}, 1-\beta_2^{t} \to 1$; logo a correção de viés torna-se \emph{negligível} para $t$ grande. Ela é mais relevante justamente nas \emph{primeiras} iterações, em que $m_0 = v_0 = 0$ subestimam fortemente os momentos. Verdadeiras: I, II e III. As alternativas (a) e (h) incluem V (falsa); (b) e (c) incluem IV (falsa); (d) omite II; (f) troca III por V; (g) marca tudo.
+
+    \item a. O gradiente em $\boldsymbol{\theta}_t = (2;\ 1)$ é $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2\theta_1;\ 4\theta_2) = (4;\ 4)$, com $\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2 = 32$. A aproximação de primeira ordem prevê
+    \[
+    \Delta\mathcal{L} \approx -\eta\,\|\nabla_{\boldsymbol{\theta}}\mathcal{L}\|^2 = -0{,}1 \cdot 32 = -3{,}20 .
+    \]
+    O passo real leva a $\boldsymbol{\theta}_{t+1} = (2;\ 1) - 0{,}1\,(4;\ 4) = (1{,}6;\ 0{,}6)$, e
+    \[
+    \mathcal{L}(\boldsymbol{\theta}_t) = 4 + 2 = 6, \qquad
+    \mathcal{L}(\boldsymbol{\theta}_{t+1}) = 2{,}56 + 0{,}72 = 3{,}28, \qquad
+    \Delta\mathcal{L}_{\text{real}} = -2{,}72 .
+    \]
+    A diferença de $0{,}48$ é exatamente o termo de segunda ordem desprezado, $\tfrac{1}{2}\Delta\boldsymbol{\theta}^{\top}\nabla^2\mathcal{L}\,\Delta\boldsymbol{\theta}$ com $\nabla^2\mathcal{L} = \mathrm{diag}(2, 4)$ e $\Delta\boldsymbol{\theta} = (-0{,}4;\ -0{,}4)$. A queda real é sempre menor do que a prevista quando a loss é convexa: a aproximação linear é otimista. Em (b), os dois valores foram trocados de lugar, sugerindo que a queda real supera a prevista; (c) assume que a aproximação linear é exata, ignorando o termo quadrático; (d) aplica $\eta$ duas vezes na previsão, calculando $-\eta^2\|\nabla\mathcal{L}\|^2 = -0{,}32$; (e) esquece o fator $2$ ao avaliar $\mathcal{L}(\boldsymbol{\theta}_{t+1})$, obtendo $2{,}92$ em vez de $3{,}28$; (f) deriva $2\theta_2^2$ como se fosse $\theta_2^2$, usando $\nabla\mathcal{L} = (4;\ 2)$ na previsão e no passo; (g) inverte a relação e faz a queda real maior do que a prevista, o que não ocorre em uma loss convexa; (h) usa $\eta = 0{,}2$ na previsão, dobrando a queda esperada.
+
+    \item f. Pela aproximação de primeira ordem, $\mathcal{L}(\boldsymbol{\theta} + \eta\,\Delta\boldsymbol{\theta}) - \mathcal{L}(\boldsymbol{\theta}) \approx \eta\,\Delta\boldsymbol{\theta}^{\top}\nabla_{\boldsymbol{\theta}}\mathcal{L}$. Como $\eta > 0$, a loss cai apenas quando o produto escalar é negativo, o que equivale a um ângulo em $(90^\circ, 180^\circ]$ com o gradiente. Calculando com $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ 2)$:
+    \[
+    \mathbf{v}_1 \cdot \nabla\mathcal{L} = -8 \ (180^\circ), \quad
+    \mathbf{v}_2 \cdot \nabla\mathcal{L} = -4 \ (117^\circ), \quad
+    \mathbf{v}_3 \cdot \nabla\mathcal{L} = 0 \ (90^\circ),
+    \]
+    \[
+    \mathbf{v}_4 \cdot \nabla\mathcal{L} = +8 \ (27^\circ), \quad
+    \mathbf{v}_5 \cdot \nabla\mathcal{L} = +4 \ (63^\circ).
+    \]
+    Somente $\mathbf{v}_1$ e $\mathbf{v}_2$ têm produto escalar negativo. O vetor $\mathbf{v}_1 = -\nabla\mathcal{L}$ é o de maior redução prevista, mas não é o único que funciona: qualquer direção com componente contrária ao gradiente serve, e é isso que permite a otimizadores como o \textit{momentum} reduzirem a loss sem seguir exatamente $-\nabla\mathcal{L}$. A alternativa (a) supõe que apenas a direção exatamente oposta ao gradiente reduz a loss; (b) e (d) incluem $\mathbf{v}_3$, que é ortogonal ao gradiente, de modo que o produto escalar é zero e a loss não muda em primeira ordem; (c) e (e) incluem $\mathbf{v}_5$, que aponta visualmente ``para longe'' do gradiente, mas forma com ele um ângulo de apenas $63^\circ$ e portanto aumenta a loss; (g) inclui $\mathbf{v}_4$, que forma $27^\circ$ com o gradiente e é a pior escolha do conjunto; (h) inclui simultaneamente o caso neutro $\mathbf{v}_3$ e o caso que aumenta a loss $\mathbf{v}_5$.
+
+    \item c. Com $\mathbf{m}_0 = \mathbf{v}_0 = \mathbf{0}$, $\beta_1 = \beta_2 = 0{,}99$ e $\nabla_{\boldsymbol{\theta}}\mathcal{L} = (2;\ -4)$:
+    \[
+    \mathbf{m}_1 = 0{,}01\,(2;\ -4) = (0{,}02;\ -0{,}04),
+    \qquad
+    \mathbf{v}_1 = 0{,}01\,(4;\ 16) = (0{,}04;\ 0{,}16).
+    \]
+    \textit{Sem correção de viés:} $\sqrt{\mathbf{v}_1} = (0{,}2;\ 0{,}4)$ e
+    \[
+    \frac{\mathbf{m}_1}{\sqrt{\mathbf{v}_1}} = (0{,}1;\ -0{,}1),
+    \qquad
+    \boldsymbol{\theta}_1 = (4;\ -2) - 0{,}1\,(0{,}1;\ -0{,}1) = (3{,}99;\ -1{,}99).
+    \]
+    \textit{Com correção de viés (Adam), em $t + 1 = 1$:} $\widetilde{\mathbf{m}}_1 = \mathbf{m}_1/(1 - 0{,}99) = (2;\ -4)$ e $\widetilde{\mathbf{v}}_1 = \mathbf{v}_1/(1 - 0{,}99) = (4;\ 16)$, de modo que $\sqrt{\widetilde{\mathbf{v}}_1} = (2;\ 4)$ e
+    \[
+    \frac{\widetilde{\mathbf{m}}_1}{\sqrt{\widetilde{\mathbf{v}}_1}} = (1;\ -1),
+    \qquad
+    \boldsymbol{\theta}_1 = (4;\ -2) - 0{,}1\,(1;\ -1) = (3{,}90;\ -1{,}90).
+    \]
+    O passo por parâmetro vai de $0{,}01$ para $0{,}10$: a correção multiplica a primeira atualização por $10$ e devolve a magnitude a $\approx \eta$. É esse o papel dela. Como $\mathbf{m}_1$ e $\mathbf{v}_1$ partem de zero, as primeiras iterações subestimam fortemente os dois momentos, e sem a correção o treinamento começaria dando passos pequenos demais. Observação: o sentido do efeito depende de como $\beta_1$ e $\beta_2$ se comparam. O passo sem correção vale $\eta\,(1-\beta_1)/\sqrt{1-\beta_2}$ contra $\eta$ do Adam, ou seja, a correção \emph{aumenta} a primeira atualização exatamente quando $(1-\beta_1)^2 < 1-\beta_2$. Aqui $(0{,}01)^2 = 10^{-4} < 10^{-2}$, e a correção aumenta o passo. Com os valores padrão $\beta_1 = 0{,}9$ e $\beta_2 = 0{,}999$ a desigualdade se inverte e o efeito seria o oposto. Em (a), os dois otimizadores foram trocados de lugar; (b) calcula a versão sem correção como SGD puro, $\boldsymbol{\theta}_0 - \eta\,\nabla\mathcal{L}$; (d) corrige apenas $\mathbf{m}$ e esquece de corrigir $\mathbf{v}$, obtendo o quociente $(10;\ -10)$ no Adam; (e) assume que a correção de viés não altera a primeira atualização, quando é justamente nela que o efeito é máximo; (f) assume que o Adam também sofre a subestimativa, isto é, que a correção não faz nada; (g) atribui ao Adam o resultado do SGD puro; (h) corrige apenas $\mathbf{m}$ na versão que deveria estar \emph{sem} correção, e ainda troca os papéis dos dois otimizadores.
+
+    \item h. \textbf{1-(ii):} o \textit{momentum} é uma média móvel exponencial dos gradientes; componentes que trocam de sinal a cada passo (transversais ao vale) se cancelam, e os que mantêm o sinal (ao longo do vale) se acumulam. \textbf{2-(iv):} o Nesterov avalia o gradiente em $\boldsymbol{\theta}_t - \eta\beta\mathbf{v}_t$, o ponto para onde a memória levaria, e por isso reage à curvatura antes do \textit{momentum} clássico. \textbf{3-(iii):} o AdaGrad acumula $\mathbf{G}_{t+1} = \mathbf{G}_t + (\nabla\mathcal{L})^2$, que só cresce, então a taxa efetiva $\eta/(\sqrt{\mathbf{G}_{t+1}} + \epsilon)$ só diminui e o treinamento pode estacionar. \textbf{4-(i):} o RMSProp troca a soma por uma média móvel exponencial, $\mathbb{E}[g^2]$ esquece gradientes antigos e, quando os gradientes recentes ficam pequenos, a taxa efetiva volta a crescer. As alternativas combinam três confusões: (a) troca \textit{momentum} e Nesterov; (c) troca AdaGrad e RMSProp, atribuindo ao AdaGrad a capacidade de esquecer o histórico; (e) troca os dois pares ao mesmo tempo; (b), (d), (f) e (g) confundem as duas famílias, atribuindo aos métodos com memória (\textit{momentum} e Nesterov) os comportamentos da taxa adaptativa, e vice-versa, e (d), (f) e (g) ainda trocam, respectivamente, AdaGrad e RMSProp, \textit{momentum} e Nesterov, e os dois pares.
+
+    \item d. Pela aproximação dada no enunciado, o sinal da variação de cada objetivo é o sinal de $\Delta\boldsymbol{\theta}^{\top}\nabla_{\boldsymbol{\theta}}\mathcal{L}_k$, isto é, de $\cos(\alpha_k)$. Reduzir $\mathcal{L}_1$ exige $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta} < 0$ ($\alpha_1 > 90^{\circ}$), e manter $\mathcal{L}_2$ inalterada exige $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta} = 0$ ($\alpha_2 = 90^{\circ}$), ou seja, $\Delta\boldsymbol{\theta}$ ortogonal a $\nabla\mathcal{L}_2$. O passo do SGD, $\Delta\boldsymbol{\theta} = -\nabla\mathcal{L}_1$, falha porque $(\nabla\mathcal{L}_2)^{\top}(-\nabla\mathcal{L}_1) = -(-8 + 1) = 7 > 0$: os gradientes formam um ângulo maior que $90^{\circ}$, e descer em $\mathcal{L}_1$ significa subir em $\mathcal{L}_2$. \textbf{Construção da direção.} Removemos de $\nabla\mathcal{L}_1$ a sua componente na direção de $\nabla\mathcal{L}_2$ (projeção no complemento ortogonal, a ideia do \textit{gradient surgery}/PCGrad):
+    \[
+    \mathbf{g} = \nabla\mathcal{L}_1 - \frac{(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2}{\|\nabla\mathcal{L}_2\|^{2}}\,\nabla\mathcal{L}_2
+    = \begin{bmatrix} 4 \\ 1 \end{bmatrix} - \frac{-7}{5}\begin{bmatrix} -2 \\ 1 \end{bmatrix}
+    = \begin{bmatrix} 1{,}2 \\ 2{,}4 \end{bmatrix},
+    \]
+    e descemos ao longo dela, $\Delta\boldsymbol{\theta} \propto -\mathbf{g} \propto \bigl[\,-1 \quad -2\,\bigr]^{\top}$. Verificando: $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta} = -4 - 2 = -6 < 0$ e $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta} = 2 - 2 = 0$. Em duas dimensões essa é a única direção (a menos de escala positiva) que atende às duas condições; basta testar os produtos escalares das alternativas, sem precisar da fórmula de projeção.
+    \begin{center}
+    \begin{tabular}{clrrl}
+    & $\Delta\boldsymbol{\theta}$ & $(\nabla\mathcal{L}_1)^{\top}\Delta\boldsymbol{\theta}$ & $(\nabla\mathcal{L}_2)^{\top}\Delta\boldsymbol{\theta}$ & estratégia que a alternativa representa \\\hline
+    (a) & $[-4\ \ -1]^{\top}$ & $-17$ & $+7$ & SGD puro, ou qualquer reescala dele \\
+    (b) & $[-1\ \ -1]^{\top}$ & $-5$ & $+1$ & sinal do gradiente (Adam com histórico estável) \\
+    (c) & $[-2\ \ -2]^{\top}$ & $-10$ & $+2$ & soma dos gradientes dos dois objetivos \\
+    (d) & $[-1\ \ -2]^{\top}$ & $-6$ & $0$ & projeção no complemento ortogonal de $\nabla\mathcal{L}_2$ \\
+    (e) & $[-2\ \ 1]^{\top}$ & $-7$ & $+5$ & projeção \emph{sobre} $\nabla\mathcal{L}_2$ \\
+    (f) & $[1\ \ 2]^{\top}$ & $+6$ & $0$ & projeção correta com o sinal do passo trocado \\
+    (g) & $[1\ \ -4]^{\top}$ & $0$ & $-6$ & direção ortogonal a $\nabla\mathcal{L}_1$ \\
+    (h) & $[-6\ \ 0]^{\top}$ & $-24$ & $+12$ & $-\nabla\mathcal{L}_1 + \nabla\mathcal{L}_2$ \\
+    \end{tabular}
+    \end{center}
+    A alternativa (a) é o próprio passo do SGD; reduzir $\eta$, normalizar ou aplicar \textit{clipping} na norma só mudam o tamanho do passo, e a degradação de $\mathcal{L}_2$ continua. (b) é o que o Adam faz com histórico estável: normalizar entrada a entrada muda a direção, mas não a torna ortogonal a $\nabla\mathcal{L}_2$. (c) desce na soma $\mathcal{L}_1 + \mathcal{L}_2$; como $\|\nabla\mathcal{L}_2\|^2 = 5 < 7 = -(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2$, o conflito domina e $\mathcal{L}_2$ ainda piora. (e) guarda exatamente a componente que devia ser removida: é a direção de $\nabla\mathcal{L}_2$, que sobe em $\mathcal{L}_2$. (f) é ortogonal a $\nabla\mathcal{L}_2$, mas sobe em $\mathcal{L}_1$, porque aplica $+\mathbf{g}$ em vez de $-\mathbf{g}$. (g) melhora apenas $\mathcal{L}_2$ e deixa $\mathcal{L}_1$ parada em primeira ordem, invertendo o papel dos objetivos. (h) soma $\nabla\mathcal{L}_2$ ao passo em vez de subtraí-lo, agravando a degradação. Observe que ortogonalizar a matriz de atualização, como faz o Muon, é diferente de tornar a atualização ortogonal a uma direção dada; nenhum dos otimizadores vistos em aula resolve esse conflito sozinho.
+
+    \item f. \textbf{Adam.} Com histórico estável, $\widetilde{\mathbf{m}}/\sqrt{\widetilde{\mathbf{v}}} = \mathbf{M}_{t+1}/|\mathbf{M}_{t+1}|$ entrada a entrada: cada entrada anda com a mesma magnitude, no sentido do seu próprio sinal. Todas as entradas de $\mathbf{M}_{t+1}$ são positivas, então
+    \[
+    \mathbf{D}_{\text{Adam}} = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix},
+    \]
+    uma matriz de \textit{rank} 1: a SVD de $\mathbf{M}_{t+1}$ não é usada, e o Adam descarta a segunda direção singular por completo. \textbf{Muon.} O Muon troca $\mathbf{M}_{t+1}$ pela matriz ortogonal mais próxima, mantendo as direções singulares e fazendo todos os valores singulares iguais a $1$, isto é, trocando $\boldsymbol{\Sigma}$ pela identidade:
+    \[
+    \mathbf{D}_{\text{Muon}} = \mathbf{U}\mathbf{V}^{\top}
+    = \frac{1}{25}\begin{bmatrix} 3 & -4 \\ 4 & 3 \end{bmatrix}\begin{bmatrix} 4 & 3 \\ -3 & 4 \end{bmatrix}
+    = \frac{1}{25}\begin{bmatrix} 24 & -7 \\ 7 & 24 \end{bmatrix}
+    = \begin{bmatrix} 0{,}96 & -0{,}28 \\ 0{,}28 & 0{,}96 \end{bmatrix}.
+    \]
+    A direção dominante ($\sigma_1 = 20$) e a secundária ($\sigma_2 = 5$) passam a receber passos do mesmo tamanho, enquanto no SGD com \textit{momentum} a segunda recebe um passo quatro vezes menor. As alternativas (a) e (e) calculam $\mathbf{V}\mathbf{U}^{\top}$ para o Muon, a transposta da resposta, que gira no sentido oposto; (b), (d), (e) e (h) atribuem ao Adam a ortogonalização da matriz inteira, quando o Adam normaliza cada entrada separadamente; (c) e (h) atribuem ao Muon a normalização entrada a entrada do Adam; (d) e (g) tomam como direção do Muon $\mathbf{M}_{t+1}/\sigma_1$, que só reescala o \textit{momentum} e mantém a razão $\sigma_1/\sigma_2 = 4$, como no SGD.
+
     \item e. A softmax normaliza os \textit{logits} para que as saídas sejam positivas e somem 1, produzindo uma distribuição de probabilidade sobre classes mutuamente exclusivas, que é o que o problema multiclasse exige. As demais ativações produzem valores por unidade sem a restrição de somarem 1, então não formam uma distribuição sobre as classes.
 
     \item b. No problema \textit{multilabel} cada classe é uma decisão binária independente, então cada saída precisa de uma probabilidade própria em $[0,1]$, o que a sigmoid fornece. A softmax (e) forçaria as classes a competir entre si, pois as probabilidades somariam 1, o que impede múltiplas classes simultâneas.
@@ -867,6 +2128,53 @@ $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
 
     \item \emoji{skull-and-crossbones} $\sum _{i=1}^{I}(f[x^{(i)},\theta] - y^{(i)}ln(f[x^{(i)},\theta]))$ \quad ({\footnotesize a NLL de cada observação é $-\ln Pr(y^{(i)}) = -y^{(i)}\ln\lambda + \lambda + \ln(y^{(i)}!)$; com $\lambda = f[x^{(i)},\theta]$, o termo $\ln(y^{(i)}!)$ não depende de $\theta$ e cai como constante, restando a soma apresentada})
 
+    \item e. \textbf{I é correta:} a saturação da sigmoide leva $\sigma'(z) \to 0$ para $|z|$ grande; em redes profundas o produto de derivadas pequenas decai ao longo das camadas (gradiente desaparece nas iniciais). \textbf{II é incorreta:} a ReLU \textit{pode} morrer (\textit{dying ReLU}). Se uma unidade passa a receber consistentemente entradas negativas, sua saída fica em zero e $\mathrm{ReLU}'(z) = 0$, de modo que o gradiente em relação aos pesos dessa unidade é nulo e ela deixa de aprender. \textbf{III é correta:} $\tanh'(z) = 1 - \tanh^2(z)$ atinge máximo $1$ em $z = 0$, enquanto $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ atinge máximo $0.25$ em $z = 0$. Em regiões não saturadas a tanh propaga gradientes até cerca de $4\times$ maiores do que a sigmoide, o que tipicamente acelera a convergência da descida de gradiente em comparação com a sigmoide. Logo, apenas I e III estão corretas. As alternativas (a), (b) e (c) excluem afirmações corretas; (d), (f) e (g) incluem a afirmação II, que é falsa; (h) contradiz I e III.
+
+    \item c. A combinação ``sigmoide em todas as camadas + rede profunda + inicialização $\mathcal{N}(0, 1)$'' produz pré-ativações com módulo grande, levando a saturação da sigmoide; $\sigma'$ pequeno multiplicado camada a camada faz com que o gradiente desapareça nas camadas iniciais. A correção padrão é trocar a sigmoide das ocultas por ReLU/Leaky ReLU (cujas derivadas não saturam) e usar inicialização adequada (He), mantendo sigmoide na saída por se tratar de classificação binária. Em (a), aumentar a taxa de aprendizado em duas ordens de grandeza tipicamente leva a divergência, e não cura gradientes que já chegam praticamente nulos às primeiras camadas devido à saturação da sigmoide; em (b), reduzir a profundidade ``resolve'' o sintoma mas remove a vantagem representacional da rede, portanto não é a melhor mitigação; em (d), L2 loss combinada com sigmoide na saída \emph{piora} o gradiente (introduz fator $\sigma'$ adicional); em (e), pesos zerados eliminam toda quebra de simetria e a rede não consegue aprender; em (f), SoftMax é apropriada para multiclasse com rótulo único, o problema é binário e a saturação ocorre nas camadas \emph{ocultas}, não na saída; em (g), \textit{dropout} desliga unidades e não aumenta o gradiente; em (h), Adam ajusta passos por estimativas adaptativas, mas se o gradiente real é praticamente zero o sinal de aprendizado continua ausente: Adam ajuda, mas isolado não cura o problema da saturação.
+
+    \item f. Com sigmoide + entropia cruzada binária (e analogamente SoftMax + entropia cruzada multinomial), o gradiente $\partial \mathcal{L}/\partial z$ em relação aos \textit{logits} simplifica-se a $\hat{y} - y$. Esse cancelamento elimina o termo $\sigma'(z)$, que tende a zero quando a sigmoide satura, e fornece um sinal de aprendizado bem-comportado mesmo quando a predição está muito errada, fator crítico para a estabilidade do treinamento. Em (a), \textit{overfitting} é tratado por regularização, não pela escolha do par ativação/custo da saída; (b) é parcialmente verdadeira para o intervalo, mas \emph{não} é a razão principal, pois outras combinações também produziriam saídas no intervalo, sem o ganho computacional; em (c), \textit{backpropagation} funciona com qualquer composição diferenciável; em (d), o teorema da aproximação universal não exige nenhum pareamento específico de saída/custo; em (e), a função de custo da rede como um todo \emph{não} é convexa nos pesos, mesmo com esse pareamento (a convexidade vale apenas para a regressão logística com uma única camada); em (g), a escolha não altera a contagem de parâmetros; em (h), sem o pareamento o gradiente \emph{não} é zero, é apenas pior comportado (com termos de saturação).
+
+    \item a. \textbf{I (V):} BCE deriva da máxima verossimilhança Bernoulli; MSE da Gaussiana com variância fixa. \textbf{II (V):} $\sigma'(z)$ é máxima em $z = 0$, com $\sigma'(0) = \tfrac{1}{4}$, e $\tanh'(0) = 1$. \textbf{III (F):} a matriz Jacobiana da \textit{softmax} \emph{não} é diagonal: $\partial S_i/\partial z_j = -S_i S_j$ para $i \neq j$ (e $S_i(1-S_i)$ para $i = j$). \textbf{IV (F):} o MSE \emph{pode} ser usado em classificação binária (a rede treina), apenas é menos bem fundamentado estatisticamente e costuma convergir mais devagar do que a entropia cruzada; ``não treina'' é falso. \textbf{V (V):} $\mathrm{ReLU}'(z) = 1$ para $z > 0$, sem saturação no ramo positivo, mitigando o desaparecimento do gradiente. Verdadeiras: I, II e V. A alternativa (e) inclui III (falsa); (c) e (f) incluem IV (falsa); (b) omite V; (d) troca I por III; (g) e (h) incluem afirmações falsas.
+
+    \item
+    \begin{enumerate}[a)]
+        \item \textbf{F.} A expressão $(K - 1)\,D^2$ conta apenas os pesos das $K - 1$ transições entre camadas ocultas, ignorando os $D$ \textit{biases} de cada camada oculta de destino (ou seja, das camadas $h_2, h_3, \ldots, h_K$), totalizando $(K - 1)\,D$ parâmetros omitidos. Decompondo (pesos + \textit{biases} da camada de destino): entrada para a primeira oculta tem $1 \cdot D + D = 2D$ parâmetros; cada uma das $K - 1$ transições entre camadas ocultas tem $D \cdot D + D = D(D+1)$ parâmetros (não apenas $D^2$); última oculta para a saída tem $D \cdot 1 + 1 = D + 1$ parâmetros. \textit{Modificação:} substituir $(K - 1)\,D^2$ por $(K - 1)\,D(D+1)$, totalizando $3D + 1 + (K - 1)\,D(D+1)$.
+        \item \textbf{F.} As definições estão invertidas. \textit{Modificação:} a \textbf{descida de gradiente em lote} (\textit{batch GD}) calcula o gradiente sobre \emph{todo} o conjunto de treinamento a cada iteração; a \textbf{SGD} (\textit{Stochastic Gradient Descent}) calcula o gradiente sobre uma \emph{única} instância (ou um \textit{mini-batch} pequeno) a cada iteração.
+        \item \textbf{V.} Descrição correta do desaparecimento do gradiente em redes profundas com sigmoide. Também vale mencionar o efeito multiplicativo $(\le 0.25)^L$ ao longo de $L$ camadas.
+        \item \textbf{F.} A entropia cruzada binária decorre da máxima verossimilhança assumindo $y_i \mid \hat{y}_i \sim \mathrm{Bernoulli}(\hat{y}_i)$, \emph{não} Gaussiana. Para $y \in \{0,1\}$, a verossimilhança é $p(y \mid \hat{y}) = \hat{y}^{y}(1-\hat{y})^{1-y}$ e $-\log p$ resulta exatamente em $-[y\log \hat{y} + (1-y)\log(1-\hat{y})]$. A hipótese Gaussiana com variância fixa, ao contrário, conduz ao MSE (regressão), não à entropia cruzada. \textit{Modificação:} substituir ``Gaussiana de média $\hat{y}_i$ e variância fixa'' por ``Bernoulli de parâmetro $\hat{y}_i$''.
+        \item \textbf{F.} Com pesos zero, todas as unidades de uma camada computam a mesma pré-ativação, recebem o mesmo gradiente e portanto sofrem a mesma atualização: a simetria \emph{nunca} é quebrada por \textit{backpropagation}, e as unidades permanecem idênticas indefinidamente. \textit{Modificação:} é necessário inicializar os pesos com pequenos valores \emph{aleatórios} (e.g., Xavier/He); só essa aleatoriedade quebra a simetria entre unidades de uma mesma camada.
+    \end{enumerate}
+
+    \item b. Seguindo a receita vista em aula, a função de custo é a \textit{negative log-likelihood}. Para observações independentes a verossimilhança é o produto das densidades, e o logaritmo transforma produto em soma. Note que o expoente $1/(2\sigma^2)$ incide sobre \emph{os dois} fatores da densidade:
+    \[
+    -\ln \Pr(y \mid \mu, \sigma)
+     = \frac{(y - \mu)^2}{2\sigma^2} - \frac{1}{2\sigma^2}\ln\bigl|\cos(y - \mu)\bigr| + \ln Z(\sigma)
+     = \frac{1}{2\sigma^2}\Bigl[ (y - \mu)^2 - \ln\bigl|\cos(y - \mu)\bigr| \Bigr] + \ln Z(\sigma),
+    \]
+    \[
+    \mathcal{L} = \frac{1}{2\sigma^2}\sum_{i=1}^{N} \Bigl[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \Bigr] + N\ln Z(\sigma).
+    \]
+    Duas coisas podem ser descartadas, por motivos diferentes. A constante de normalização $N \ln Z(\sigma)$ é um termo \textbf{aditivo} que não depende de $\boldsymbol{\theta}$: ela desloca o valor da loss sem mover o mínimo. Já $1/(2\sigma^2)$ é um fator \textbf{multiplicativo global e positivo}, que multiplica tudo que depende de $\boldsymbol{\theta}$; como $\arg\min_{\boldsymbol{\theta}} c\,f(\boldsymbol{\theta}) = \arg\min_{\boldsymbol{\theta}} f(\boldsymbol{\theta})$ para $c > 0$, ele também sai sem alterar a solução. Sobra
+    \[
+    \mathcal{L} = \sum_{i=1}^{N} \Bigl[ \bigl(y^{(i)} - \mu^{(i)}\bigr)^2 - \ln\bigl|\cos(y^{(i)} - \mu^{(i)})\bigr| \Bigr].
+    \]
+    Lendo o resultado: o primeiro termo é o erro quadrático usual, herdado do fator exponencial. O segundo depende apenas do resíduo $r^{(i)} = y^{(i)} - \mu^{(i)}$: como $-\ln|\cos(r)|$ vale $0$ em $r = 0$ e cresce sem limite quando $|r| \to \pi/2$, ele penaliza resíduos grandes de forma bem mais agressiva que a quadrática nessa faixa. A alternativa (a) não nega o segundo termo: minimizar $+\ln|\cos(r)|$ empurra o resíduo \emph{para longe} de zero, na direção oposta à indicada pela verossimilhança. (c) é o erro mais instrutivo: mantém $1/(2\sigma^2)$ apenas no termo quadrático, como se o expoente da densidade incidisse só no fator exponencial; aí o $\sigma$ deixa de ser um fator global e passa a ser o \emph{peso relativo} entre os dois termos, e o ponto de mínimo muda com $\sigma$ (um fator constante só pode ser descartado quando multiplica a expressão inteira). (d) nega apenas o termo quadrático, o que faria a rede maximizar o erro de predição. (e) mantém o produto dos dois fatores; o logaritmo da verossimilhança converte produto em soma, não em produto. (f) esquece o logaritmo sobre $|\cos(r)|$, mantendo esse fator na escala original enquanto o outro termo já está no domínio logarítmico. (g) aplica o cosseno a $\mu$ em vez do resíduo $y - \mu$, trocando um termo que depende do erro por um que depende só da predição. (h) inverte o sinal da soma inteira, o que corresponde a \emph{maximizar} a NLL em vez de minimizá-la.
+
+    \item h. \textbf{1-(iii):} a derivada da sigmoide, $\sigma'(z) = \sigma(z)(1 - \sigma(z))$, tem máximo $0{,}25$ em $z = 0$. Empilhando camadas, a regra da cadeia multiplica esses fatores e o gradiente decai exponencialmente com a profundidade, mesmo sem saturação. \textbf{2-(ii):} vieses muito negativos deixam a pré-ativação abaixo de zero para todas as instâncias. Como $\mathrm{ReLU}'(z) = 0$ para $z < 0$, a unidade nunca recebe gradiente e não consegue voltar, o que caracteriza o \textit{dying ReLU}. \textbf{3-(i):} a tanh é centrada em zero, o que a diferencia da sigmoide e ajuda na propagação, mas ela também satura nos dois extremos, com $\tanh'(z) \to 0$ para $|z|$ grande. \textbf{4-(iv):} a composição de transformações afins é uma transformação afim. Sem não-linearidade,
+    \[
+    \mathbf{\Theta}^{(2)}\bigl(\mathbf{\Theta}^{(1)}\mathbf{x} + \mathbf{b}^{(1)}\bigr) + \mathbf{b}^{(2)}
+    = \bigl(\mathbf{\Theta}^{(2)}\mathbf{\Theta}^{(1)}\bigr)\mathbf{x} + \bigl(\mathbf{\Theta}^{(2)}\mathbf{b}^{(1)} + \mathbf{b}^{(2)}\bigr),
+    \]
+    que é uma única camada, independentemente da profundidade. Em (a), sigmoide e tanh foram trocadas: o fator $0{,}25$ é o máximo da derivada da sigmoide, não da tanh; (b) dá à ReLU a saturação centrada em zero da tanh e à tanh o \textit{dying ReLU}, que exige derivada exatamente nula em um intervalo; (c) dá o \textit{dying ReLU} à sigmoide, cuja derivada nunca é exatamente zero, e o fator $0{,}25$ à ReLU; (d) acerta as duas primeiras associações, mas troca tanh e identidade, e a tanh não colapsa a rede em uma transformação afim; (e) tira o fator $0{,}25$ da sigmoide e coloca o \textit{dying ReLU} na tanh, que satura sem nunca zerar a derivada; (f) troca sigmoide e identidade, e a sigmoide não torna a rede equivalente a uma única camada; (g) embaralha as três primeiras descrições, deixando o \textit{dying ReLU} na sigmoide e o fator $0{,}25$ na tanh.
+
+    \item e. Em um classificador linear o \textit{logit} é $z = \mathbf{x}^{\top}\boldsymbol{\theta}$, afim nos parâmetros, de modo que a convexidade da função de custo em $z$ se transfere para os parâmetros. A entropia cruzada binária é convexa em $z$; já o erro quadrático composto com a sigmoide, $\bigl(\sigma(z) - y\bigr)^2$, não é. Como a sigmoide satura nas duas pontas, essa composição produz regiões praticamente planas e curvatura que troca de sinal, e a superfície passa a admitir mínimos locais e platôs em que a descida de gradiente pode estacionar longe do mínimo global. Foi por isso que, ao adaptar a regressão linear para classificação, trocamos o custo quadrático pela entropia cruzada. A alternativa (a) afirma que a convexidade é preservada, o que é justamente o que se perde na composição com a sigmoide; (b) inverte os papéis, pois a entropia cruzada é a que permanece convexa em $z$; (c) supõe que ambas perdem a convexidade, o que tornaria a escolha indiferente, mas a entropia cruzada não perde; (d) atribui a convexidade à profundidade da rede, mas aqui o modelo é linear e a diferença vem exclusivamente da função de custo; (f) confunde perda de convexidade com perda de diferenciabilidade, e a sigmoide é diferenciável em todo o domínio, inclusive nas regiões saturadas; em (g), a derivada não é constante, ela é próxima de zero nas regiões saturadas, o que trava o treinamento em vez de fazê-lo divergir; em (h), a descida de gradiente não garante o mínimo global de funções não convexas, que é exatamente o problema levantado.
+
+    \item b. A NLL das $N$ observações é
+    \[
+    -\sum_{i}\ln\Pr\bigl(y^{(i)} \mid \lambda^{(i)}\bigr) = \sum_{i}\Bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)} + \ln y^{(i)}!\Bigr],
+    \]
+    e $\ln y^{(i)}!$ não depende de $\boldsymbol{\theta}$, logo $\mathcal{L} = \sum_i\bigl[\lambda^{(i)} - y^{(i)}\ln\lambda^{(i)}\bigr]$. A saída da rede precisa ser estritamente positiva e sem limite superior, porque $\lambda$ é a média de uma contagem; a \textit{softplus}, $\ln(1 + e^{z})$, atende as duas exigências. Em (a), a sigmoide limita $\lambda$ a $(0, 1)$ e impede prever médias acima de uma chamada por hora; em (c), a identidade permite $\lambda \leq 0$ e deixa $\ln\lambda$ indefinido; em (d), a ReLU produz $\lambda = 0$ em toda a região negativa, $\ln 0$ diverge e o gradiente se anula; (e) escreve a log-verossimilhança sem o sinal negativo, e minimizá-la equivale a \emph{minimizar} a verossimilhança; (f), (g) e (h) combinam o sinal trocado de (e) com as ativações inadequadas de (a), (d) e (c), respectivamente.
+
     \item c. Com todos os pesos iguais, todas as unidades de uma mesma camada computam a mesma pré-ativação e a mesma saída; no \textit{backward}, recebem gradientes idênticos e são atualizadas de forma idêntica. A simetria nunca é quebrada e a camada se comporta como se tivesse uma única unidade. Note que os gradientes não são nulos (a): o problema não é ausência de atualização, e sim atualização idêntica em todas as unidades.
 
     \item b. Pesos com variância grande produzem pré-ativações de magnitude grande, que colocam a sigmoid nas regiões saturadas onde a derivada é praticamente zero; no \textit{backpropagation} isso dissipa o gradiente antes de chegar às camadas iniciais. Unidades mortas (a) são um fenômeno da ReLU, não da sigmoid, e (c) descreve o cenário oposto, de $\sigma$ pequeno demais.
@@ -891,6 +2199,24 @@ $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
         \item Com $\varphi(z)\approx z$, o segundo momento da ativação passa a ser $E[\varphi(z)^2]\approx\sigma^2_{z^{(l-1)}}$, sem o fator $\frac{1}{2}$ da ReLU. A recorrência vira $\sigma^2_{z^{(l)}}=n^{(l-1)}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$ e a condição de preservação dá $\sigma_\theta^2=\frac{1}{n^{(l-1)}}$, que é a inicialização \textit{Xavier}.
     \end{enumerate}
 
+    \item d. He propôs (\textit{He et al., 2015}) usar $\mathrm{Var}(W) = 2/n_{\text{in}}$ assumindo ReLU; o fator 2 compensa a probabilidade aproximada de $1/2$ de a pré-ativação ser zerada pela ReLU, mantendo a variância das ativações estável ao longo da profundidade. Em (a), pesos zero geram unidades idênticas e o gradiente não quebra essa simetria; em (b), a mesma constante para todos os pesos também viola a quebra de simetria entre unidades; em (c), Xavier é apropriada para tanh/sigmoide (regime aproximadamente linear), e para ReLU o fator 2 ausente faz com que a variância das ativações encolha camada a camada; em (e), uniforme em $[-1, 1]$ ignora $n_{\text{in}}$, e em redes profundas isso faz a variância das ativações explodir ou colapsar; em (f), PCA produz uma inicialização determinística, que não é prática padrão e não tem garantia teórica para esse fim; em (g), apenas inicializar os \textit{biases} aleatoriamente não basta, pois pesos com mesmo valor produzem saídas idênticas independentemente do \textit{bias}; em (h), $\mathcal{N}(0, 1)$ sem reescala em rede profunda sob ReLU faz a variância explodir, e não basta diminuir a taxa de aprendizado.
+
+    \item e. Com vieses nulos, a análise vista em aula dá, na primeira camada (a entrada não passa por ReLU e, como $\mathbb{E}[x_j] = 0$, o segundo momento é $\mathbb{E}[x_j^2] = \mathrm{Var}[x_j] = 1$),
+    \[
+    \sigma^2_{z^{(1)}} = n\,\sigma_\theta^2 ,
+    \]
+    e, a partir da segunda camada, $\sigma^2_{z^{(l)}} = \tfrac{n}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$: a ReLU zera metade da distribuição e o segundo momento cai pela metade. Assim, o desvio padrão da primeira camada é $\sqrt{n\sigma_\theta^2}$ e, a cada camada seguinte, ele é multiplicado por $\sqrt{n\sigma_\theta^2/2}$:
+    \[
+    \begin{array}{c|c|c|cccc|c}
+     & n\sigma_\theta^2 & \text{fator por camada} & \mathbf{Z}^{(1)} & \mathbf{Z}^{(2)} & \mathbf{Z}^{(3)} & \mathbf{Z}^{(4)} & \text{linha}\\\hline
+    1/(4n) & 0{,}25 & \sqrt{0{,}125} \approx 0{,}35 & 0{,}50 & 0{,}18 & 0{,}06 & 0{,}02 & \text{S}\\
+    1/n & 1 & \sqrt{0{,}5} \approx 0{,}71 & 1{,}00 & 0{,}71 & 0{,}50 & 0{,}35 & \text{P}\\
+    2/n & 2 & 1 & 1{,}41 & 1{,}41 & 1{,}41 & 1{,}41 & \text{R}\\
+    4/n & 4 & \sqrt{2} \approx 1{,}41 & 2{,}00 & 2{,}83 & 4{,}00 & 5{,}66 & \text{Q}
+    \end{array}
+    \]
+    Os desvios padrão medidos na simulação que gerou a figura ficam próximos desses valores (o maior desvio é em Q, $\mathbf{Z}^{(4)}$: $5{,}54$ medido contra $5{,}66$ previsto). A leitura da figura: R mantém a mesma largura nas quatro camadas (inicialização de He); Q se alarga a cada camada (\textit{exploding}); P e S encolhem, mas S já começa mais estreita que P em $\mathbf{Z}^{(1)}$ e vira uma agulha em $\mathbf{Z}^{(2)}$, enquanto P ainda tem largura visível em $\mathbf{Z}^{(4)}$. Logo, 1-S, 2-P, 3-R e 4-Q. Em (a), $1/n$ e $2/n$ foram trocados, como se $\sigma_\theta^2 = 1/n$ (Xavier com \textit{fan-in}) preservasse a variância; isso vale para a tanh perto da origem, mas a ReLU exige o fator $2$. (b) troca os dois pares vizinhos, $1/(4n)$ com $1/n$ e $2/n$ com $4/n$, ignorando que S já é a mais estreita na primeira camada e tomando a linha que se alarga pela estável. (c) inverte toda a ordem, como se pesos com variância maior produzissem pré-ativações mais estreitas. (d) coloca $1/n$ na linha que explode e $2/n$ na que colapsa, deixando $4/n$ na estável. (f) coloca $1/(4n)$ na linha estável e $4/n$ em P, que encolhe a cada camada. (g) troca apenas os extremos, $1/(4n)$ e $4/n$. (h) coloca $1/(4n)$ na linha estável, $1/n$ na que explode, $2/n$ na que colapsa e $4/n$ em P, que encolhe.
+
     \item a, b. Basta substituir na fórmula: com $\alpha=1$ o termo \textit{one-hot} é anulado e sobra $\frac{1}{C}$ em todas as classes, o alvo uniforme (a); com $\alpha=0$ a fórmula devolve o alvo \textit{one-hot} original, sem nenhuma suavização (b), o que também mostra que (d) está invertida. O valor de $\alpha$ (c) é um hiperparâmetro de intensidade da suavização, não uma função da quantidade de observações do conjunto.
 
     \item b. A penalidade L1 empurra componentes pequenos até exatamente zero (os vértices do losango da bola L1 ficam sobre os eixos), induzindo esparsidade; a L2 encolhe as magnitudes sem zerá-las, o que exclui (a). Na visão probabilística, L1 corresponde a um \textit{prior} laplaciano e L2 ao gaussiano, o que exclui (c); e ambas diminuem a magnitude dos pesos, o contrário de (d).
@@ -907,6 +2233,16 @@ $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
 
     \item O \textit{early stopping} monitora o desempenho da rede em um conjunto de validação ao longo do treinamento e interrompe o processo antes que a \textit{loss} de validação volte a subir, ainda que a \textit{loss} de treino continue caindo. O hiperparâmetro \textit{patience} define quantas iterações sem melhoria na validação são toleradas antes de parar, evitando interromper o treino por flutuações passageiras. O efeito é análogo ao da regularização L2 porque, ao limitar o número de atualizações, os pesos não têm tempo de crescer indiscriminadamente e permanecem com magnitude contida, assim como o \textit{weight decay} os mantém próximos da origem. O benefício adicional é a economia de tempo de computação, já que o treinamento termina mais cedo.
 
+
+    \item b. \textbf{Camada 1:} $\mathbf{z}^{(1)} = x\,{\mathbf{\Theta}^{(1)}}^{\top} + \mathbf{b}^{(1)} = 2\begin{bmatrix} -1 & 2 \end{bmatrix} + \begin{bmatrix} 3 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 5 \end{bmatrix} = \mathbf{a}^{(1)}$ (os dois valores são positivos e a ReLU não os altera). \textbf{\textit{Dropout}} ($p = 0{,}5$, escala $1/(1-p) = 2$): $\widetilde{\mathbf{a}}^{(1)} = 2\begin{bmatrix} 1 & 0 \end{bmatrix} \odot \begin{bmatrix} 1 & 5 \end{bmatrix} = \begin{bmatrix} 2 & 0 \end{bmatrix}$. \textbf{Camada 2:}
+    \[
+    \mathbf{z}^{(2)} = \widetilde{\mathbf{a}}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top} + \mathbf{b}^{(2)}
+    = \begin{bmatrix} 2 & 0 \end{bmatrix}\begin{bmatrix} 3 & -2 \\ 0{,}5 & -2 \end{bmatrix} + \begin{bmatrix} 1 & 0 \end{bmatrix}
+    = \begin{bmatrix} 7 & -4 \end{bmatrix},
+    \qquad
+    \mathbf{a}^{(2)} = \begin{bmatrix} 7 & 0 \end{bmatrix}.
+    \]
+    \textbf{Saída:} $\hat{y} = \mathbf{a}^{(2)}{\mathbf{\Theta}^{(3)}}^{\top} + b^{(3)} = 7\cdot(-1) + 0\cdot(-3) + 1 = -6$. Em (a), o \textit{dropout} é ignorado, como se fosse inferência, dando $\mathbf{a}^{(2)} = \begin{bmatrix} 5{,}5 & 0 \end{bmatrix}$ e $\hat{y} = -5{,}5$; em (c), a máscara é aplicada, mas a escala $1/(1-p)$ é esquecida, deixando $\widetilde{\mathbf{a}}^{(1)} = \begin{bmatrix} 1 & 0 \end{bmatrix}$; em (d), as ativações mantidas são escaladas por $(1-p)$ em vez de $1/(1-p)$; em (e), a máscara é interpretada ao contrário e a posição marcada com $1$ é descartada, dando $\widetilde{\mathbf{a}}^{(1)} = \begin{bmatrix} 0 & 10 \end{bmatrix}$; em (f), a ReLU da segunda camada oculta é esquecida e $z^{(2)}_2 = -4$ é propagado; em (g), a ReLU é aplicada também na saída, que é linear; em (h), o \textit{dropout} é aplicado depois da segunda camada oculta, sobre $\mathbf{a}^{(2)}$, e não sobre $\mathbf{a}^{(1)}$.
 \end{enumerate}
 
 \end{document}

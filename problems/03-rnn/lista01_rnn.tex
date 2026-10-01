@@ -107,6 +107,56 @@ f(z) =
     \]
     Calcule a perplexidade do modelo nessa sequência (usando a definição $\text{Perplexidade} = 2^{-L/m}$ com $L = \sum_t \log_2 p(y_t \mid y_{<t})$) e interprete o resultado em termos do ``número médio efetivo de \textit{tokens}'' entre os quais o modelo está em dúvida.
 
+    \item Você treina uma RNN \textit{vanilla} (ativação $\tanh$ nas conexões recorrentes) para classificar sequências longas (cerca de 200 passos). O treino fica estagnado com erro alto; ao inspecionar, os gradientes da função de custo em relação aos pesos associados aos \textbf{primeiros} passos da sequência são praticamente nulos, enquanto os dos \textbf{últimos} passos têm magnitude normal. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+    \begin{enumerate}[a)]
+        \item O otimizador SGD é o único responsável; trocá-lo por Adam, sem nenhuma outra mudança, é suficiente para que os gradientes dos passos iniciais deixem de ser nulos.
+        \item O problema é de explosão de gradiente; aplicar \textit{gradient clipping} aos gradientes dos primeiros passos restaura o sinal de aprendizado que chega a esses passos.
+        \item A taxa de aprendizado está baixa demais para os passos iniciais; usar uma taxa por passo, maior no início da sequência, compensa o desequilíbrio observado entre os passos.
+        \item A rede está em \textit{overfitting} nos passos finais; reduzir o comprimento das sequências para poucos passos elimina o problema sem necessidade de trocar a arquitetura.
+        \item A ativação $\tanh$ é a causa direta; substituí-la por sigmoide nas conexões recorrentes aumenta as derivadas e resolve o desaparecimento do gradiente nos passos iniciais.
+        \item Os gradientes desaparecem: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1 - \tanh^2(z_k))$ ao longo de muitos passos e, como têm módulo $\le 1$, o sinal decai nos passos iniciais; a mitigação é usar arquitetura com portões (LSTM/GRU).
+        \item A camada de saída está mal escolhida; trocá-la por \textit{softmax} com entropia cruzada propaga gradiente igualmente para todos os passos, eliminando o decaimento.
+        \item Há \textit{dropout} insuficiente nos primeiros passos; adicioná-lo aumenta a magnitude do gradiente que chega a eles e compensa o decaimento multiplicativo da retropropagação.
+    \end{enumerate}
+
+    \item Você treina uma RNN \textit{vanilla} (ativação $\tanh$ nas conexões recorrentes) para modelagem de linguagem em sequências longas. A curva da função de custo cai durante algumas centenas de iterações, mas de tempos em tempos \textbf{salta abruptamente} para valores muito altos e, em uma dessas ocasiões, passa a registrar \texttt{NaN}. Ao imprimir a norma do gradiente $\|\mathbf{g}\|$ a cada iteração, você observa que ela ocasionalmente atinge valores na ordem de $10^{6}$. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+
+    \begin{enumerate}[a)]
+        \item Os gradientes se dissipam ao longo dos passos de tempo; substituir a RNN por uma LSTM elimina os saltos, pois os portões impedem qualquer crescimento da norma do gradiente.
+        \item A variância do gradiente está alta por causa do tamanho do \textit{batch}; reduzir o \textit{batch size} para $1$ torna as atualizações mais estáveis e elimina os saltos e o \texttt{NaN} observados.
+        \item O gradiente explode ocasionalmente; aplicar \textit{clipping} por valor em cada componente é preferível ao \textit{clipping} por norma, pois somente o primeiro preserva a direção do vetor gradiente.
+        \item O modelo está em \textit{overfitting} nas sequências longas; adicionar \textit{dropout} nas conexões recorrentes reduz a variância do gradiente e impede que a norma atinja valores extremos.
+        \item A saturação da $\tanh$ é a causa dos saltos; trocá-la por ReLU nas conexões recorrentes limita o crescimento das ativações e, portanto, o crescimento da norma do gradiente.
+        \item O gradiente explode: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1-\tanh^2(z_k))$ que podem ter módulo maior que $1$; aplicar \textit{clipping} por norma ($\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$) limita o passo preservando a direção.
+        \item O \texttt{NaN} indica erro numérico interno do \textit{framework} de autodiferenciação; reexecutar o treinamento com outra semente aleatória, sem alterar hiperparâmetros, é suficiente para eliminar o problema.
+        \item O treinamento com \textit{teacher forcing} acumula erros de exposição; alimentar o modelo com as próprias predições durante o treino estabiliza a norma do gradiente e evita os saltos.
+    \end{enumerate}
+
+    \item Considere a RNN \textit{vanilla} \textbf{escalar} desdobrada abaixo, com ativação $\tanh$ no estado oculto e saída linear. Os pesos (todos escalares) são $\theta_{ih} = 0.5$, $\theta_{hh} = 0.2$ e $\theta_{ho} = 1.0$, com vieses $b_h = 0$ e $b_o = 0$. A sequência de entrada é $x_1 = 1$, $x_2 = 1$, o estado inicial é $h_0 = 0$ e a saída esperada (no passo $2$) é $y = 1$. A recorrência é $h_t = \tanh(x_t\,\theta_{ih} + h_{t-1}\,\theta_{hh})$, a saída é $\hat{y}_2 = h_2\,\theta_{ho}$ e a função de custo é $J = \tfrac{1}{2}(y - \hat{y}_2)^2$. Pode arredondar para $4$ casas decimais.
+
+    \begin{center}
+    \begin{tikzpicture}[>=stealth, every node/.style={font=\small}]
+        \node[circle, draw] (x1) at (0, -1.4) {$x_1$};
+        \node[circle, draw] (h1) at (0, 0)    {$h_1$};
+        \node[circle, draw] (x2) at (3, -1.4) {$x_2$};
+        \node[circle, draw] (h2) at (3, 0)    {$h_2$};
+        \node[circle, draw] (y)  at (6, 0)    {$\hat{y}_2$};
+        \node (h0) at (-2.4, 0) {$h_0 = 0$};
+        \draw[->] (h0) -- node[above]{$\theta_{hh}$} (h1);
+        \draw[->] (x1) -- node[right]{$\theta_{ih}$} (h1);
+        \draw[->] (h1) -- node[above]{$\theta_{hh}$} (h2);
+        \draw[->] (x2) -- node[right]{$\theta_{ih}$} (h2);
+        \draw[->] (h2) -- node[above]{$\theta_{ho}$} (y);
+    \end{tikzpicture}
+    \end{center}
+
+    \begin{enumerate}[a)]
+        \item Compute o \textit{forward pass} e indique os valores de $h_1$, $h_2$ e $\hat{y}_2$.
+        \item Compute o valor da função de custo $J$.
+        \item Compute os gradientes $\dfrac{\partial J}{\partial \theta_{ho}}$, $\dfrac{\partial J}{\partial \theta_{ih}}$ e $\dfrac{\partial J}{\partial \theta_{hh}}$.
+        \item Realize uma atualização dos três parâmetros usando descida de gradiente estocástica $\theta_{t+1} = \theta_t - \eta\,\nabla_\theta J$ com taxa de aprendizado $\eta = 0.1$.
+    \end{enumerate}
+
 \end{enumerate}
 
 \newpage
@@ -225,6 +275,47 @@ f(z) =
         \text{Perplexidade} = 2^{1.75} \approx 3.364.
     \]
     Interpretação: em média, o modelo se comporta, em cada passo, como se estivesse em dúvida entre cerca de $3.4$ \textit{tokens} igualmente prováveis.
+
+    \item Alternativa (f). Os sintomas (gradiente normal nos passos finais, praticamente nulo nos iniciais) são sinais do \textbf{desaparecimento do gradiente}. Na BPTT, o gradiente que volta até um passo distante carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2| \le 1$, o produto de muitos fatores $\le 1$ decai para zero nos passos iniciais. A mitigação estrutural é trocar a célula recorrente por uma com portões (LSTM/GRU), cujo caminho aditivo da memória ($c_t = f_t\odot c_{t-1} + \dots$) preserva o gradiente ao longo do tempo. As demais alternativas: (a) Adam ajuda, mas sozinho não cura o problema estrutural do produto de Jacobianos; (b) \textit{clipping} trata \emph{explosão} (gradientes grandes), e não o desaparecimento; (c) ajustar a taxa por passo não recupera um sinal que já chega praticamente nulo; (d) encurtar a sequência mascara o sintoma e remove a dependência de longo prazo; (e) a sigmoide tem derivada máxima $0.25 < 1$, então a troca por sigmoide \emph{piora} o decaimento; (g) a escolha da saída não redistribui o gradiente uniformemente pelos passos; (h) \textit{dropout} desliga unidades e não aumenta a magnitude do gradiente propagado.
+
+    \item Alternativa (f). Saltos abruptos no custo com norma de gradiente na ordem de $10^{6}$ e \texttt{NaN} são sintomas de \textbf{explosão de gradiente}: a retropropagação no tempo multiplica fatores $\theta_{hh}(1-\tanh^2(z_k))$ por passo e, quando esses fatores têm módulo maior que $1$, o produto cresce exponencialmente com o comprimento da sequência. A mitigação padrão é o \textit{clipping} por norma, $\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$, que limita o tamanho do passo \textbf{preservando a direção} do gradiente. As demais alternativas: (a) diagnostica dissipação, mas norma $10^{6}$ indica o problema oposto, e a LSTM não impede explosão por si só; (b) \textit{batch} menor \emph{aumenta} a variância do gradiente, agravando os saltos; (c) inverte a propriedade: é o \textit{clipping} por \emph{norma} que preserva a direção, o por valor distorce o vetor componente a componente; (d) \textit{overfitting} não produz saltos de custo nem \texttt{NaN}, e \textit{dropout} não limita a norma do gradiente; (e) ReLU é ilimitada superiormente e nas conexões recorrentes tende a \emph{piorar} o crescimento das ativações e dos gradientes; (g) o \texttt{NaN} é consequência numérica do \textit{overflow} causado pela explosão, e trocar a semente não remove a causa; (h) \textit{teacher forcing} e viés de exposição dizem respeito à discrepância treino/inferência na geração, e não à norma do gradiente.
+
+    \item \textit{Forward pass}, BPTT e atualização SGD. Dados: $x_1 = 1$, $x_2 = 1$, $h_0 = 0$, $y = 1$, $\theta_{ih} = 0.5$, $\theta_{hh} = 0.2$, $\theta_{ho} = 1.0$, $\eta = 0.1$.
+    \begin{enumerate}[a)]
+        \item \textit{Forward pass}:
+        \begin{align*}
+            z_1 &= x_1\,\theta_{ih} + h_0\,\theta_{hh} = 1\cdot 0.5 + 0 = 0.5 \\
+            h_1 &= \tanh(0.5) \approx 0.4621 \\
+            z_2 &= x_2\,\theta_{ih} + h_1\,\theta_{hh} = 1\cdot 0.5 + 0.4621\cdot 0.2 \approx 0.5924 \\
+            h_2 &= \tanh(0.5924) \approx 0.5316 \\
+            \hat{y}_2 &= h_2\,\theta_{ho} = 0.5316\cdot 1.0 = 0.5316
+        \end{align*}
+
+        \item Função de custo:
+        \[
+        J = \tfrac{1}{2}(y - \hat{y}_2)^2 = \tfrac{1}{2}(1 - 0.5316)^2 = \tfrac{1}{2}(0.4684)^2 \approx 0.1097
+        \]
+
+        \item \textit{Backward pass} (BPTT, com $\tanh'(z) = 1 - \tanh^2(z)$):
+        \begin{align*}
+            \frac{\partial J}{\partial \hat{y}_2} &= -(y - \hat{y}_2) = -0.4684 \\
+            \frac{\partial J}{\partial \theta_{ho}} &= \frac{\partial J}{\partial \hat{y}_2}\cdot h_2 = -0.4684\cdot 0.5316 \approx -0.2490 \\
+            \frac{\partial J}{\partial h_2} &= \frac{\partial J}{\partial \hat{y}_2}\cdot \theta_{ho} = -0.4684 \\
+            \frac{\partial J}{\partial z_2} &= \frac{\partial J}{\partial h_2}\,(1 - h_2^2) = -0.4684\,(1 - 0.5316^2) \approx -0.3360 \\
+            \frac{\partial J}{\partial h_1} &= \frac{\partial J}{\partial z_2}\cdot \theta_{hh} = -0.3360\cdot 0.2 \approx -0.0672 \\
+            \frac{\partial J}{\partial z_1} &= \frac{\partial J}{\partial h_1}\,(1 - h_1^2) = -0.0672\,(1 - 0.4621^2) \approx -0.0529 \\[0.3em]
+            \frac{\partial J}{\partial \theta_{ih}} &= \frac{\partial J}{\partial z_2}\,x_2 + \frac{\partial J}{\partial z_1}\,x_1 = -0.3360 + (-0.0529) \approx -0.3889 \\
+            \frac{\partial J}{\partial \theta_{hh}} &= \frac{\partial J}{\partial z_2}\,h_1 + \frac{\partial J}{\partial z_1}\,h_0 = -0.3360\cdot 0.4621 + 0 \approx -0.1553
+        \end{align*}
+        Os pesos $\theta_{ih}$ e $\theta_{hh}$ são compartilhados, por isso somamos as contribuições de $t = 2$ e $t = 1$; como $h_0 = 0$, a contribuição de $z_1$ para $\theta_{hh}$ é nula.
+
+        \item Atualização SGD com $\eta = 0.1$:
+        \begin{align*}
+            \theta_{ho} &\leftarrow 1.0 - 0.1\cdot(-0.2490) \approx 1.0249 \\
+            \theta_{ih} &\leftarrow 0.5 - 0.1\cdot(-0.3889) \approx 0.5389 \\
+            \theta_{hh} &\leftarrow 0.2 - 0.1\cdot(-0.1553) \approx 0.2155
+        \end{align*}
+    \end{enumerate}
 
 \end{enumerate}
 

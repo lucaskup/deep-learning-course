@@ -70,6 +70,56 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
 \end{enumerate}
 % R: b
 
+% ------------------------------------------------------------------
+% Q5 (cinco afirmações sobre RNN vanilla, LSTM e perplexidade)
+% ------------------------------------------------------------------
+\item Avalie as cinco afirmações a seguir sobre redes recorrentes:
+
+\textbf{I.} Na RNN \textit{vanilla}, o gradiente retropropagado no tempo carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2(z_k)| \le 1$, esse produto tende a zero em sequências longas, caracterizando o desaparecimento do gradiente.
+
+\textbf{II.} Na LSTM, com o \textit{forget gate} $f_t \to 1$ e o \textit{input gate} $i_t \to 0$, a atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ reduz-se a $c_t \approx c_{t-1}$, preservando a memória de longo prazo (\textit{constant error carousel}).
+
+\textbf{III.} Na LSTM, todos os quatro portões e candidatos ($f_t$, $i_t$, $o_t$ e o candidato $\tilde{c}_t$) são obtidos por ativação sigmoide.
+
+\textbf{IV.} A LSTM faz circular dois estados ao longo do tempo: o estado oculto $h_t$ e o estado de célula (memória) $c_t$, ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$.
+
+\textbf{V.} Um modelo de linguagem extremamente confiante e sempre correto pode atingir perplexidade inferior a $1$.
+
+\begin{enumerate}[a)]
+    \item Apenas II, III e IV estão corretas.
+    \item Apenas I, II, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I e IV estão corretas.
+    \item Apenas I, II e V estão corretas.
+    \item Apenas I, III e V estão corretas.
+    \item Todas as afirmações estão corretas.
+    \item Apenas II e IV estão corretas.
+\end{enumerate}
+% R: c
+
+% ------------------------------------------------------------------
+% Q6 (asserções I/II/III sobre células LSTM)
+% ------------------------------------------------------------------
+\item Sobre as asserções abaixo a respeito de células LSTM:
+
+\textbf{I.} Na LSTM, a atualização da memória $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ combina a memória anterior (modulada pelo \textit{forget gate}) com o novo candidato (modulado pelo \textit{input gate}); o caminho de $\mathbf{c}_{t-1}$ para $\mathbf{c}_t$ é predominantemente aditivo, o que ajuda a preservar o gradiente ao longo do tempo.
+
+\textbf{II.} Na LSTM, o \textit{forget gate} $\mathbf{f}_t$ e o \textit{input gate} $\mathbf{i}_t$ são sempre acoplados pela restrição $\mathbf{i}_t = 1 - \mathbf{f}_t$, de modo que a fração esquecida da memória anterior é exatamente a fração escrita pelo novo candidato.
+
+\textbf{III.} O estado oculto da LSTM é obtido como $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$; portanto o \textit{output gate} $\mathbf{o}_t$ controla qual parte da memória é exposta como saída no passo $t$.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+% R: e
+
 \end{enumerate}
 
 \subsection*{Gabarito - Objetivas}
@@ -89,6 +139,8 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
     \item \textbf{b.} Com $\mathbf{z}_t \to 0$, $\mathbf{h}_t = 1 \cdot \mathbf{h}_{t-1} + 0 \cdot \tilde{\mathbf{h}}_t = \mathbf{h}_{t-1}$:
     o estado anterior é copiado. A alternativa (a) corresponde a $\mathbf{z}_t \to 1$; (c) e (d) não
     correspondem à equação de atualização.
+    \item \textbf{c.} I (V): o produto de Jacobianos $\theta_{hh}(1 - \tanh^2(z_k))$ tem fatores $\le 1$ e decai em sequências longas. II (V): $f_t \to 1$ e $i_t \to 0$ dão $c_t \approx c_{t-1}$ (\textit{constant error carousel}). III (F): na LSTM o candidato $\tilde{c}_t$ usa ativação $\tanh$, e apenas os três portões $f_t$, $i_t$ e $o_t$ usam sigmoide. IV (V): a LSTM faz circular dois estados no tempo, o estado oculto $h_t$ e o estado de célula $c_t$ (memória), ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$. V (F): a perplexidade satisfaz $\text{Perplexidade} \ge 1$; o modelo determinístico e sempre correto atinge exatamente $1$, nunca menos. Verdadeiras: I, II e IV. As alternativas (b) e (e) incluem V (falsa); (a) e (f) incluem III (falsa); (d) omite II; (h) omite I; (g) marca tudo.
+    \item \textbf{e.} I é correta: $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ combina memória anterior (via \textit{forget gate}) e candidato (via \textit{input gate}); o caminho de $\mathbf{c}_{t-1}$ a $\mathbf{c}_t$ é aditivo, o que sustenta o gradiente ao longo do tempo (\textit{constant error carousel}). II é incorreta: na LSTM padrão, \textit{forget gate} e \textit{input gate} são independentes (cada um com seus próprios pesos e ativação sigmoide), sem a restrição $\mathbf{i}_t = 1 - \mathbf{f}_t$. Esse acoplamento existe apenas em uma variante específica (CIFG, \textit{coupled input-forget gate}); na LSTM padrão a célula pode, por exemplo, esquecer e escrever simultaneamente. III é correta: $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$, e o \textit{output gate} controla qual parte da memória $\mathbf{c}_t$ é exposta como estado oculto no passo $t$. Logo, apenas I e III estão corretas. As alternativas (a), (b) e (c) excluem uma afirmação correta; (d), (f) e (g) incluem a afirmação II, que é falsa; (h) contradiz I e III.
 \end{enumerate}
 \color{black}
 
@@ -136,6 +188,36 @@ Calcule, passo a passo (use 4 casas decimais):
     termo desempenha, na GRU, o papel análogo ao do \textit{forget gate} da LSTM na preservação
     do gradiente e diga sob qual condição do \textit{update gate} $\mathbf{z}_t$ o gradiente é carregado
     quase sem atenuação.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% D3 (um passo de LSTM escalar à mão; interpretação de dc_t/dc_{t-1})
+% ------------------------------------------------------------------
+\item Considere uma célula LSTM \textbf{escalar} (todas as dimensões iguais a $1$), com as equações vistas em aula:
+\[
+f_t = \sigma(\boldsymbol{\theta}_f\,[h_{t-1}, x_t] + b_f), \qquad
+i_t = \sigma(\boldsymbol{\theta}_i\,[h_{t-1}, x_t] + b_i), \qquad
+\tilde{c}_t = \tanh(\boldsymbol{\theta}_c\,[h_{t-1}, x_t] + b_c),
+\]
+\[
+c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t, \qquad
+o_t = \sigma(\boldsymbol{\theta}_o\,[h_{t-1}, x_t] + b_o), \qquad
+h_t = o_t \odot \tanh(c_t).
+\]
+O estado inicial é $c_0 = -0{,}2$ e $h_0 = 0{,}4$, e a entrada no passo $1$ é $x_1 = 0{,}5$, de modo que $[h_0, x_1] = [0{,}4,\ 0{,}5]$. Os parâmetros são:
+\[
+\boldsymbol{\theta}_f = [0{,}5,\ -0{,}4],\ b_f = 0{,}2; \qquad
+\boldsymbol{\theta}_i = [-0{,}3,\ 0{,}6],\ b_i = -0{,}1; \qquad
+\]
+\[
+\boldsymbol{\theta}_c = [0{,}2,\ 0{,}8],\ b_c = 0; \qquad
+\boldsymbol{\theta}_o = [0{,}7,\ 0{,}1],\ b_o = -0{,}3.
+\]
+Pode arredondar para $4$ casas decimais.
+
+\begin{enumerate}[(a)]
+    \item Compute $f_1$, $i_1$, $\tilde{c}_1$ e o novo estado de célula $c_1$.
+    \item Compute $o_1$ e $h_1$. Em seguida, explique em uma frase, a partir de $\dfrac{\partial c_t}{\partial c_{t-1}} = f_t$, por que a LSTM mitiga a dissipação do gradiente em sequências longas.
 \end{enumerate}
 
 \end{enumerate}
@@ -189,6 +271,23 @@ Calcule, passo a passo (use 4 casas decimais):
     $\partial \mathbf{h}_t / \partial \mathbf{h}_{t-1} = (1 - \mathbf{z}_t)$ por esse caminho, papel análogo ao $\mathbf{f}_t$ da
     LSTM. Quando $\mathbf{z}_t \approx 0$ (\textit{update gate} ``fechado''), tem-se $(1 - \mathbf{z}_t) \approx 1$
     e o estado é carregado com gradiente $\approx 1$, preservando a informação ao longo do tempo.
+\end{enumerate}
+
+\item Passo de LSTM à mão. Dados: $[h_0, x_1] = [0{,}4,\ 0{,}5]$, $c_0 = -0{,}2$.
+\begin{enumerate}[(a)]
+    \item Portões, candidato e estado de célula:
+    \begin{align*}
+        f_1 &= \sigma(0{,}5 \cdot 0{,}4 + (-0{,}4) \cdot 0{,}5 + 0{,}2) = \sigma(0{,}2) \approx 0{,}5498 \\
+        i_1 &= \sigma((-0{,}3) \cdot 0{,}4 + 0{,}6 \cdot 0{,}5 - 0{,}1) = \sigma(0{,}08) \approx 0{,}5200 \\
+        \tilde{c}_1 &= \tanh(0{,}2 \cdot 0{,}4 + 0{,}8 \cdot 0{,}5 + 0) = \tanh(0{,}48) \approx 0{,}4462 \\
+        c_1 &= f_1 \cdot c_0 + i_1 \cdot \tilde{c}_1 \approx 0{,}5498 \cdot (-0{,}2) + 0{,}5200 \cdot 0{,}4462 \approx -0{,}1100 + 0{,}2320 = 0{,}1221
+    \end{align*}
+    \item Porta de saída e estado oculto:
+    \begin{align*}
+        o_1 &= \sigma(0{,}7 \cdot 0{,}4 + 0{,}1 \cdot 0{,}5 - 0{,}3) = \sigma(0{,}03) \approx 0{,}5075 \\
+        h_1 &= o_1 \cdot \tanh(c_1) \approx 0{,}5075 \cdot \tanh(0{,}1221) \approx 0{,}5075 \cdot 0{,}1215 \approx 0{,}0617
+    \end{align*}
+    \textit{Explicação esperada:} o caminho de $c_{t-1}$ para $c_t$ é aditivo e sua derivada é $\partial c_t / \partial c_{t-1} = f_t$; retropropagando por $T$ passos o gradiente carrega $\prod_k f_k$, e como a rede pode aprender a manter $f_k \approx 1$, esse produto não decai necessariamente com $T$, ao contrário da RNN \textit{vanilla}, cujo produto $\prod_k \theta_{hh}(1-\tanh^2(z_k))$ tende a zero (\textit{constant error carousel}).
 \end{enumerate}
 
 \end{enumerate}
