@@ -298,6 +298,97 @@
 \end{enumerate}
 % R: a
 
+% ------------------------------------------------------------------
+% Q13 — Médio (LoRA: parâmetros treináveis em várias camadas)
+% ------------------------------------------------------------------
+\item No LoRA, uma matriz congelada $\mathbf{W}_0 \in \mathbb{R}^{d \times k}$ recebe a correção \textit{low rank} $\mathbf{h} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} \mathbf{B} \mathbf{A} \mathbf{x}$, com $\mathbf{B} \in \mathbb{R}^{d \times r}$ e $\mathbf{A} \in \mathbb{R}^{r \times k}$; apenas $\mathbf{B}$ e $\mathbf{A}$ são treináveis. Você aplica LoRA com $r = 8$ às projeções $\mathbf{W}_Q$ e $\mathbf{W}_V$ (ambas $1024 \times 1024$) de \textbf{cada uma} das $12$ camadas de um \textit{transformer}. Quantos parâmetros treináveis o ajuste introduz no total?
+
+\begin{enumerate}[a)]
+    \item $16\,384$
+    \item $32\,768$
+    \item $98\,304$
+    \item $196\,608$
+    \item $393\,216$
+    \item $589\,824$
+    \item $786\,432$
+    \item $25\,165\,824$
+\end{enumerate}
+% R: e
+
+% ------------------------------------------------------------------
+% Q14 — Médio (asserções sobre SFT, DPO e KL no RLHF)
+% ------------------------------------------------------------------
+\item Sobre as asserções abaixo a respeito do treinamento e alinhamento de LLMs:
+
+\textbf{I.} No \textit{SFT} (\textit{supervised fine-tuning}) com \textit{prompt masking}, a função de perda é computada apenas sobre os \textit{tokens} da resposta; os \textit{tokens} do \textit{prompt} são mascarados e não contribuem para o gradiente.
+
+\textbf{II.} O DPO otimiza diretamente sobre pares de preferência $(y_w, y_l)$, dispensando o treinamento de um \textit{reward model} explícito e o loop de \textit{policy gradient} usado no RLHF com PPO.
+
+\textbf{III.} No RLHF com PPO, o termo de penalização $\mathrm{KL}(\pi_\theta \,\|\, \pi_{\text{ref}})$ tem como função principal acelerar a convergência, permitindo o uso de taxas de aprendizado maiores na atualização da política.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+% R: d
+
+% ------------------------------------------------------------------
+% Q15 — Médio (diagnóstico: esquecimento catastrófico em fine-tuning completo)
+% ------------------------------------------------------------------
+\item Você faz \textit{fine-tuning} completo (todos os pesos) de um LLM pré-treinado em um corpus jurídico, com taxa de aprendizado $3 \cdot 10^{-4}$ por $10$ épocas. As curvas abaixo mostram a acurácia ao longo das épocas em duas avaliações, ambas sobre dados de teste não vistos no treino: um \textit{benchmark} da tarefa jurídica alvo (linha cheia) e um \textit{benchmark} de conhecimentos gerais que o modelo dominava antes do ajuste (linha tracejada). Qual o diagnóstico mais consistente e a melhor mitigação?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small}, xscale=0.55, yscale=3.2]
+    \draw[->] (0,0) -- (11.2,0) node[below left] {épocas};
+    \draw[->] (0,0) -- (0,1.12) node[above] {acurácia};
+    \draw (0,1) node[left] {$1{,}0$} -- (0.15,1);
+    \draw (0,0.5) node[left] {$0{,}5$} -- (0.15,0.5);
+    % target legal task: rises
+    \draw[thick] plot[smooth] coordinates {(0,0.52) (2,0.68) (4,0.78) (6,0.85) (8,0.88) (10,0.90)}
+        node[right] {\textit{benchmark} jurídico};
+    % general benchmark: falls
+    \draw[thick, dashed] plot[smooth] coordinates {(0,0.72) (2,0.66) (4,0.56) (6,0.47) (8,0.40) (10,0.35)}
+        node[right] {\textit{benchmark} geral};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item O modelo está em \textit{overfitting} no corpus jurídico; treinar por mais épocas no mesmo corpus faria as duas curvas de acurácia voltarem a subir simultaneamente.
+    \item Há vazamento de dados entre treino e teste jurídicos; refazer a divisão dos dados corrige tanto a curva da tarefa jurídica quanto a do \textit{benchmark} geral.
+    \item Trata-se de esquecimento catastrófico do pré-treino; mitigações incluem taxa de aprendizado menor, menos épocas, misturar dados gerais ao \textit{fine-tuning} ou usar PEFT (LoRA) com os pesos base congelados.
+    \item Trata-se de \textit{reward hacking}: o modelo explora falhas da métrica de avaliação; substituir o \textit{benchmark} geral por outro conjunto de tarefas resolve o problema observado.
+    \item O \textit{tokenizer} não cobre o vocabulário jurídico e fragmenta os termos técnicos; retreinar o \textit{tokenizer} recupera simultaneamente as duas curvas de acurácia.
+    \item A janela de contexto foi excedida pelos documentos jurídicos longos; truncar as entradas do \textit{fine-tuning} evita a degradação observada no \textit{benchmark} geral.
+    \item A taxa de aprendizado alta causou explosão de gradiente e \texttt{NaN} nos pesos; nesse caso ambas as curvas deveriam despencar, logo o gráfico é inconsistente com um treino real.
+    \item O modelo está subtreinado no regime de Chinchilla ($D^{*} \approx 20N$); aumentar o volume de dados jurídicos melhora as duas curvas por leis de escala.
+\end{enumerate}
+% R: c
+
+% ------------------------------------------------------------------
+% Q16 — Dissertativa (reward model de Bradley–Terry e DPO à mão)
+% ------------------------------------------------------------------
+\item No alinhamento de LLMs por preferências, o \textit{reward model} é treinado com a perda de Bradley--Terry
+\[
+\mathcal{L}_{RM} = -\log \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right),
+\]
+e o DPO otimiza diretamente
+\[
+\mathcal{L}_{DPO} = -\log \sigma\!\left(\beta\left[\log\tfrac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log\tfrac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right]\right),
+\]
+em que $y_w$ é a resposta preferida e $y_l$ a preterida. Pode arredondar para $4$ casas decimais.
+
+\begin{enumerate}[a)]
+    \item Para um par com $r_\phi(x, y_w) = 2{,}2$ e $r_\phi(x, y_l) = 0{,}7$, compute a probabilidade de o \textit{reward model} preferir $y_w$ (modelo de Bradley--Terry) e o valor de $\mathcal{L}_{RM}$.
+
+    \item No DPO com $\beta = 0{,}2$, os log-\textit{ratios} valem $\log\tfrac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = 1{,}5$ e $\log\tfrac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = -1{,}0$. Compute $\mathcal{L}_{DPO}$ e explique em uma frase o que o DPO dispensa em relação ao \textit{pipeline} completo do RLHF.
+\end{enumerate}
+
 \end{enumerate}
 
 
@@ -498,5 +589,93 @@ subestimando dramaticamente a perda.
 A opção~(c) inverte o sinal, usando $\sigma(-0.3)$ (corresponderia a uma
 \emph{preferência errada}: $y_l$ mais provável que $y_w$).
 A opção~(d) retorna o argumento do $\sigma$ sem aplicar $-\log\sigma$.
+
+% --- Solução Q13 ---
+\subsection*{XIII — Resposta: (e)}
+Cada matriz adaptada recebe $\mathbf{B} \in \mathbb{R}^{1024 \times 8}$ e
+$\mathbf{A} \in \mathbb{R}^{8 \times 1024}$:
+\[
+r(d + k) = 8 \times (1024 + 1024) = 16\,384 \text{ parâmetros por matriz adaptada}.
+\]
+São $2$ projeções ($\mathbf{W}_Q$ e $\mathbf{W}_V$) em cada uma das $12$ camadas:
+\[
+16\,384 \times 2 \times 12 = 393\,216.
+\]
+A opção~(a) conta uma única projeção de uma única camada.
+A opção~(b) conta as duas projeções de uma única camada.
+A opção~(c) conta apenas $\mathbf{B}$ (ou apenas $\mathbf{A}$) de uma projeção nas $12$ camadas.
+A opção~(d) esquece uma das duas projeções ($16\,384 \times 12$).
+A opção~(f) aplica a três projeções ($\mathbf{Q}$, $\mathbf{K}$ e $\mathbf{V}$), não às duas do enunciado.
+A opção~(g) aplica às quatro projeções ($\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ e $\mathbf{O}$).
+A opção~(h) treina o $\Delta\mathbf{W}$ denso $1024 \times 1024$ em vez dos fatores
+\textit{low rank}, exatamente o que o LoRA evita.
+
+% --- Solução Q14 ---
+\subsection*{XIV — Resposta: (d)}
+\textbf{I é correta:} no SFT a perda
+$\mathcal{L}_{SFT} = -\sum_{t \in R} \log P_\theta(x_t \mid x_{<t})$ soma apenas sobre
+os \textit{tokens} da resposta $R$; o \textit{prompt} entra como contexto, mas não gera
+gradiente (ver questão III).
+
+\textbf{II é correta:} o DPO deriva a recompensa implícita da própria política e otimiza
+uma perda de classificação sobre pares $(y_w, y_l)$, eliminando o \textit{reward model}
+explícito e a amostragem \textit{online} do loop de PPO.
+
+\textbf{III é incorreta:} o termo $\mathrm{KL}(\pi_\theta \| \pi_{\text{ref}})$ não
+acelera a convergência; ele \emph{restringe} a política a permanecer próxima da
+referência, evitando que o modelo degenere ou explore falhas do \textit{reward model}
+(\textit{reward hacking}).
+
+Logo, apenas I e II estão corretas.
+As opções~(a) e~(b) excluem uma asserção correta.
+As opções~(c), (e), (f) e~(g) incluem a asserção III, que inverte a função do termo de KL.
+A opção~(h) contradiz I e II.
+
+% --- Solução Q15 ---
+\subsection*{XV — Resposta: (c)}
+O quadro mostrado é sintoma do \textbf{esquecimento catastrófico}: a acurácia na tarefa
+alvo sobe enquanto capacidades adquiridas no pré-treino se degradam, porque o
+\textit{fine-tuning} completo com taxa alta e muitas épocas sobrescreve os pesos que
+codificavam o conhecimento geral. Mitigações padrão: reduzir taxa/épocas, misturar
+dados gerais ao corpus de ajuste (\textit{replay}) ou usar PEFT (LoRA), que congela
+$\mathbf{W}_0$ e limita a atualização a poucos parâmetros (compare com a questão X).
+A opção~(a) é falsa: a curva jurídica é medida em dados de teste não vistos no treino e
+sobe de forma consistente, ou seja, o modelo \emph{generaliza} no domínio alvo;
+\textit{overfitting} não explica esse padrão nem a queda no \textit{benchmark} geral, e
+mais épocas agravariam o quadro.
+A opção~(b) é falsa: vazamento de dados inflaria a curva jurídica, mas não derrubaria o
+\textit{benchmark} geral.
+A opção~(d) é falsa: \textit{reward hacking} pertence ao contexto de RLHF com
+\textit{reward model}, ausente aqui.
+A opção~(e) é falsa: um \textit{tokenizer} ruim para o domínio prejudicaria a curva
+jurídica, não a geral; retreinar o \textit{tokenizer} invalidaria os \textit{embeddings}
+do pré-treino.
+A opção~(f) é falsa: janela de contexto excedida causa truncamento nas entradas
+jurídicas, sem efeito sobre o \textit{benchmark} geral.
+A opção~(g) é falsa: explosão de gradiente com \texttt{NaN} destruiria as duas curvas; o
+gráfico mostra melhora consistente na tarefa alvo.
+A opção~(h) é falsa: leis de escala tratam do pré-treino; adicionar dados jurídicos não
+recupera o conhecimento geral perdido.
+
+% --- Solução Q16 ---
+\subsection*{XVI — Resposta: \textit{reward model} de Bradley--Terry e DPO}
+\textbf{(a)} Modelo de Bradley--Terry:
+\[
+P(y_w \succ y_l) = \sigma\!\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) = \sigma(2{,}2 - 0{,}7) = \sigma(1{,}5) = \frac{1}{1 + e^{-1{,}5}} \approx 0{,}8176.
+\]
+\[
+\mathcal{L}_{RM} = -\log \sigma(1{,}5) \approx -\ln(0{,}8176) \approx 0{,}2014.
+\]
+
+\textbf{(b)} DPO:
+\[
+\beta\left[1{,}5 - (-1{,}0)\right] = 0{,}2 \cdot 2{,}5 = 0{,}5, \qquad
+\mathcal{L}_{DPO} = -\log \sigma(0{,}5) = -\ln(0{,}6225) \approx 0{,}4741.
+\]
+\textit{Explicação esperada:} o DPO dispensa o treinamento de um \textit{reward model}
+explícito e o loop de \textit{reinforcement learning} (PPO) com amostragem
+\textit{online}; a recompensa fica implícita nos log-\textit{ratios} entre a política e
+a referência, e o alinhamento vira uma perda supervisionada de classificação sobre os
+pares de preferência.
 
 \end{document}

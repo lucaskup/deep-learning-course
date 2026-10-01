@@ -447,6 +447,47 @@
           $\mathbf{q}$ e $\mathbf{k}$ são vetores unitários paralelos.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+% Q28: Fácil (motivação do positional encoding vs. RNNs)
+% ------------------------------------------------------------------
+\item Por que precisamos de \textit{positional encoding} em \textit{transformers}, enquanto RNNs não precisam dessa informação adicional?
+
+\begin{enumerate}[a)]
+    \item Porque sem \textit{positional encoding} o \textit{softmax} saturaria e o gradiente desapareceria; o \textit{positional encoding} ataca o problema de \textit{vanishing gradient}.
+    \item Porque \textit{self-attention} tem complexidade $O(n^2)$ e o \textit{positional encoding} é o que reduz essa complexidade para aproximadamente $O(n)$.
+    \item Porque a função \textit{softmax} usada na atenção é não-monótona, e o \textit{positional encoding} a lineariza.
+    \item Porque RNNs já incluem \textit{positional encoding} implícito via \textit{gates} de LSTM/GRU; \textit{transformers} omitem esse \textit{gating}.
+    \item Porque \textit{self-attention} é permutação-equivariante: sem PE, ``o gato persegue o rato'' e ``o rato persegue o gato'' produzem as mesmas representações. RNNs codificam posição implicitamente pela ordem da recursão.
+    \item Porque \textit{positional encoding} é necessário apenas durante a inferência; em treino, o gradiente fornece a informação posicional implicitamente.
+    \item Porque \textit{transformers} usam apenas multiplicações e somas (sem recursão), e \textit{positional encoding} é a forma de introduzir não-linearidade na rede.
+    \item Porque \textit{positional encoding} é uma técnica de regularização, equivalente em efeito ao \textit{Dropout} aplicado à camada de \textit{embeddings}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q29: Médio (associação de métodos de positional encoding)
+% ------------------------------------------------------------------
+\item Associe cada método de \textit{positional encoding} (coluna da esquerda) ao seu mecanismo (coluna da direita).
+
+\begin{center}
+\begin{tabular}{p{0.34\linewidth} p{0.58\linewidth}}
+\textbf{1.} \textit{PE} sinusoidal & \textbf{(i)} tabela de \textit{embeddings} treináveis somada à entrada, limitada ao comprimento máximo $L_{\text{max}}$ visto no treino. \\
+\textbf{2.} \textit{PE} absoluto aprendido & \textbf{(ii)} função fixa e determinística da posição, somada à entrada, sem nenhum parâmetro treinável. \\
+\textbf{3.} RoPE & \textbf{(iii)} não altera a entrada: subtrai do \textit{score} de atenção uma penalidade proporcional à distância $|i - j|$, com inclinação própria por cabeça. \\
+\textbf{4.} ALiBi & \textbf{(iv)} rotaciona os vetores $\mathbf{q}$ e $\mathbf{k}$ dentro da atenção, fazendo o \textit{score} depender apenas do deslocamento relativo $j - i$. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(ii); \quad 2-(i); \quad 3-(iii); \quad 4-(iv)
+    \item 1-(i); \quad 2-(ii); \quad 3-(iv); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(i); \quad 4-(iii)
+    \item 1-(i); \quad 2-(ii); \quad 3-(iii); \quad 4-(iv)
+    \item 1-(iv); \quad 2-(i); \quad 3-(ii); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iii); \quad 3-(iv); \quad 4-(i)
+    \item 1-(ii); \quad 2-(i); \quad 3-(iv); \quad 4-(iii)
+    \item 1-(iii); \quad 2-(i); \quad 3-(iv); \quad 4-(ii)
+\end{enumerate}
+
 \end{enumerate}
 
 
@@ -789,6 +830,48 @@ sequência. Isso distingue o RoPE do PE senoidal e é a base teórica para sua
 generalização zero-shot a sequências mais longas que as do treinamento:
 o produto $\mathbf{q}^\top \mathbf{R}(\delta)\,\mathbf{k}$ é bem definido para qualquer
 $\delta$, não dependendo de uma tabela de embeddings pré-treinada.
+% ---
+
+% --- Solução Q28 ---
+\subsection*{XXVI, Resposta:(e)}
+\textit{Self-attention} é uma operação simétrica em relação à ordem dos tokens: permutar
+a sequência permuta a saída exatamente da mesma forma. RNNs codificam a posição
+implicitamente pela ordem da recursão (o estado oculto no tempo $t$ depende
+explicitamente do tempo $t-1$). \textit{Transformers}, por não terem recursão, precisam
+de um sinal posicional injetado nas \textit{embeddings} para distinguir, por exemplo,
+``o gato persegue o rato'' de ``o rato persegue o gato''.
+
+A opção (a) é falsa: \textit{positional encoding} não trata \textit{vanishing gradient}.
+A opção (b) é falsa: \textit{positional encoding} não altera a complexidade $O(n^2)$ da
+\textit{self-attention}. A opção (c) é falsa: a \textit{softmax} \emph{é} monótona na
+entrada, e \textit{positional encoding} não tem relação com ``linearizar'' a
+\textit{softmax}. A opção (d) é falsa: \textit{gates} de LSTM/GRU controlam fluxo de
+informação, não posição; a posição vem da recursão. A opção (f) é falsa:
+\textit{positional encoding} é necessário tanto em treino quanto em inferência; sem
+ele, o modelo nunca aprende dependência da ordem. A opção (g) é falsa: a
+não-linearidade vem da \textit{softmax} e da MLP do bloco \textit{transformer}, não do
+\textit{positional encoding}. A opção (h) é falsa: \textit{positional encoding}
+adiciona um sinal estruturado, não ruído de regularização.
+% ---
+
+% --- Solução Q29 ---
+\subsection*{XXVII, Resposta:(g)}
+Associação correta: \textbf{1-(ii)} o \textit{PE} sinusoidal é uma função fixa da
+posição (senos e cossenos em frequências $10000^{-2k/d}$), somada à entrada, sem
+parâmetros; \textbf{2-(i)} o \textit{PE} absoluto aprendido é uma tabela
+$\mathbf{E} \in \mathbb{R}^{L_{\text{max}} \times d}$ treinável, que não extrapola além
+de $L_{\text{max}}$; \textbf{3-(iv)} o RoPE aplica rotações $\mathbf{R}_\theta(i)$ a
+$\mathbf{q}$ e $\mathbf{k}$ dentro da atenção, e o \textit{score} resultante depende só
+de $j - i$; \textbf{4-(iii)} o ALiBi subtrai $m_h\,|i - j|$ do \textit{score}, com
+inclinação $m_h$ própria por cabeça.
+
+Erros agrupados por troca: as opções (a) e (d) trocam RoPE com ALiBi, confundindo
+rotação interna com penalidade linear; as opções (b) e (d) trocam sinusoidal com
+aprendido, ignorando que só o segundo tem parâmetros e limite $L_{\text{max}}$; a opção
+(c) atribui a tabela treinável ao RoPE e a rotação ao \textit{PE} aprendido; a opção (e)
+troca sinusoidal com RoPE; a opção (f) atribui a penalidade por distância ao
+\textit{PE} aprendido; a opção (h) troca sinusoidal com ALiBi, atribuindo ao primeiro um
+mecanismo interno à atenção.
 % ---
 
 % ============================================================

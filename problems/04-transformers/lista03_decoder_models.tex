@@ -2,7 +2,7 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,decorations.pathreplacing,positioning}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing,positioning,patterns}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
 \usepackage{emoji}
@@ -445,6 +445,340 @@ qual é a \textbf{perplexidade} do modelo nessa sequência?
     \item $64$
 \end{enumerate}
 
+% ------------------------------------------------------------------
+% Q14 — Médio (KV-cache: MHA vs. GQA, cálculo completo)
+% ------------------------------------------------------------------
+\item Considere um modelo \textit{decoder-only} com $H = 8$ cabeças de \textit{query}, dimensão por cabeça $d_k = 64$, $L = 32$ camadas e \textit{batch size} $1$. Você usa \textit{KV-cache} durante a inferência. Quantos \textit{floats} por token compõem o \textit{KV-cache} para \textit{Multi-Head Attention} (MHA, $H$ cabeças de K e V) e para \textit{Grouped-Query Attention} (GQA com $G = 2$ grupos para K e V), e qual a razão entre as duas?
+\begin{enumerate}[a)]
+    \item MHA: $32\,768$; GQA: $16\,384$; GQA é $2\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $8\,192$; GQA é $4\times$ menor que MHA.
+    \item MHA: $16\,384$; GQA: $4\,096$; GQA é $4\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $4\,096$; GQA é $8\times$ menor que MHA.
+    \item MHA: $32\,768$; GQA: $2\,048$; GQA é $16\times$ menor que MHA.
+    \item MHA: $16\,384$; GQA: $8\,192$; GQA é $2\times$ menor que MHA.
+    \item MHA: $65\,536$; GQA: $32\,768$; GQA é $2\times$ menor que MHA.
+    \item MHA e GQA armazenam o mesmo número de \textit{floats} por token, pois ambos cacheiam todas as cabeças de \textit{query}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q15 — Médio (associação de mecanismos de atenção eficiente)
+% ------------------------------------------------------------------
+\item Associe cada mecanismo de atenção (coluna da esquerda) à sua característica definidora (coluna da direita).
+
+\begin{center}
+\begin{tabular}{p{0.35\linewidth} p{0.57\linewidth}}
+\textbf{1.} MHA (\textit{Multi-Head Attention}) & \textbf{(i)} não altera o resultado da atenção: reorganiza o processamento em blocos na SRAM da GPU, com \textit{softmax} online, evitando materializar a matriz $n \times n$. \\
+\textbf{2.} MQA (\textit{Multi-Query Attention}) & \textbf{(ii)} as cabeças de \textit{query} são divididas em $G$ grupos, e cada grupo compartilha um par de projeções $\mathbf{K}$/$\mathbf{V}$; os casos extremos $G = 1$ e $G = H$ recuperam outros dois mecanismos. \\
+\textbf{3.} GQA (\textit{Grouped-Query Attention}) & \textbf{(iii)} cada cabeça mantém projeções $\mathbf{K}$ e $\mathbf{V}$ próprias; a memória do KV-cache cresce com o número $H$ de cabeças. \\
+\textbf{4.} \textit{Sliding Window Attention} & \textbf{(iv)} todas as cabeças de \textit{query} compartilham um único par de projeções $\mathbf{K}$/$\mathbf{V}$, reduzindo o KV-cache por um fator $H$, com possível perda de qualidade. \\
+\textbf{5.} \textit{FlashAttention} & \textbf{(v)} cada \textit{token} atende apenas aos $w$ \textit{tokens} mais recentes; o custo por camada cai de $\mathcal{O}(n^2)$ para $\mathcal{O}(n \cdot w)$, e o alcance efetivo cresce ao empilhar camadas. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(iii); \quad 2-(ii); \quad 3-(iv); \quad 4-(v); \quad 5-(i)
+    \item 1-(iv); \quad 2-(iii); \quad 3-(ii); \quad 4-(v); \quad 5-(i)
+    \item 1-(iii); \quad 2-(iv); \quad 3-(ii); \quad 4-(i); \quad 5-(v)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(iii); \quad 4-(v); \quad 5-(i)
+    \item 1-(iii); \quad 2-(v); \quad 3-(ii); \quad 4-(iv); \quad 5-(i)
+    \item 1-(i); \quad 2-(iv); \quad 3-(ii); \quad 4-(v); \quad 5-(iii)
+    \item 1-(iii); \quad 2-(iv); \quad 3-(ii); \quad 4-(v); \quad 5-(i)
+    \item 1-(ii); \quad 2-(iii); \quad 3-(iv); \quad 4-(i); \quad 5-(v)
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q16 — Médio (cinco afirmações: complexidade, KV-cache, cross-attention, PE, cabeças)
+% ------------------------------------------------------------------
+\item Avalie as cinco afirmações a seguir sobre \textit{transformers}:
+
+\textbf{I.} A complexidade da \textit{self-attention} é $O(n^2 d)$ no comprimento de sequência $n$; portanto dobrar $n$ multiplica por aproximadamente $4$ o custo do termo de atenção.
+
+\textbf{II.} O \textit{KV-cache} reduz o custo de gerar cada novo \textit{token} de $O(n^2)$ para $O(n)$, ao preço de uma memória que cresce linearmente com o comprimento do contexto.
+
+\textbf{III.} Na \textit{cross-attention} de uma arquitetura \textit{encoder-decoder}, as \textit{queries} vêm do \textit{decoder} e as \textit{keys} e \textit{values} vêm do \textit{encoder}.
+
+\textbf{IV.} O \textit{positional encoding} sinusoidal de Vaswani et al.\ (2017) não possui parâmetros treináveis: é uma função fixa da posição.
+
+\textbf{V.} Aumentar o número de cabeças $H$ (mantendo $d_{\text{model}}$ fixo) aumenta o número total de parâmetros das projeções de atenção proporcionalmente a $H$.
+
+\begin{enumerate}[a)]
+    \item Apenas I, II e III estão corretas.
+    \item Apenas I, III e IV estão corretas.
+    \item Apenas II, III, IV e V estão corretas.
+    \item Apenas I, II e IV estão corretas.
+    \item Apenas I, II, III e V estão corretas.
+    \item Apenas III e IV estão corretas.
+    \item Apenas I, II, III e IV estão corretas.
+    \item Todas as afirmações estão corretas.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q17 — Médio (diagnóstico: falha na máscara causal no pré-treinamento)
+% ------------------------------------------------------------------
+\item Você está pré-treinando um \textit{decoder-only} de 1B parâmetros com objetivo de \textit{next-token prediction} sobre um corpus de texto. Após implementar a sua versão de \textit{self-attention}, você observa que durante o treino o \textit{loss} cai rapidamente para próximo de zero, mas, em inferência, o modelo é incapaz de gerar texto coerente, produzindo apenas ruído. Qual a explicação mais consistente \textbf{e} a melhor mitigação?
+\begin{enumerate}[a)]
+    \item A taxa de aprendizado está alta demais, fazendo com que o \textit{loss} caia rápido demais; reduzi-la em duas ordens de grandeza resolve a divergência inferência-treino.
+    \item O modelo está sofrendo \textit{overfitting}; reduzir o número de parâmetros e adicionar \textit{Dropout} resolve o problema.
+    \item A máscara causal não está sendo aplicada a $\mathbf{Q}\mathbf{K}^\top$, então o modelo enxerga tokens futuros e aprende a copiá-los; aplicar $-\infty$ às entradas $(i, j)$ com $j > i$ antes do \textit{softmax} resolve.
+    \item O \textit{tokenizer} está mal treinado, fragmentando palavras em caracteres individuais; treiná-lo com mais corpus resolve o problema.
+    \item Os \textit{positional encodings} estão sendo somados à entrada; removê-los faz com que o modelo deixe de depender de informação posicional e generalize melhor.
+    \item O \textit{softmax} da atenção precisa ser substituído por \textit{sigmoid} ponto-a-ponto para problemas de geração autorregressiva.
+    \item O modelo precisa de \textit{cross-attention}; \textit{decoder-only} sem \textit{cross-attention} é fundamentalmente incapaz de gerar texto coerente.
+    \item O problema é que se trata de \textit{decoder-only}; trocar para \textit{encoder-only} (tipo BERT) resolve, pois BERT é o estado da arte em geração de texto.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q18 — Médio (asserções: treinamento paralelo e máscara causal)
+% ------------------------------------------------------------------
+\item Sobre as asserções abaixo a respeito do pré-treinamento de modelos \textit{decoder-only}:
+
+\textbf{I.} Uma sequência de $n$ \textit{tokens} fornece $n$ exemplos de treino simultâneos: a perda é computada para todas as posições em um único passe, com alvo igual à entrada deslocada uma posição (\textit{shift-by-one}).
+
+\textbf{II.} A máscara causal é necessária apenas na inferência; durante o treinamento ela pode ser omitida sem prejuízo, pois os alvos de cada posição já são conhecidos.
+
+\textbf{III.} Em RNNs o mesmo paralelismo entre posições não é possível, pois o estado oculto de cada posição depende do estado da posição anterior, forçando o processamento \textit{token} a \textit{token}.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q19 — Difícil (decodificação especulativa: aceitação estocástica em várias posições)
+% ------------------------------------------------------------------
+\item Na \textbf{decodificação especulativa}, o modelo de rascunho $M_q$ propõe $\gamma$ \textit{tokens} (probabilidades $q$) e o modelo alvo $M_p$ os verifica em um único passe (probabilidades $p$). Cada \textit{token} proposto $\tilde{x}$ é \textbf{aceito} com probabilidade $\min\!\left(1,\; p(\tilde{x})/q(\tilde{x})\right)$; se \textbf{rejeitado}, reamostra-se da distribuição normalizada $(p - q)_+ = \max(0,\, p - q)$ e \textbf{descartam-se todas as posições seguintes} do rascunho (se todos forem aceitos, amostra-se ainda $1$ \textit{token} extra de $M_p$). A tabela mostra os três \textit{tokens} mais prováveis de $M_q$ e de $M_p$ em cada uma das $\gamma = 5$ posições; o \textit{token} proposto é o primeiro da coluna $M_q$. Considere apenas os \textit{tokens} listados.
+
+\begin{center}
+\small
+\begin{tabular}{c|l|l}
+\textbf{Pos.} & \textbf{$M_q$ (rascunho): 3 mais prováveis} & \textbf{$M_p$ (alvo): 3 mais prováveis} \\ \hline
+1 & tem (0.60), há (0.15), possui (0.10)       & tem (0.90), possui (0.05), há (0.03) \\
+2 & uma (0.50), a (0.20), sua (0.10)           & uma (0.70), a (0.15), sua (0.08) \\
+3 & porta (0.80), janela (0.12), parede (0.05) & janela (0.70), porta (0.20), parede (0.05) \\
+4 & azul (0.40), branca (0.25), velha (0.15)   & azul (0.60), branca (0.20), velha (0.10) \\
+5 & grande (0.70), nova (0.15), bonita (0.08)  & nova (0.40), grande (0.35), bonita (0.10) \\
+\end{tabular}
+\end{center}
+
+Com base na regra acima, qual afirmação descreve corretamente a verificação?
+
+\begin{enumerate}[a)]
+    \item Todo \textit{token} proposto que aparece entre os três mais prováveis do alvo é aceito; logo apenas a posição $5$ pode ser rejeitada na verificação.
+    \item A posição $3$ é \emph{sempre} rejeitada (pois $p < q$): reamostra-se ``janela'' e descartam-se as posições $4$ e $5$ do rascunho.
+    \item A posição $3$ é aceita com probabilidade $p/q = 0.8/0.2 = 1$ (sempre), bastando o \textit{token} estar entre os mais prováveis do alvo.
+    \item As posições $1$ e $2$ são sempre aceitas ($p \ge q$); a posição $3$ ($p < q$) é aceita com probabilidade $p/q = 0.2/0.8 = 0.25$ e, se rejeitada, reamostrada de $(p-q)_+$ para ``janela'', descartando-se as posições $4$ e $5$.
+    \item As posições $1$ e $2$ podem ser rejeitadas com probabilidade $p/q$; a posição $3$, por ter $p < q$, é a única sempre aceita do conjunto.
+    \item Se rejeitada, a posição $3$ é reamostrada para ``porta'' (o \textit{token} do rascunho), e as posições $4$ e $5$ são reamostradas logo em seguida.
+    \item Como $p < q$ nas posições $3$ e $5$, ambas são reamostradas de forma independente, gerando ``janela'' e ``nova'', respectivamente.
+    \item Nenhuma posição pode ser aceita sem reamostragem, pois a regra de verificação exige que $p = q$ exatamente em cada posição.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q20 — Difícil (decodificação especulativa: diagrama + verificação numérica)
+% ------------------------------------------------------------------
+\item Um LLM (\textit{target} $M_p$) é servido com decodificação especulativa: um modelo \textit{draft} $M_q$ menor propõe $\gamma = 3$ \textit{tokens}, verificados pelo \textit{target} em um único \textit{forward pass}. A partir do \textit{prompt} \textit{``O time venceu o''}, o \textit{draft} propõe o \textit{token} mais provável de $q$ em cada posição, conforme o diagrama abaixo, que também mostra os valores $u_t \sim \mathcal{U}(0,1)$ amostrados para a verificação:
+
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={draw, rounded corners, font=\small\ttfamily, inner sep=4pt, minimum height=0.55cm},
+  lab/.style={font=\scriptsize},
+  arr/.style={->, >=stealth, thick}
+]
+  \node[tok] (prompt) at (0,0) {O time venceu o};
+  \node[tok, right=0.8cm of prompt] (t1) {jogo};
+  \node[tok, right=0.8cm of t1]     (t2) {de};
+  \node[tok, right=0.8cm of t2]     (t3) {ontem};
+  \draw[arr] (prompt) -- (t1);
+  \draw[arr] (t1) -- (t2);
+  \draw[arr] (t2) -- (t3);
+  \node[lab, below=0.18cm of t1] {$u_1 = 0.84$};
+  \node[lab, below=0.18cm of t2] {$u_2 = 0.42$};
+  \node[lab, below=0.18cm of t3] {$u_3 = 0.78$};
+  \draw[decorate, decoration={brace, amplitude=5pt}]
+    ([yshift=0.65cm]t1.north west) -- ([yshift=0.65cm]t3.north east)
+    node[lab, midway, above=6pt] {propostos pelo \textit{draft} $M_q$, verificados em paralelo pelo \textit{target} $M_p$};
+\end{tikzpicture}
+\end{center}
+
+O \textit{token} proposto $\tilde{x}_t$ é aceito se $u_t \le \min\bigl(1,\; p(\tilde{x}_t)/q(\tilde{x}_t)\bigr)$; no primeiro rejeitado, o restante do rascunho é descartado e o \textit{token} da posição é reamostrado de $p'(x) \propto \max\bigl(0,\, p(x) - q(x)\bigr)$. A tabela dá os logits dos dois modelos em cada posição e as probabilidades correspondentes ($\mathrm{softmax}$ arredondada); considere nulas as probabilidades dos demais \textit{tokens} do vocabulário. Os gráficos ilustram as mesmas distribuições:
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 1} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{jogo}     & 2.0 & 0.50 & 1.9 & 0.60 \\
+\texttt{título}   & 1.1 & 0.20 & 0.6 & 0.16 \\
+\texttt{clássico} & 1.1 & 0.20 & 0.4 & 0.13 \\
+\texttt{rival}    & 0.4 & 0.10 & 0.2 & 0.11 \\\hline
+\end{tabular}\hspace{0.5em}%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 2} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{de}  & 2.6 & 0.70 & 1.3 & 0.36 \\
+\texttt{por} & 1.1 & 0.16 & 1.4 & 0.40 \\
+\texttt{com} & 0.6 & 0.09 & 0.4 & 0.15 \\
+\texttt{na}  & 0.0 & 0.05 & $-$0.1 & 0.09 \\\hline
+\end{tabular}\hspace{0.5em}%
+\begin{tabular}{|l|cc|cc|}
+\hline
+\multicolumn{5}{|c|}{Posição 3} \\\hline
+ & \multicolumn{2}{c|}{\textit{draft} $M_q$} & \multicolumn{2}{c|}{\textit{target} $M_p$} \\
+\textit{token} & logit & $q$ & logit & $p$ \\\hline
+\texttt{ontem}  & 2.5 & 0.60 & 0.4 & 0.15 \\
+\texttt{virada} & 1.6 & 0.25 & 1.4 & 0.40 \\
+\texttt{hoje}   & 0.0 & 0.05 & 1.3 & 0.36 \\
+\texttt{novo}   & 0.7 & 0.10 & $-$0.1 & 0.09 \\\hline
+\end{tabular}}
+\end{center}
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 1: proposto \texttt{jogo}},
+  symbolic x coords={jogo,título,clássico,rival}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+  legend style={font=\scriptsize, at={(0.97,0.95)}, anchor=north east},
+]
+  \addplot[fill=gray!40] coordinates {(jogo,0.50)(título,0.20)(clássico,0.20)(rival,0.10)};
+  \addplot[pattern=north east lines] coordinates {(jogo,0.60)(título,0.16)(clássico,0.13)(rival,0.11)};
+  \legend{$q$, $p$}
+\end{axis}
+\end{tikzpicture}%
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 2: proposto \texttt{de}},
+  symbolic x coords={de,por,com,na}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+]
+  \addplot[fill=gray!40] coordinates {(de,0.70)(por,0.16)(com,0.09)(na,0.05)};
+  \addplot[pattern=north east lines] coordinates {(de,0.36)(por,0.40)(com,0.15)(na,0.09)};
+\end{axis}
+\end{tikzpicture}%
+\begin{tikzpicture}[baseline={(0,0)}]
+\begin{axis}[
+  ybar, bar width=0.22cm, width=5.4cm, height=3.9cm,
+  title={\scriptsize Posição 3: proposto \texttt{ontem}},
+  symbolic x coords={ontem,virada,hoje,novo}, xtick=data,
+  x tick label style={font=\scriptsize\ttfamily, rotate=35, anchor=north east},
+  ymin=0, ymax=0.85, ytick={0,0.2,0.4,0.6,0.8},
+  y tick label style={font=\scriptsize}, enlarge x limits=0.15,
+]
+  \addplot[fill=gray!40] coordinates {(ontem,0.60)(virada,0.25)(hoje,0.05)(novo,0.10)};
+  \addplot[pattern=north east lines] coordinates {(ontem,0.15)(virada,0.40)(hoje,0.36)(novo,0.09)};
+\end{axis}
+\end{tikzpicture}}
+\end{center}
+
+Qual \textit{token} do rascunho é rejeitado e qual é o \textit{token} mais provável de ser obtido na reamostragem?
+
+\begin{enumerate}[a)]
+    \item Nenhum \textit{token} é rejeitado; os três são aceitos e um \textit{token} extra é amostrado de $p$.
+    \item O \textit{token} \texttt{jogo} é rejeitado; o mais provável na reamostragem é \texttt{título}.
+    \item O \textit{token} \texttt{de} é rejeitado; o mais provável na reamostragem é \texttt{por}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{virada}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{hoje}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{ontem}.
+    \item O \textit{token} \texttt{ontem} é rejeitado; o mais provável na reamostragem é \texttt{novo}.
+    \item Os \textit{tokens} \texttt{de} e \texttt{ontem} são rejeitados; nas reamostragens, os mais prováveis são \texttt{por} e \texttt{hoje}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q21 — Médio (diagrama: beam search vs. greedy)
+% ------------------------------------------------------------------
+\item Um modelo \textit{decoder-only} completa o \textit{prompt} \textit{``O céu está''} em duas etapas de geração. O diagrama mostra as três hipóteses mais prováveis da primeira etapa e, para cada uma, os dois candidatos mais prováveis da segunda; as arestas indicam as probabilidades condicionais.
+
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={draw, rounded corners, font=\small\ttfamily, inner sep=3pt, minimum height=0.5cm},
+  lbl/.style={font=\scriptsize, midway, above, sloped},
+  arr/.style={->, >=stealth, thick}
+]
+  \node[tok] (root)  at (0, 0)      {O céu está};
+  \node[tok] (azul)  at (3.4, 1.7)  {azul};
+  \node[tok] (cinza) at (3.4, 0.0)  {cinza};
+  \node[tok] (limpo) at (3.4, -1.7) {limpo};
+  \node[tok] (hoje)   at (6.6, 2.15)  {hoje};
+  \node[tok] (agora)  at (6.6, 1.25)  {agora};
+  \node[tok] (escuro) at (6.6, 0.45)  {escuro};
+  \node[tok] (claro)  at (6.6, -0.45) {claro};
+  \node[tok] (e)      at (6.6, -1.25) {e};
+  \node[tok] (mas)    at (6.6, -2.15) {mas};
+
+  \draw[arr] (root) -- node[lbl] {$0.5$} (azul);
+  \draw[arr] (root) -- node[lbl] {$0.3$} (cinza);
+  \draw[arr] (root) -- node[lbl] {$0.2$} (limpo);
+  \draw[arr] (azul)  -- node[lbl] {$0.4$}  (hoje);
+  \draw[arr] (azul)  -- node[lbl] {$0.3$}  (agora);
+  \draw[arr] (cinza) -- node[lbl] {$0.8$}  (escuro);
+  \draw[arr] (cinza) -- node[lbl] {$0.1$}  (claro);
+  \draw[arr] (limpo) -- node[lbl] {$0.95$} (e);
+  \draw[arr] (limpo) -- node[lbl] {$0.05$} (mas);
+\end{tikzpicture}
+\end{center}
+
+Qual sequência o \textit{beam search} com largura $B = 2$ retorna e o que a decodificação \textit{greedy} teria feito no mesmo cenário?
+
+\begin{enumerate}[a)]
+    \item Beam: \texttt{azul hoje}; \textit{greedy} retorna o mesmo, pois com $B = 2$ os dois métodos sempre coincidem.
+    \item Beam: \texttt{limpo e}; \textit{greedy} retorna \texttt{cinza escuro}, pois a probabilidade conjunta soma as probabilidades das duas etapas.
+    \item Beam: \texttt{azul hoje}, pois a hipótese mais provável da primeira etapa já determina qual sequência vence na comparação final.
+    \item Beam: \texttt{limpo e}, pois contém o maior fator condicional do diagrama; \textit{greedy} retorna \texttt{azul hoje}, com conjunta menor.
+    \item Beam: \texttt{cinza escuro}; \textit{greedy} retorna o mesmo, pois a continuação de maior probabilidade condicional decide os dois métodos.
+    \item Beam: \texttt{cinza escuro}; \textit{greedy} teria escolhido \texttt{azul} e depois \texttt{hoje}, terminando com probabilidade conjunta menor.
+    \item Beam: \texttt{azul hoje}; \textit{greedy} retorna \texttt{cinza escuro}, pois o beam maximiza cada passo isolado e o \textit{greedy} maximiza a sequência completa.
+    \item Beam: \texttt{azul hoje} e \texttt{cinza escuro} empatam na probabilidade conjunta, e o \textit{beam search} desempata pela ordem lexicográfica dos \textit{tokens}.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q22 — Médio (diagnóstico: degeneração e repetição com beam search)
+% ------------------------------------------------------------------
+\item Um \textit{chatbot} de geração aberta usa \textit{beam search} com $B = 8$. As respostas frequentemente entram em repetição: \textit{``Fico feliz em ajudar. Fico feliz em ajudar. Fico feliz em ajudar\ldots''}. A perda de treinamento está normal e o modelo responde bem a perguntas factuais curtas. Qual é o diagnóstico e a mitigação mais adequada?
+
+\begin{enumerate}[a)]
+    \item O modelo sofreu esquecimento catastrófico durante o ajuste; retreinar com os dados originais de pré-treino elimina os loops de repetição.
+    \item É degeneração por maximização de probabilidade: repetir uma frase aumenta a probabilidade da própria repetição, e texto humano não é o texto mais provável; usar amostragem truncada (top-$k$ ou top-$p$) mitiga.
+    \item A máscara causal está ausente na inferência, fazendo o modelo copiar o próprio passado; reaplicar a máscara na atenção elimina os loops.
+    \item O KV-cache está devolvendo entradas antigas repetidas durante o \textit{decode}; desativar o cache corrige a geração sem nenhum custo adicional.
+    \item A largura $B = 8$ é pequena demais para escapar dos loops; aumentar o \textit{beam} para $B = 64$ elimina a repetição ao explorar mais hipóteses.
+    \item A temperatura de amostragem está alta demais, gerando texto aleatório; reduzir $T$ para próximo de $0$ elimina a repetição observada.
+    \item O \textit{tokenizer} aprendeu a frase repetida como um único \textit{token}; retreinar o \textit{tokenizer} com frequência mínima maior corrige o problema.
+    \item É \textit{overfitting} ao corpus de pré-treino; aplicar \textit{dropout} também durante a inferência diversifica as respostas geradas.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+% Q23 — Médio (embedding + LM head: weight tying)
+% ------------------------------------------------------------------
+\item Um modelo \textit{decoder-only} tem vocabulário $|V| = 32\,000$ e dimensão $d_\text{model} = 2\,048$. A tabela de \textit{embedding} $\mathbf{W}_\text{emb} \in \mathbb{R}^{|V| \times d_\text{model}}$ e a LM \textit{head} $\mathbf{W}_\text{LM} \in \mathbb{R}^{d_\text{model} \times |V|}$ são, inicialmente, matrizes independentes (sem \textit{bias}). Quantos parâmetros as duas somam, e o que muda ao aplicar \textit{weight tying} ($\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$)?
+
+\begin{enumerate}[a)]
+    \item Somam $65{,}5$ milhões; com \textit{weight tying} o total cai para $32{,}8$ milhões, pois cada matriz passa a usar metade das linhas.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total não muda, pois as duas matrizes continuam existindo e apenas os gradientes são somados.
+    \item Somam $65{,}5$ milhões; com \textit{weight tying} o total dobra para $131{,}1$ milhões, pois a matriz precisa ser replicada na saída.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} a mesma matriz é reutilizada na entrada e na saída, e o total cai para $65{,}5$ milhões.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total cai para $65{,}5$ milhões, mas o modelo perde a capacidade de gerar \textit{tokens} raros do vocabulário.
+    \item Somam $262{,}1$ milhões; com \textit{weight tying} o total cai para $131{,}1$ milhões, pois cada matriz mantém uma cópia própria dos vieses.
+    \item Somam $131{,}1$ milhões; com \textit{weight tying} o total cai para $98{,}3$ milhões, pois apenas as linhas dos \textit{tokens} frequentes são compartilhadas.
+    \item Somam $68{,}1$ mil; com \textit{weight tying} o total cai para $34{,}0$ mil, pois cada matriz contribui com $|V| + d_\text{model}$ parâmetros.
+\end{enumerate}
+
 \end{enumerate}
 
 
@@ -700,6 +1034,314 @@ Aplicando a fórmula com $N = 3$:
         $\exp\!\bigl(-(\ln\tfrac{1}{2}+\ln\tfrac{1}{4}+\ln\tfrac{1}{8})\bigr)
         = 2^6 = 64$.
 \end{itemize}
+% ---
+
+% --- Solução Q14 ---
+\subsection*{XIV — Resposta: (b)}
+O \textit{KV-cache} armazena, por token e por camada, $2$ tensores (K e V), cada um com
+$\#\text{cabeças}_{KV} \times d_k$ entradas. Multiplicando por $L$ camadas:
+\begin{itemize}
+    \item \textbf{MHA} ($H$ cabeças de K e V): $2 \cdot H \cdot d_k \cdot L = 2 \cdot 8 \cdot 64 \cdot 32 = 32\,768$ \textit{floats}/token.
+    \item \textbf{GQA} ($G = 2$ grupos para K/V): $2 \cdot G \cdot d_k \cdot L = 2 \cdot 2 \cdot 64 \cdot 32 = 8\,192$ \textit{floats}/token.
+    \item Razão: $32\,768 / 8\,192 = 4$. GQA é $4\times$ menor.
+\end{itemize}
+Note que o número de cabeças de \emph{query} ($H$) não afeta o cache: apenas K e V são
+cacheados (compare com as questões IV e XI).
+A opção~(a) aplica $G = H/2$ apenas a uma das matrizes (K ou V), não a ambas.
+A opção~(c) omite um fator $2$ (apenas uma matriz, K ou V).
+A opção~(d) usa $G = 1$ (MQA), não $G = 2$.
+A opção~(e) mistura GQA com $G = 1$ e desconta indevidamente.
+A opção~(f) omite um fator $2$ no MHA e mantém GQA correto.
+A opção~(g) dobra (incluiria também queries no cache).
+A opção~(h) confunde KV-cache com cache de queries; queries são recomputadas a cada
+\textit{step}.
+% ---
+
+% --- Solução Q15 ---
+\subsection*{XV — Resposta: (g)}
+Associação correta: 1-(iii); 2-(iv); 3-(ii); 4-(v); 5-(i).
+
+\textbf{MHA $\to$ (iii):} é a formulação original do \textit{transformer}; cada uma das
+$H$ cabeças tem projeções $\mathbf{K}$ e $\mathbf{V}$ próprias, e o KV-cache guarda $H$
+pares por \textit{token}, o que domina a memória de inferência em contextos longos.
+
+\textbf{MQA $\to$ (iv):} todas as cabeças de \textit{query} consultam um único par
+$\mathbf{K}$/$\mathbf{V}$ compartilhado, encolhendo o KV-cache por um fator $H$ (PaLM,
+Falcon), ao custo de possível perda de qualidade.
+
+\textbf{GQA $\to$ (ii):} interpola entre os dois anteriores; as cabeças são divididas em
+$G$ grupos com um par $\mathbf{K}$/$\mathbf{V}$ por grupo, e os extremos recuperam MQA
+($G = 1$) e MHA ($G = H$). Obtém qualidade próxima da MHA com cache reduzido (Llama 2
+70B, Llama 3, Mistral).
+
+\textbf{Sliding Window $\to$ (v):} restringe a atenção aos $w$ \textit{tokens} mais
+recentes, baixando o custo por camada de $\mathcal{O}(n^2)$ para
+$\mathcal{O}(n \cdot w)$; o alcance efetivo cresce com a profundidade, pois cada camada
+propaga informação de mais $w$ posições (Mistral).
+
+\textbf{FlashAttention $\to$ (i):} ao contrário dos anteriores, não altera a atenção
+computada, apenas sua implementação; ataca a movimentação de memória na GPU com
+\textit{tiling} na SRAM e \textit{softmax} online, sem materializar a matriz
+$n \times n$ na HBM.
+
+Cada alternativa incorreta troca um par de mecanismos confundíveis: a opção~(a) troca
+MQA e GQA (compartilhamento total vs.\ por grupos); a opção~(b) troca MHA e MQA; a
+opção~(c) troca Sliding Window e FlashAttention, o erro mais tentador, pois ambos visam
+eficiência, mas só o primeiro altera o resultado da atenção; a opção~(d) troca MHA e
+GQA; a opção~(e) troca MQA e Sliding Window; a opção~(f) troca MHA e FlashAttention; a
+opção~(h) contém múltiplas trocas.
+% ---
+
+% --- Solução Q16 ---
+\subsection*{XVI — Resposta: (g)}
+\textbf{I (V):} o termo $\mathbf{Q}\mathbf{K}^\top$ é $O(n^2 d)$; dobrar $n$ quadruplica
+a parcela $n^2$.
+\textbf{II (V):} com \textit{KV-cache}, cada novo \textit{token} reaproveita
+$\mathbf{K}, \mathbf{V}$ do prefixo, custando $O(n)$, mas a memória do \textit{cache}
+cresce $\propto n$.
+\textbf{III (V):} \textit{cross-attention} usa \textit{query} do \textit{decoder} e
+\textit{key}/\textit{value} do \textit{encoder}.
+\textbf{IV (V):} o \textit{positional encoding} sinusoidal é uma função fixa de
+senos/cossenos, sem parâmetros treináveis.
+\textbf{V (F):} as projeções de atenção totalizam $\approx 4\,d_{\text{model}}^2$
+\emph{independentemente} de $H$, pois as cabeças particionam $d_{\text{model}}$;
+aumentar $H$ não aumenta o total.
+Verdadeiras: I, II, III e IV.
+As opções~(a), (b), (d) e~(f) omitem alguma afirmação verdadeira.
+As opções~(c), (e) e~(h) incluem V (falsa).
+% ---
+
+% --- Solução Q17 ---
+\subsection*{XVII — Resposta: (c)}
+A \textit{self-attention} sem máscara causal permite que a posição $i$ leia diretamente
+as representações dos tokens $j > i$. Em treino, o alvo $y_i$ é o token $x_{i+1}$, cuja
+informação está disponível na representação contextualizada: a tarefa colapsa em
+``copie a posição seguinte''. Em inferência, esses tokens futuros não existem ainda, e o
+modelo, treinado para uma tarefa trivial, não tem nada útil a oferecer. A correção é a
+máscara causal: somar $-\infty$ a $S_{ij}$ para todo $j > i$ antes do \textit{softmax}.
+A opção~(a) é falsa: a velocidade de queda do \textit{loss} é sintoma; ajustar a taxa
+de aprendizado não corrige vazamento de alvo.
+A opção~(b) é falsa: \textit{loss} próximo de zero combinado com falha total em
+inferência indica vazamento de alvo, não \textit{overfitting} clássico.
+A opção~(d) é falsa: um \textit{tokenizer} ruim degrada qualidade de modo gradual; não
+causa esse padrão extremo treino-vs-inferência.
+A opção~(e) é falsa: remover \textit{positional encoding} não corrige o vazamento e
+ainda piora a qualidade.
+A opção~(f) é falsa: substituir \textit{softmax} por \textit{sigmoid} muda o tipo de
+atenção, não corrige a falta de máscara.
+A opção~(g) é falsa: \textit{cross-attention} não tem nada a ver com modelagem
+autorregressiva pura; \textit{decoder-only} sem \textit{cross-attention} é exatamente
+GPT/Llama.
+A opção~(h) é falsa: BERT é \textit{encoder-only} e foi treinado para \textit{masked
+language modeling}, não geração autorregressiva.
+% ---
+
+% --- Solução Q18 ---
+\subsection*{XVIII — Resposta: (f)}
+\textbf{I é correta:} é o esquema \textit{shift-by-one} do pré-treinamento; cada posição
+$t$ prediz o \textit{token} $t{+}1$, e a perda de todas as posições é computada em um
+único passe \textit{forward}.
+
+\textbf{II é incorreta:} a máscara causal é essencial justamente \emph{no treinamento}
+paralelo. Sem ela, a posição $t$ atenderia ao próprio alvo (o \textit{token} $t{+}1$,
+visível na sequência) e o modelo aprenderia a copiá-lo: a perda cairia artificialmente,
+mas a geração autorregressiva, em que o futuro não existe, seria incoerente (ver
+questão XVII). Na inferência a máscara é redundante por construção, pois os
+\textit{tokens} futuros ainda não foram gerados.
+
+\textbf{III é correta:} a recorrência é sequencial por definição; $h_t$ depende de
+$h_{t-1}$, impedindo o cômputo simultâneo das posições. Esse contraste de paralelismo,
+com o mesmo objetivo simples aplicável a texto bruto, é apontado na aula como a razão
+de o \textit{decoder-only} ter vencido as RNNs.
+
+Logo, apenas I e III estão corretas.
+As opções~(a) e~(c) excluem uma asserção correta.
+As opções~(d), (e) e~(g) incluem a asserção II, que inverte o papel da máscara entre
+treino e inferência.
+A opção~(b) inclui II e exclui as duas corretas.
+A opção~(h) contradiz I e III.
+% ---
+
+% --- Solução Q19 ---
+\subsection*{XIX — Resposta: (d)}
+Aplicando $\min(1,\, p/q)$ ao \textit{token} proposto em cada posição:
+\begin{itemize}
+    \item Pos.\ 1: $p = 0.90 \ge q = 0.60 \Rightarrow$ aceito com prob.\ $1$ (sempre).
+    \item Pos.\ 2: $p = 0.70 \ge q = 0.50 \Rightarrow$ sempre aceito.
+    \item Pos.\ 3: $p = 0.20 < q = 0.80 \Rightarrow$ aceito com prob.\ $0.20/0.80 = 0.25$ (rejeitado com prob.\ $0.75$).
+    \item Pos.\ 4: $p = 0.60 \ge q = 0.40 \Rightarrow$ sempre aceito (se alcançada).
+    \item Pos.\ 5: $p = 0.35 < q = 0.70 \Rightarrow$ aceito com prob.\ $0.5$ (se alcançada).
+\end{itemize}
+A primeira posição que \emph{pode} ser rejeitada é a $3$. Se rejeitada, reamostra-se de
+$(p-q)_+$: entre os \textit{tokens} listados, apenas ``janela'' tem $p > q$
+($0.70 - 0.12 = 0.58 > 0$; ``porta'' tem $p < q$ e ``parede'' tem $p = q$), de modo que
+a massa concentra-se em ``janela''. Em seguida, as posições $4$ e $5$ são
+\textbf{descartadas} (a verificação para na primeira rejeição). Por construção, a saída
+tem a mesma distribuição do modelo alvo.
+
+Pontos-chave: a razão correta é $p/q$ (não $q/p$); estar entre os três mais prováveis
+do alvo \emph{não} garante aceitação (``porta'' está no \textit{top-3} do alvo, mas
+$p < q$); após uma rejeição, as posições seguintes são \emph{descartadas}, não
+reamostradas.
+A opção~(a) confunde estar no \textit{top-3} do alvo com ser aceito (a posição $3$
+também pode ser rejeitada).
+A opção~(b) é falsa: $p < q$ não implica rejeição certa; há aceitação com prob.\ $0.25$.
+A opção~(c) inverte a razão ($p/q = 0.25$, não $0.8/0.2$).
+A opção~(e) é falsa: $p \ge q$ implica aceitação \emph{garantida} (prob.\ $1$), não
+rejeição com prob.\ $p/q$.
+A opção~(f) é falsa: a reamostragem usa $(p-q)_+$, que exclui ``porta'' ($p < q$); e as
+posições $4$/$5$ são descartadas, não reamostradas.
+A opção~(g) é falsa: se a posição $3$ é rejeitada, a $5$ é descartada; elas não são
+independentes.
+A opção~(h) é falsa: a verificação não exige $p = q$; \textit{tokens} com $p \ge q$ são
+sempre aceitos.
+% ---
+
+% --- Solução Q20 ---
+\subsection*{XX — Resposta: (e)}
+A verificação percorre as posições em ordem, aceitando $\tilde{x}_t$ quando
+$u_t \le \min\bigl(1, p(\tilde{x}_t)/q(\tilde{x}_t)\bigr)$:
+
+\textbf{Posição 1} (\texttt{jogo}): $p/q = 0.60/0.50 = 1.2$, logo o limiar é
+$\min(1, 1.2) = 1$ e o \textit{token} é aceito com probabilidade $1$, qualquer que seja
+$u_1$. O valor alto $u_1 = 0.84$ não rejeita nada: quando $p \ge q$ o \textit{token} é
+sempre aceito.
+
+\textbf{Posição 2} (\texttt{de}): $p/q = 0.36/0.70 \approx 0.51$. Como
+$u_2 = 0.42 \le 0.51$, o \textit{token} é aceito, mesmo com $p < q$. Ter $p < q$ reduz
+a probabilidade de aceitação, mas não implica rejeição.
+
+\textbf{Posição 3} (\texttt{ontem}): $p/q = 0.15/0.60 = 0.25$. Como
+$u_3 = 0.78 > 0.25$, \texttt{ontem} é \textbf{rejeitado}, e o restante do rascunho (não
+há mais posições) seria descartado.
+
+A reamostragem usa $p'(x) \propto \max\bigl(0,\, p(x) - q(x)\bigr)$ na posição 3:
+\begin{center}
+\begin{tabular}{lcccc}
+  \toprule
+  \textit{token} & $p$ & $q$ & $p - q$ & $p'$ (norm.) \\
+  \midrule
+  \texttt{ontem}  & 0.15 & 0.60 & $-0.45$ & $0$ \\
+  \texttt{virada} & 0.40 & 0.25 & $+0.15$ & $0.15/0.46 \approx 0.33$ \\
+  \texttt{hoje}   & 0.36 & 0.05 & $+0.31$ & $0.31/0.46 \approx 0.67$ \\
+  \texttt{novo}   & 0.09 & 0.10 & $-0.01$ & $0$ \\
+  \bottomrule
+\end{tabular}
+\end{center}
+O mais provável na reamostragem é \texttt{hoje}, e não \texttt{virada}, que é o argmax
+de $p$: a subtração de $q$ penaliza os \textit{tokens} que o \textit{draft} já cobria
+bem e concentra massa onde o \textit{target} discorda do \textit{draft}, e
+$q(\texttt{virada}) = 0.25$ é bem maior que $q(\texttt{hoje}) = 0.05$. É esse ajuste
+que garante saída idêntica em distribuição à do \textit{target} (compare com a
+questão VIII).
+A opção~(a) exige que as três posições sejam aceitas, mas $u_3 = 0.78$ excede o limiar
+$0.25$ da posição 3.
+A opção~(b) compara $u_1$ diretamente com $p(\texttt{jogo}) = 0.60$; o critério usa a
+razão $p/q$, que na posição 1 vale $1.2$ e aceita sempre.
+A opção~(c) trata $p < q$ como rejeição automática; na posição 2 o sorteio $u_2 = 0.42$
+fica abaixo do limiar $0.51$ e \texttt{de} é aceito.
+A opção~(d) reamostra do argmax de $p$, ignorando a subtração de $q$;
+$p'(\texttt{virada}) \approx 0.33 < 0.67$.
+A opção~(f) é falsa: \texttt{ontem} tem $p - q = -0.45$, logo $p'(\texttt{ontem}) = 0$;
+o \textit{token} rejeitado nunca é reamostrado quando $p < q$.
+A opção~(g) é falsa: \texttt{novo} também zera em $p'$, pois $p - q = -0.01 \le 0$.
+A opção~(h) é falsa: a rejeição interrompe a verificação na primeira posição rejeitada;
+não há rejeições independentes por posição, e \texttt{de} nem chega a ser rejeitado.
+% ---
+
+% --- Solução Q21 ---
+\subsection*{XXI — Resposta: (f)}
+\textbf{Primeira etapa:} com $B = 2$, o \textit{beam search} mantém as duas hipóteses de
+maior probabilidade, \texttt{azul} ($0.5$) e \texttt{cinza} ($0.3$), e \textbf{poda}
+\texttt{limpo} ($0.2$), que nunca mais é expandido.
+
+\textbf{Segunda etapa:} as duas hipóteses sobreviventes são expandidas e comparadas pela
+\textbf{probabilidade conjunta} (produto das condicionais):
+\begin{gather*}
+P(\texttt{azul hoje}) = 0.5 \times 0.4 = 0.20,
+\qquad
+P(\texttt{azul agora}) = 0.5 \times 0.3 = 0.15,\\
+P(\texttt{cinza escuro}) = 0.3 \times 0.8 = 0.24,
+\qquad
+P(\texttt{cinza claro}) = 0.3 \times 0.1 = 0.03.
+\end{gather*}
+O beam retorna \texttt{cinza escuro} ($0.24$). A decodificação \textit{greedy} maximiza
+cada passo isoladamente: escolhe \texttt{azul} ($0.5$) na primeira etapa e trava nessa
+hipótese, terminando em \texttt{azul hoje} com conjunta menor ($0.20$). É exatamente o
+caso em que o beam encontra uma sequência de maior probabilidade total que o
+\textit{greedy} perde.
+
+Observação: o ramo podado renderia $P(\texttt{limpo e}) = 0.2 \times 0.95 = 0.19 < 0.24$,
+então aqui a poda não mudou o resultado; com outros números, poderia mudar, pois o
+\textit{beam search} é uma heurística, não uma busca exata.
+A opção~(a) é falsa: \textit{greedy} e beam não coincidem aqui; o \textit{greedy} nunca
+reavalia a escolha da primeira etapa.
+A opção~(b) soma as probabilidades das etapas; a conjunta é o produto das condicionais
+(soma apenas em log). Além disso, \texttt{limpo} é podado na primeira etapa e não chega
+a ser expandido.
+A opção~(c) é falsa: comparar apenas a primeira etapa é o comportamento do
+\textit{greedy}, não do beam.
+A opção~(d) escolhe o maior fator condicional isolado ($0.95$); a comparação usa a
+conjunta, e \texttt{limpo} nem sobrevive à poda da primeira etapa ($0.2$ é a terceira
+maior probabilidade com $B = 2$).
+A opção~(e) é falsa: o \textit{greedy} não escolhe \texttt{cinza escuro}; na primeira
+etapa \texttt{cinza} ($0.3$) perde para \texttt{azul} ($0.5$).
+A opção~(g) inverte as definições dos dois métodos.
+A opção~(h) é falsa: as conjuntas são diferentes ($0.24 \neq 0.20$); não há desempate.
+% ---
+
+% --- Solução Q22 ---
+\subsection*{XXII — Resposta: (b)}
+É a \textbf{degeneração} descrita por Holtzman et al.\ (2020): em geração aberta,
+maximizar a probabilidade (beam search ou \textit{greedy}) produz loops, pois cada
+repetição aumenta a probabilidade da própria repetição, e texto genérico, pois texto
+humano alterna \textit{tokens} esperados e surpreendentes em vez de ser o texto mais
+provável. A perda de treino normal e o bom desempenho em respostas factuais curtas
+descartam defeito de treinamento: o problema está na estratégia de decodificação. A
+mitigação é a amostragem truncada (top-$k$ ou top-$p$, ver questão XII), que corta a
+cauda da distribuição e amostra do restante.
+A opção~(a) é falsa: esquecimento catastrófico degradaria também as respostas factuais,
+o que não é observado.
+A opção~(c) é falsa: sem máscara causal o modelo teria treinado ``trapaceando'' e a
+perda de treino seria anormalmente baixa, com geração incoerente geral, não loops
+fluentes.
+A opção~(d) é falsa: o KV-cache apenas evita recomputar $\mathbf{K}$ e $\mathbf{V}$;
+com ou sem cache a saída é idêntica.
+A opção~(e) é falsa: aumentar $B$ aproxima ainda mais a busca do máximo global de
+probabilidade, agravando a degeneração.
+A opção~(f) é falsa: beam search é determinístico e não usa temperatura; além disso,
+$T \to 0$ aproxima o \textit{greedy}, que sofre do mesmo problema.
+A opção~(g) é falsa: o \textit{tokenizer} não cria \textit{tokens} de frases inteiras (a
+pré-tokenização impede \textit{merges} entre palavras), e a repetição ocorre na
+decodificação.
+A opção~(h) é falsa: não há indício de \textit{overfitting}, e \textit{dropout} em
+inferência não é a correção padrão para degeneração de decodificação.
+% ---
+
+% --- Solução Q23 ---
+\subsection*{XXIII — Resposta: (d)}
+Cada matriz tem $|V| \times d_\text{model} = 32\,000 \times 2\,048 = 65\,536\,000
+\approx 65{,}5$ milhões de parâmetros. Sem \textit{weight tying}, tabela de
+\textit{embedding} e LM \textit{head} são independentes:
+\[
+2 \times 65\,536\,000 = 131\,072\,000 \approx 131{,}1 \text{ milhões}.
+\]
+Com \textit{weight tying}, $\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$ reutiliza
+a mesma matriz nas duas pontas (os formatos $|V| \times d$ e $d \times |V|$ são
+compatíveis via transposição), eliminando uma das cópias: o total cai para $65{,}5$
+milhões, sem nenhuma perda de expressividade por construção.
+A opção~(a) parte de um total que já ignora uma das matrizes e inventa um
+compartilhamento de metade das linhas.
+A opção~(b) é falsa: com \textit{weight tying} existe uma única matriz; não são duas
+matrizes com gradientes somados.
+A opção~(c) inverte o efeito; o compartilhamento reduz o total, não o dobra.
+A opção~(e) acerta o total, mas a matriz compartilhada continua tendo uma linha por
+\textit{token} do vocabulário; nenhum \textit{token} deixa de ser gerável.
+A opção~(f) é falsa: o enunciado define as matrizes sem viés, e o total de $262{,}1$
+milhões duplica as duas matrizes.
+A opção~(g) é falsa: o compartilhamento é da matriz inteira, não apenas das linhas de
+\textit{tokens} frequentes.
+A opção~(h) usa $|V| + d_\text{model}$ em vez do produto $|V| \times d_\text{model}$.
 % ---
 
 \end{document}

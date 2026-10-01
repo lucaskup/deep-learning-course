@@ -66,6 +66,52 @@ As equações abaixo detalham o grafo computacional (o deslocamento, que a figur
 
     \item Em redes neurais muito profundas, os gradientes podem "desaparecer" (ficando próximos de zero), impedindo que as primeiras camadas da rede aprendam. Qual é a "chave" para resolver o problema do vanishing gradient?
 
+    \item Em redes residuais, a soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ tende a aumentar a variância das ativações ao longo da profundidade. Qual o principal objetivo de inserir \textit{batch normalization} dentro dos blocos residuais?
+    \begin{enumerate}[a)]
+        \item Reduzir o número de parâmetros treináveis do bloco, já que os parâmetros $\gamma$ e $\beta$ substituem os pesos das convoluções internas do bloco.
+        \item Substituir a conexão de atalho (\textit{skip connection}), tornando a soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ desnecessária e reduzindo o número de caminhos de gradiente da rede.
+        \item Normalizar a distribuição das ativações dentro do bloco, controlando o crescimento da variância introduzido pela soma e mantendo o treino estável em grande profundidade.
+        \item Atuar como a única não-linearidade do bloco, dispensando funções de ativação como a ReLU entre as convoluções que compõem $f(\mathbf{x})$.
+        \item Aumentar o campo receptivo das unidades do bloco sem acrescentar parâmetros, de forma análoga ao efeito de uma convolução dilatada.
+        \item Garantir matematicamente que cada bloco aprenda exatamente o mapeamento identidade $f(\mathbf{x}) = 0$, independentemente dos dados de treino.
+        \item Eliminar a necessidade de inicialização cuidadosa dos pesos, pois fixa a variância dos pesos em $2/n_{\text{in}}$ como na inicialização de He.
+        \item Servir de regularizador que memoriza as estatísticas do conjunto de teste para acelerar a convergência durante a inferência.
+    \end{enumerate}
+
+    \item Considere as asserções abaixo e a relação proposta entre elas.
+
+    \textbf{I.} Ao aumentar muito a profundidade de uma rede convolucional \textbf{sem} conexões residuais (por exemplo, de 20 para 56 camadas), a rede mais profunda pode apresentar desempenho \textbf{pior} que a mais rasa; esse fenômeno, conhecido como problema da degradação, não é um caso de \textit{overfitting}.
+
+    \begin{center}\textbf{PORQUE}\end{center}
+
+    \textbf{II.} Na degradação, o erro elevado da rede mais profunda aparece já no conjunto de \textbf{treino}, enquanto o \textit{overfitting} se caracteriza por erro de treino baixo acompanhado de erro de validação alto.
+
+    Assinale a alternativa correta:
+    \begin{enumerate}[a)]
+        \item As asserções I e II são verdadeiras, e a II é uma justificativa correta da I.
+        \item As asserções I e II são verdadeiras, mas a II não é uma justificativa correta da I.
+        \item As asserções I e II são verdadeiras, e a I é uma justificativa correta da II, mas não o contrário.
+        \item A asserção I é verdadeira, e a II é falsa.
+        \item A asserção I é falsa, e a II é verdadeira.
+        \item As asserções I e II são falsas.
+        \item A asserção I é verdadeira somente quando a rede usa \textit{batch normalization}, e a II é verdadeira.
+        \item A asserção I é falsa somente para redes treinadas com SGD sem \textit{momentum}, e a II é falsa.
+    \end{enumerate}
+
+    \item Marque \textbf{Verdadeiro} ou \textbf{Falso} nas asserções abaixo. Em caso \textbf{Falso}, proponha uma modificação \emph{não-trivial} que torna a asserção verdadeira (a simples negação \textbf{não} é uma modificação válida).
+
+    \begin{enumerate}[a)]
+        \item ( )\,V \quad ( )\,F \quad Uma camada convolucional com \textit{kernel} $5 \times 5$, \textit{stride} $1$ e \textit{padding} $1$ preserva as dimensões espaciais $H \times W$ da entrada.
+
+        \item ( )\,V \quad ( )\,F \quad Na derivada da saída de um bloco residual em relação à sua entrada surge um termo identidade $\mathbf{I}$; esse termo cria um caminho direto para o gradiente, o que ajuda a mitigar o desaparecimento do gradiente em redes profundas.
+
+        \item ( )\,V \quad ( )\,F \quad Durante a inferência, a \textit{batch normalization} normaliza cada ativação usando a média e o desvio padrão calculados sobre o próprio \textit{mini-batch} de teste em que a amostra se encontra.
+
+        \item ( )\,V \quad ( )\,F \quad Um modelo de linguagem que atribui probabilidade \emph{uniforme} sobre um vocabulário de tamanho $|V|$ a cada passo tem perplexidade igual a $1$.
+
+        \item ( )\,V \quad ( )\,F \quad Na LSTM, quando o \textit{forget gate} $\mathbf{f}_t \to 1$ e o \textit{input gate} $\mathbf{i}_t \to 0$, a atualização $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ reduz-se a $\mathbf{c}_{t-1}$, ou seja, a memória anterior é mantida praticamente inalterada.
+    \end{enumerate}
+
 \end{enumerate}
 
 \newpage
@@ -172,6 +218,24 @@ $$
     % Isso é a principal vantagem das (ResNets), resolvendo o problema da degradação (que ocorre quando adicionar mais camadas a uma rede profunda começa a piorar o desempenho). Com as conexões residuais, se uma camada adicional não for útil (ou for prejudicial ao treinamento), o otimizador pode simplesmente aprender a "ignora-la" (fazendo seu caminho $F(x)$ tender a zero), e o bloco reverte para uma identidade. Isso garante que ao adicionar mais camadas, na pior das hipóteses, não irá prejudicar o desempenho da rede.
 
     \item A "chave" são as conexões residuais (\textit{skip connections}), introduzidas pelas ResNets. Elas criam um "atalho" que soma a entrada ($\mathbf{X}$) diretamente à saída de um bloco de camadas ($\mathbf{F}(\mathbf{X})$). Garantindo que o gradiente sempre tenha um caminho direto (o atalho $+\mathbf{X}$) para fluir, impedindo que ele se multiplique até desaparecer.
+
+    \item Alternativa (c). A soma $\mathbf{h} = \mathbf{x} + f(\mathbf{x})$ faz a variância crescer ao longo da profundidade (no caso descorrelacionado, $\sigma_{\text{out}}^2 = 2\,\sigma_{\text{in}}^2$). A \textit{batch normalization} reescala as ativações para média e variância controladas (e depois aplica o reajuste afim $\gamma, \beta$), estabilizando a distribuição internamente ao bloco e permitindo treinar redes muito profundas. As demais alternativas: (a) $\gamma$ e $\beta$ são $2$ parâmetros por canal ou unidade, que não substituem os pesos das convoluções nem reduzem o total de parâmetros de forma relevante; (b) a \textit{skip connection} é justamente o que resolve a degradação e o desaparecimento do gradiente, e a \textit{batch norm} não a substitui; (d) a não-linearidade continua sendo a função de ativação (ReLU), pois a \textit{batch norm} é uma transformação afim por canal; (e) a \textit{batch norm} não altera o campo receptivo (não envolve vizinhança espacial); (f) ela não garante mapeamento identidade, isso depende dos pesos aprendidos de $f$; (g) a \textit{batch norm} normaliza ativações e não fixa a variância dos pesos, a inicialização (He) é um mecanismo distinto; (h) na inferência usam-se as estatísticas móveis acumuladas no \emph{treino} ($\mu_{\text{mov}}, \sigma_{\text{mov}}$), e não estatísticas do conjunto de teste.
+
+    \item Alternativa (a). I é verdadeira: o fenômeno descrito é o problema da degradação (He et al.): ao empilhar mais camadas sem atalhos residuais, a rede mais profunda apresenta erro \textbf{maior} que a rasa equivalente já no conjunto de treino; trata-se, portanto, de uma dificuldade de otimização (em parte explicada pelos gradientes quebrados ou dissipados em composições profundas), e não de uma falha de generalização. II é verdadeira e justifica I: o sintoma do \textit{overfitting} é erro de treino baixo com erro de validação alto. Como na degradação o erro já é alto no treino, o diagnóstico de \textit{overfitting} fica logicamente excluído, que é exatamente o argumento que sustenta I. As conexões residuais atacam esse problema criando caminhos aditivos pelos quais gradiente e identidade fluem. As demais alternativas: (b) a relação causal existe, II é precisamente o critério que exclui \textit{overfitting}; (c) inverte a direção da justificativa, I é a conclusão e II é o critério que a fundamenta; (d), (f) e (h) negam a asserção II, que é a definição usual dos dois padrões de erro; (e) nega a asserção I, que é o resultado empírico central que motivou as ResNets; (g) a degradação foi observada mesmo em redes com \textit{batch normalization}, a condição inventada não existe; (h) o otimizador usado não altera a definição de \textit{overfitting} nem o fato empírico de I.
+
+    \item Verdadeiro ou Falso com modificação.
+    \begin{enumerate}[a)]
+        \item \textbf{F.} Um \textit{kernel} $5\times 5$ com \textit{stride} $1$ encolhe cada dimensão em $K - 1 = 4$ a menos do que o \textit{padding} compensa: com \textit{padding} $1$ a saída fica $(H - 5 + 2\cdot 1 + 1) = (H - 2)$ por lado. Para preservar $H\times W$ é preciso \textit{padding} $p = (K-1)/2 = 2$. \textit{Modificação:} usar \textit{padding} $2$ (em geral $p = (K-1)/2$ para \textit{kernel} ímpar e \textit{stride} $1$).
+
+        \item \textbf{V.} A derivada da saída do bloco em relação à entrada contém o termo identidade $\mathbf{I}$ (mais os termos das funções $f$); esse $\mathbf{I}$ garante um caminho de gradiente que não é atenuado pelos pesos das camadas internas, mitigando o desaparecimento do gradiente em grande profundidade.
+
+        \item \textbf{F.} Na inferência a \textit{batch norm} \emph{não} usa as estatísticas do \textit{mini-batch} de teste (a saída de uma amostra dependeria das outras do \textit{batch}, e o resultado deixaria de ser determinístico). \textit{Modificação:} usar as médias móveis $\mu_{\text{mov}}, \sigma_{\text{mov}}$ acumuladas durante o \emph{treino}.
+
+        \item \textbf{F.} Com distribuição uniforme sobre $|V|$ \textit{tokens}, $p(y_t \mid y_{<t}) = 1/|V|$ a cada passo, e a perplexidade resulta em $|V|$ (o pior caso: o modelo está em dúvida entre todos os \textit{tokens}). De fato $\text{Perplexidade} \in [1, |V|]$, e $1$ corresponde ao modelo determinístico e sempre certo. \textit{Modificação:} a perplexidade é igual a $|V|$ (não a $1$).
+
+        \item \textbf{V.} Com $\mathbf{f}_t \to 1$ e $\mathbf{i}_t \to 0$, $\mathbf{c}_t = \mathbf{f}_t\odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t \to \mathbf{c}_{t-1}$: o \textit{forget gate} aberto e o \textit{input gate} fechado fazem a LSTM copiar a memória anterior (\textit{constant error carousel}), preservando dependências de longo prazo.
+    \end{enumerate}
+    \textit{(Três asserções falsas: a, c, d. Duas verdadeiras: b, e.)}
 
 \end{enumerate}
 \end{document}
