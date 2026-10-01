@@ -1,4 +1,4 @@
-$lualatex = 'lualatex -shell-escape %O %S';
+$lualatex = 'lualatex -shell-escape -interaction=nonstopmode -halt-on-error %O %S';
 $biber = 'biber --input-directory slides %O %B';
 $bibtex_use = 2;
 $out_dir = 'build';
