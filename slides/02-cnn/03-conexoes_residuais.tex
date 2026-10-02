@@ -6,6 +6,44 @@
 
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
+\usepgfplotslibrary{groupplots}
+
+% Ocorrência destacada de f_1 na expansão da rede residual
+\newcommand{\fone}{\textcolor{MediumRed}{f_1}}
+
+% Mini diagrama de uma rede com 4 blocos residuais destacando um caminho que
+% passa por f_1. Argumentos #1, #2, #3 em {0,1}: se o caminho aplica f_2, f_3, f_4
+% (1) ou usa a conexão residual para pular o bloco (0); #4 é o rótulo do caminho.
+\newcommand{\respathfig}[4]{%
+\begin{tikzpicture}[x=0.62cm, y=0.62cm, >=stealth,
+    every node/.style={font=\footnotesize},
+    blk/.style={draw=gray!50, fill=gray!8, text=gray!60, minimum size=13pt, inner sep=0pt},
+    blkon/.style={draw=black, fill=PastelGreen, text=black, minimum size=13pt, inner sep=0pt},
+    sm/.style={circle, draw=gray!70, inner sep=0pt, minimum size=7pt, font=\tiny},
+    base/.style={->, gray!35, thin},
+    hl/.style={->, thick, MediumRed}]
+    \node (x) at (0,0) {$\mathbf{x}$};
+    \node[blkon, fill=MediumRed!25] (f1) at (1,0) {$f_1$};
+    \node[sm] (s1) at (1.9,0) {$+$};
+    \ifnum#1=1 \node[blkon] (f2) at (2.8,0) {$f_2$};\else\node[blk] (f2) at (2.8,0) {$f_2$};\fi
+    \node[sm] (s2) at (3.7,0) {$+$};
+    \ifnum#2=1 \node[blkon] (f3) at (4.6,0) {$f_3$};\else\node[blk] (f3) at (4.6,0) {$f_3$};\fi
+    \node[sm] (s3) at (5.5,0) {$+$};
+    \ifnum#3=1 \node[blkon] (f4) at (6.4,0) {$f_4$};\else\node[blk] (f4) at (6.4,0) {$f_4$};\fi
+    \node[sm] (s4) at (7.3,0) {$+$};
+    \node (y) at (8.2,0) {$\mathbf{y}$};
+    \foreach \a/\b in {x/f1,f1/s1,s1/f2,f2/s2,s2/f3,f3/s3,s3/f4,f4/s4,s4/y}
+        \draw[base] (\a) -- (\b);
+    \foreach \a/\b in {x/s1,s1/s2,s2/s3,s3/s4}
+        \draw[base] (\a.north) to[bend left=45] (\b.north);
+    \draw[hl] (x) -- (f1);
+    \draw[hl] (f1) -- (s1);
+    \ifnum#1=1 \draw[hl] (s1) -- (f2); \draw[hl] (f2) -- (s2);\else\draw[hl] (s1.north) to[bend left=45] (s2.north);\fi
+    \ifnum#2=1 \draw[hl] (s2) -- (f3); \draw[hl] (f3) -- (s3);\else\draw[hl] (s2.north) to[bend left=45] (s3.north);\fi
+    \ifnum#3=1 \draw[hl] (s3) -- (f4); \draw[hl] (f4) -- (s4);\else\draw[hl] (s3.north) to[bend left=45] (s4.north);\fi
+    \draw[hl] (s4) -- (y);
+    \node[font=\scriptsize] at (4.1,-0.85) {#4};
+\end{tikzpicture}}
 
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
@@ -55,8 +93,8 @@
 
 \begin{frame}{O que vamos ver agora}
 \begin{itemize}
-    \item \textbf{O problema:} redes muito profundas podem treinar \textbf{pior} que redes mais rasas, o \textbf{problema da degradação}, apesar de terem mais capacidade.
-    \item \textbf{A solução:} \textbf{conexões residuais} (ou \textit{skip connections}), atalhos \textbf{aditivos} que somam a entrada de volta à saída de cada bloco.
+    \item \textbf{O problema:} redes muito profundas são \textbf{difíceis de otimizar}; a partir de certa profundidade, o \textbf{erro de treino} fica maior que o de redes mais rasas, apesar de terem mais capacidade.
+    \item \textbf{A solução:} \textbf{conexões residuais} (\textit{skip connections}): cada bloco soma a sua entrada à própria saída, criando caminhos curtos por onde o gradiente chega às primeiras camadas.
     \item E o \textit{batch norm}, para estabilizar a variância das ativações ao longo da profundidade.
 \end{itemize}
 \end{frame}
@@ -147,7 +185,7 @@
 
 \begin{frame}{Gradiente Quebrado (\textit{Shattered Gradient})}
 \begin{itemize}
-    \item A causa da \textbf{degradação} ainda não é completamente compreendida.
+    \item A causa dessa \textbf{dificuldade de otimização} ainda não é completamente compreendida.
     \item \textbf{Uma das hipóteses} é a do ``gradiente quebrado'' (\textit{shattered gradient})\footfullcite{balduzzi2017shattered}.
     \item Pequenas mudanças nos pesos causam mudanças erráticas nas camadas seguintes.
     \begin{itemize}
@@ -167,6 +205,39 @@
     \item Uma mudança em $f_1$ altera todas as funções subsequentes.
     \item Em redes muito profundas, $\partial \mathbf{y} / \partial \mathbf{x}$ se torna extremamente errático em relação à entrada.
     \item Quanto mais camadas, menos correlacionado o gradiente fica entre passos próximos.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Gradiente Quebrado: Evidência Empírica}
+\begin{itemize}
+    \item Redes ReLU com entrada e saída escalares, 200 neurônios por camada, pesos aleatórios\footfullcite{balduzzi2017shattered}: gradiente $\partial y / \partial x$ em função da entrada $x$.
+\end{itemize}
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+    group style={group size=3 by 1, horizontal sep=1.0cm},
+    width=5.0cm, height=3.8cm,
+    tick label style={font=\scriptsize}, label style={font=\footnotesize},
+    title style={font=\footnotesize, yshift=-1ex},
+    every axis plot/.append style={line join=round},
+]
+\nextgroupplot[title={1 camada}, xlabel={$x$}, ylabel={$\partial y/\partial x$ (normalizado)},
+    xmin=-2, xmax=2, ymin=-4, ymax=4, ytick={-3,0,3}]
+    \addplot[PastelBlue2, thick] table[x=x, y=shallow, col sep=comma] {slides/data/02-cnn/shattered-grad.csv};
+\nextgroupplot[title={24 camadas}, xlabel={$x$},
+    xmin=-2, xmax=2, ymin=-4, ymax=4, ytick={-3,0,3}]
+    \addplot[MediumRed, very thin] table[x=x, y=deep, col sep=comma] {slides/data/02-cnn/shattered-grad.csv};
+\nextgroupplot[title={Autocorrelação do gradiente}, xmode=log, xlabel={distância entre entradas},
+    xmin=2e-4, xmax=1, ymin=-0.1, ymax=1.05, ytick={0,0.5,1},
+    legend style={font=\scriptsize, at={(0.6,0.42)}, anchor=center, draw=none, fill=none},
+    legend cell align=left]
+    \addplot[PastelBlue2, thick] table[x=dist, y=shallow, col sep=comma] {slides/data/02-cnn/shattered-acorr.csv};
+    \addplot[MediumRed, thick] table[x=dist, y=deep, col sep=comma] {slides/data/02-cnn/shattered-acorr.csv};
+    \legend{1 camada, 24 camadas}
+\end{groupplot}
+\end{tikzpicture}
+\begin{itemize}
+    \item Na rede rasa, o gradiente muda devagar com $x$; na rede profunda, ele se parece com ruído branco e deixa de ser correlacionado já em distâncias minúsculas.
 \end{itemize}
 \end{frame}
 
@@ -228,19 +299,35 @@
     \item Abrindo as expressões anteriores temos:
 \end{itemize}
 \begin{align*}
-    \mathbf{y} = \;& \mathbf{x} + f_1[\mathbf{x}] \\
-        & + f_2\bigl[\,\mathbf{x} + f_1[\mathbf{x}]\,\bigr] \\
-        & + f_3\bigl[\,\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]]\,\bigr] \\
-        & + f_4\bigl[\,\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]] + f_3[\mathbf{x} + f_1[\mathbf{x}] + f_2[\mathbf{x} + f_1[\mathbf{x}]]]\,\bigr]
+    \mathbf{y} = \;& \mathbf{x} + \fone[\mathbf{x}] \\
+        & + f_2\bigl[\,\mathbf{x} + \fone[\mathbf{x}]\,\bigr] \\
+        & + f_3\bigl[\,\mathbf{x} + \fone[\mathbf{x}] + f_2[\mathbf{x} + \fone[\mathbf{x}]]\,\bigr] \\
+        & + f_4\bigl[\,\mathbf{x} + \fone[\mathbf{x}] + f_2[\mathbf{x} + \fone[\mathbf{x}]] + f_3[\mathbf{x} + \fone[\mathbf{x}] + f_2[\mathbf{x} + \fone[\mathbf{x}]]]\,\bigr]
 \end{align*}
 \begin{itemize}
     \item Observe que a saída é uma soma de várias contribuições, cada uma percorrendo um \textbf{caminho} diferente da entrada até a saída.
+    \item $\fone$ aparece $1 + 1 + 2 + 4 = \mathbf{8}$ vezes: cada ocorrência é um caminho distinto pelo qual $f_1$ contribui para $\mathbf{y}$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Os 8 Caminhos que Passam por $f_1$}
+\centering
+\setlength{\tabcolsep}{14pt}
+\begin{tabular}{cc}
+    \respathfig{0}{0}{0}{$\fone$} & \respathfig{1}{0}{0}{$\fone \to f_2$} \\
+    \respathfig{0}{1}{0}{$\fone \to f_3$} & \respathfig{1}{1}{0}{$\fone \to f_2 \to f_3$} \\
+    \respathfig{0}{0}{1}{$\fone \to f_4$} & \respathfig{1}{0}{1}{$\fone \to f_2 \to f_4$} \\
+    \respathfig{0}{1}{1}{$\fone \to f_3 \to f_4$} & \respathfig{1}{1}{1}{$\fone \to f_2 \to f_3 \to f_4$}
+\end{tabular}
+\vspace{0.2em}
+\begin{itemize}
+    \item Após $f_1$, cada bloco seguinte é aplicado ou pulado: $2^{4-1} = \mathbf{8}$ caminhos.
+    \item Linhas 1 e 2: ocorrências de $\fone$ nas três primeiras parcelas da expansão; linhas 3 e 4: as quatro ocorrências dentro de $f_4[\cdot]$.
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Múltiplos Caminhos da Entrada à Saída}
 \begin{itemize}
-    \item Em uma rede com 4 blocos residuais, $f_1$ contribui por $\mathbf{8} = 2^{4-1}$ caminhos distintos para a saída.
     \item De forma geral, em uma rede com $n$ blocos residuais existem $\mathbf{2^n}$ caminhos da entrada à saída (cada bloco escolhe entre ser pulado ou aplicado), e $2^{n-1}$ desses caminhos passam por cada função $f_i$ específica.
     \item Cada caminho pode ser ``ativo'' ou ``ignorado'' por um bloco, dependendo da combinação das ramificações.
     \item A saída pode ser entendida como um ensemble implícito de redes de profundidades diferentes\footfullcite{veit2016ensembles}.
@@ -399,7 +486,7 @@
 \begin{equation*}
     \sigma_{\text{in}}^2 = \sigma_{\text{out}}^2
 \end{equation*}
-\vspace{0.4em}
+\vspace{0.2em}
 \begin{center}
 \begin{tikzpicture}[every node/.style={font=\small}]
     \node (x) at (0,0) {$\mathbf{x}$};
@@ -423,7 +510,7 @@
 \begin{equation*}
     \sigma_{\text{out}}^2 = \;?
 \end{equation*}
-\vspace{0.4em}
+\vspace{0.2em}
 \begin{center}
 \begin{tikzpicture}[every node/.style={font=\small}]
     \node (x) at (0,0) {$\mathbf{x}$};
@@ -463,7 +550,7 @@
 \begin{equation*}
     \mathrm{Var}[X+Y] = \mathrm{Var}[X] + \cancelto{0}{2\,\mathrm{Cov}(X,Y)} + \mathrm{Var}[Y] = \mathrm{Var}[X] + \mathrm{Var}[Y]
 \end{equation*}
-\vspace{0.4em}
+\vspace{0.2em}
 \begin{itemize}
     \item Como ambos os ramos têm variância $\sigma_{\text{in}}^2$, a variância de saída é:
 \end{itemize}
@@ -635,23 +722,198 @@
 \end{frame}
 
 \begin{frame}{\textit{Batch Norm}: Exemplo}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+    val/.style={font=\scriptsize},
+    src/.style={draw=PastelBlue2, very thick, minimum width=0.9cm, minimum height=0.45cm, inner sep=0pt},
+    tgt/.style={draw=red, very thick, minimum width=0.9cm, minimum height=0.45cm, inner sep=0pt},
+]
+    % entrada (atributo 1 em destaque, demais atributos em cinza)
+    \draw[fill=PastelOrange, draw=black!60] (0.00,1.40) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (0.94,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.18,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.42,1.40) rectangle ++(0.2,0.45);
+    \coordinate (h1) at (0.450,1.625);
+    \draw[fill=PastelOrange, draw=black!60] (0.00,0.85) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (0.94,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.18,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.42,0.85) rectangle ++(0.2,0.45);
+    \coordinate (h2) at (0.450,1.075);
+    \draw[fill=PastelOrange, draw=black!60] (0.00,0.30) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (0.94,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.18,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (1.42,0.30) rectangle ++(0.2,0.45);
+    \coordinate (h3) at (0.450,0.525);
+    % média e desvio
+    \draw[fill=PastelBlue2!35, draw=black!60] (2.12,1.40) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.06,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.30,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.54,1.40) rectangle ++(0.2,0.45);
+    \coordinate (s1) at (2.570,1.625);
+    \draw[fill=PastelBlue2!35, draw=black!60] (2.12,0.85) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.06,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.30,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (3.54,0.85) rectangle ++(0.2,0.45);
+    \coordinate (s2) at (2.570,1.075);
+    % padronizado
+    \draw[fill=yellow!45, draw=black!60] (4.24,1.40) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.18,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.42,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.66,1.40) rectangle ++(0.2,0.45);
+    \coordinate (z1) at (4.690,1.625);
+    \draw[fill=yellow!45, draw=black!60] (4.24,0.85) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.18,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.42,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.66,0.85) rectangle ++(0.2,0.45);
+    \coordinate (z2) at (4.690,1.075);
+    \draw[fill=yellow!45, draw=black!60] (4.24,0.30) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.18,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.42,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (5.66,0.30) rectangle ++(0.2,0.45);
+    \coordinate (z3) at (4.690,0.525);
+    % escala e deslocamento
+    \draw[fill=BrickRed!25, draw=black!60] (6.36,1.40) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.30,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.54,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.78,1.40) rectangle ++(0.2,0.45);
+    \coordinate (g1) at (6.810,1.625);
+    \draw[fill=BrickRed!25, draw=black!60] (6.36,0.85) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.30,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.54,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (7.78,0.85) rectangle ++(0.2,0.45);
+    \coordinate (g2) at (6.810,1.075);
+    % saída
+    \draw[fill=PastelOrange!80!black!60, draw=black!60] (8.63,1.40) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.57,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.81,1.40) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (10.05,1.40) rectangle ++(0.2,0.45);
+    \coordinate (o1) at (9.080,1.625);
+    \draw[fill=PastelOrange!80!black!60, draw=black!60] (8.63,0.85) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.57,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.81,0.85) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (10.05,0.85) rectangle ++(0.2,0.45);
+    \coordinate (o2) at (9.080,1.075);
+    \draw[fill=PastelOrange!80!black!60, draw=black!60] (8.63,0.30) rectangle ++(0.9,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.57,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (9.81,0.30) rectangle ++(0.2,0.45);
+    \draw[fill=gray!15, draw=gray!40] (10.05,0.30) rectangle ++(0.2,0.45);
+    \coordinate (o3) at (9.080,0.525);
+
+    \node[font=\footnotesize] at (0.81,2.15) {entrada $h_i$};
+    \node[font=\footnotesize] at (2.93,2.15) {média e desvio};
+    \node[font=\footnotesize] at (5.05,2.15) {padronizado $\hat{h}_i$};
+    \node[font=\footnotesize] at (7.17,2.15) {escala e desloc.};
+    \node[font=\footnotesize] at (9.44,2.15) {saída $h'_i$};
+    \node[font=\scriptsize, text=black!60] at (0.45,0.05) {atributo 1};
+    \foreach \x/\y in {1.68/2.06, 3.80/4.18, 5.92/6.30, 8.04/8.57}
+        \draw[->, very thick, PastelGreen!70!black] (\x,0.95) -- (\y,0.95);
+    \draw[rounded corners=6pt, draw=blue!30, dashed] (1.92,-0.15) rectangle (8.18,2.45);
+    \node[font=\scriptsize, text=blue!50!black, anchor=south east] at (8.13,-0.12) {\textit{batch norm}};
+
+    % valores, um a um
+    \node[val] at (h1) {$3$};
+    \node[val] at (h2) {$-1$};
+    \node[val] at (h3) {$2$};
+    \only<-1>{\node[val, text=black!50] at (s1) {$\mu$};}
+    \only<-2>{\node[val, text=black!50] at (s2) {$\sigma$};}
+    \only<-6>{\node[val, text=black!50] at (g1) {$\gamma$}; \node[val, text=black!50] at (g2) {$\beta$};}
+    \only<2->{\node[val] at (s1) {$1.33$};}
+    \only<3->{\node[val] at (s2) {$1.70$};}
+    \only<4->{\node[val] at (z1) {$0.98$};}
+    \only<5->{\node[val] at (z2) {$-1.37$};}
+    \only<6->{\node[val] at (z3) {$0.39$};}
+    \only<7->{\node[val] at (g1) {$2$}; \node[val] at (g2) {$1$};}
+    \only<8->{\node[val] at (o1) {$2.96$};}
+    \only<9->{\node[val] at (o2) {$-1.74$};}
+    \only<10->{\node[val] at (o3) {$1.78$};}
+
+    % destaque: alvo (vermelho) e operandos (azul)
+    \only<1>{\draw[PastelBlue2, very thick] (0,0.3) rectangle (0.9,1.85);}
+    \only<2>{\draw[PastelBlue2, very thick] (0,0.3) rectangle (0.9,1.85); \node[tgt] at (s1) {};}
+    \only<3>{\draw[PastelBlue2, very thick] (0,0.3) rectangle (0.9,1.85); \node[src] at (s1) {}; \node[tgt] at (s2) {};}
+    \only<4>{\node[src] at (h1) {}; \node[src] at (s1) {}; \node[src] at (s2) {}; \node[tgt] at (z1) {};}
+    \only<5>{\node[src] at (h2) {}; \node[src] at (s1) {}; \node[src] at (s2) {}; \node[tgt] at (z2) {};}
+    \only<6>{\node[src] at (h3) {}; \node[src] at (s1) {}; \node[src] at (s2) {}; \node[tgt] at (z3) {};}
+    \only<7>{\node[tgt] at (g1) {}; \node[tgt] at (g2) {};}
+    \only<8>{\node[src] at (z1) {}; \node[src] at (g1) {}; \node[src] at (g2) {}; \node[tgt] at (o1) {};}
+    \only<9>{\node[src] at (z2) {}; \node[src] at (g1) {}; \node[src] at (g2) {}; \node[tgt] at (o2) {};}
+    \only<10>{\node[src] at (z3) {}; \node[src] at (g1) {}; \node[src] at (g2) {}; \node[tgt] at (o3) {};}
+\end{tikzpicture}}
+
+\vspace{0.3em}
+\begin{overlayarea}{\linewidth}{3.3cm}
+\only<1>{
+    \begin{itemize}
+        \item \textit{Mini batch} com 3 amostras; o atributo 1 vale $\{3, -1, 2\}$.
+        \item Cada atributo é normalizado de forma independente, com o mesmo procedimento.
+    \end{itemize}}
+\only<2>{
+    \begin{itemize}\item Média do atributo no \textit{mini batch}:\end{itemize}
+    \begin{equation*}
+        \mu = \frac{1}{|B|}\sum_{i \in B} h_i = \frac{3 + (-1) + 2}{3} = 1.33
+    \end{equation*}}
+\only<3>{
+    \begin{itemize}\item Desvio padrão do atributo no \textit{mini batch}:\end{itemize}
+    \begin{equation*}
+        \sigma = \sqrt{\frac{1}{|B|}\sum_{i \in B} (h_i - \mu)^2}
+        = \sqrt{\frac{(3 - 1.33)^2 + (-1 - 1.33)^2 + (2 - 1.33)^2}{3}}
+        = \sqrt{\frac{8.67}{3}} = 1.70
+    \end{equation*}}
+\only<4>{
+    \begin{itemize}\item Padronização da amostra 1 ($\epsilon$ desprezível):\end{itemize}
+    \begin{equation*}
+        \hat{h}_1 = \frac{h_1 - \mu}{\sigma + \epsilon} = \frac{3 - 1.33}{1.70} = 0.98
+    \end{equation*}}
+\only<5>{
+    \begin{itemize}\item Padronização da amostra 2:\end{itemize}
+    \begin{equation*}
+        \hat{h}_2 = \frac{h_2 - \mu}{\sigma + \epsilon} = \frac{-1 - 1.33}{1.70} = -1.37
+    \end{equation*}}
+\only<6>{
+    \begin{itemize}\item Padronização da amostra 3:\end{itemize}
+    \begin{equation*}
+        \hat{h}_3 = \frac{h_3 - \mu}{\sigma + \epsilon} = \frac{2 - 1.33}{1.70} = 0.39
+    \end{equation*}
+    \begin{itemize}\item Agora o atributo tem média $0$ e desvio padrão $1$ no \textit{mini batch}.\end{itemize}}
+\only<7>{
+    \begin{itemize}
+        \item Parâmetros treináveis do atributo, já aprendidos: $\gamma = 2$ e $\beta = 1$.
+        \item Eles definem a média ($\beta$) e o desvio padrão ($\gamma$) da saída.
+    \end{itemize}}
+\only<8>{
+    \begin{itemize}\item Escala e deslocamento da amostra 1:\end{itemize}
+    \begin{equation*}
+        h'_1 = \gamma\,\hat{h}_1 + \beta = 2 \cdot 0.98 + 1 = 2.96
+    \end{equation*}}
+\only<9>{
+    \begin{itemize}\item Escala e deslocamento da amostra 2:\end{itemize}
+    \begin{equation*}
+        h'_2 = \gamma\,\hat{h}_2 + \beta = 2 \cdot (-1.37) + 1 = -1.74
+    \end{equation*}}
+\only<10>{
+    \begin{itemize}\item Escala e deslocamento da amostra 3:\end{itemize}
+    \begin{equation*}
+        h'_3 = \gamma\,\hat{h}_3 + \beta = 2 \cdot 0.39 + 1 = 1.78
+    \end{equation*}
+    \begin{itemize}\item A saída tem média $\beta = 1$ e desvio padrão $\gamma = 2$.\end{itemize}}
+\end{overlayarea}
+\end{frame}
+
+\begin{frame}{\textit{Batch Norm}: Médias Móveis}
 \begin{itemize}
-    \item Considere um \textit{mini batch} com uma \textit{feature} de valores $\{3, -1, 2\}$.
-    \begin{itemize}
-        \item Média: $\mu = 1.33$. Desvio padrão: $\sigma = 1.7$.
-        \item Padronizando: $\frac{3 - 1.33}{1.7} \approx 0.98$, $\frac{-1 - 1.33}{1.7} \approx -1.37$, $\frac{2 - 1.33}{1.7} \approx 0.39$.
-    \end{itemize}
-    \item Com $\gamma = 2$ e $\beta = 1$ aprendidos:
-    \begin{itemize}
-        \item $h_1 = 2 \cdot 0.98 + 1 = 2.96$.
-        \item $h_2 = 2 \cdot (-1.37) + 1 = -1.74$.
-        \item $h_3 = 2 \cdot 0.39 + 1 = 1.78$.
-    \end{itemize}
     \item Em treinamento, mantemos uma média móvel exponencial (EMA) das estatísticas:
 \end{itemize}
 \begin{equation*}
     \mu_{\text{mov}} \leftarrow \alpha\,\mu_{\text{mov}} + (1-\alpha)\,\mu, \qquad
     \sigma_{\text{mov}} \leftarrow \alpha\,\sigma_{\text{mov}} + (1-\alpha)\,\sigma
+\end{equation*}
+\begin{itemize}
+    \item No exemplo, partindo de $\mu_{\text{mov}} = 0$, $\sigma_{\text{mov}} = 1$ e com $\alpha = 0.9$:
+\end{itemize}
+\begin{equation*}
+    \mu_{\text{mov}} \leftarrow 0.9 \cdot 0 + 0.1 \cdot 1.33 = 0.13, \qquad
+    \sigma_{\text{mov}} \leftarrow 0.9 \cdot 1 + 0.1 \cdot 1.70 = 1.07
 \end{equation*}
 \begin{itemize}
     \item \textbf{Atenção à convenção do PyTorch}: o argumento \texttt{momentum} em \texttt{nn.BatchNorm*} corresponde a $(1-\alpha)$ nesta fórmula (peso da estatística \emph{atual}), não a $\alpha$ (peso da média móvel). O valor padrão é \texttt{momentum=0.1}.
@@ -773,34 +1035,29 @@
 \end{itemize}
 \vspace{0.6em}
 \begin{center}
-\begin{tikzpicture}[every node/.style={font=\tiny}, scale=0.95, transform shape]
-    \node (x) at (-0.4,0) {};
-    \node[draw, fill=BrickRed!60, inner sep=2pt] (b1) at (0.3,0) {BN};
-    \node[draw, fill=PastelGreen, inner sep=2pt] (r1) at (1.1,0) {ReLU};
-    \node[draw, fill=black!15, inner sep=2pt] (c1) at (2.2,0) {Conv $1{\times}1$};
-    \node[draw, fill=BrickRed!60, inner sep=2pt] (b2) at (3.3,0) {BN};
-    \node[draw, fill=PastelGreen, inner sep=2pt] (r2) at (4.1,0) {ReLU};
-    \node[draw, fill=black!15, inner sep=2pt] (c2) at (5.2,0) {Conv $3{\times}3$};
-    \node[draw, fill=BrickRed!60, inner sep=2pt] (b3) at (6.3,0) {BN};
-    \node[draw, fill=PastelGreen, inner sep=2pt] (r3) at (7.1,0) {ReLU};
-    \node[draw, fill=black!15, inner sep=2pt] (c3) at (8.2,0) {Conv $1{\times}1$};
-    \node[circle, draw, inner sep=0.5pt, minimum size=10pt] (s) at (9.0,0) {$+$};
-    \node (y) at (9.5,0) {};
-    \draw[->, thick] (x) -- (b1);
-    \draw[->, thick] (b1) -- (r1);
-    \draw[->, thick] (r1) -- (c1);
-    \draw[->, thick] (c1) -- (b2);
-    \draw[->, thick] (b2) -- (r2);
-    \draw[->, thick] (r2) -- (c2);
-    \draw[->, thick] (c2) -- (b3);
-    \draw[->, thick] (b3) -- (r3);
-    \draw[->, thick] (r3) -- (c3);
-    \draw[->, thick] (c3) -- (s);
-    \draw[->, thick] (s) -- (y);
-    \draw[->, thick] (-0.1,0) -- (-0.1,0.85) -- (9.0,0.85) -- (s);
-    \node[font=\scriptsize, align=center] at (2.2,-0.85) {Reduz canais\\por fator de 4};
-    \node[font=\scriptsize, align=center] at (8.2,-0.85) {Aumenta canais\\por fator de 4};
-\end{tikzpicture}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[every node/.style={font=\small}, node distance=3.5mm,
+    bn/.style={draw, fill=BrickRed!60, inner sep=3pt, minimum height=17pt},
+    relu/.style={draw, fill=PastelGreen, inner sep=3pt, minimum height=17pt},
+    conv/.style={draw, fill=black!15, inner sep=3pt, minimum height=17pt}]
+    \coordinate (x) at (0,0);
+    \node[bn, right=6mm of x] (b1) {BN};
+    \node[relu, right=of b1] (r1) {ReLU};
+    \node[conv, right=of r1] (c1) {Conv $1{\times}1$};
+    \node[bn, right=of c1] (b2) {BN};
+    \node[relu, right=of b2] (r2) {ReLU};
+    \node[conv, right=of r2] (c2) {Conv $3{\times}3$};
+    \node[bn, right=of c2] (b3) {BN};
+    \node[relu, right=of b3] (r3) {ReLU};
+    \node[conv, right=of r3] (c3) {Conv $1{\times}1$};
+    \node[circle, draw, inner sep=0.5pt, minimum size=13pt, right=of c3] (s) {$+$};
+    \coordinate[right=5mm of s] (y);
+    \foreach \a/\b in {x/b1,b1/r1,r1/c1,c1/b2,b2/r2,r2/c2,c2/b3,b3/r3,r3/c3,c3/s,s/y}
+        \draw[->, thick] (\a) -- (\b);
+    \draw[->, thick] ($(x)!0.4!(b1)$) -- ++(0,0.9) -| (s);
+    \node[font=\small, align=center, below=3mm of c1] {Reduz canais\\por fator de 4};
+    \node[font=\small, align=center, below=3mm of c3] {Aumenta canais\\por fator de 4};
+\end{tikzpicture}}
 \end{center}
 \end{frame}
 
@@ -824,34 +1081,67 @@
     \item Em vez de \textbf{somar} a representação da entrada com a saída, podemos \textbf{concatenar} os canais da entrada com os canais de saída\footfullcite{huang2017densenet}.
     \begin{itemize}
         \item Menos comum que ResNet, mas atinge resultados similares.
-        \item Quando ocorre \textit{downsampling}, a representação não é concatenada.
+        \item Entre \textit{blocos densos}, uma \textbf{camada de transição} (BN, conv $1{\times}1$, \textit{avg pool} $2{\times}2$) reduz resolução e canais.
+        \item Ao final: \textit{pooling} global, camada totalmente conectada e \textit{softmax}.
     \end{itemize}
 \end{itemize}
-\vspace{0.4em}
 \begin{center}
-\begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    \foreach \i in {0,1,2,3} {
-        \pgfmathsetmacro{\bx}{\i*4.0}
-        \node[draw, fill=PastelBlue2!50, minimum width=0.4cm, minimum height=1.6cm] (b\i) at (\bx, 0) {};
-    }
-    \node[font=\scriptsize] at (0,-1.2) {3 canais};
-    \node[font=\scriptsize] at (4.0,-1.2) {$3+32 = 35$};
-    \node[font=\scriptsize] at (8.0,-1.2) {$35+32 = 67$};
-    \node[font=\scriptsize] at (12.0,-1.2) {$67+32 = 99$};
-    \foreach \i in {0,1,2} {
-        \pgfmathtruncatemacro{\next}{\i+1}
-        \pgfmathsetmacro{\bx}{\i*4.0}
-        \node[draw, fill=BrickRed!60, font=\tiny, inner sep=2pt] (bn\i) at (\bx+0.8,0) {BN};
-        \node[draw, fill=PastelGreen, font=\tiny, inner sep=2pt] (rl\i) at (\bx+1.7,0) {ReLU};
-        \node[draw, fill=black!15, font=\tiny, inner sep=2pt] (cv\i) at (\bx+2.9,0) {Conv $3{\times}3$};
-        \draw[->, thick] (b\i.east) -- (bn\i.west);
-        \draw[->, thick] (bn\i.east) -- (rl\i.west);
-        \draw[->, thick] (rl\i.east) -- (cv\i.west);
-        \draw[->, thick] (cv\i.east) -- (b\next.west);
-        \draw[->, thick, BrickRed] (b\i.north) -- ++(0,0.7) -| (b\next.north);
-        \node[font=\tiny, BrickRed] at (\bx+2.0, 1.05) {Concatena com a saída};
-    }
-\end{tikzpicture}
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[>=stealth,
+    op/.style={draw, font=\scriptsize, inner sep=2.5pt, minimum height=14pt},
+    conv/.style={->, thick},
+    copy/.style={->, very thick, gray!60}]
+    \draw[fill=black!25, draw=black!70] (0.00,-0.9) rectangle ++(0.14,1.8);
+    \coordinate (new0) at (0.070,-0.9);
+    \coordinate (l0) at (0.00,0); \coordinate (r0) at (0.14,0); \coordinate (b0) at (0.14,-0.55);
+    \node[font=\small, above] at (0.070,0.9) {$3$};
+    \draw[fill=black!25, draw=black!70] (4.44,-0.9) rectangle ++(0.14,1.8);
+    \draw[fill=PastelBlue2!55, draw=black!70] (4.58,-0.9) rectangle ++(0.34,1.8);
+    \coordinate (new1) at (4.750,-0.9);
+    \coordinate (l1) at (4.44,0); \coordinate (r1) at (4.92,0); \coordinate (b1) at (4.92,-0.55);
+    \node[font=\small, above] at (4.680,0.9) {$3{+}32 = 35$};
+    \draw[fill=black!25, draw=black!70] (9.22,-0.9) rectangle ++(0.14,1.8);
+    \draw[fill=PastelBlue2!55, draw=black!70] (9.36,-0.9) rectangle ++(0.34,1.8);
+    \draw[fill=PastelOrange!85, draw=black!70] (9.70,-0.9) rectangle ++(0.34,1.8);
+    \coordinate (new2) at (9.870,-0.9);
+    \coordinate (l2) at (9.22,0); \coordinate (r2) at (10.04,0); \coordinate (b2) at (10.04,-0.55);
+    \node[font=\small, above] at (9.630,0.9) {$35{+}32 = 67$};
+    \draw[fill=black!25, draw=black!70] (14.34,-0.9) rectangle ++(0.14,1.8);
+    \draw[fill=PastelBlue2!55, draw=black!70] (14.48,-0.9) rectangle ++(0.34,1.8);
+    \draw[fill=PastelOrange!85, draw=black!70] (14.82,-0.9) rectangle ++(0.34,1.8);
+    \draw[fill=PastelGreen, draw=black!70] (15.16,-0.9) rectangle ++(0.34,1.8);
+    \coordinate (new3) at (15.330,-0.9);
+    \coordinate (l3) at (14.34,0); \coordinate (r3) at (15.50,0); \coordinate (b3) at (15.50,-0.55);
+    \node[font=\small, above] at (14.920,0.9) {$67{+}32 = 99$};
+    \draw[copy] (r0) -- (l1) node[midway, above, font=\scriptsize, text=gray!70!black] {cópia};
+    \node[op, fill=BrickRed!60, anchor=west] (bn0) at (0.54,-1.55) {BN};
+    \node[op, fill=PastelGreen!70, right=0.25cm of bn0] (rl0) {ReLU};
+    \node[op, fill=PastelBlue2!55, right=0.25cm of rl0] (cv0) {Conv $3{\times}3$};
+    \draw[conv] (b0) -- ++(0.15,0) |- (bn0);
+    \draw[conv] (bn0) -- (rl0);
+    \draw[conv] (rl0) -- (cv0);
+    \draw[conv] (cv0) -| node[pos=0.75, left, font=\scriptsize] {$+32$} (new1);
+    \draw[copy] (r1) -- (l2) node[midway, above, font=\scriptsize, text=gray!70!black] {cópia};
+    \node[op, fill=BrickRed!60, anchor=west] (bn1) at (5.32,-1.55) {BN};
+    \node[op, fill=PastelGreen!70, right=0.25cm of bn1] (rl1) {ReLU};
+    \node[op, fill=PastelOrange!85, right=0.25cm of rl1] (cv1) {Conv $3{\times}3$};
+    \draw[conv] (b1) -- ++(0.15,0) |- (bn1);
+    \draw[conv] (bn1) -- (rl1);
+    \draw[conv] (rl1) -- (cv1);
+    \draw[conv] (cv1) -| node[pos=0.75, left, font=\scriptsize] {$+32$} (new2);
+    \draw[copy] (r2) -- (l3) node[midway, above, font=\scriptsize, text=gray!70!black] {cópia};
+    \node[op, fill=BrickRed!60, anchor=west] (bn2) at (10.44,-1.55) {BN};
+    \node[op, fill=PastelGreen!70, right=0.25cm of bn2] (rl2) {ReLU};
+    \node[op, fill=PastelGreen, right=0.25cm of rl2] (cv2) {Conv $3{\times}3$};
+    \draw[conv] (b2) -- ++(0.15,0) |- (bn2);
+    \draw[conv] (bn2) -- (rl2);
+    \draw[conv] (rl2) -- (cv2);
+    \draw[conv] (cv2) -| node[pos=0.75, left, font=\scriptsize] {$+32$} (new3);
+    \draw[dashed, rounded corners=6pt, draw=black!50] (-0.45,-2.05) rectangle (16.2,1.65);
+    \node[font=\small, fill=white, inner sep=2pt, text=black!70] at (2.29,1.65) {\textit{bloco denso}};
+\end{tikzpicture}}
+
+{\scriptsize largura da barra: número de canais; cada cor é o conjunto de canais produzido por uma camada}
 \end{center}
 \end{frame}
 
@@ -872,58 +1162,120 @@
 
 \begin{frame}{U-Net: Arquitetura}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    % Encoder boxes (descending heights left to right)
-    \foreach \i/\h/\y in {0/2.4/0, 1/1.8/-0.3, 2/1.3/-0.55, 3/0.9/-0.75} {
-        \node[draw, fill=PastelBlue2!50, minimum width=0.35cm, minimum height=\h cm] (e\i) at (\i*0.9, \y) {};
-    }
-    % Bottleneck
-    \node[draw, fill=BrickRed!50, minimum width=0.35cm, minimum height=0.55cm] (bot) at (3.6,-0.95) {};
-    % Decoder boxes (ascending heights left to right)
-    \foreach \i/\h/\y in {0/0.9/-0.75, 1/1.3/-0.55, 2/1.8/-0.3, 3/2.4/0} {
-        \node[draw, fill=PastelOrange!70, minimum width=0.35cm, minimum height=\h cm] (d\i) at (4.5+\i*0.9, \y) {};
-    }
-    % Encoder direction
-    \draw[->, thick] (e0.east) -- (e1.west);
-    \draw[->, thick] (e1.east) -- (e2.west);
-    \draw[->, thick] (e2.east) -- (e3.west);
-    \draw[->, thick] (e3.east) -- (bot.west);
-    \draw[->, thick] (bot.east) -- (d0.west);
-    \draw[->, thick] (d0.east) -- (d1.west);
-    \draw[->, thick] (d1.east) -- (d2.west);
-    \draw[->, thick] (d2.east) -- (d3.west);
-    % Skip arrows from encoder top to decoder top
-    \foreach \i/\j in {0/3, 1/2, 2/1, 3/0} {
-        \draw[->, thick, BrickRed] (e\i.north) to[bend left=25] (d\j.north);
-    }
-    \node[font=\tiny, BrickRed] at (4.05,2.4) {Crop e concatena};
-    \node[font=\scriptsize] at (1.4,-2.0) {Encoder (\textit{downsampling})};
-    \node[font=\scriptsize] at (6.7,-2.0) {Decoder (\textit{upsampling})};
-\end{tikzpicture}
-
-\vspace{0.8em}
-{\small O \textit{encoder} reduz a resolução; o \textit{decoder} a recupera; as \textit{skip connections} laterais \textbf{concatenam} (não somam) \textit{features} da mesma resolução, preservando detalhes espaciais.}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[>=stealth,
+    fmap/.style={draw=black!70, inner sep=0pt},
+    enc/.style={fill=PastelBlue2!50}, dec/.style={fill=PastelOrange!80}, decout/.style={fill=PastelOrange!45},
+    ch/.style={above, font=\scriptsize, inner sep=1.5pt},
+    res/.style={font=\scriptsize, text=black!60, inner sep=1.5pt},
+    conv/.style={->, thick},
+    pool/.style={->, thick, BrickRed},
+    up/.style={->, thick, PastelBlue2!80!black, dashed},
+    copy/.style={->, very thick, gray!60},
+    last/.style={->, thick, PastelGreen!40!black}]
+    % entrada
+    \node[fmap, fill=black!25, minimum width=0.06cm, minimum height=2.0cm] (in) at (-5.700,0) {};
+    \node[ch] at (in.north) {1};
+    % encoder
+    \node[fmap, enc, minimum width=0.18cm, minimum height=2.0cm] (e0) at (-4.800,0) {};
+    \node[ch] at (e0.north) {64};
+    \node[res, anchor=north east] at (e0.north west) {$H$};
+    \node[fmap, enc, minimum width=0.26cm, minimum height=1.45cm] (e1) at (-3.500,-1.55) {};
+    \node[ch] at (e1.north) {128};
+    \node[res, anchor=north east] at (e1.north west) {$H/2$};
+    \node[fmap, enc, minimum width=0.34cm, minimum height=1.05cm] (e2) at (-2.200,-2.75) {};
+    \node[ch] at (e2.north) {256};
+    \node[res, anchor=north east] at (e2.north west) {$H/4$};
+    \node[fmap, enc, minimum width=0.42cm, minimum height=0.75cm] (e3) at (-0.900,-3.65) {};
+    \node[ch] at (e3.north) {512};
+    \node[res, anchor=north east] at (e3.north west) {$H/8$};
+    % gargalo
+    \node[fmap, fill=BrickRed!50, minimum width=0.5cm, minimum height=0.55cm] (bot) at (0.000,-4.35) {};
+    \node[ch] at (bot.north) {1024};
+    \node[res, anchor=north] at (bot.south) {$H/16$};
+    % decoder: cópia do encoder (azul) | upsampling (laranja) -> convoluções
+    \node[fmap, enc, minimum width=0.18cm, minimum height=2.0cm] (c0) at (7.740,0) {};
+    \node[fmap, dec, minimum width=0.18cm, minimum height=2.0cm] (u0) at (7.920,0) {};
+    \node[fmap, decout, minimum width=0.18cm, minimum height=2.0cm] (d0) at (8.950,0) {};
+    \node[ch] at (d0.north) {64};
+    \node[fmap, enc, minimum width=0.26cm, minimum height=1.45cm] (c1) at (5.480,-1.55) {};
+    \node[fmap, dec, minimum width=0.26cm, minimum height=1.45cm] (u1) at (5.740,-1.55) {};
+    \node[fmap, decout, minimum width=0.26cm, minimum height=1.45cm] (d1) at (6.850,-1.55) {};
+    \node[ch] at ($(c1.north)!0.5!(u1.north)$) {$128{+}128$};
+    \node[ch] at (d1.north) {128};
+    \node[fmap, enc, minimum width=0.34cm, minimum height=1.05cm] (c2) at (3.220,-2.75) {};
+    \node[fmap, dec, minimum width=0.34cm, minimum height=1.05cm] (u2) at (3.560,-2.75) {};
+    \node[fmap, decout, minimum width=0.34cm, minimum height=1.05cm] (d2) at (4.750,-2.75) {};
+    \node[ch] at ($(c2.north)!0.5!(u2.north)$) {$256{+}256$};
+    \node[ch] at (d2.north) {256};
+    \node[fmap, enc, minimum width=0.42cm, minimum height=0.75cm] (c3) at (0.960,-3.65) {};
+    \node[fmap, dec, minimum width=0.42cm, minimum height=0.75cm] (u3) at (1.380,-3.65) {};
+    \node[fmap, decout, minimum width=0.42cm, minimum height=0.75cm] (d3) at (2.650,-3.65) {};
+    \node[ch] at ($(c3.north)!0.5!(u3.north)$) {$512{+}512$};
+    \node[ch] at (d3.north) {512};
+    \draw[decorate, decoration={brace, amplitude=3pt}, thick] ($(c0.north west)+(0,0.05)$) -- ($(u0.north east)+(0,0.05)$)
+        node[midway, above=3pt, font=\scriptsize] {concatena: $64{+}64$};
+    % saída
+    \node[fmap, fill=PastelGreen, minimum width=0.1cm, minimum height=2.0cm] (out) at (9.840,0) {};
+    \node[ch] at (out.north) {$K$};
+    % setas
+    \draw[conv] (in) -- (e0);
+    \draw[pool] (e0.south) |- (e1.west);
+    \draw[pool] (e1.south) |- (e2.west);
+    \draw[pool] (e2.south) |- (e3.west);
+    \draw[pool] (e3.south) |- (bot.west);
+    \draw[up] (bot.east) -| (u3.south);
+    \draw[up] (d1.east) -| (u0.south);
+    \draw[up] (d2.east) -| (u1.south);
+    \draw[up] (d3.east) -| (u2.south);
+    \draw[copy] (e0.east) -- (c0.west);
+    \draw[conv] (u0.east) -- (d0.west);
+    \draw[copy] (e1.east) -- (c1.west);
+    \draw[conv] (u1.east) -- (d1.west);
+    \draw[copy] (e2.east) -- (c2.west);
+    \draw[conv] (u2.east) -- (d2.west);
+    \draw[copy] (e3.east) -- (c3.west);
+    \draw[conv] (u3.east) -- (d3.west);
+    \draw[last] (d0) -- (out);
+    \node[font=\scriptsize, text=gray!70!black, fill=white, inner sep=1pt] at (1.42,0) {copiar e cortar};
+    % legenda
+    \begin{scope}[shift={(-5.80,-3.0)}, every node/.style={font=\scriptsize, anchor=west}]
+        \draw[conv] (0,0) -- (0.6,0); \node at (0.7,0) {conv $3{\times}3$ + ReLU};
+        \draw[pool] (0,-0.4) -- (0.6,-0.4); \node at (0.7,-0.4) {\textit{max pool} + convs};
+        \draw[up] (0,-0.8) -- (0.6,-0.8); \node at (0.7,-0.8) {\textit{up-conv} $2{\times}2$};
+        \draw[copy] (0,-1.2) -- (0.6,-1.2); \node at (0.7,-1.2) {cópia do \textit{encoder}};
+        \draw[last] (0,-1.6) -- (0.6,-1.6); \node at (0.7,-1.6) {conv $1{\times}1$ ($K$ classes)};
+    \end{scope}
+    \begin{scope}[shift={(1.6,-4.45)}, every node/.style={font=\scriptsize, anchor=west, text=black!70}]
+        \node at (0,0) {largura da barra: número de canais};
+        \node at (0,-0.4) {altura da barra: resolução espacial};
+    \end{scope}
+\end{tikzpicture}}
 \end{frame}
 
 %========================================================================
 \section{Referências}
 %========================================================================
 
-\begin{frame}[allowframebreaks]{Referências}
+\begin{frame}{Leituras Recomendadas}
+    \leiturasize
 \begin{itemize}
-    \item Sugere se \textbf{fortemente} a leitura do Capítulo 11 de \textit{Understanding Deep Learning}\footfullcite{prince2023understanding}.
+    \item Sugere-se \textbf{fortemente} a leitura do Capítulo 11 de \textit{Understanding Deep Learning}~\cite{prince2023understanding}.
     \begin{itemize}
         \item Disponível em \url{https://udlbook.github.io/udlbook/}.
     \end{itemize}
-    \item Artigos de referência sobre o tema:
+    \item Os artigos abaixo são acessíveis e fornecem a visão original dos autores sobre as ideias apresentadas nesta aula:
     \begin{itemize}
-        \item He et al., \textit{Deep Residual Learning for Image Recognition}, CVPR 2016.
-        \item Ioffe e Szegedy, \textit{Batch Normalization}, ICML 2015.
-        \item Huang et al., \textit{Densely Connected Convolutional Networks}, CVPR 2017.
-        \item Ronneberger et al., \textit{U-Net}, MICCAI 2015.
-        \item Balduzzi et al., \textit{The Shattered Gradients Problem}, ICML 2017.
+        \item \fullcite{he2016resnet}
+        \item \fullcite{ioffe2015batchnorm}
+        \item \fullcite{huang2017densenet}
+        \item \fullcite{ronneberger2015unet}
+        \item \fullcite{balduzzi2017shattered}
     \end{itemize}
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Referências}
 \printbibliography
 \end{frame}
 

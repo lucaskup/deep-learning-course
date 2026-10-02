@@ -289,60 +289,69 @@
 
 \begin{frame}{Arquitetura da VGG16}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.95]
-    % Helper: column index x position for the spatial pyramid
-    % Use simple cuboid-like rectangles to suggest tensor volumes.
+\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.95, xscale=1.04]
+    % Simple cuboid-like rectangles suggest tensor volumes (same layout as the parameter-counting frames).
     \def\bw{0.55} % box width
 
     % Input
-    \draw[fill=black!5] (0,0) rectangle ++(\bw,2.6);
+    \draw[fill=black!20, draw=black!50] (0,0) rectangle ++(\bw,2.6);
     \node[align=center] at (\bw/2,-0.35) {$224{\times}224$\\$\times 3$};
 
-    % Block 1: conv 64 x2, then pool
+    % Block 1: conv 64 x2
     \draw[fill=BrickRed!25] (1.0,0) rectangle ++(\bw,2.6);
     \draw[fill=BrickRed!25] (1.6,0) rectangle ++(\bw,2.6);
     \node[align=center] at (1.55,-0.35) {$224{\times}224$\\$\times 64$};
+    % Pool 1
+    \draw[fill=PastelGreen] (2.3,0.3) rectangle ++(0.22,2.0);
 
-    % After pool
-    \draw[fill=BrickRed!40] (2.7,0.3) rectangle ++(\bw,2.0);
-    \draw[fill=BrickRed!40] (3.3,0.3) rectangle ++(\bw,2.0);
-    \node[align=center] at (3.25,-0.35) {$112{\times}112$\\$\times 128$};
+    % Block 2: conv 128 x2
+    \draw[fill=BrickRed!40] (2.75,0.3) rectangle ++(\bw,2.0);
+    \draw[fill=BrickRed!40] (3.35,0.3) rectangle ++(\bw,2.0);
+    \node[align=center] at (3.3,-0.35) {$112{\times}112$\\$\times 128$};
+    % Pool 2
+    \draw[fill=PastelGreen] (4.05,0.55) rectangle ++(0.22,1.5);
 
-    % After pool
-    \draw[fill=BrickRed!55] (4.4,0.55) rectangle ++(\bw,1.5);
-    \draw[fill=BrickRed!55] (5.0,0.55) rectangle ++(\bw,1.5);
-    \draw[fill=BrickRed!55] (5.6,0.55) rectangle ++(\bw,1.5);
-    \node[align=center] at (5.25,-0.35) {$56{\times}56$\\$\times 256$};
+    % Block 3: conv 256 x3
+    \draw[fill=BrickRed!55] (4.5,0.55) rectangle ++(\bw,1.5);
+    \draw[fill=BrickRed!55] (5.1,0.55) rectangle ++(\bw,1.5);
+    \draw[fill=BrickRed!55] (5.7,0.55) rectangle ++(\bw,1.5);
+    \node[align=center] at (5.35,-0.35) {$56{\times}56$\\$\times 256$};
+    % Pool 3
+    \draw[fill=PastelGreen] (6.4,0.75) rectangle ++(0.22,1.1);
 
-    % After pool
-    \draw[fill=BrickRed!70] (6.7,0.75) rectangle ++(\bw,1.1);
-    \draw[fill=BrickRed!70] (7.3,0.75) rectangle ++(\bw,1.1);
-    \draw[fill=BrickRed!70] (7.9,0.75) rectangle ++(\bw,1.1);
-    \node[align=center] at (7.55,-0.35) {$28{\times}28$\\$\times 512$};
+    % Block 4: conv 512 x3
+    \draw[fill=BrickRed!70] (6.85,0.75) rectangle ++(\bw,1.1);
+    \draw[fill=BrickRed!70] (7.45,0.75) rectangle ++(\bw,1.1);
+    \draw[fill=BrickRed!70] (8.05,0.75) rectangle ++(\bw,1.1);
+    \node[align=center] at (7.7,-0.35) {$28{\times}28$\\$\times 512$};
+    % Pool 4
+    \draw[fill=PastelGreen] (8.75,0.95) rectangle ++(0.22,0.7);
 
-    % After pool
-    \draw[fill=BrickRed!85] (9.0,0.95) rectangle ++(\bw,0.7);
-    \draw[fill=BrickRed!85] (9.6,0.95) rectangle ++(\bw,0.7);
-    \draw[fill=BrickRed!85] (10.2,0.95) rectangle ++(\bw,0.7);
-    \node[align=center] at (9.85,-0.35) {$14{\times}14$\\$\times 512$};
-
-    % After last pool
-    \draw[fill=BrickRed!100, draw=black] (11.3,1.15) rectangle ++(\bw,0.3);
-    \node[align=center] at (11.55,-0.35) {$7{\times}7$\\$\times 512$};
+    % Block 5: conv 512 x3
+    \draw[fill=BrickRed!85] (9.2,0.95) rectangle ++(\bw,0.7);
+    \draw[fill=BrickRed!85] (9.8,0.95) rectangle ++(\bw,0.7);
+    \draw[fill=BrickRed!85] (10.4,0.95) rectangle ++(\bw,0.7);
+    \node[align=center] at (10.05,-0.35) {$14{\times}14$\\$\times 512$};
+    % Pool 5 (flattened output)
+    \draw[fill=PastelGreen] (11.15,1.15) rectangle ++(0.4,0.3);
+    \node[align=center] at (11.35,-0.35) {$7{\times}7$\\$\times 512$};
 
     % Dense layers
-    \draw[fill=PastelBlue2, opacity=0.7] (12.4,1.2) rectangle ++(0.25,0.2);
-    \draw[fill=PastelBlue2, opacity=0.7] (12.85,1.2) rectangle ++(0.25,0.2);
-    \node[align=center] at (12.75,-0.35) {fc\\4096};
+    \draw[fill=PastelBlue2!80] (11.95,1.2) rectangle ++(0.25,0.2);
+    \draw[fill=PastelBlue2!80] (12.35,1.2) rectangle ++(0.25,0.2);
+    \node[align=center] at (12.28,-0.35) {fc\\4096};
+    \draw[fill=PastelBlue2!80] (12.95,1.2) rectangle ++(0.25,0.2);
+    \node[align=center] at (13.07,-0.35) {fc\\1000};
 
     % Output (softmax)
-    \draw[fill=Goldenrod, opacity=0.7] (13.4,1.2) rectangle ++(0.2,0.2);
-    \node[align=center] at (13.5,-0.35) {soft\\max};
+    \draw[fill=Goldenrod!70] (13.6,1.2) rectangle ++(0.25,0.2);
+    \node[align=center] at (13.72,-0.35) {soft\\max};
 
     % Legend
     \node[anchor=west, font=\tiny] at (0,3.0) {\tikz \fill[BrickRed!50] (0,0) rectangle (0.25,0.18); ~conv $3\times 3$ + ReLU \quad
-        \tikz \fill[PastelBlue2, opacity=0.7] (0,0) rectangle (0.25,0.18); ~totalmente conectada \quad
-        \tikz \fill[Goldenrod, opacity=0.7] (0,0) rectangle (0.25,0.18); ~softmax};
+        \tikz \fill[PastelGreen] (0,0) rectangle (0.25,0.18); ~\textit{max pooling} \quad
+        \tikz \fill[PastelBlue2!80] (0,0) rectangle (0.25,0.18); ~totalmente conectada \quad
+        \tikz \fill[Goldenrod!70] (0,0) rectangle (0.25,0.18); ~softmax};
 \end{tikzpicture}
 
 \vspace{0.3em}
@@ -421,19 +430,23 @@ Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro 
 \vspace{0.4em}
 \centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    % Classification box
-    \draw[thick] (0,0) rectangle (3,2.4);
-    \node at (1.5,2.7) {\small Classificação};
-    \node[anchor=south] at (1.5,1.2) {\large \textbf{Gato}};
-    \node[anchor=south] at (1.5,0.2) {imagem inteira};
+    % Classification (image 4.2cm x 2.8cm, 3:2)
+    \node[inner sep=0, anchor=north west] at (0,0)
+      {\includegraphics[width=4.2cm]{slides/img/02-cnn/loc_cat_snow.jpg}};
+    \node[anchor=south] at (2.1,0.05) {\small Classificação};
+    \node[anchor=north] at (2.1,-2.85) {saída: classe \textbf{gato}};
 
-    % Classification + Localization
-    \draw[thick] (4.5,0) rectangle (7.5,2.4);
-    \node at (6,2.7) {\small Classificação + Localização};
-    \draw[thick, BrickRed] (5.2,0.4) rectangle (7.0,1.9);
-    \node[BrickRed] at (6.1,2.1) {gato};
-    \node[anchor=south] at (6,-0.3) {classe + caixa};
-\end{tikzpicture}
+    % Classification + Localization (bbox in normalized coords)
+    \node[inner sep=0, anchor=north west] at (5.4,0)
+      {\includegraphics[width=4.2cm]{slides/img/02-cnn/loc_cat_snow.jpg}};
+    \node[anchor=south] at (7.5,0.05) {\small Classificação + Localização};
+    \begin{scope}[shift={(5.4,0)}, x=4.2cm, y=-2.8cm]
+        \draw[BrickRed, very thick] (0.21,0.10) rectangle (0.97,0.93);
+        \node[BrickRed, anchor=north east, fill=white, inner sep=1pt, font=\scriptsize\bfseries] at (0.97,0.10) {gato};
+    \end{scope}
+    \node[anchor=north] at (7.5,-2.85) {saída: classe \textbf{gato} $+$ \textit{bounding box}};
+\end{tikzpicture}\\[2pt]
+{\tiny Foto: Von.grzanka, \textit{Wikimedia Commons} (CC BY-SA 3.0).}
 \end{frame}
 
 \begin{frame}{Bounding Box}
@@ -456,26 +469,32 @@ Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro 
             \item Alvo $\mathbf{y} = (x, y, h, w)$.
             \item Para o exemplo ao lado:
             \begin{itemize}
-                \item $(x, y) = (0.2,\, 0.1)$.
-                \item $h = 0.5$.
-                \item $w = 0.7$.
+                \item $(x, y) = (0.21,\, 0.10)$.
+                \item $h = 0.83$.
+                \item $w = 0.76$.
             \end{itemize}
-            \item Logo, $\mathbf{y} = (0.2,\, 0.1,\, 0.5,\, 0.7)$.
+            \item Logo, $\mathbf{y} = (0.21,\, 0.10,\, 0.83,\, 0.76)$.
         \end{itemize}
     \end{column}
     \begin{column}{.5\linewidth}
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            % Image frame (unit coordinate)
-            \draw[thick, fill=black!3] (0,0) rectangle (4,4);
-            \node[anchor=south west, font=\tiny] at (0,4.05) {$(0, 0)$};
-            \node[anchor=north east, font=\tiny] at (4,-0.05) {$(1, 1)$};
-            % Bounding box
-            \draw[thick, BrickRed] (0.8,1.6) rectangle (3.6,3.6);
-            \node[anchor=south, BrickRed, font=\tiny] at (0.9,3.6) {$(0.2,\, 0.1)$};
-            \draw[<->, BrickRed] (3.8,1.6) -- (3.8,3.6) node[midway, right, font=\tiny] {$h=0.5$};
-            \draw[<->, BrickRed] (0.8,1.4) -- (3.6,1.4) node[midway, below, font=\tiny] {$w=0.7$};
-        \end{tikzpicture}
+            % Image 6cm x 4cm (3:2); scope maps normalized coords, origin top-left
+            \node[inner sep=0, anchor=north west] at (0,0)
+              {\includegraphics[width=6cm]{slides/img/02-cnn/loc_cat_snow.jpg}};
+            \draw[thin, black!60] (0,0) rectangle (6,-4);
+            \begin{scope}[x=6cm, y=-4cm]
+                \node[anchor=south west, font=\tiny, inner sep=1pt] at (0,0) {$(0, 0)$};
+                \node[anchor=north east, font=\tiny, inner sep=1pt] at (1,1) {$(1, 1)$};
+                % Bounding box: x=0.21, y=0.10, w=0.76, h=0.83
+                \draw[BrickRed, very thick] (0.21,0.10) rectangle (0.97,0.93);
+                \fill[BrickRed] (0.21,0.10) circle (1.2pt);
+                \node[anchor=south east, BrickRed, font=\tiny, fill=white, inner sep=1pt] at (0.21,0.10) {$(0.21,\, 0.10)$};
+                \draw[<->, BrickRed, thick] (0.15,0.10) -- (0.15,0.93) node[midway, left, font=\tiny, fill=white, inner sep=1pt] {$h=0.83$};
+                \draw[<->, BrickRed, thick] (0.21,0.97) -- (0.97,0.97) node[midway, below, font=\tiny, fill=white, inner sep=1pt] {$w=0.76$};
+            \end{scope}
+        \end{tikzpicture}\\[4pt]
+        {\tiny Foto: Von.grzanka, \textit{Wikimedia Commons} (CC BY-SA 3.0).}
     \end{column}
 \end{columns}
 \end{frame}
@@ -671,35 +690,69 @@ Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro 
 \end{frame}
 
 \begin{frame}{Backbone como Extrator de Features}
-\centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    % Image
-    \draw[thick, fill=black!5] (0,0) rectangle (1.2,2.0);
-    \node[anchor=north] at (0.6,-0.05) {Imagem};
-    % Conv backbone
-    \draw[fill=BrickRed!40, rounded corners=2pt] (1.8,0.4) rectangle (5.4,1.6);
-    \node[align=center] at (3.6,1.0) {\small Convoluções\\\scriptsize \textit{backbone} VGG};
-    \draw[->, thick] (1.2,1.0) -- (1.75,1.0);
-    % Output features arrow (from backbone to branch)
-    \draw[thick] (5.4,1.0) -- (6.2,1.0);
-    % Two heads
-    \draw[fill=PastelBlue2!50, rounded corners=2pt] (6.4,1.5) rectangle (8.8,2.4);
-    \node[align=center] at (7.6,2.0) {\small Cabeça densa\\\scriptsize classificação};
-    \draw[fill=PastelBlue2!50, rounded corners=2pt] (6.4,-0.4) rectangle (8.8,0.5);
-    \node[align=center] at (7.6,0.05) {\small Cabeça densa\\\scriptsize localização};
-    \draw[->, thick] (6.2,1.0) -- (6.2,1.95) -- (6.4,1.95);
-    \draw[->, thick] (6.2,1.0) -- (6.2,0.05) -- (6.4,0.05);
-    % Outputs
-    \draw[->, thick] (8.8,2.0) -- (9.6,2.0);
-    \node[anchor=west, align=left] at (9.6,2.0) {\small classe\\\scriptsize \textit{softmax}};
-    \draw[->, thick] (8.8,0.05) -- (9.6,0.05);
-    \node[anchor=west, align=left] at (9.6,0.05) {\small caixa\\\scriptsize $(x,y,h,w)$};
-\end{tikzpicture}
+\begin{columns}[c]
+    \begin{column}{.42\linewidth}
+        \begin{itemize}
+            \item O \textit{backbone} convolucional é \textbf{compartilhado} pelas duas cabeças.
+            \item Cada cabeça densa recebe as mesmas \textit{features} e produz sua própria saída.
+            \item Trocando a cabeça e mantendo o \textit{backbone}, podemos resolver muitas tarefas distintas a partir das mesmas \textit{features}.
+        \end{itemize}
+    \end{column}
+    \begin{column}{.58\linewidth}
+        \centering
+        \renewcommand{\vgpitch}{0.235}%
+        \begin{tikzpicture}[every node/.style={font=\tiny}]
+            % backbone compartilhado (entrada + convoluções + pooling)
+            \foreach \i/\txt/\col/\tcol in {
+                0/entrada/black!55/white,
+                1/\chipconv{64}/BrickRed!75/white,
+                2/\chipconv{64}/BrickRed!75/white,
+                3/pooling/PastelGreen/black,
+                4/\chipconv{128}/BrickRed!75/white,
+                5/\chipconv{128}/BrickRed!75/white,
+                6/pooling/PastelGreen/black,
+                7/\chipconv{256}/BrickRed!75/white,
+                8/\chipconv{256}/BrickRed!75/white,
+                9/\chipconv{256}/BrickRed!75/white,
+                10/pooling/PastelGreen/black,
+                11/\chipconv{512}/BrickRed!75/white,
+                12/\chipconv{512}/BrickRed!75/white,
+                13/\chipconv{512}/BrickRed!75/white,
+                14/pooling/PastelGreen/black,
+                15/\chipconv{512}/BrickRed!75/white,
+                16/\chipconv{512}/BrickRed!75/white,
+                17/\chipconv{512}/BrickRed!75/white,
+                18/pooling/PastelGreen/black}{
+                \node[vgchipbase, fill=\col, text=\tcol, draw=black!50, thin] at (0, \i*\vgpitch) {\txt};
+            }
+            \draw[decorate, decoration={brace, amplitude=6pt, mirror}, BrickRed, thick]
+                (1.05, 1*\vgpitch - 0.1) -- (1.05, 18*\vgpitch + 0.1)
+                node[midway, right=8pt, BrickRed, font=\scriptsize\bfseries, align=center] {\textit{backbone}\\VGG\\(compartilhado)};
 
-\vspace{0.4em}
-\begin{itemize}
-    \item Trocando a cabeça e mantendo o \textit{backbone}, podemos resolver muitas tarefas distintas a partir das mesmas \textit{features}.
-\end{itemize}
+            % imagem de entrada
+            \node[inner sep=0, anchor=east] (img) at (-1.3, 0)
+              {\includegraphics[width=1.5cm]{slides/img/02-cnn/loc_cat_snow.jpg}};
+            \node[anchor=north] at (img.south) {Imagem};
+            \draw[->, thick] (img.east) -- (-0.98, 0);
+
+            % duas cabeças densas
+            \pgfmathsetmacro{\hy}{18*\vgpitch + 0.72}
+            \foreach \hx/\last/\act/\actcol/\acttext in {-1.05/\chipfc{1000}/softmax/Goldenrod!70/black, 1.05/\chipfc{4}/sigmoide/Goldenrod!70/black}{
+                \node[vgchipbase, fill=PastelBlue2!80, text=white, draw=black!50, thin] at (\hx, \hy) {\chipfc{4096}};
+                \node[vgchipbase, fill=PastelBlue2!80, text=white, draw=black!50, thin] at (\hx, \hy + \vgpitch) {\chipfc{4096}};
+                \node[vgchipbase, fill=PastelBlue2!80, text=white, draw=black!50, thin] at (\hx, \hy + 2*\vgpitch) {\last};
+                \node[vgchipbase, fill=\actcol, text=\acttext, draw=black!50, thin] at (\hx, \hy + 3*\vgpitch) {\act};
+            }
+            % bifurcação
+            \draw[thick] (0, 18*\vgpitch + 0.11) -- (0, \hy - 0.38);
+            \draw[->, thick] (0, \hy - 0.38) -| (-1.05, \hy - 0.12);
+            \draw[->, thick] (0, \hy - 0.38) -| (1.05, \hy - 0.12);
+            % saídas
+            \node[anchor=south, align=center, font=\scriptsize] at (-1.05, \hy + 3*\vgpitch + 0.12) {\textbf{classe}};
+            \node[anchor=south, align=center, font=\scriptsize] at (1.05, \hy + 3*\vgpitch + 0.12) {\textbf{caixa} $(x,y,h,w)$};
+        \end{tikzpicture}
+    \end{column}
+\end{columns}
 \end{frame}
 
 %========================================================================
@@ -799,16 +852,16 @@ Ignoramos o \textit{bias} para simplificar a contagem. Na prática, cada filtro 
 \end{itemize}
 \vspace{0.1em}
 \centering
-\resizebox{5.4cm}{!}{%
+\resizebox{5.1cm}{!}{%
 \begin{tikzpicture}[every node/.style={font=\scriptsize\bfseries}]
     \node[inner sep=0, anchor=south west] (img) at (0,0)
       {\includegraphics[width=6.5cm]{slides/img/02-cnn/det_cat_dog.jpg}};
     % cachorro (esquerda)
-    \draw[BrickRed, very thick] (0.20,2.68) rectangle (3.59,4.91);
-    \node[BrickRed, anchor=south west, fill=white, inner sep=1pt] at (0.20,4.91) {cachorro};
+    \draw[BrickRed, very thick] (0.45,2.07) rectangle (5.11,4.86);
+    \node[BrickRed, anchor=south west, fill=white, inner sep=1pt] at (0.45,4.86) {cachorro};
     % gato (direita)
-    \draw[PastelBlue2, very thick] (3.05,1.26) rectangle (5.42,3.23);
-    \node[PastelBlue2, anchor=south west, fill=white, inner sep=1pt] at (3.05,3.23) {gato};
+    \draw[PastelBlue2, very thick] (2.80,0.54) rectangle (6.08,2.72);
+    \node[PastelBlue2, anchor=south east, fill=white, inner sep=1pt] at (6.08,2.72) {gato};
 \end{tikzpicture}}\\[3pt]
 {\tiny Cada objeto recebe classe $+$ \textit{bounding box}. Foto: \textit{Socks e Buddy} (Casa Branca), domínio público.}
 \end{frame}
