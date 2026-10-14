@@ -1,0 +1,169 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidades 4 e 6}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+e & b & f & c & b & h & d & g & d & a \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+\textbf{I é correta:} o NSP é uma classificação binária balanceada; metade dos pares é \texttt{IsNext} (frase seguinte real) e metade \texttt{NotNext} (frase sorteada do corpus).
+
+\textbf{II é incorreta:} no \textit{encoder} a atenção é bidirecional, então \textbf{todo} \textit{token} da entrada \texttt{[CLS] A [SEP] B [SEP]} acessa as duas frases; o \texttt{[SEP]} não tem nenhum papel privilegiado e não é usado na predição.
+
+\textbf{III é correta:} a cabeça binária do NSP é aplicada sobre $\mathbf{h}_{[\text{CLS}]}^{(L)}$, a representação final do \texttt{[CLS]}, treinada com entropia cruzada binária.
+
+Logo, apenas I e III estão corretas.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (b)}
+A perda do MLM é $\mathcal{L}_{\text{MLM}} = -\frac{1}{|M|}\sum_{i \in M} \log p(w_i \mid \mathbf{w}_{\setminus M})$, em que $M$ é o conjunto das posições \textbf{selecionadas} (os 15\%), qualquer que tenha sido a corrupção aplicada a cada uma. Em todos os casos o alvo é o \textit{token} original. Como o modelo não sabe quais posições foram selecionadas (uma posição com o \textit{token} original ou com um \textit{token} aleatório é indistinguível das demais), ele precisa manter representações contextuais úteis para todos os \textit{tokens}, e não só para os \texttt{[MASK]}. Isso também reduz o descompasso com o \textit{fine-tuning}, em que \texttt{[MASK]} nunca aparece.\\
+\textbf{(a)} calcular a perda em todas as posições tornaria a tarefa trivial nas 85\% não selecionadas (copiar a entrada visível).
+\textbf{(c)} ignora que as posições com \textit{token} original e aleatório também têm alvo (o original) e entram na perda; sem elas o modelo aprenderia a confiar cegamente em qualquer \textit{token} visível.
+\textbf{(d)} restringe a perda a $\approx$ 1{,}5\% das posições; o MLM não é uma tarefa de detecção de erro (essa ideia aparece no ELECTRA).
+\textbf{(e)} inverte a lógica: a posição mascarada é justamente a que o modelo precisa reconstruir a partir do contexto, e o gradiente ali não é nulo.
+\textbf{(f)} o \texttt{[CLS]} é usado no NSP e no \textit{fine-tuning} de classificação, não no MLM.
+\textbf{(g)} os \textit{embeddings} dos \textit{tokens} especiais são ajustados pelo gradiente que flui pela atenção, sem precisarem ser alvo da perda.
+\textbf{(h)} descreve um modelo causal (\textit{decoder-only}); o BERT usa atenção bidirecional sem máscara triangular.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (f)}
+A inclinação da cabeça $h = 1$ com $n = 8$ cabeças é $m_1 = 2^{-8 \cdot 1/8} = 2^{-1} = 0.5$. Para $i = 3$, as distâncias $|i - j|$ são $3, 2, 1, 0$, logo os vieses são $-1.5,\ -1.0,\ -0.5,\ 0$. Somando aos \textit{scores}:
+\[
+A_1(3, j) = [\,1.5 - 1.5,\;\; 1.0 - 1.0,\;\; 0.5 - 0.5,\;\; 0.0 - 0\,] = [\,0,\; 0,\; 0,\; 0\,].
+\]
+Com os quatro \textit{scores} iguais, a \textit{softmax} é uniforme: $\alpha_{3,j} = 1/4 = 0.25$ para todo $j$. Nesse exemplo, a preferência do conteúdo pelos \textit{tokens} distantes é exatamente cancelada pela penalidade linear de distância.\\
+\textbf{(a)} ignora o viés ALiBi e aplica a \textit{softmax} aos \textit{scores} crus: $e^{1.5}, e^{1}, e^{0.5}, e^{0}$ normalizados por $9.849$.
+\textbf{(b)} trata o ALiBi como uma máscara rígida que só deixa a posição atual visível; a penalidade é finita e não zera os demais pesos.
+\textbf{(c)} soma a penalidade em vez de subtraí-la ($[3, 2, 1, 0]$), favorecendo justamente os \textit{tokens} distantes.
+\textbf{(d)} usa $m = 2^{-2} = 0.25$, a inclinação da primeira cabeça com $n = 4$, e não com $n = 8$; os \textit{scores} viram $[0.75, 0.5, 0.25, 0]$.
+\textbf{(e)} normaliza os \textit{scores} crus dividindo pela soma ($3.0$), sem exponenciar nem aplicar o viés.
+\textbf{(g)} usa $m = 1$ (esquece o expoente da fórmula); os \textit{scores} viram $[-1.5, -1, -0.5, 0]$ e a \textit{softmax} inverte a ordem da alternativa (a).
+\textbf{(h)} normaliza os fatores $|i - j| + 1 = [4, 3, 2, 1]$, tratando a distância como peso proporcional em vez de penalidade no \textit{logit}.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (c)}
+No RoPE o \textit{score} depende do deslocamento relativo $j - i$, por meio dos ângulos de rotação $(j - i)\theta_k$. Com $L_\text{train} = 2\,048$, o modelo nunca viu deslocamentos maiores que isso; a partir dessa posição surgem deslocamentos e ângulos fora da distribuição de treino, e a perplexidade dispara. A \textit{Position Interpolation} reescala $i \leftarrow i \cdot (L_\text{train}/L_\text{test}) = i/4$, comprimindo as posições de volta à faixa vista no treino; um \textit{fine-tuning} curto adapta o modelo à resolução mais fina.\\
+\textbf{(a)} descreve o PE absoluto aprendido (tabela $L_{\max} \times d$); o RoPE não tem tabela de parâmetros posicionais.
+\textbf{(b)} rotações preservam a norma: $\|\mathbf{R}_\theta(i)\,\mathbf{q}\| = \|\mathbf{q}\|$ para qualquer posição, então o RoPE não infla os \textit{scores}.
+\textbf{(d)} o RoPE produz \textit{scores} que dependem só de $j - i$; o PE senoidal somado à entrada também extrapola mal (posições fora da distribuição), apesar de limitado a $[-1, 1]$.
+\textbf{(e)} falta de memória gera erro de execução, não uma perplexidade que cresce de forma suave a partir de uma posição específica; o tamanho do \textit{batch} não muda o comprimento da sequência.
+\textbf{(f)} \textit{Lost in the Middle} é a queda de desempenho no centro de um contexto dentro da janela suportada (curva em U), não uma explosão após $L_\text{train}$.
+\textbf{(g)} a máscara causal é gerada para o comprimento de cada entrada e não tem tamanho fixo aprendido.
+\textbf{(h)} o \textit{tokenizer} opera palavra a palavra e não depende do comprimento do documento; a degradação começa exatamente em $L_\text{train}$, o que aponta para a codificação posicional.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (b)}
+(1) Os \textit{encoders} de imagem (ResNet ou ViT) e de texto (\textit{transformer}) são independentes, treinados juntos, e só se encontram no espaço de projeção comum onde $\mathbf{S} = \mathbf{U}\mathbf{V}^\top$ é calculada. (2) Os negativos vêm de graça do próprio \textit{batch}: cada imagem é contrastada com as $N - 1$ legendas dos outros pares (fora da diagonal de $\mathbf{S}$); com $N = 32\,768$ não é preciso minerar negativos difíceis. (3) No \textit{zero-shot}, a imagem é comparada com os \textit{embeddings} de \textit{prompts} como \textit{``a photo of a \{classe\}''}, e a classe é o $\arg\max$ da similaridade, sem nenhum treino adicional.\\
+Lacuna (1), opção ``\textit{transformer} único com pesos compartilhados'' (a, e, f, h): o CLIP não tem pesos compartilhados entre modalidades; cada uma tem seu \textit{encoder}.
+Lacuna (2), opção ``negativos difíceis minerados'' (c, e, g, h): o CLIP não usa índice externo; a fonte de negativos é o \textit{batch} grande.
+Lacuna (3), opção ``regressão logística sobre imagens rotuladas'' (d, f, g, h): isso é o \textit{linear probe}, uma avaliação que exige dados rotulados e, portanto, não é \textit{zero-shot}.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (h)}
+O CLIP normaliza as projeções antes de comparar ($\mathbf{u}$ e $\mathbf{v}_k$ têm norma 1), então $s_k$ é a similaridade do cosseno. Normas: $\|[5, 12]\| = 13$, $\|[20, 0]\| = 20$, $\|[1.2, 1.6]\| = 2$, $\|[0, 3]\| = 3$.
+\[
+s_\text{gato} = \frac{5 \cdot 20}{13 \cdot 20} = \frac{5}{13} \approx 0.385,
+\quad
+s_\text{cachorro} = \frac{5 \cdot 1.2 + 12 \cdot 1.6}{13 \cdot 2} = \frac{25.2}{26} \approx 0.969,
+\quad
+s_\text{raposa} = \frac{12 \cdot 3}{13 \cdot 3} \approx 0.923.
+\]
+O $\arg\max$ é \textbf{cachorro}, com $s \approx 0.969$ (a \textit{softmax} com $\tau$ preserva a ordem). Só a direção importa: o vetor de cachorro é o mais curto, mas é o que forma o menor ângulo com a imagem.\\
+\textbf{(a)} usa o produto interno sem normalização ($5 \cdot 20 = 100$); a norma grande de gato domina.
+\textbf{(b)} é o cosseno correto de raposa, a segunda maior similaridade.
+\textbf{(c)} é o produto interno cru de cachorro.
+\textbf{(d)} é o cosseno correto de gato, que é o menor dos três.
+\textbf{(e)} é o produto interno cru de raposa, maior que o de cachorro sem normalização.
+\textbf{(f)} normaliza apenas o vetor de texto ($25.2 / 2$).
+\textbf{(g)} normaliza apenas o vetor da imagem ($25.2 / 13$); um cosseno nunca passa de 1.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (d)}
+Para cada resposta, o objetivo é $r_\phi(x, y) - \beta \log\frac{\pi_\theta(y \mid x)}{\pi_\text{ref}(y \mid x)}$ com $\beta = 0.5$:
+\[
+\text{A: } 2.0 - 0.5(0.4) = 1.8, \quad
+\text{B: } 3.5 - 0.5(4.0) = 1.5, \quad
+\text{C: } 1.2 - 0.5(-0.2) = 1.3, \quad
+\text{D: } 2.6 - 0.5(1.0) = 2.1.
+\]
+A resposta D tem o maior objetivo, $2.1$. A resposta B tem o maior escore do RM, mas a política já se afastou muito da referência para obtê-lo; é o padrão típico de \textit{reward hacking} que a penalidade KL existe para conter.\\
+\textbf{(a)} ignora a penalidade KL e escolhe pelo escore do RM.
+\textbf{(b)} soma a penalidade em vez de subtraí-la ($3.5 + 2.0$), premiando o afastamento da referência.
+\textbf{(c)} e \textbf{(e)} calculam corretamente os valores de A e C, mas nenhum deles é o máximo; (e) escolhe a resposta mais próxima da referência, ignorando o escore do RM.
+\textbf{(f)} usa $\beta = 1$ em vez de $0.5$ ($2.6 - 1.0$); com esse erro A e D empatariam.
+\textbf{(g)} soma a penalidade na resposta D ($2.6 + 0.5$).
+\textbf{(h)} é o valor correto de B, mas B não é o máximo depois da penalidade.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (g)}
+A associação correta é 1-(v), 2-(iii), 3-(i), 4-(iv):
+\begin{itemize}
+  \item \textbf{Pré-treinamento} (v): corpus massivo sem anotação, perda de próximo \textit{token} $\mathcal{L}_\text{LM}$ em todas as posições, com máscara causal.
+  \item \textbf{SFT} (iii): pares (instrução, resposta); a mesma entropia cruzada, mas restrita às posições $\mathcal{R}$ da resposta.
+  \item \textbf{Reward model} (i): triplas de preferência $(x, y_w, y_l)$ e perda de Bradley-Terry sobre $r_\phi(x,y_w) - r_\phi(x,y_l)$.
+  \item \textbf{PPO} (iv): só \textit{prompts}; a política gera respostas, o RM as pontua e o objetivo $r_\phi - \beta\,\text{KL}$ mantém a política perto do SFT.
+\end{itemize}
+A descrição (ii) é o MLM do BERT (perda só nas posições mascaradas, atenção bidirecional) e não corresponde a nenhuma etapa de um LLM \textit{decoder-only}.\\
+\textbf{(a)} e \textbf{(d)} atribuem ao pré-treinamento o objetivo MLM de \textit{encoders}. \textbf{(d)} e \textbf{(f)} ainda dão ao SFT a perda em todas as posições, sem mascarar o \textit{prompt}.
+\textbf{(b)} troca SFT e RM: o SFT não usa pares de preferência, e o RM não é treinado com entropia cruzada sobre \textit{tokens}.
+\textbf{(c)} e \textbf{(f)} trocam RM e PPO: o RM não gera respostas, e o PPO não usa a perda de Bradley-Terry.
+\textbf{(e)} dá ao SFT o objetivo MLM.
+\textbf{(h)} dá ao RM o objetivo MLM.
+
+\subsection*{Questão 9 \textemdash{} Resposta: (d)}
+O objetivo é que, \textbf{entre os doentes} ($y = 1$), a chance de ser identificado ($\hat{y} = 1$) seja a mesma em todos os grupos: $P(\hat{y}{=}1 \mid y{=}1, a{=}0) = P(\hat{y}{=}1 \mid y{=}1, a{=}1)$, ou seja, $TPR$ igual (equivalentemente, $FNR$ igual). Essa é a igualdade de oportunidade, o critério indicado quando o falso negativo é o erro mais grave.\\
+\textbf{(a)} a paridade demográfica ignora quem está doente; com prevalências diferentes ela forçaria erros em algum grupo.
+\textbf{(b)} a calibração olha os encaminhados, não os doentes; ela não garante a mesma chance de detecção.
+\textbf{(c)} o $FPR$ trata dos saudáveis encaminhados por engano, o erro menos danoso neste cenário.
+\textbf{(e)} \textit{fairness} individual compara pares de pacientes semelhantes, não as taxas de detecção entre grupos.
+\textbf{(f)} acurácias iguais podem esconder um grupo com muitos falsos negativos compensados por poucos falsos positivos.
+\textbf{(g)} remover o atributo não garante nenhum critério, pois \textit{proxies} carregam a informação (ver Questão 10).
+\textbf{(h)} \textit{fairness} contrafactual é um critério individual e causal; não fala da taxa de detecção dos doentes de cada grupo.
+
+\subsection*{Questão 10 \textemdash{} Resposta: (a)}
+Remover o atributo protegido das entradas (\textit{fairness through unawareness}) não garante decisões justas: atributos correlacionados com o grupo, como o CEP, funcionam como \textit{proxies} e carregam a informação removida. É o que acontece no COMPAS, que não usa raça como entrada e mesmo assim apresenta taxas de erro muito diferentes entre grupos. Além de não resolver o problema, remover o atributo dificulta a auditoria.\\
+\textbf{(b)} a disparidade é esperada via \textit{proxies}; a auditoria não está errada.
+\textbf{(c)} a remoção não garante \textit{fairness} individual nem de grupo, e uma diferença grande e sistemática não é ruído.
+\textbf{(d)} calibração é igualdade de $PPV$ entre grupos e não implica taxas de aprovação iguais.
+\textbf{(e)} \textit{overfitting} e \textit{dropout} não têm relação com a disparidade entre grupos.
+\textbf{(f)} o viés vem dos dados de treino e das variáveis correlacionadas, não da inicialização dos pesos.
+\textbf{(g)} paridade demográfica exige justamente taxas de aprovação \textbf{iguais}; ela está violada.
+\textbf{(h)} remover um atributo não ``converte'' o critério; cada critério é uma escolha de quem audita, independente das entradas do modelo.
+
+\end{document}

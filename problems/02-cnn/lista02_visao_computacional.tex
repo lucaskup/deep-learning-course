@@ -13,7 +13,7 @@
 
 \item Explique como as tarefas de localização e detecção de objetos são diferentes.
 
-\item Explique como aproveitar uma VGG-16 pré-treinada no ImageNET para realizar classificação de cães e gatos. Sua explicação deve contemplar quais as camadas da VGG-16 você deveria manter e quais você deveria treinar novamente. Suponha que você dispõe de um conjunto de dados relativamente pequeno, com cerca de 250 instâncias para cada classe.
+\item Explique como aproveitar uma VGG-16 pré-treinada no ImageNet para realizar classificação de cães e gatos. Sua explicação deve contemplar quais as camadas da VGG-16 você deveria manter e quais você deveria treinar novamente. Suponha que você dispõe de um conjunto de dados relativamente pequeno, com cerca de 250 instâncias para cada classe.
 
 \item Considere a tarefa de localização de um único objeto, em que a cabeça de localização produz uma \textit{bounding box} $\mathbf{y} = (x, y, h, w)$. Suponha uma caixa de \textit{ground truth} $A$ com canto superior esquerdo em $(1, 1)$ e canto inferior direito em $(5, 4)$, e uma caixa prevista $B$ com canto superior esquerdo em $(3, 2)$ e canto inferior direito em $(7, 5)$. Calcule a \textit{Intersection over Union} (IoU) e o \textit{Dice Score} entre $A$ e $B$.
 
@@ -59,16 +59,19 @@
 
 \begin{enumerate}[I)]
 
-\item Teríamos duas alternativas se não fossemos fazer com \textit{encoder-decoder}:
-1 - Usar convoluções sem fazer \textit{downsampling}, o que ficaria inviável devido ao número de parâmetros necessários e quantidade de processamento gasto;
-2 - Fazer uma rede convolucional que tem \textit{downsampling} e rodar ela várias vezes em diferentes patches da imagem, o que seria proibitivo também em termos de custo computacional. Para realizar a segmentação da imagem em apenas uma passada, a arquitetura \textit{encoder-decoder} possibilita toda a segmentação ser realizada em uma passada e mantém o número de parâmetros baixo.
+\item Teríamos duas alternativas se não fôssemos usar uma arquitetura \textit{encoder-decoder}:
+\begin{enumerate}[1.]
+    \item Usar convoluções sem fazer \textit{downsampling}, o que seria inviável devido ao número de parâmetros necessários e à quantidade de processamento gasto.
+    \item Usar uma rede convolucional com \textit{downsampling} e executá-la várias vezes em diferentes \textit{patches} da imagem, o que também seria proibitivo em termos de custo computacional.
+\end{enumerate}
+A arquitetura \textit{encoder-decoder} realiza toda a segmentação da imagem em uma única passada e mantém o número de parâmetros baixo.
 
 \item Nas duas tarefas o modelo produz classe e \textit{bounding box}: a localização é classificação $+$ localização de um objeto, e a detecção faz o mesmo para cada objeto encontrado. A diferença está no \textbf{número de objetos}. Na localização supomos um único objeto de interesse, então a saída tem tamanho fixo e uma cabeça densa com 4 unidades para a caixa resolve o problema. Na detecção a imagem pode conter vários objetos e não sabemos de antemão quantos, então a saída tem tamanho variável, o que é o desafio central da tarefa e o motivo de precisarmos de mecanismos como propostas de região, âncoras ou consultas aprendidas, além de supressão de detecções redundantes.
 
-\item As camadas convolucionais da VGG-16 são responsáveis por extrair características básicas de baixo nível, como bordas e texturas, não necessitam de novo treinamento. Por outro lado, as camadas densas finais estão intimamente relacionadas ao conjunto de dados original (ImageNet). Uma abordagem usual é manter as camadas convolucionais e treinar novamente as camadas densas na extremidade da rede. Isso é um exemplo de \textit{transfer learning} pois estamos aproveitando um aprendizado realizado em um vasto conjunto de dados para ajustar para o nosso problema específico.
+\item As camadas convolucionais da VGG-16 extraem uma hierarquia de características: as primeiras capturam padrões de baixo nível, como bordas e texturas, e as mais profundas combinam esses padrões em partes de objetos. Como foram treinadas em um conjunto grande e variado, essas características são genéricas o suficiente para servir ao novo problema, e com apenas 250 instâncias por classe retreiná-las levaria a \textit{overfitting}. Por outro lado, as camadas densas finais estão intimamente relacionadas ao conjunto de dados original (ImageNet). Uma abordagem usual é manter as camadas convolucionais e treinar novamente as camadas densas na extremidade da rede. Isso é um exemplo de \textit{transfer learning} pois estamos aproveitando um aprendizado realizado em um vasto conjunto de dados para ajustar para o nosso problema específico.
 
 \item Áreas e sobreposição: $Area(A) = 4 \times 3 = 12$ e $Area(B) = 4 \times 3 = 12$. A interseção ocorre em $x \in [3, 5]$ (largura 2) e $y \in [2, 4]$ (altura 2), logo $A \cap B = 2 \times 2 = 4$. A união é $A \cup B = Area(A) + Area(B) - A \cap B = 12 + 12 - 4 = 20$.
-$$IoU = \frac{A \cap B}{A \cup B} = \frac{4}{20} = 0.2 \qquad Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)} = \frac{2 \cdot 4}{12 + 12} = \frac{8}{24} \approx 0.333$$
+$$IoU = \frac{A \cap B}{A \cup B} = \frac{4}{20} = 0{,}2 \qquad Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)} = \frac{2 \cdot 4}{12 + 12} = \frac{8}{24} \approx 0{,}333$$
 
 \item
 \begin{enumerate}[a.]
@@ -87,7 +90,7 @@ $$IoU = \frac{A \cap B}{A \cup B} = \frac{4}{20} = 0.2 \qquad Dice = \frac{2 \cd
 
 \item Na segmentação semântica cada pixel recebe uma classe, e todas as instâncias de uma mesma classe compartilham o mesmo rótulo. Os dois gatos apareceriam como uma única máscara da classe ``gato''. Na segmentação de instâncias, instâncias diferentes da mesma classe são diferenciadas, então cada gato receberia uma máscara distinta. A segmentação de instâncias combina a separação de objetos (como na detecção) com a classificação em nível de pixel.
 
-\item Alternativa (g). Preenchimento correto: (1) IoU; (2) semântica; (3) o \textit{backbone} convolucional. Lacuna (1): IoU ($\frac{A \cap B}{A \cup B}$) é a métrica geométrica padrão para comparar \textit{bounding boxes}; a entropia cruzada é uma função de custo de classificação, e não uma métrica de sobreposição espacial, troca cometida pelas alternativas (a), (c), (e) e (h). Lacuna (2): atribuir classe a cada \textit{pixel} sem separar objetos individuais é segmentação \textbf{semântica}; a segmentação \textbf{de instâncias} adicionalmente distingue cada objeto (dois gatos lado a lado recebem rótulos diferentes), confusão presente em (b), (c), (f) e (h). Lacuna (3): com poucos dados, congela-se o \textit{backbone} convolucional pré-treinado (extrator de características genéricas) e treina-se apenas a cabeça densa para as novas classes; congelar a cabeça e treinar o \textit{backbone}, como em (d), (e) e (f), inverte a lógica: destruiria os filtros genéricos e treinaria milhões de parâmetros com poucos exemplos.
+\item Alternativa (g). Preenchimento correto: (1) IoU; (2) semântica; (3) o \textit{backbone} convolucional. Lacuna (1): IoU ($\frac{A \cap B}{A \cup B}$) é a métrica geométrica padrão para comparar \textit{bounding boxes}; a entropia cruzada é uma função de custo de classificação, e não uma métrica de sobreposição espacial, troca cometida pelas alternativas (a), (c), (e) e (h). Lacuna (2): atribuir classe a cada \textit{pixel} sem separar objetos individuais é segmentação \textbf{semântica}; a segmentação \textbf{de instâncias} adicionalmente distingue cada objeto (dois gatos lado a lado recebem rótulos diferentes), confusão presente em (b), (c), (f) e (h). Lacuna (3): com poucos dados, congela-se o \textit{backbone} convolucional pré-treinado (extrator de características genéricas) e treina-se apenas a cabeça densa para as novas classes; congelar a cabeça e treinar o \textit{backbone}, como em (c), (d), (e) e (f), inverte a lógica: destruiria os filtros genéricos e treinaria milhões de parâmetros com poucos exemplos.
 
 \end{enumerate}
 \end{document}

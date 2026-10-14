@@ -1,0 +1,409 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+% Cabeçalho de bloco temático do formulário
+\newcommand{\bloco}[1]{%
+  \par\vspace{0.3em}%
+  {\bfseries\large #1}\par%
+  \vspace{-0.4em}{\color{gray!60}\rule{\linewidth}{0.4pt}}\par%
+}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidades 4 e 6}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1  & & & & & & & & \\\hline
+2  & & & & & & & & \\\hline
+3  & & & & & & & & \\\hline
+4  & & & & & & & & \\\hline
+5  & & & & & & & & \\\hline
+6  & & & & & & & & \\\hline
+7  & & & & & & & & \\\hline
+8  & & & & & & & & \\\hline
+9  & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\textit{O formulário está na última página da prova.}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1,0 = 10,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10{,}0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-B I/II/III (NSP) [questão do professor] ----------
+\item (1{,}0) Sobre as asserções abaixo a respeito da tarefa de \textit{Next Sentence Prediction} (NSP) no pré-treino do BERT:
+
+\textbf{I.} Os exemplos são pares de frases $(A, B)$. Em 50\% dos pares, a frase $B$ é a que de fato segue $A$ no corpus (\texttt{IsNext}). Nos outros 50\%, $B$ é uma frase sorteada aleatoriamente do corpus (\texttt{NotNext}).
+
+\textbf{II.} A predição é feita a partir do vetor final do \textit{token} \texttt{[SEP]} que separa $A$ e $B$, pois esse é o único \textit{token} cuja representação tem acesso simultâneo às duas frases.
+
+\textbf{III.} A predição é feita a partir da representação final do \texttt{[CLS]}.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+\pagebreak
+%% ---------- Q2: OBJ-D architectural purpose (MLM loss positions) [questão do professor] ----------
+\item (1{,}0) No pré-treino do BERT com \textit{Masked Language Modeling} (MLM), 15\% das posições de cada sequência são selecionadas. Dessas, 80\% recebem o \textit{token} \texttt{[MASK]}, 10\% recebem um \textit{token} aleatório do vocabulário e 10\% mantêm o \textit{token} original. O modelo produz, para todas as posições, uma distribuição \textit{SoftMax} sobre o vocabulário. Em quais posições a função de custo é calculada, e qual a justificativa?
+
+\begin{enumerate}[a)]
+    \item Em todas as posições da sequência. Como o \textit{encoder} é bidirecional, cada posição contribui com sinal de treino, e ignorar posições desperdiçaria gradiente.
+    \item Em todas as posições selecionadas ($\approx$ 15\%), inclusive nas que mantiveram o \textit{token} original ou receberam um \textit{token} aleatório. Como o modelo não sabe quais posições foram selecionadas, ele é forçado a manter uma representação contextual útil para todos os \textit{tokens}.
+    \item Apenas nas posições que receberam \texttt{[MASK]} ($\approx$ 12\%). Nas posições com o \textit{token} original a tarefa seria trivial (copiar a entrada), e nas posições com \textit{token} aleatório o alvo estaria corrompido.
+    \item Apenas nas posições que receberam um \textit{token} aleatório ($\approx$ 1{,}5\%), pois são as únicas em que o modelo precisa detectar e corrigir um erro na entrada.
+    \item Em todas as posições que não contêm \texttt{[MASK]}. Uma posição mascarada não carrega informação de entrada, então o gradiente da \textit{loss} nessa posição seria nulo.
+    \item Apenas na posição do \texttt{[CLS]}. Via \textit{self-attention}, ele agrega a informação de toda a sequência, e as demais posições são treinadas indiretamente.
+    \item Nas posições selecionadas e também nos \textit{tokens} \texttt{[CLS]} e \texttt{[SEP]}, pois os \textit{embeddings} dos \textit{tokens} especiais só são ajustados se eles entrarem na função de custo.
+    \item Apenas na última posição da sequência, pois o MLM equivale a um modelo de linguagem causal com máscara de atenção triangular.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-A numerical (ALiBi bias + softmax) ----------
+\item (1{,}0) Uma camada de atenção causal usa ALiBi com $n = 8$ cabeças. Considere a cabeça $h = 1$ e uma sequência de 4 \textit{tokens} (posições $0$ a $3$). Para a \textit{query} na posição $i = 3$, os \textit{scores} antes do viés posicional são:
+\[
+\mathbf{q}_3^\top \mathbf{k}_j \,/\, \sqrt{d} = 1.5,\;\; 1.0,\;\; 0.5,\;\; 0.0 \qquad \text{para } j = 0,\, 1,\, 2,\, 3.
+\]
+Quais são os pesos de atenção $[\,\alpha_{3,0},\; \alpha_{3,1},\; \alpha_{3,2},\; \alpha_{3,3}\,]$ dessa cabeça (\textit{softmax} sobre os \textit{scores} com ALiBi)?
+
+\begin{enumerate}[a)]
+    \item $[\,0.455,\;0.276,\;0.167,\;0.102\,]$
+    \item $[\,0.000,\;0.000,\;0.000,\;1.000\,]$
+    \item $[\,0.644,\;0.237,\;0.087,\;0.032\,]$
+    \item $[\,0.350,\;0.273,\;0.212,\;0.165\,]$
+    \item $[\,0.500,\;0.333,\;0.167,\;0.000\,]$
+    \item $[\,0.250,\;0.250,\;0.250,\;0.250\,]$
+    \item $[\,0.102,\;0.167,\;0.276,\;0.455\,]$
+    \item $[\,0.400,\;0.300,\;0.200,\;0.100\,]$
+\end{enumerate}
+
+\pagebreak
+%% ---------- Q4: OBJ-C scenario diagnostic (RoPE beyond L_train) ----------
+\item (1{,}0) Um modelo \textit{decoder-only} com RoPE foi pré-treinado com contexto $L_\text{train} = 2\,048$. Em produção ele passa a receber documentos de $8\,192$ \textit{tokens}, sem nenhuma adaptação. A perplexidade medida por posição é normal até a posição $\approx 2\,048$ e, a partir daí, cresce rapidamente. Qual é o diagnóstico e a mitigação mais adequados?
+
+\begin{enumerate}[a)]
+    \item A tabela de \textit{embeddings} posicionais aprendidos tem só $2\,048$ linhas e as posições seguintes recebem vetores nulos; somar o PE senoidal a essas posições resolve.
+    \item A rotação do RoPE aumenta a norma de $\mathbf{q}$ e $\mathbf{k}$ em posições grandes, inflando os \textit{scores}; dividir os \textit{scores} por um fator maior que $\sqrt{d}$ resolve.
+    \item As posições além de $L_\text{train}$ geram deslocamentos $j - i$ e ângulos de rotação nunca vistos no treino; aplicar \textit{Position Interpolation} com um \textit{fine-tuning} curto mitiga.
+    \item O RoPE torna o \textit{score} dependente da posição absoluta de cada \textit{token}; trocar pelo PE senoidal somado à entrada garante extrapolação, pois seus valores ficam em $[-1, 1]$.
+    \item A matriz de atenção $\mathcal{O}(L^2)$ satura a memória com $8\,192$ \textit{tokens} e corrompe as ativações com \texttt{NaN}; reduzir o tamanho do \textit{batch} elimina o problema.
+    \item É o efeito \textit{Lost in the Middle}, em que o modelo ignora o centro do contexto; reposicionar o conteúdo relevante no início ou no fim do documento elimina o problema.
+    \item A máscara causal foi construída com tamanho fixo de $2\,048$ posições durante o treino; ampliar a máscara para $8\,192$ posições na inferência elimina a degradação observada.
+    \item O \textit{tokenizer} fragmenta documentos longos em subpalavras raras, tirando a entrada da distribuição de treino; retreinar o \textit{tokenizer} sobre documentos longos resolve.
+\end{enumerate}
+
+%% ---------- Q5: OBJ-E fill-in-the-blanks (CLIP training and zero-shot) ----------
+\item (1{,}0) Assinale a alternativa que preenche corretamente as lacunas do parágrafo abaixo.
+
+\begin{quote}
+``No CLIP, os \textit{encoders} de imagem e de texto \textbf{(1)}. Durante o treino, cada imagem do \textit{batch} é contrastada com a própria legenda e com \textbf{(2)}, que fazem o papel de exemplos negativos na perda \textit{InfoNCE}. Na inferência \textit{zero-shot}, a classe de uma imagem nova é escolhida por \textbf{(3)}.''
+\end{quote}
+
+\begin{enumerate}[a)]
+    \item (1) formam um único \textit{transformer} com pesos compartilhados; (2) as legendas dos outros pares do \textit{batch}; (3) similaridade com \textit{prompts} das classes
+    \item (1) são redes independentes, ligadas só pelo espaço de projeção; (2) as legendas dos outros pares do \textit{batch}; (3) similaridade com \textit{prompts} das classes
+    \item (1) são redes independentes, ligadas só pelo espaço de projeção; (2) negativos difíceis minerados de um índice externo; (3) similaridade com \textit{prompts} das classes
+    \item (1) são redes independentes, ligadas só pelo espaço de projeção; (2) as legendas dos outros pares do \textit{batch}; (3) regressão logística sobre imagens rotuladas
+    \item (1) formam um único \textit{transformer} com pesos compartilhados; (2) negativos difíceis minerados de um índice externo; (3) similaridade com \textit{prompts} das classes
+    \item (1) formam um único \textit{transformer} com pesos compartilhados; (2) as legendas dos outros pares do \textit{batch}; (3) regressão logística sobre imagens rotuladas
+    \item (1) são redes independentes, ligadas só pelo espaço de projeção; (2) negativos difíceis minerados de um índice externo; (3) regressão logística sobre imagens rotuladas
+    \item (1) formam um único \textit{transformer} com pesos compartilhados; (2) negativos difíceis minerados de um índice externo; (3) regressão logística sobre imagens rotuladas
+\end{enumerate}
+
+\pagebreak
+%% ---------- Q6: OBJ-J diagram + numerical (CLIP zero-shot, L2 normalization) ----------
+\item (1{,}0) Um CLIP é usado para classificação \textit{zero-shot} entre três classes, com os \textit{prompts} \textit{``a photo of a \{classe\}''}. As saídas das cabeças de projeção \textbf{antes} da normalização L2 são, para a imagem de teste e para os três \textit{prompts}:
+\[
+\mathbf{W}_i\,\mathbf{h}^{\text{img}} = [\,5,\;12\,],
+\qquad
+\mathbf{W}_t\,\mathbf{h}^{\text{txt}}_{\text{gato}} = [\,20,\;0\,],
+\qquad
+\mathbf{W}_t\,\mathbf{h}^{\text{txt}}_{\text{cachorro}} = [\,1.2,\;1.6\,],
+\qquad
+\mathbf{W}_t\,\mathbf{h}^{\text{txt}}_{\text{raposa}} = [\,0,\;3\,].
+\]
+
+\begin{center}
+\begin{tikzpicture}[scale=0.3, >=stealth, every node/.style={font=\small}]
+  \draw[->, gray] (-0.5,0) -- (21,0);
+  \draw[->, gray] (0,-0.5) -- (0,13);
+  \draw[->, very thick] (0,0) -- (5,12) node[above] {imagem};
+  \draw[->, thick, dashed] (0,0) -- (20,0) node[above left] {gato};
+  \draw[->, thick, dashed] (0,0) -- (1.2,1.6) node[right] {cachorro};
+  \draw[->, thick, dashed] (0,0) -- (0,3) node[left] {raposa};
+\end{tikzpicture}
+\end{center}
+
+Qual classe o CLIP prevê, e qual é a similaridade $s_k = \mathbf{u}^\top \mathbf{v}_k$ da classe prevista?
+
+\begin{enumerate}[a)]
+    \item Gato, com $s = 100$.
+    \item Raposa, com $s = 0.923$.
+    \item Cachorro, com $s = 25.2$.
+    \item Gato, com $s = 0.385$.
+    \item Raposa, com $s = 36$.
+    \item Cachorro, com $s = 12.6$.
+    \item Cachorro, com $s = 1.938$.
+    \item Cachorro, com $s = 0.969$.
+\end{enumerate}
+
+%% ---------- Q7: OBJ-A numerical (RLHF objective with KL penalty) ----------
+\item (1{,}0) Durante o RLHF com PPO, a política $\pi_\theta$ amostra quatro respostas para o mesmo \textit{prompt} $x$. A tabela mostra o escore atribuído pelo \textit{reward model} e o log da razão entre a probabilidade da resposta sob a política e sob o modelo de referência (SFT congelado). O coeficiente da penalidade KL é $\beta = 0.5$.
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+Resposta & $r_\phi(x, y)$ & $\log \dfrac{\pi_\theta(y \mid x)}{\pi_\text{ref}(y \mid x)}$ \\\hline
+A & $2.0$ & $\phantom{-}0.4$ \\
+B & $3.5$ & $\phantom{-}4.0$ \\
+C & $1.2$ & $-0.2$ \\
+D & $2.6$ & $\phantom{-}1.0$ \\\hline
+\end{tabular}
+\end{center}
+
+Usando a estimativa por amostra do termo KL, qual resposta tem o maior valor do objetivo do RLHF, e qual é esse valor?
+
+\begin{enumerate}[a)]
+    \item Resposta B, com objetivo $3.5$.
+    \item Resposta B, com objetivo $5.5$.
+    \item Resposta A, com objetivo $1.8$.
+    \item Resposta D, com objetivo $2.1$.
+    \item Resposta C, com objetivo $1.3$.
+    \item Resposta D, com objetivo $1.6$.
+    \item Resposta D, com objetivo $3.1$.
+    \item Resposta B, com objetivo $1.5$.
+\end{enumerate}
+
+\pagebreak
+%% ---------- Q8: OBJ-H column matching (training stages x data/objective) ----------
+\item (1{,}0) Associe cada etapa do treinamento de um LLM conversacional (coluna da esquerda) aos dados e ao objetivo que a caracterizam (coluna da direita). Uma das descrições da direita não corresponde a nenhuma etapa.
+
+\begin{center}
+\begin{tabular}{p{0.28\linewidth} p{0.64\linewidth}}
+\textbf{1.} Pré-treinamento & \textbf{(i)} triplas $(x, y_w, y_l)$ anotadas por humanos; o modelo aprende um escore escalar com a perda de Bradley-Terry sobre a diferença $r_\phi(x, y_w) - r_\phi(x, y_l)$. \\
+\textbf{2.} SFT & \textbf{(ii)} corpus massivo sem anotação; a perda é calculada apenas nas posições sorteadas para mascaramento, com atenção bidirecional entre todos os \textit{tokens}. \\
+\textbf{3.} Treino do \textit{reward model} & \textbf{(iii)} pares (instrução, resposta) curados; entropia cruzada calculada apenas sobre os \textit{tokens} da resposta, com o \textit{prompt} mascarado na perda. \\
+\textbf{4.} RLHF com PPO & \textbf{(iv)} apenas \textit{prompts}; a política gera respostas e maximiza o escore de outro modelo, com penalidade KL em relação ao modelo de referência. \\
+ & \textbf{(v)} corpus massivo sem anotação; entropia cruzada de próximo \textit{token} em todas as posições, com máscara causal na atenção. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(ii); \quad 2-(iii); \quad 3-(i); \quad 4-(iv)
+    \item 1-(v); \quad 2-(i); \quad 3-(iii); \quad 4-(iv)
+    \item 1-(v); \quad 2-(iii); \quad 3-(iv); \quad 4-(i)
+    \item 1-(ii); \quad 2-(v); \quad 3-(i); \quad 4-(iv)
+    \item 1-(v); \quad 2-(ii); \quad 3-(i); \quad 4-(iv)
+    \item 1-(iii); \quad 2-(v); \quad 3-(iv); \quad 4-(i)
+    \item 1-(v); \quad 2-(iii); \quad 3-(i); \quad 4-(iv)
+    \item 1-(v); \quad 2-(iii); \quad 3-(ii); \quad 4-(iv)
+\end{enumerate}
+
+%% ---------- Q9: OBJ-A concept identification (choosing a fairness criterion) ----------
+\item (1{,}0) Um hospital usa um modelo para triagem de uma doença grave, porém tratável. Deixar de identificar um paciente doente é o erro mais danoso. A equipe quer garantir que pacientes \textbf{doentes} de qualquer grupo tenham a mesma chance de serem identificados pelo modelo. Qual critério de \textit{fairness} expressa esse objetivo?
+
+\begin{enumerate}[a)]
+    \item Paridade demográfica: a fração de pacientes encaminhados ao tratamento deve ser igual em todos os grupos.
+    \item Calibração: entre os pacientes encaminhados, a fração realmente doente ($PPV$) deve ser igual nos grupos.
+    \item Igualdade de $FPR$: entre os pacientes saudáveis, a fração encaminhada por engano deve ser igual nos grupos.
+    \item Igualdade de oportunidade: entre os pacientes doentes, a fração identificada ($TPR$) deve ser igual nos grupos.
+    \item \textit{Fairness} individual: pacientes com sintomas idênticos devem receber o mesmo encaminhamento do modelo.
+    \item Igualdade de acurácia: a fração total de decisões corretas do modelo deve ser igual em todos os grupos.
+    \item \textit{Fairness through unawareness}: o atributo protegido deve ser removido das entradas do modelo.
+    \item \textit{Fairness} contrafactual: a decisão não deve mudar se apenas o grupo do paciente fosse alterado.
+\end{enumerate}
+
+\pagebreak
+%% ---------- Q10: OBJ-C scenario diagnostic (proxies, fairness through unawareness) ----------
+\item (1{,}0) Um banco removeu o campo ``raça'' das entradas do seu modelo de concessão de crédito. Mesmo assim, uma auditoria mostra que as taxas de aprovação continuam muito diferentes entre grupos raciais. Investigando, a equipe descobre que o modelo usa fortemente o CEP do solicitante. Qual é a explicação mais adequada?
+
+\begin{enumerate}[a)]
+    \item Variáveis como o CEP funcionam como \textit{proxies} do atributo protegido, permitindo que o modelo reconstrua a informação removida.
+    \item A auditoria contém algum erro, pois sem o atributo protegido na entrada o modelo não consegue produzir decisões diferentes entre grupos.
+    \item A remoção do atributo garante \textit{fairness} individual, e a diferença observada entre os grupos é apenas ruído da amostra auditada.
+    \item O modelo está calibrado entre os grupos, e a calibração, por definição, obriga as taxas de aprovação a serem iguais entre eles.
+    \item A disparidade é causada por \textit{overfitting}, e aumentar o \textit{dropout} faria as taxas de aprovação dos grupos convergirem.
+    \item O modelo herdou o atributo removido da inicialização dos pesos, copiada de um modelo pré-treinado que ainda usava a raça.
+    \item A paridade demográfica está satisfeita, e esse critério exige taxas de aprovação diferentes quando as taxas-base diferem.
+    \item Remover o atributo converte o critério em igualdade de oportunidade, que por definição tolera diferenças nas taxas de aprovação.
+\end{enumerate}
+
+\end{enumerate}
+
+%% =============================================================
+%%  Formulário (última página)
+%% =============================================================
+\newgeometry{top=1cm,bottom=1cm,left=1.6cm,right=1.6cm}
+\renewcommand{\bloco}[1]{\par\vspace{0.1em}{\bfseries\normalsize #1}\par\vspace{-0.6em}{\color{gray!60}\rule{\linewidth}{0.4pt}}\par}
+\footnotesize
+\setlength{\parskip}{0.25em}
+\setlength{\abovedisplayskip}{3pt}\setlength{\belowdisplayskip}{3pt}
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Formulário, Unidades 4 e 6}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+\bloco{Matemática Básica}
+
+\textbf{Softmax} (sobre \textit{logits} $\mathbf{z} \in \mathbb{R}^{K}$; temperatura $\tau > 0$) \textbf{e sigmoide:}
+\[
+  \mathrm{softmax}(\mathbf{z}/\tau)_i = \frac{e^{z_i/\tau}}{\sum_{j=1}^{K} e^{z_j/\tau}},
+  \qquad
+  \mathrm{softmax}(\mathbf{z} + c\mathbf{1}) = \mathrm{softmax}(\mathbf{z}),
+  \qquad
+  \sigma(z) = \frac{1}{1 + e^{-z}}.
+\]
+\textbf{Similaridade do cosseno e normalização L2:}
+\[
+  \mathrm{sim}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u}^{\top}\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|},
+  \qquad
+  \|\mathbf{u}\| = \sqrt{\textstyle\sum_k u_k^2},
+  \qquad
+  \tilde{\mathbf{u}} = \mathbf{u}/\|\mathbf{u}\|.
+\]
+\textbf{Valores úteis:} $e^{0.25} \approx 1.284$, \ $e^{0.5} \approx 1.649$, \ $e^{0.75} \approx 2.117$, \ $e \approx 2.718$, \ $e^{1.5} \approx 4.482$, \ $e^{2} \approx 7.389$, \ $e^{3} \approx 20.09$.
+
+\bloco{Positional Encoding}
+
+\textbf{Score de atenção:} $\text{score}(i,j) = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$, com $i$ a posição da \textit{query} e $j$ a da \textit{key}.
+
+\textbf{PE senoidal} (somado à entrada, $\mathbf{x}_i \leftarrow \mathbf{x}_i + \mathbf{PE}(i)$; $k$ indexa pares de dimensões):
+\[
+  \text{PE}(i, 2k) = \sin\!\left( \frac{i}{10000^{2k/d}} \right),
+  \qquad
+  \text{PE}(i, 2k{+}1) = \cos\!\left( \frac{i}{10000^{2k/d}} \right).
+\]
+\textbf{RoPE} (rotação de $\mathbf{q}$ e $\mathbf{k}$ dentro da atenção, um bloco $2\times 2$ por frequência):
+\[
+  \theta_k = 10000^{-2k/d},
+  \qquad
+  \mathbf{R}_\theta(i) = \begin{pmatrix} \cos(i\theta) & -\sin(i\theta) \\ \sin(i\theta) & \phantom{-}\cos(i\theta) \end{pmatrix},
+  \qquad
+  \text{score}(i,j) = \mathbf{q}_i^\top \mathbf{R}_\theta(i)^\top \mathbf{R}_\theta(j)\, \mathbf{k}_j = \mathbf{q}_i^\top \mathbf{R}_\theta(j{-}i)\, \mathbf{k}_j.
+\]
+\textbf{ALiBi} (cabeça $h$ de um total de $n$ cabeças):
+\[
+  A_h(i, j) = \mathbf{q}_i^\top \mathbf{k}_j \,/\, \sqrt{d} \;-\; m_h \cdot |i - j|,
+  \qquad
+  m_h = 2^{-8h/n}, \quad h = 1, 2, \ldots, n.
+\]
+\textbf{Position Interpolation:} $i \;\leftarrow\; i \cdot (L_{\text{train}} / L_{\text{test}})$.
+
+\bloco{Encoder-Only (BERT)}
+
+\textbf{Entrada:} $\mathbf{x}_i = E_{\text{token}}(w_i) + E_{\text{segment}}(s_i) + E_{\text{position}}(i)$. \quad
+\textbf{Perda total:} $\mathcal{L}_{\text{BERT}} = \mathcal{L}_{\text{MLM}} + \mathcal{L}_{\text{NSP}}$.
+
+\bloco{Treinamento de LLMs}
+
+\textbf{Pré-treinamento} e \textbf{SFT} ($\mathcal{R}$ é o conjunto de posições da resposta):
+\[
+  \mathcal{L}_{\text{LM}}(\theta) = -\frac{1}{T}\sum_{t=1}^{T} \log P_\theta(x_t \mid x_1, \ldots, x_{t-1}),
+  \qquad
+  \mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t \in \mathcal{R}} \log P_\theta(x_t \mid x_{<t}).
+\]
+\textbf{Reward model} (Bradley-Terry; $y_w$ preferida, $y_l$ preterida):
+\[
+  \mathcal{L}_{\text{RM}} = -\mathbb{E}_{(x,y_w,y_l)}\big[\log \sigma\!\left(r_\phi(x,y_w) - r_\phi(x,y_l)\right)\big].
+\]
+\textbf{Objetivo do RLHF com penalidade KL} e sua estimativa para uma única resposta amostrada $y \sim \pi_\theta$:
+\[
+  J(\theta) = \mathbb{E}_{x,\,y\sim\pi_\theta}\!\left[ r_\phi(x,y) - \beta\, \text{KL}\!\left(\pi_\theta \Vert \pi_{\text{ref}}\right) \right],
+  \qquad
+  \text{KL}\!\left(\pi_\theta \Vert \pi_{\text{ref}}\right) \approx \log\frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}.
+\]
+
+\bloco{CLIP}
+
+\textbf{Projeções normalizadas e matriz de similaridade} (batch de $N$ pares):
+\[
+  \mathbf{u}_i = \frac{\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}}{\|\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}\|},
+  \qquad
+  \mathbf{v}_t = \frac{\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}}{\|\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}\|},
+  \qquad
+  S_{ij} = \mathbf{u}_i^{\top}\mathbf{v}_j.
+\]
+\textbf{Perda simétrica:}
+\[
+  \mathcal{L}_{i\to t} = -\frac{1}{N}\sum_{i=1}^{N} \log\frac{\exp(S_{ii}/\tau)}{\sum_{j=1}^{N}\exp(S_{ij}/\tau)},
+  \quad
+  \mathcal{L}_{t\to i} = -\frac{1}{N}\sum_{j=1}^{N} \log\frac{\exp(S_{jj}/\tau)}{\sum_{i=1}^{N}\exp(S_{ij}/\tau)},
+  \quad
+  \mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}\left(\mathcal{L}_{i\to t} + \mathcal{L}_{t\to i}\right).
+\]
+\textbf{Zero-shot:} $s_k = \mathbf{u}^{\top}\mathbf{v}_k$, \quad $p_k = \mathrm{softmax}(\mathbf{s}/\tau)_k$, \quad $\hat{y} = \arg\max_k p_k$.
+
+\bloco{Fairness}
+
+\textbf{Notação:} $y \in \{0,1\}$ resultado real, $\hat{y} \in \{0,1\}$ predição, $a \in \{0,1\}$ atributo protegido, $p_a = P(y{=}1 \mid a)$ taxa-base do grupo $a$.
+
+\textbf{Taxas por grupo:}
+\[
+  TPR = \frac{TP}{TP+FN}, \qquad
+  FPR = \frac{FP}{FP+TN}, \qquad
+  FNR = \frac{FN}{FN+TP} = 1 - TPR, \qquad
+  PPV = \frac{TP}{TP+FP}.
+\]
+\textbf{Critérios de grupo:}
+\begin{align*}
+  \text{Paridade demográfica:}\quad & P(\hat{y}{=}1 \mid a{=}0) = P(\hat{y}{=}1 \mid a{=}1) \\
+  \text{Igualdade de oportunidade:}\quad & P(\hat{y}{=}1 \mid y{=}1, a{=}0) = P(\hat{y}{=}1 \mid y{=}1, a{=}1) \\
+  \text{Igualdade de chances:}\quad & P(\hat{y}{=}1 \mid y, a{=}0) = P(\hat{y}{=}1 \mid y, a{=}1) \quad \text{para } y \in \{0, 1\} \\
+  \text{Calibração:}\quad & PPV_0 = PPV_1
+\end{align*}
+
+\end{document}
