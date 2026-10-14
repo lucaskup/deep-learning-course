@@ -2,6 +2,11 @@
 
 \usepackage{booktabs}
 \usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+
+\definecolor{EncFill}{HTML}{FCE4D6}
+\definecolor{EncArrow}{HTML}{F4B183}
+\definecolor{DecFill}{HTML}{E2EFDA}
 
 \title{Modelagem de Linguagem, Decodificação e Atenção}
 \subtitle{Lista de Exercícios}
@@ -533,6 +538,54 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
     \item \textbf{ROUGE-L}: maior subsequência comum (\textit{Longest Common Subsequence}, LCS).
 \end{enumerate}
 
+% ------------------------------------------------------------------
+% D7 — Easy (motivação da atenção em encoder-decoder com RNNs)
+% ------------------------------------------------------------------
+\item Em uma arquitetura \textit{encoder-decoder} usando redes recorrentes, qual a motivação de utilizar o mecanismo de atenção entre o \textit{encoder} e o \textit{decoder}?
+
+% ------------------------------------------------------------------
+% D8 — Medium (context vector com atenção de produto escalar em RNN)
+% ------------------------------------------------------------------
+\item A figura abaixo ilustra o processo de atenção em uma rede recorrente. Nessa rede recorrente, temos que tanto os estados ocultos do \textit{encoder} $\mathbf{h}_i$ quanto o estado oculto do \textit{decoder} $\mathbf{s}$ possuem tamanho $2$. Qual é o valor do vetor de contexto ao computar a atenção por produto escalar do estado do \textit{decoder} $\mathbf{s}_1$ para todos os estados do \textit{encoder} $\mathbf{h}_i$?
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[>=Stealth,
+        cell/.style={draw=black!55, minimum width=0.72cm, minimum height=0.6cm,
+                     inner sep=0pt, font=\small},
+        enc/.style={cell, fill=EncFill},
+        dec/.style={cell, fill=DecFill}]
+
+        % estados do encoder
+        \node[enc] (h1a) at (0, 0.6) {$6$};
+        \node[enc] (h1b) at (0, 0)   {$2$};
+        \node at (0, -0.7) {$\mathbf{h}_1$};
+
+        \node[enc] (h2a) at (1.8, 0.6) {$-2$};
+        \node[enc] (h2b) at (1.8, 0)   {$1$};
+        \node at (1.8, -0.7) {$\mathbf{h}_2$};
+
+        \node[enc] (h3a) at (3.6, 0.6) {$6$};
+        \node[enc] (h3b) at (3.6, 0)   {$-1$};
+        \node at (3.6, -0.7) {$\mathbf{h}_3$};
+
+        % estado do decoder
+        \node[dec] (s1a) at (7.0, 0.6) {$2$};
+        \node[dec] (s1b) at (7.0, 0)   {$1$};
+        \node at (7.0, -0.7) {$\mathbf{s}_1$};
+
+        % fluxo recorrente do encoder e ligação com o decoder
+        \draw[->, EncArrow, thick] (h1a.south east) -- (h2a.south west);
+        \draw[->, EncArrow, thick] (h2a.south east) -- (h3a.south west);
+        \draw[->, black, thick]    (h3a.south east) -- (s1a.south west);
+
+        \node at (1.8, -1.35) {encoder};
+        \node at (7.0, -1.35) {decoder};
+    \end{tikzpicture}
+    \caption{Diagrama contemplando os estados ocultos $\mathbf{h}_i$ de um \textit{encoder} baseado em RNNs e o estado oculto de um \textit{decoder} $\mathbf{s}_1$. A representação dos tokens e dos \textit{embeddings} dos \textit{tokens} foram removidas da figura para simplificar o diagrama.}
+    \label{fig:rnn-attention}
+\end{figure}
+
 \end{enumerate}
 
 \subsection*{Gabarito}
@@ -687,6 +740,30 @@ tem 5 \textit{tokens}, omitindo \texttt{quickly}.
         F_1 \approx 0.909.
     \]
 \end{enumerate}
+
+% ----- D7 -----
+\item Ao usar o mecanismo de atenção em uma arquitetura \textit{encoder-decoder} estamos
+evitando (ou pelo menos minimizando) um gargalo de comunicação entre o \textit{encoder} e o
+\textit{decoder}. Sem a atenção, o \textit{decoder} tem acesso apenas ao último estado oculto
+do \textit{encoder}, que precisa representar sozinho toda a sequência de origem. Com a atenção,
+a cada passo o \textit{decoder} calcula uma média ponderada de todos os estados do
+\textit{encoder}, selecionando a parte da origem relevante para o \textit{token} que está
+gerando.
+
+% ----- D8 -----
+\item \textit{Scores} de produto escalar com $\mathbf{s}_1 = (2;\, 1)$:
+$\mathbf{s}_1^{\top}\mathbf{h}_1 = 12 + 2 = 14$,
+$\mathbf{s}_1^{\top}\mathbf{h}_2 = -4 + 1 = -3$ e
+$\mathbf{s}_1^{\top}\mathbf{h}_3 = 12 - 1 = 11$. \textit{Softmax}: $e^{14} \approx 1{,}2026 \times 10^{6}$,
+$e^{-3} \approx 0{,}05$ e $e^{11} \approx 5{,}9874 \times 10^{4}$, logo
+$\mathbf{a} \approx [\,0.9526;\; 0.0000;\; 0.0474\,]$. Vetor de contexto:
+\[
+    \mathbf{c} = 0.9526\,(6;\, 2) + 0.0474\,(6;\, -1)
+    \approx (6;\; 1.905 - 0.047)
+    = \begin{bmatrix} 6 \\ 1.86 \end{bmatrix}.
+\]
+Os dois estados com \textit{score} alto compartilham a primeira componente $6$, por isso ela
+se preserva exatamente; a segunda componente é dominada por $\mathbf{h}_1$.
 
 \end{enumerate}
 \color{black}

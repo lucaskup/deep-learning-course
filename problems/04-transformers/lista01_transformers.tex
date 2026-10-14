@@ -2,10 +2,6 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
 
-\definecolor{EncFill}{HTML}{FCE4D6}
-\definecolor{EncArrow}{HTML}{F4B183}
-\definecolor{DecFill}{HTML}{E2EFDA}
-
 \title{Atenção e Transformers}
 \subtitle{Lista de Exercícios: Self-Attention e a Arquitetura Transformer}
 
@@ -17,47 +13,14 @@
 
 \begin{enumerate}[I)]
 
-    \item Em uma arquitetura \textit{encoder-decoder} usando redes recorrentes, qual a motivação de utilizar o mecanismo de atenção entre o \textit{encoder} e o \textit{decoder}?
+    \item Em uma arquitetura \textit{encoder-decoder} baseada em \textit{transformers}, o \textit{decoder} acessa a sequência de origem por meio da \textit{cross-attention}, que recebe \textbf{todos} os vetores de saída do \textit{encoder}. Qual a motivação de dar ao \textit{decoder} acesso a todos esses vetores, em vez de um único vetor de tamanho fixo que resuma a origem inteira?
 
-    \item A figura abaixo ilustra o processo de atenção em uma rede recorrente. Nessa rede recorrente, temos que tanto os estados ocultos do \textit{enconder} $\mathbf{h}_i$ quanto o estado oculto do \textit{decoder} $\mathbf{s}$ possuem tamanho $2$. Qual é o valor do vetor de contexto ao computar a atenção por produto escalar do estado do \textit{decoder} $\mathbf{s}_1$ para todos os estados do \textit{encoder} $\mathbf{h}_i$?
-
-    \begin{figure}[H]
-        \centering
-        \begin{tikzpicture}[>=Stealth,
-            cell/.style={draw=black!55, minimum width=0.72cm, minimum height=0.6cm,
-                         inner sep=0pt, font=\small},
-            enc/.style={cell, fill=EncFill},
-            dec/.style={cell, fill=DecFill}]
-
-            % estados do encoder
-            \node[enc] (h1a) at (0, 0.6) {$6$};
-            \node[enc] (h1b) at (0, 0)   {$2$};
-            \node at (0, -0.7) {$\mathbf{h}_1$};
-
-            \node[enc] (h2a) at (1.8, 0.6) {$-2$};
-            \node[enc] (h2b) at (1.8, 0)   {$1$};
-            \node at (1.8, -0.7) {$\mathbf{h}_2$};
-
-            \node[enc] (h3a) at (3.6, 0.6) {$6$};
-            \node[enc] (h3b) at (3.6, 0)   {$-1$};
-            \node at (3.6, -0.7) {$\mathbf{h}_3$};
-
-            % estado do decoder
-            \node[dec] (s1a) at (7.0, 0.6) {$2$};
-            \node[dec] (s1b) at (7.0, 0)   {$1$};
-            \node at (7.0, -0.7) {$\mathbf{s}_1$};
-
-            % fluxo recorrente do encoder e ligação com o decoder
-            \draw[->, EncArrow, thick] (h1a.south east) -- (h2a.south west);
-            \draw[->, EncArrow, thick] (h2a.south east) -- (h3a.south west);
-            \draw[->, black, thick]    (h3a.south east) -- (s1a.south west);
-
-            \node at (1.8, -1.35) {encoder};
-            \node at (7.0, -1.35) {decoder};
-        \end{tikzpicture}
-        \caption{Diagrama contemplando os estados ocultos $\mathbf{h}_i$ de um \textit{encoder} baseado em RNNs e o estado oculto de um \textit{decoder} $\mathbf{s}_1$. A representação dos tokens e dos \textit{embeddings} dos \textit{tokens} foram removidas da figura para simplificar o diagrama.}
-        \label{fig:rnn-attention}
-    \end{figure}
+    \item Em um bloco de \textit{cross-attention} de cabeça única, a saída do \textit{encoder} para uma frase de origem com três \textit{tokens} já foi projetada em \textit{keys} e \textit{values} (uma linha por \textit{token}), com $d_k = d_v = 2$:
+    \[
+        \mathbf{K} = \begin{bmatrix} 1 & 1 \\ 0 & 2 \\ -2 & 1 \end{bmatrix}, \qquad
+        \mathbf{V} = \begin{bmatrix} 2 & 0 \\ 0 & 4 \\ -2 & -2 \end{bmatrix}.
+    \]
+    A \textit{query} do \textit{decoder} para a primeira posição do alvo é $\mathbf{q} = [\,2,\; 1\,]$. Usando \textit{scaled dot-product attention}, $\mathbf{c} = \mathrm{softmax}\!\left(\mathbf{q}\mathbf{K}^\top / \sqrt{d_k}\right)\mathbf{V}$, calcule os \textit{scores}, os pesos de atenção e o vetor de contexto $\mathbf{c}$ dessa posição (use 4 casas decimais quando necessário).
 
     \item (Prince, 2024) Considerando que um mecanismo de \textit{self-attention} processa $N$ entradas de tamanho $D$ para produzir $N$ saídas de tamanho $D$.
     Quantos parâmetros treináveis são usados para computar \textit{querys}, \textit{keys} e \textit{values}?
@@ -133,26 +96,6 @@
     \item $\mathrm{var}[\mathbf{s} \cdot \mathbf{h}] = 64^2$, dividir por $64$.
 \end{enumerate}
 % R: c
-
-% ------------------------------------------------------------------
-% Q10 — Fácil/Médio (variantes de score: dot, bilinear, MLP)
-% ------------------------------------------------------------------
-\item As três variantes de \textit{score} apresentadas para atenção são
-      \textbf{dot-product} ($\mathbf{h}^\top \mathbf{s}$), \textbf{bilinear} ($\mathbf{h}^\top \mathbf{W} \mathbf{s}$)
-      e \textbf{MLP aditiva} ($\mathbf{w}_2^\top \tanh(\mathbf{W}_1 [\mathbf{h}; \mathbf{s}])$). Qual afirmação
-      compara corretamente as três em termos de parâmetros e custo?
-
-\begin{enumerate}[a)]
-    \item A dot-product tem um parâmetro escalar aprendido, a bilinear adiciona
-          uma matriz $\mathbf{W}$, e a MLP aditiva é a mais barata das três.
-    \item A dot-product não tem parâmetros aprendidos, a bilinear adiciona uma
-          matriz $\mathbf{W}$, e a MLP aditiva é a mais cara das três.
-    \item A dot-product e a bilinear não têm parâmetros aprendidos, e a MLP
-          aditiva é a mais barata das três.
-    \item As três variantes têm o mesmo número de parâmetros e o mesmo custo,
-          diferindo apenas na forma algébrica do score.
-\end{enumerate}
-% R: b
 
 % ------------------------------------------------------------------
 % Q11 — Médio (cálculo de projeção de query)
@@ -582,6 +525,20 @@ Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-
 \end{enumerate}
 % R: a
 
+% ------------------------------------------------------------------
+% Q30 — Médio (cross-attention: shape da matriz de pesos e eixo da softmax)
+% ------------------------------------------------------------------
+\newpage
+\item Em um bloco de \textit{cross-attention} de cabeça única de um \textit{transformer encoder-decoder}, a frase de origem tem $m = 12$ \textit{tokens} e a entrada do \textit{decoder} tem $n = 8$ \textit{tokens}. Qual é o \textit{shape} da matriz de pesos de atenção (após a \textit{softmax}) e o que cada linha dela representa?
+
+\begin{enumerate}[a)]
+    \item $8 \times 12$; cada linha é a distribuição de um \textit{token} do alvo sobre os \textit{tokens} da origem e soma $1$.
+    \item $12 \times 8$; cada linha é a distribuição de um \textit{token} da origem sobre os \textit{tokens} do alvo e soma $1$.
+    \item $8 \times 8$; cada linha é a distribuição de um \textit{token} do alvo sobre os demais \textit{tokens} do alvo e soma $1$.
+    \item $12 \times 12$; cada linha é a distribuição de um \textit{token} da origem sobre os demais \textit{tokens} da origem e soma $1$.
+\end{enumerate}
+% R: a
+
 \end{enumerate}
 
 % ============================================================
@@ -594,15 +551,24 @@ Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-
 
 \begin{enumerate}[I)]
 
-    \item Ao usar o mecanismo de atenção em uma arquitetura \textit{encoder-decoder} estamos evitando (ou pelo menos minimizando) um gargalo de comunicação entre o \textit{encoder} e o \textit{decoder}. Isso ocorre pois sem a atenção, o \textit{decoder} consegue ter acesso apenas a um estado oculto do \textit{encoder} que deve ser capaz de representar toda a sequência armazenada.
+    \item Um único vetor de tamanho fixo seria um \textbf{gargalo} de informação: toda a frase de origem, de qualquer comprimento, teria que ser comprimida nele, e frases longas perderiam detalhes. Além disso, cada \textit{token} do alvo depende de partes \emph{diferentes} da origem (ao gerar ``cat'' interessa ``gato''; ao gerar ``mat'' interessa ``tapete''), e um resumo único não consegue privilegiar uma parte distinta a cada passo. Com a \textit{cross-attention}, a \textit{query} de cada posição do \textit{decoder} faz uma média ponderada de \textbf{todos} os vetores do \textit{encoder}, com pesos recalculados a cada posição, selecionando a parte da origem relevante para aquele \textit{token}. Esse é o mesmo problema que motivou a invenção da atenção em modelos \textit{seq2seq} com redes recorrentes (Bahdanau et al., 2014).
 
-    \item
-$
-\begin{bmatrix}
-6 \\
-1.86
-\end{bmatrix}
-$
+    \item \textit{Scores} (produto escalar da \textit{query} com cada \textit{key}):
+    \[
+        \mathbf{q}\mathbf{k}_1^\top = 2 \cdot 1 + 1 \cdot 1 = 3, \qquad
+        \mathbf{q}\mathbf{k}_2^\top = 2 \cdot 0 + 1 \cdot 2 = 2, \qquad
+        \mathbf{q}\mathbf{k}_3^\top = 2 \cdot (-2) + 1 \cdot 1 = -3.
+    \]
+    Escalonando por $\sqrt{d_k} = \sqrt{2}$: $[\,2.1213,\; 1.4142,\; -2.1213\,]$. Exponenciais: $8.3406$, $4.1133$ e $0.1199$, com soma $12.5738$. Pesos de atenção:
+    \[
+        \mathbf{a} \approx [\,0.6633,\; 0.3271,\; 0.0095\,].
+    \]
+    Vetor de contexto (soma das linhas de $\mathbf{V}$ ponderada por $\mathbf{a}$):
+    \begin{align*}
+        \mathbf{c} &= 0.6633\,[\,2,\,0\,] + 0.3271\,[\,0,\,4\,] + 0.0095\,[\,-2,\,-2\,] \\
+        &\approx [\,1.3266 - 0.0190,\;\; 1.3084 - 0.0190\,] = [\,1.31,\; 1.29\,].
+    \end{align*}
+    O primeiro \textit{token} da origem domina a média, e o terceiro, com \textit{score} negativo, quase não contribui.
 
 \item Cada uma das três componentes da atenção, \textit{query}, \textit{key} e \textit{values} demanda  $D\times D$ parâmetros treináveis mais $D$ bias, sendo o total $3D^2+3D$ para computar todo mecanismo de self-attention. Para fins de comparação, uma camada densa totalmente conectada demandaria $(DN)^2 + DN$ parâmetros treináveis.
 Dessa forma percebemos que o número de parâmetros treináveis é menor com o mecanismo de \textit{self-attention}.
@@ -701,21 +667,8 @@ A opção~(a) ignora que somamos $d$ termos com variância~1. A opção~(b) conf
 $d$ com $\sqrt{d}$. A opção~(d) eleva o resultado ao quadrado.
 % ---
 
-% --- Solução Q10 ---
-\subsubsection*{XII — Resposta: (b)}
-A variante \textbf{dot-product} ($\mathbf{h}^\top \mathbf{s}$) não introduz parâmetros
-aprendidos: o score depende apenas dos vetores que entram no cálculo. A
-\textbf{bilinear} ($\mathbf{h}^\top \mathbf{W} \mathbf{s}$) adiciona uma matriz $\mathbf{W}$ aprendida que
-atua como um produto interno paramétrico. A \textbf{MLP aditiva}
-($\mathbf{w}_2^\top \tanh(\mathbf{W}_1 [\mathbf{h}; \mathbf{s}])$) tem dois conjuntos de pesos $\mathbf{W}_1, \mathbf{w}_2$
-e ainda computa um $\tanh$ por par $(\mathbf{h}, \mathbf{s})$, sendo a mais cara das três.
-A opção~(a) atribui erroneamente um parâmetro à dot-product. A opção~(c)
-esquece que a bilinear tem $\mathbf{W}$. A opção~(d) ignora as diferenças óbvias
-de número de parâmetros.
-% ---
-
 % --- Solução Q11 ---
-\subsubsection*{XIII — Resposta: (a)}
+\subsubsection*{XII — Resposta: (a)}
 A multiplicação $\mathbf{q} = \mathbf{x}\, \mathbf{W}_q$ produz um vetor de duas componentes:
 \[
   q_0 = 1\cdot 2 + 2\cdot 0 + 3\cdot 1 = 5, \qquad
@@ -729,7 +682,7 @@ opção~(d) usa a primeira coluna de $\mathbf{W}_q$ para ambas as posições da 
 % ---
 
 % --- Solução Q12 ---
-\subsubsection*{XIV — Resposta: (c)}
+\subsubsection*{XIII — Resposta: (c)}
 O contexto é a soma das linhas de $\mathbf{V}$ ponderada por $\mathbf{a}$:
 \[
   \mathbf{c} = 0.7 \cdot [10,\,0] + 0.2 \cdot [0,\,10] + 0.1 \cdot [5,\,5]
@@ -743,7 +696,7 @@ o peso $a_1 = 0.7$ à primeira linha de $\mathbf{V}$ e ignora os demais
 % ---
 
 % --- Solução Q13 ---
-\subsubsection*{XV — Resposta: (a)}
+\subsubsection*{XIV — Resposta: (a)}
 Sem as projeções $\mathbf{W}_q$, $\mathbf{W}_k$, $\mathbf{W}_v$, o cálculo de scores e do contexto
 depende apenas dos próprios \textit{embeddings} de entrada. Não há
 parâmetros do bloco de atenção que possam ser ajustados durante o
@@ -758,7 +711,7 @@ não-linearidade: a softmax permanece não linear mesmo no caso ``cru''.
 % ---
 
 % --- Solução Q14 ---
-\subsubsection*{XVI — Resposta: (b)}
+\subsubsection*{XV — Resposta: (b)}
 Sem \textit{positional encoding}, os vetores $\mathbf{q}_t$, $\mathbf{k}_t$ e $\mathbf{v}_t$
 dependem apenas do \textit{token} (do conteúdo de $\mathbf{x}_t$), não da posição
 $t$. As duas frases $S_1$ e $S_2$ contêm exatamente o mesmo conjunto de
@@ -775,7 +728,7 @@ softmax uma capacidade de recuperar ordem que ela não possui.
 % ---
 
 % --- Solução Q15 ---
-\subsubsection*{XVII — Resposta: (d)}
+\subsubsection*{XVI — Resposta: (d)}
 Cada cabeça de \textit{self-attention} produz uma matriz de scores
 $N \times N$ com $N^2 = 256$ entradas. Com $H = 8$ cabeças trabalhando em
 paralelo, há $256 \cdot 8 = 2\,048$ scores escalares por camada.
@@ -785,7 +738,7 @@ de $H$ e $N$ ($H^2 \cdot N$).
 % ---
 
 % --- Solução Q16 ---
-\subsubsection*{XVIII — Resposta: (d)}
+\subsubsection*{XVII — Resposta: (d)}
 \textit{BatchNorm} computa média e variância \emph{por feature}, agregando
 sobre o eixo do \textit{batch} e (em sequências) sobre o eixo temporal.
 Com sequências de comprimentos muito distintos, o número de \textit{tokens}
@@ -802,7 +755,7 @@ da sua definição.
 % ---
 
 % --- Solução Q17 ---
-\subsubsection*{XIX — Resposta: (a)}
+\subsubsection*{XVIII — Resposta: (a)}
 Após somar a máscara, os scores efetivos passam a ser
 $[\,1.5,\; 0.5,\; -\infty,\; -\infty\,]$. Aplicando $\exp$:
 \[
@@ -822,7 +775,7 @@ das probabilidades.
 % ---
 
 % --- Solução Q18 ---
-\subsubsection*{XX — Resposta: (c)}
+\subsubsection*{XIX — Resposta: (c)}
 Em \textit{cross-attention} (também chamado \textit{encoder-decoder
 attention}), a \textit{query} é construída a partir do estado atual do
 \textit{decoder} (``o que estou gerando agora''), enquanto \textit{keys}
@@ -837,7 +790,7 @@ com \textit{self-attention} do próprio \textit{decoder}, não com
 % ---
 
 % --- Solução Q19 ---
-\subsubsection*{XXI — Resposta: (d)}
+\subsubsection*{XX — Resposta: (d)}
 Contagem direta dos parâmetros:
 \[
   |\mathbf{W}_1| = d \cdot d_{ff} = 512 \cdot 2\,048 = 1\,048\,576,
@@ -860,7 +813,7 @@ $4\cdot 512\cdot 2\,048 = 4\,194\,304$.
 % ---
 
 % --- Solução Q20 ---
-\subsubsection*{XXII — Resposta: (b)}
+\subsubsection*{XXI — Resposta: (b)}
 \textbf{(i)~Parâmetros das projeções.} Cada uma das matrizes $\mathbf{W}_Q$, $\mathbf{W}_K$,
 $\mathbf{W}_V$ e $\mathbf{W}_O$ tem formato $d \times d$, contribuindo $d^2$ parâmetros, em
 um total de $4d^2 = \Theta(d^2)$. Note que esse total \emph{não depende}
@@ -880,7 +833,7 @@ A opção~(d) infla parâmetros e FLOPs por confundir os dois regimes.
 % ---
 
 % --- Solução Q23 ---
-\subsubsection*{XXIII — Resposta: (f)}
+\subsubsection*{XXII — Resposta: (f)}
 Com $H = 8$ e $d_{\text{model}} = 512$, cada cabeça tem $d_k = 512/8 = 64$. Logo
 $\mathbf{Q}_i = \mathbf{X} \mathbf{W}_Q^i \in \mathbb{R}^{10 \times 64}$; os
 \textit{scores} $\mathbf{Q}_i \mathbf{K}_i^\top \in \mathbb{R}^{10 \times 10}$ (uma
@@ -895,7 +848,7 @@ $\mathbf{W}_O$ com a saída.
 % ---
 
 % --- Solução Q24 ---
-\subsubsection*{XXIV — Resposta: (c)}
+\subsubsection*{XXIII — Resposta: (c)}
 Cada projeção de atenção é $64\times 64 + 64 = 4160$; com
 $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O$: $4 \times 4160 = 16\,640$ (o
 número de cabeças $H$ \emph{não} altera o total, pois as cabeças particionam
@@ -911,13 +864,13 @@ $50\,240$, conta os \textit{LayerNorm} em dobro.
 % ---
 
 % --- Solução Q25 ---
-\subsubsection*{XXV — Resposta: (a)}
+\subsubsection*{XXIV — Resposta: (a)}
 \textbf{I (V):} as componentes do produto escalar somam variância $d$; dividir por
 $\sqrt{d}$ devolve variância $\approx 1$, evitando que o \textit{softmax} sature (ver
 questão XI).
 \textbf{II (V):} sem as projeções $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O$,
 a atenção ``crua'' é só \textit{softmax} e somas ponderadas, sem parâmetros (ver
-questão XV).
+questão XIV).
 \textbf{III (V):} \textit{self-attention} é permutação-equivariante; sem
 \textit{positional encoding} a ordem dos \textit{tokens} não seria distinguida.
 \textbf{IV (F):} dividir por $d$ levaria a variância a $d/d^2 = 1/d$ (\textit{softmax}
@@ -930,7 +883,7 @@ opção~(c) omite II. A opção~(g) marca tudo. A opção~(h) omite III.
 % ---
 
 % --- Solução Q26 ---
-\subsubsection*{XXVI — Resposta: (e)}
+\subsubsection*{XXV — Resposta: (e)}
 Primeiro as três projeções (uma linha por \textit{token}):
 \[
 \mathbf{Q} = \mathbf{X}\mathbf{W}_Q = \begin{bmatrix} -1 & 0 \\ 2 & 1 \\ 1 & 2 \end{bmatrix},
@@ -967,7 +920,7 @@ opção~(h) desloca as linhas de $\mathbf{V}$ em uma posição
 % ---
 
 % --- Solução Q27 ---
-\subsubsection*{XXVII — Resposta: (c)}
+\subsubsection*{XXVI — Resposta: (c)}
 As conexões residuais mantêm um caminho direto da entrada à saída de cada bloco: o
 gradiente flui por esse caminho sem atravessar as matrizes do sub-bloco, o que evita a
 degradação do sinal ao empilhar $N$ blocos. É a mesma motivação das ResNets; sem
@@ -986,10 +939,10 @@ $1/\sqrt{d}$ continua presente em todas as camadas; o resíduo não interage com
 % ---
 
 % --- Solução Q28 ---
-\subsubsection*{XXVIII — Resposta: (d)}
+\subsubsection*{XXVII — Resposta: (d)}
 \textbf{I é correta:} a FFN aplica as mesmas matrizes $\mathbf{W}_1, \mathbf{W}_2$ a
 cada posição, de forma independente; o número de parâmetros depende de $d$ e
-$d_{ff}$, nunca do comprimento da sequência (ver questão XXI).
+$d_{ff}$, nunca do comprimento da sequência (ver questão XX).
 
 \textbf{II é correta:} é exatamente a divisão de trabalho do bloco; a atenção mistura
 informação entre posições e a FFN processa cada posição isoladamente.
@@ -1008,7 +961,7 @@ contradiz I e II.
 % ---
 
 % --- Solução Q29 ---
-\subsubsection*{XXIX — Resposta: (a)}
+\subsubsection*{XXVIII — Resposta: (a)}
 O Padrão A é a máscara triangular inferior (causal): a posição $i$ atende a si mesma e
 a todas as anteriores ($j \le i$), bloqueando posições futuras. Isso é exatamente o que
 torna o objetivo de \textit{next-token prediction} bem-definido: ao prever $x_{i+1}$,
@@ -1025,6 +978,20 @@ o alvo. A opção~(g) é falsa: Padrão C bloqueia também o passado, eliminando
 capacidade de o modelo usar contexto. A opção~(h) é falsa: \textit{decoder-only}
 \emph{usa} atenção mascarada na sua \textit{self-attention}; \textit{cross-attention}
 aparece em \textit{encoder-decoder}, não em \textit{decoder-only}.
+% ---
+
+% --- Solução Q30 ---
+\subsubsection*{XXIX — Resposta: (a)}
+Na \textit{cross-attention}, as \textit{queries} vêm do \textit{decoder} (uma por
+\textit{token} do alvo, $n = 8$) e as \textit{keys} e \textit{values} vêm da saída do
+\textit{encoder} (uma por \textit{token} da origem, $m = 12$). A matriz de
+\textit{scores} $\mathbf{Q}\mathbf{K}^\top$ tem portanto \textit{shape} $n \times m =
+8 \times 12$, e a \textit{softmax} é aplicada linha a linha: cada linha é a distribuição
+de um \textit{token} do alvo sobre os $12$ \textit{tokens} da origem, somando $1$.
+A opção~(b) troca os papéis de \textit{query} e \textit{key}, como se a origem
+consultasse o alvo. As opções~(c) e~(d) descrevem matrizes de \textit{self-attention}
+(do \textit{decoder} e do \textit{encoder}, respectivamente), em que \textit{queries} e
+\textit{keys} vêm da mesma sequência.
 % ---
 
 \end{document}
