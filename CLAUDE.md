@@ -31,7 +31,15 @@ make clean-projects    # latexmk -C on projects
 latexmk -lualatex slides/01-mlp/02-perceptron.tex
 ```
 
-PDFs land in `build/` (set by `latexmkrc`'s `$out_dir = 'build'`). The same `latexmkrc` enables `-shell-escape` for lualatex and points biber at the `slides/` directory for the shared `reference.bib`.
+PDFs land in `build/` (set by `latexmkrc`'s `$out_dir = 'build'`).
+
+**Always clean up after compiling.** Every time you compile anything (single file or `make` target), finish by removing every auxiliary artifact so that `build/` holds only PDFs. Read the `.log` first if you need to check for errors or warnings, then run from the repo root:
+
+```bash
+find build -mindepth 1 ! -name '*.pdf' -exec rm -rf {} +
+```
+
+This deletes `.aux`, `.log`, `.fls`, `.fdb_latexmk`, `.bbl`/`.bcf`/`.run.xml`, `.nav`/`.snm`/`.toc`/`.out`, `_minted-*` directories, and any `inspect-*` PNG folders (run it only after you have finished viewing them), keeping all `*.pdf` files. Do this even after a failed build, once the error has been diagnosed. The same `latexmkrc` enables `-shell-escape` for lualatex and points biber at the `slides/` directory for the shared `reference.bib`.
 
 There is no `make slides` target, slides are compiled individually or through CI. CI compiles slides, problems, exams, and projects in one pass (`.github/workflows/latex-ci.yml`); project PDFs deploy flat to `deploy/projects/`.
 
@@ -117,6 +125,8 @@ Three project-specific skills generate course material end-to-end and follow the
 Avoid `-` and `---` as parenthetical or explanatory punctuation in slide body text, problem statements, exam questions, and gabarito explanations. Introduce clarifications with a comma, with parentheses, or after a colon. This rule applies to authored prose only, hyphens in compound terms (`self-attention`, `encoder-only`), filenames, code listings, math, and numeric ranges stay as written.
 
 Avoid constructions that first state what something is not and only then state what it is ("X não é A, é B", "não se trata de A, mas de B", "mais do que A, é B"). State the positive claim directly ("X é B"). If contrasting with a common misconception is pedagogically necessary, make it a separate sentence after the direct statement rather than the lead-in.
+
+Avoid noun + adjective pairs where the adjective only signals importance, judgement, or degree instead of adding technical content: "problema concreto", "ideia central", "diferença crítica", "assimetria importante", "propriedade interessante", "consequência absurda", "componente fundamental", "pico claro", "pequeno MLP", "cuidado extra", "especialmente fácil", "exemplo real". Drop the adjective or rewrite the sentence so the claim stands on its own ("um MLP aplicado a cada posição", "O modelo aprende a copiar"). Keep adjectives that carry a technical meaning the sentence needs: "produto escalar", "máscara causal", "limite superior bem definido", "$d$ grande", "dicionário suave" (as the name of an analogy). Block and frame titles follow the same rule ("Consequência", not "Consequência absurda").
 
 ### Objective-question authoring (problem sets and exams)
 
