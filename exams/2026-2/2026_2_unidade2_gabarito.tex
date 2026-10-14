@@ -1,0 +1,179 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 2}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 \\\hline
+g & c & b & a & h & e & d \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (g)}
+Uma convolução $1 \times 1$ com \textit{stride} $1$ visita todas as posições espaciais, então altura e largura se mantêm: $(32 - 1)/1 + 1 = 32$. O número de canais de saída é o número de filtros, $64$. Cada filtro combina linearmente os $256$ canais de entrada em cada posição, logo tem $1 \cdot 1 \cdot 256$ pesos e um \textit{bias}:
+\[
+1 \cdot 1 \cdot 256 \cdot 64 + 64 = 16\,384 + 64 = 16\,448 \text{ parâmetros}, \qquad \text{saída } 32 \times 32 \times 64.
+\]
+As alternativas cruzam quatro dimensões de saída com duas contagens de parâmetros.\\
+\textbf{Dimensões:} $32 \times 32 \times 256$, em (a) e (e), supõe que a convolução $1 \times 1$ preserva o número de canais, mas ele é definido pelo número de filtros. $1 \times 1 \times 64$, em (b) e (f), supõe que a convolução $1 \times 1$ colapsa a dimensão espacial, como um \textit{global pooling}. $30 \times 30 \times 64$, em (c) e (h), aplica a redução de um \textit{kernel} $3 \times 3$ sem \textit{padding}.\\
+\textbf{Parâmetros:} $65\,600 = 32 \cdot 32 \cdot 64 + 64$, em (a), (c), (d) e (f), dá um peso próprio para cada posição espacial e cada filtro, ignorando o compartilhamento de pesos: o mesmo filtro é aplicado em todas as posições, e o número de parâmetros de uma convolução não depende da altura e da largura do \textit{feature map}.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (c)}
+Preenchimento correto: (1) invariante; (2) equivariante; (3) \textit{padding}. As alternativas variam ao longo dos mesmos três eixos, então as explicações se agrupam por lacuna.
+
+\textbf{Lacuna (1):} a saída do classificador (``há gato'') não deve mudar quando a entrada é transladada, $f[t[\mathbf{X}]] = f[\mathbf{X}]$, que é a definição de invariância. Erram aqui (a), (d), (f) e (h).
+
+\textbf{Lacuna (2):} a máscara de segmentação deve acompanhar a translação, $f[t[\mathbf{X}]] = t[f[\mathbf{X}]]$, que é a definição de equivariância. Uma segmentação invariante produziria a mesma máscara para o objeto em posições diferentes. Erram aqui (a), (b), (f) e (g).
+
+\textbf{Lacuna (3):} pela fórmula $H' = \lfloor (H + 2P - K)/S \rfloor + 1$, com $H = 32$ e $K = 3$, a saída só tem $32$ de lado se $2P - 3 + 1 = 0$ e $S = 1$, isto é, \textit{padding} $P = 1$: a borda de zeros compensa as duas posições que o \textit{kernel} $3 \times 3$ perderia. Com \textit{stride} igual a $1$ e sem \textit{padding}, a saída teria $30 \times 30$; o \textit{stride} controla o deslocamento do \textit{kernel} e, quando maior que $1$, reduz a saída em vez de preservá-la. Erram aqui (a), (d), (e) e (g).
+
+\subsection*{Questão 3 \textemdash{} Resposta: (b)}
+O \textit{max pooling} $2 \times 2$ com \textit{stride} $2$ reduz pela metade a altura e a largura do \textit{feature map}. Na recursão do campo receptivo, $RF_l = RF_{l-1} + (K_l - 1)\prod_{i<l} S_i$, cada \textit{stride} $2$ dobra o produto acumulado, então uma convolução $3 \times 3$ posterior acrescenta o dobro de \textit{pixels} da imagem original ao campo receptivo. Com isso a rede passa de padrões locais a padrões globais usando apenas \textit{kernels} $3 \times 3$, e ainda reduz o custo das convoluções seguintes.\\
+\textbf{(a)} a não linearidade vem da ReLU; convoluções seguidas de ReLU já formam um operador não linear.
+\textbf{(c)} o número de parâmetros de uma convolução, $K \cdot K \cdot C_{in} \cdot C_{out}$, independe da altura e largura do \textit{feature map}; o \textit{pooling} reduz o custo computacional (e os parâmetros da primeira camada densa após o achatamento), mas não os pesos das convoluções.
+\textbf{(d)} o número de canais é definido pelo número de filtros das convoluções; o \textit{pooling} opera em cada canal separadamente e preserva a profundidade.
+\textbf{(e)} o \textit{max pooling} não tem parâmetros treináveis; ele apenas toma o máximo de cada janela.
+\textbf{(f)} normalizar ativações é papel de técnicas como \textit{batch normalization}, e o máximo de uma janela não preserva a variância.
+\textbf{(g)} a convolução já é equivariante à translação; o \textit{pooling} acrescenta um grau de invariância a pequenas translações locais.
+\textbf{(h)} descreve o \textit{dropout}; o \textit{pooling} é determinístico e atua igualmente no treino e na inferência.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (a)}
+Acurácia de treino de $100\%$ com validação próxima do acaso é \textit{overfitting} severo. A rede inteira tem cerca de $134$ milhões de parâmetros ajustados com apenas $600$ exemplos e com a taxa de aprendizado de um treino do zero, o que sobrescreve rapidamente os filtros pré-treinados e permite memorizar o conjunto de treino. Com poucos dados, a prática usual é congelar o \textit{backbone} convolucional (extrator de \textit{features} genéricas) e treinar apenas a cabeça nova; uma alternativa é o \textit{fine-tuning} da rede inteira com taxa de aprendizado baixa.\\
+\textbf{(b)} cada folha tem uma única doença, então as classes são mutuamente exclusivas e a \textit{softmax} é a escolha correta; sigmoides independentes servem para o caso multirrótulo.
+\textbf{(c)} a inicialização da cabeça nova não explica o sintoma: mesmo partindo de zeros, o \textit{backbone} continua sendo atualizado com taxa alta sobre $600$ exemplos e o \textit{overfitting} persiste.
+\textbf{(d)} o treino já atingiu $100\%$; continuar treinando aprofunda a memorização em vez de fechar a diferença.
+\textbf{(e)} inverte os papéis: as convoluções extraem \textit{features} genéricas (bordas, texturas) e as densas finais são as mais específicas da tarefa original.
+\textbf{(f)} trocar a última camada é exatamente o procedimento de reaproveitamento; as $1000$ classes do ImageNet não incluem as doenças, então não há mapeamento útil.
+\textbf{(g)} a entropia cruzada é a função de custo adequada à \textit{softmax} em classificação, com qualquer número de classes; o MSE produz gradientes fracos quando a \textit{softmax} satura.
+\textbf{(h)} os filtros das primeiras camadas (bordas, texturas, cores) são úteis para quase qualquer imagem natural, e treinar $134$ milhões de parâmetros do zero com $600$ exemplos agravaria o \textit{overfitting}.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (h)}
+Com \textit{bias} nulos, na primeira camada a entrada não passa por ReLU e $\mathbb{E}[x_j^2] = 1$, então $\sigma^2_{z^{(1)}} = n\,\sigma_\theta^2$. A partir da segunda camada, $\sigma^2_{z^{(l)}} = \tfrac{n}{2}\,\sigma_\theta^2\,\sigma^2_{z^{(l-1)}}$: o desvio padrão é multiplicado por $\sqrt{n\sigma_\theta^2/2}$ a cada camada.
+\[
+\begin{array}{c|c|c|cccc|c}
+\text{esquema} & n\sigma_\theta^2 & \text{fator (desvio)} & \mathbf{Z}^{(1)} & \mathbf{Z}^{(2)} & \mathbf{Z}^{(3)} & \mathbf{Z}^{(4)} & \text{linha}\\\hline
+1.\ \mathcal{N}(0, 1/n) & 1 & \sqrt{0{,}5} \approx 0{,}71 & 1{,}00 & 0{,}71 & 0{,}50 & 0{,}35 & \text{R}\\
+2.\ \mathcal{N}(0, 2/n) & 2 & 1 & 1{,}41 & 1{,}41 & 1{,}41 & 1{,}41 & \text{S}\\
+3.\ \mathcal{N}(0, 1/(3n)) & 1/3 & \sqrt{1/6} \approx 0{,}41 & 0{,}58 & 0{,}24 & 0{,}10 & 0{,}04 & \text{Q}\\
+4.\ \mathcal{N}(0, 3/n) & 3 & \sqrt{1{,}5} \approx 1{,}22 & 1{,}73 & 2{,}12 & 2{,}60 & 3{,}18 & \text{P}
+\end{array}
+\]
+Os desvios padrão medidos na simulação que gerou a figura ficam próximos desses valores. Leitura da figura: S mantém a mesma largura nas quatro camadas (He); P se alarga a cada camada (\textit{exploding}); R e Q encolhem, mas Q já começa mais estreita em $\mathbf{Z}^{(1)}$ e vira uma agulha em $\mathbf{Z}^{(3)}$, enquanto R ainda tem largura visível em $\mathbf{Z}^{(4)}$. Logo, 1-R, 2-S, 3-Q e 4-P.\\
+\textbf{(a)} troca 1 e 2, como se a Xavier ($1/n$) preservasse a variância com ReLU; falta o fator $2$ que compensa a ReLU zerar metade da distribuição.
+\textbf{(b)} coloca $2/n$ na linha que explode e $3/n$ na linha estável, ignorando que só $n\sigma_\theta^2 = 2$ dá fator $1$ por camada.
+\textbf{(c)} coloca a Xavier na linha estável, $2/n$ na que colapsa e $1/(3n)$ na que encolhe devagar.
+\textbf{(d)} troca as duas linhas que encolhem; com variância $1/(3n) < 1/n$, o esquema 3 encolhe mais rápido que a Xavier.
+\textbf{(e)} troca 1 e 4, associando a variância maior ($3/n$) à linha que encolhe e a Xavier à linha que explode.
+\textbf{(f)} coloca a Xavier na linha estável, $2/n$ na que explode e $3/n$ na que colapsa.
+\textbf{(g)} troca 2 e 3: coloca $1/(3n)$ na linha estável e a He na que colapsa.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (e)}
+Na primeira camada, $\sigma_{z^{(1)}} = \sqrt{n\sigma_\theta^2}$, que vale $0{,}5$, $1$, $1{,}73$ e $16$ para os esquemas 1 a 4. Perto da origem, $\tanh(z) \approx z$, então a variância é multiplicada por aproximadamente $n\sigma_\theta^2$ a cada camada enquanto as pré-ativações forem pequenas; quando elas crescem, a tanh satura em $\pm 1$ e limita as ativações.
+\begin{itemize}
+    \item \textbf{1.} $1/(4n)$: $n\sigma_\theta^2 = 1/4$, o desvio cai pela metade a cada camada ($0{,}42 \to 0{,}20 \to 0{,}10 \to 0{,}05$ medidos); as ativações viram uma agulha em zero (\textit{vanishing}): linha \textbf{R}.
+    \item \textbf{2.} $1/n$ (Xavier): preserva a variância perto da origem; como $|\tanh(z)| < |z|$, a distribuição estreita devagar ($0{,}63 \to 0{,}49 \to 0{,}41 \to 0{,}36$): linha \textbf{P}.
+    \item \textbf{3.} $3/n$: o sinal é amplificado a cada camada, mas a tanh o limita; boa parte das unidades fica perto de $\pm 1$, com distribuição em forma de U e massa ainda no meio (desvio $\approx 0{,}7$): linha \textbf{S}.
+    \item \textbf{4.} $\mathcal{N}(0, 1)$: variância $256$ vezes maior que a Xavier; as pré-ativações têm desvio da ordem de $16$ e praticamente todas as ativações ficam em $\pm 1$, região de derivada quase nula (desvio $0{,}97$): linha \textbf{Q}.
+\end{itemize}
+Logo, 1-R, 2-P, 3-S e 4-Q.\\
+\textbf{(a)} troca as duas linhas que encolhem, colocando $1/(4n)$ na que estreita devagar e a Xavier na que colapsa.
+\textbf{(b)} troca $1/n$ e $3/n$, como se $3/n$ preservasse a variância com tanh e a Xavier levasse à saturação.
+\textbf{(c)} troca as duas linhas saturadas, ignorando que $\mathcal{N}(0, 1)$ tem variância cerca de $85$ vezes maior que $3/n$ e satura completamente.
+\textbf{(d)} inverte a relação entre escala e largura: as variâncias maiores ficam nas linhas que encolhem.
+\textbf{(f)} coloca a Xavier na linha totalmente saturada e $\mathcal{N}(0, 1)$ na que estreita devagar.
+\textbf{(g)} troca $1/(4n)$ e $3/n$, associando a menor variância à linha em forma de U.
+\textbf{(h)} desloca as associações, colocando $1/(4n)$ na linha Xavier e $\mathcal{N}(0, 1)$ na que colapsa.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} as convoluções, com ReLU e \textit{pooling}, extraem \textit{features} espaciais cada vez mais abstratas; as camadas densas no fim recebem o \textit{feature map} achatado e produzem os \textit{logits}, que a \textit{softmax} converte em probabilidades de classe (treinadas com entropia cruzada).
+
+\textbf{II é correta:} o número de parâmetros das convoluções independe da resolução, mas o da primeira camada densa depende do tamanho do vetor achatado. Com entrada $224 \times 224$, os cinco \textit{max poolings} levam a um \textit{feature map} $7 \times 7 \times 512$ ($25\,088$ componentes); com $448 \times 448$, ele seria $14 \times 14 \times 512$ ($100\,352$ componentes), incompatível com a matriz de pesos da camada densa treinada.
+
+\textbf{III é incorreta:} a hierarquia é a inversa. As primeiras camadas, com campo receptivo pequeno, respondem a padrões simples como bordas e texturas; as camadas mais profundas combinam esses padrões em estruturas mais complexas e específicas, como partes de objetos.
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)/(b)} excluem uma das afirmações corretas.
+\textbf{(c)/(e)/(f)/(g)} incluem a afirmação III, que é falsa.
+\textbf{(h)} nega I e II, que são corretas.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative question
+%% =============================================================
+\section*{Questão Dissertativa}
+
+\color{blue}
+
+\subsection*{Questão 8 \textemdash{} CNN para localização}
+
+\textbf{(a) (1{,}0)} Convolução: $K \cdot K \cdot C_{in} \cdot C_{out} + C_{out}$; densa: $n_{in} \cdot n_{out} + n_{out}$; \textit{pooling} e ReLU não têm parâmetros. A contagem inclui os \textit{bias}, um por filtro em cada convolução e um por unidade na camada densa. Os canais de entrada e saída de cada convolução e o tamanho do vetor achatado ($15 \cdot 15 \cdot 32 = 7\,200$) saem das dimensões indicadas na figura.
+\begin{align*}
+    \text{conv1}&: 3 \cdot 3 \cdot 3 \cdot 16 + 16 = 432 + 16 = 448 \\
+    \text{conv2}&: 3 \cdot 3 \cdot 16 \cdot 32 + 32 = 4\,608 + 32 = 4\,640 \\
+    \text{densa}&: 7\,200 \cdot 4 + 4 = 28\,800 + 4 = 28\,804 \\
+    \text{total}&: 448 + 4\,640 + 28\,804 = 33\,892
+\end{align*}
+Mesmo com apenas $4$ saídas, a camada densa concentra cerca de $85\%$ dos parâmetros, o mesmo padrão observado na VGG16. O número de parâmetros das convoluções não depende das dimensões espaciais; só a camada densa depende delas, via o vetor achatado.
+
+\textit{Critério:} $0{,}5$ para as duas convoluções (pesos e \textit{bias}) e $0{,}5$ para a camada densa e o total.
+
+\textbf{(b) (1{,}0)} \textbf{Ativação:} $4$ unidades com \textbf{sigmoide}, uma para cada valor de $(x, y, h, w)$; a sigmoide restringe cada saída a $[0, 1]$, compatível com as coordenadas normalizadas, e as quatro saídas são independentes entre si. Uma \textit{softmax} forçaria as quatro saídas a somarem $1$, o que não tem significado para coordenadas. \textbf{Custo:} \textbf{erro quadrático médio} (MSE), pois estimar a caixa é um problema de regressão multivariada de $4$ valores contínuos:
+\[
+\mathcal{L} = \frac{1}{2N}\sum_{i=1}^{N}\sum_{k=0}^{3}\bigl(y_k^{(i)} - \hat{y}_k^{(i)}\bigr)^2.
+\]
+\textit{Critério:} $0{,}5$ para a ativação justificada e $0{,}5$ para a função de custo justificada.
+
+\textbf{(c) (1{,}0)} Áreas: $\mathrm{Area}(A) = (40 - 10)\cdot(30 - 10) = 30 \cdot 20 = 600$ e $\mathrm{Area}(B) = (55 - 25)\cdot(35 - 15) = 30 \cdot 20 = 600$. A interseção ocupa $x \in [25, 40]$ e $y \in [15, 30]$, logo $A \cap B = 15 \cdot 15 = 225$. A união é $A \cup B = 600 + 600 - 225 = 975$.
+\[
+\mathrm{IoU} = \frac{A \cap B}{A \cup B} = \frac{225}{975} = \frac{3}{13} \approx 0{,}231
+\qquad
+\mathrm{Dice} = \frac{2 \cdot (A \cap B)}{\mathrm{Area}(A) + \mathrm{Area}(B)} = \frac{450}{1\,200} = 0{,}375
+\]
+Para a mesma sobreposição, o IoU é menor que o \textit{Dice}, como esperado. Como IoU e \textit{Dice} são razões entre áreas e a conversão multiplica as duas coordenadas pelo mesmo fator $64$, o resultado seria o mesmo se as contas fossem feitas com as coordenadas normalizadas (todas as áreas ficam divididas por $64^2$).
+
+\textit{Critério:} $0{,}5$ para o IoU e $0{,}5$ para o \textit{Dice}; erro apenas na interseção, propagado corretamente nas duas métricas, perde $0{,}5$ no total.
+
+\color{black}
+
+\end{document}
