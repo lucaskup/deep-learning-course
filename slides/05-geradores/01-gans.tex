@@ -4,11 +4,22 @@
 \input{slides/utils/custom-commands}
 \input{slides/05-geradores/colors}
 \input{slides/05-geradores/trilemma}
+\input{slides/05-geradores/gan-figures}
 
 %------------------------------------------------------------------------
 %   LECTURE-LOCAL EXTRAS (only what the shared palette doesn't cover)
 %------------------------------------------------------------------------
 \definecolor{SoftGray}{HTML}{F3F4F6}
+\colorlet{PriorAmber}{NoiseAmber!65!black}  % prior terms in Bayes-rule slide
+\colorlet{HiAmber}{NoiseAmber!65!black}     % highlighted factors in step-by-step algebra
+\definecolor{MovedRed}{HTML}{E57373}        % moved probability mass (Wasserstein slide)
+% TikZ overlay helper: [visible on=<2->] hides a path on other overlays
+\tikzset{
+  invisible/.style={opacity=0},
+  visible on/.style={alt={#1{}{invisible}}},
+  alt/.code args={<#1>#2#3}{%
+    \alt<#1>{\pgfkeysalso{#2}}{\pgfkeysalso{#3}}},
+}
 
 %------------------------------------------------------------------------
 %   TITLE PAGE
@@ -48,9 +59,8 @@
     de treinamento.
     \vspace{0.5em}
     \begin{itemize}
-      \item Não constrói explicitamente uma distribuição de
-      probabilidade sobre os dados.
-      \item Em vez disso, aprende a \emph{amostrar} dessa distribuição.
+      \item Aprende a \emph{amostrar} da distribuição dos dados sem
+      construí-la explicitamente.
       \item Usualmente é formada por \textbf{duas redes} treinadas em
       conjunto:
       \begin{itemize}
@@ -79,8 +89,8 @@
   %--- Slide: GAN pipeline visual (anchor para Gerador + Discriminador) ---
   \begin{frame}{Gerador e Discriminador em conjunto}
     \centering
-    \includegraphics[width=0.9\linewidth]{slides/img/05-geradores/gan-pipeline.png}\\
-    \vspace{0.3em}
+    \resizebox{0.86\linewidth}{!}{\ganpipelinefigure}\\
+    \vspace{0.2em}
     \tiny Adaptado de Prince (2023), \emph{Understanding Deep Learning},
     cap.~15.
     \note{
@@ -93,7 +103,7 @@
 
   %--- Slide: Aplicações ---
   \begin{frame}{Aplicações}
-    Onde GANs já mostraram resultados marcantes:
+    Onde GANs já foram aplicadas:
     \begin{itemize}
       \item \textbf{Síntese de faces fotorrealistas}: \textit{StyleGAN}
       \footfullcite{karras2019style} produz retratos indistinguíveis de
@@ -187,8 +197,9 @@
       \end{column}
       \begin{column}{0.50\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/05-geradores/sigmoid-panels.png}\\
-        \tiny Painel (a) com $\theta=3.0$.
+        \gantoysinglefigure\\
+        \tiny Setas: amostras geradas ($\theta=3.0$) e reais; curva cinza:
+        classificador ideal $\Pr(\text{real}\mid x)$.
       \end{column}
     \end{columns}
     \note{
@@ -210,7 +221,7 @@
       quase plana).
     \end{itemize}
     \centering
-    \includegraphics[width=0.9\linewidth]{slides/img/05-geradores/sigmoid-panels.png}\\
+    \resizebox{0.92\linewidth}{!}{\gantoypanelsfigure}\\
     \tiny (a) distribuições separadas; (b) parcialmente sobrepostas;
     (c) quase coincidentes.
   \end{frame}
@@ -348,8 +359,8 @@
         \end{block}
         \footnotesize
         \begin{itemize}
-          \item Em vez de \emph{minimizar a probabilidade de ser pega}, o
-          gerador \emph{maximiza a probabilidade de parecer real}.
+          \item O gerador \emph{maximiza a probabilidade de parecer real},
+          em vez de \emph{minimizar a probabilidade de ser pego}.
           \item Mesmo ponto fixo (equilíbrio em $\sigma = \tfrac{1}{2}$),
           mas gradiente saudável quando o gerador é fraco.
           \item Já estava na proposta original de
@@ -424,66 +435,7 @@
   \end{frame}
 
   %======================================================================
-  % SECTION 3: DCGAN
-  %======================================================================
-  \section{DCGAN}
-
-  %--- Slide: DCGAN architecture ---
-  \begin{frame}{\textit{DCGAN}\footfullcite{radford2015dcgan}}
-    A primeira arquitetura a popularizar GANs para imagens naturais:
-    \textbf{Deep Convolutional GAN}.
-    \vspace{0.3em}
-    \centering
-    \includegraphics[width=0.95\linewidth]{slides/img/05-geradores/dcgan-architecture.png}\\
-    \vspace{0.4em}
-    \begin{itemize}
-      \item Gerador usa \textbf{convoluções fracionárias} (upsampling)
-      partindo de um vetor latente $100 \times 1$.
-      \item Discriminador usa \textbf{convoluções com stride} para reduzir
-      a resolução.
-      \item \emph{BatchNorm}, ReLU no gerador, LeakyReLU no discriminador.
-    \end{itemize}
-  \end{frame}
-
-  %--- Slide: DCGAN guidelines ---
-  \begin{frame}{\textit{DCGAN} -- Receita arquitetural}
-    O paper destila um conjunto de \emph{guidelines} que dominaram os
-    anos seguintes:
-    \begin{itemize}
-      \item \textbf{Sem \textit{pooling}}: troque por convoluções com
-      \textit{stride} (D) e convoluções fracionárias (G).
-      \item \textbf{Sem camadas \textit{fully connected}} ocultas em
-      ambas as redes.
-      \item \textbf{BatchNorm} em D e G, exceto na saída de G e na
-      entrada de D (estabiliza o treino sem distorcer a saída).
-      \item \textbf{Ativações}: ReLU em todas as camadas de G (Tanh na
-      saída); LeakyReLU em todas as camadas de D.
-      \item Vetor latente $\mathbf{z} \in \mathbb{R}^{100}$, normal padrão.
-    \end{itemize}
-    \begin{block}{Por que importa}
-      Antes da DCGAN, treinar GAN convolucional era considerado quase
-      impossível. Esses cinco pontos viraram \emph{baseline} para
-      praticamente todas as arquiteturas posteriores.
-    \end{block}
-  \end{frame}
-
-  %--- Slide: DCGAN samples ---
-  \begin{frame}{\textit{DCGAN} -- Amostras geradas}
-    \centering
-    \includegraphics[width=0.75\linewidth]{slides/img/05-geradores/dcgan-samples.png}\\
-    \vspace{0.3em}
-    \tiny Amostras sintéticas geradas por DCGANs treinadas em três
-    \textit{datasets}: (a) faces, (b) ImageNet, (c) LSUN (cenas).
-    Adaptado de \citeauthoryear{radford2015dcgan}.
-    \note{
-      As amostras já eram impressionantes para 2015. Hoje são facilmente
-      superadas por \emph{StyleGAN} e por modelos difusores, mas a DCGAN
-      estabeleceu o padrão arquitetural que dominou os anos seguintes.
-    }
-  \end{frame}
-
-  %======================================================================
-  % SECTION 4: COLAPSO PARA A MODA
+  % SECTION 3: COLAPSO PARA A MODA
   %======================================================================
   \section{Colapso para a Moda}
 
@@ -514,7 +466,7 @@
   \end{frame}
 
   %======================================================================
-  % SECTION 5: ANÁLISE DA LOSS
+  % SECTION 4: ANÁLISE DA LOSS
   %======================================================================
   \section{Análise da Loss}
 
@@ -535,8 +487,8 @@
         + \tfrac{1}{I}\sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[\mathbf{x}^{(i)},\bm{\phi}]\right)\right]\right)
     \]
     \vspace{0.3em}
-    Isso não altera o \emph{mínimo} (multiplicar por constante não
-    muda argmin), mas prepara o próximo passo.
+    Isso não altera o \emph{ótimo} (multiplicar por constante não
+    muda o ponto ótimo), mas prepara o próximo passo.
   \end{frame}
 
   %--- Slide: Expectation ---
@@ -570,7 +522,7 @@
     \begin{itemize}
       \item Os integrandos dependem do discriminador $\sigma(f[\cdot,\bm{\phi}])$.
       \item Vamos substituir o discriminador pela expressão \emph{ótima}
-      (que minimiza essa loss).
+      (que maximiza essa loss).
     \end{itemize}
   \end{frame}
 
@@ -581,23 +533,32 @@
     $\tilde{\mathbf{x}}$. Por \textbf{regra de Bayes}:
     \[
       \sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]
-      = P(\text{real}\mid \tilde{\mathbf{x}})
-      = \frac{P(\tilde{\mathbf{x}}\mid \text{real})\,P(\text{real})}
-             {P(\tilde{\mathbf{x}}\mid \text{real})\,P(\text{real})
-              + P(\tilde{\mathbf{x}}\mid \text{gen})\,P(\text{gen})}
+      = \underbrace{P(\text{real}\mid \tilde{\mathbf{x}})}_{\text{posterior}}
+      = \frac{\overbrace{\textcolor{DiscBlue}{P(\tilde{\mathbf{x}}\mid \text{real})}}^{\text{verossimilhança}}\;
+              \overbrace{\textcolor{PriorAmber}{P(\text{real})}}^{\text{prior}}}
+             {\underbrace{\textcolor{DiscBlue}{P(\tilde{\mathbf{x}}\mid \text{real})}\,
+              \textcolor{PriorAmber}{P(\text{real})}
+              + \textcolor{GenRed}{P(\tilde{\mathbf{x}}\mid \text{gen})}\,
+              \textcolor{PriorAmber}{P(\text{gen})}}_{\text{evidência } P(\tilde{\mathbf{x}})}}
     \]
-    Assumindo $I = J$, ou seja $P(\text{real}) = P(\text{gen}) = \tfrac{1}{2}$,
-    os \emph{priors} se cancelam:
+    Assumindo $I = J$, ou seja
+    $\textcolor{PriorAmber}{P(\text{real})} = \textcolor{PriorAmber}{P(\text{gen})} = \tfrac{1}{2}$,
+    os \textcolor{PriorAmber}{\emph{priors}} aparecem em todos os termos e se cancelam:
     \[
       \sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]
-      = \frac{P(\tilde{\mathbf{x}}\mid \text{real})}
-             {P(\tilde{\mathbf{x}}\mid \text{real}) + P(\tilde{\mathbf{x}}\mid \text{gen})}
-      = \frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}
+      = \frac{\textcolor{DiscBlue}{P(\tilde{\mathbf{x}}\mid \text{real})}\,
+              \textcolor{PriorAmber}{\cancel{\tfrac{1}{2}}}}
+             {\textcolor{PriorAmber}{\cancel{\tfrac{1}{2}}}\,
+              \left[\textcolor{DiscBlue}{P(\tilde{\mathbf{x}}\mid \text{real})}
+              + \textcolor{GenRed}{P(\tilde{\mathbf{x}}\mid \text{gen})}\right]}
+      = \frac{\textcolor{DiscBlue}{P(\mathbf{x})}}
+             {\textcolor{DiscBlue}{P(\mathbf{x})}+\textcolor{GenRed}{P(\mathbf{x}^{*})}}
     \]
     \footnotesize
     \begin{itemize}
-      \item $P(\mathbf{x})$ é a densidade dos dados reais em $\tilde{\mathbf{x}}$, $P(\mathbf{x}^{*})$
-      é a densidade gerada no mesmo ponto.
+      \item \textcolor{DiscBlue}{$P(\mathbf{x})$} é a densidade dos dados reais em
+      $\tilde{\mathbf{x}}$, \textcolor{GenRed}{$P(\mathbf{x}^{*})$} é a densidade gerada
+      no mesmo ponto: só as \textbf{verossimilhanças} sobrevivem.
       \item Em palavras: a probabilidade ideal de ser real é a fração da
       densidade total naquele ponto que vem do conjunto real.
       \item É o classificador perfeito, depende apenas das densidades, não
@@ -629,17 +590,49 @@
 
   %--- Slide: Multiply and divide by 2 ---
   \begin{frame}{Análise da Loss -- Truque do fator 2}
-    Por conveniência matemática, multiplicamos e dividimos por 2 dentro
-    do logaritmo (não altera o $\argmin$):
-    \vspace{0.2em}
+    Multiplicar e dividir por \textcolor{HiAmber}{2} dentro dos logaritmos
+    não altera o $\argmin$:
+    \vspace{-0.3em}
+    \small
+    \begin{align*}
+      \onslide<1->{
+      L[\bm{\phi}]
+      &= \int P(\mathbf{x}^{*}) \ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}
+           \cdot \textcolor{HiAmber}{\frac{1}{2}}\right] d\mathbf{x}^{*}
+       + \int P(\mathbf{x})\ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}
+           \cdot \textcolor{HiAmber}{\frac{1}{2}}\right] d\mathbf{x}
+      \\[0.2em]}
+      \onslide<2->{
+      &= \int P(\mathbf{x}^{*}) \ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}^{*}
+       + \int P(\mathbf{x})\ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}
+      \\[-0.1em]
+      &\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad
+       \textcolor{HiAmber}{-\,\ln 2}
+         \underbrace{\Big[\textstyle\int\! P(\mathbf{x}^{*})\,d\mathbf{x}^{*} + \int\! P(\mathbf{x})\,d\mathbf{x}\Big]}_{=\,1+1\,=\,2}
+      \\[0.2em]}
+      \onslide<3->{
+      &= \int P(\mathbf{x}^{*}) \ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}^{*}
+       + \int P(\mathbf{x})\ln\!\left[\frac{\textcolor{HiAmber}{2}\,P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}
+       \;\textcolor{HiAmber}{-\,2\ln 2}
+      }
+    \end{align*}
+    \onslide<4->{
+    \normalsize
+    \vspace{-0.2em}
+    O fator \textcolor{HiAmber}{2} no numerador é o denominador dividido
+    por 2, ou seja, a \emph{mistura}:
+    \vspace{-0.2em}
     \[
-      L[\bm{\phi}] = \int P(\mathbf{x}^{*}) \ln\!\left[\frac{2P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x}^{*}
-      + \int P(\mathbf{x})\ln\!\left[\frac{2P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^{*})}\right] d\mathbf{x} - 2\ln 2
+      \frac{\textcolor{HiAmber}{2}\,P(\mathbf{x}^{*})}{P(\mathbf{x})+P(\mathbf{x}^{*})}
+      = \frac{P(\mathbf{x}^{*})}{\textcolor{HiAmber}{\frac{P(\mathbf{x})+P(\mathbf{x}^{*})}{2}}}
     \]
-    \vspace{0.3em}
-    Os dois fatores $\ln 2$ saem das integrais (pois $\int P = \int P^{*} = 1$).
-    Agora cada termo é exatamente uma divergência KL entre uma
-    distribuição e a \emph{mistura} $\frac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}$.
+    }
+    \note{
+      Linha 1: $\ln(ab) = \ln a + \ln b$ com $b = 1/2$, aplicado aos dois
+      termos de uma vez. Linha 2: $\ln\tfrac{1}{2} = -\ln 2$ não depende da
+      variável de integração, então sai das duas integrais em evidência, e
+      cada integral de densidade vale 1. Linha 3: $-\ln 2 \cdot 2 = -2\ln 2$.
+    }
   \end{frame}
 
   %--- Slide: Recognizing KL ---
@@ -669,9 +662,10 @@
     \vspace{0.2em}
     Logo $L[\bm{\phi}] = 2\,D_{JS}\!\left[P(\mathbf{x}^{*}) \,\|\, P(\mathbf{x})\right] - 2\ln 2$.
     \begin{alertblock}{Interpretação}
-      Com discriminador ótimo, a loss de uma GAN é, a menos de uma
-      constante e de um fator, a \textbf{divergência de Jensen--Shannon}
-      entre a distribuição real e a gerada.
+      Com o discriminador ótimo, treinar o gerador equivale a minimizar a
+      \textbf{divergência de Jensen--Shannon} entre a distribuição gerada
+      e a real. O fator $2$ e a constante $-2\ln 2$ apenas reescalam e
+      deslocam a loss: não mudam o ponto de mínimo.
     \end{alertblock}
   \end{frame}
 
@@ -786,8 +780,8 @@
       $\tfrac{1}{2}P(\mathbf{x})\log 2$, \emph{independente} de $P(\mathbf{x}^*)$.
       \vspace{0.3em}
 
-      O gerador é \textbf{incentivado muito mais fortemente a
-      qualidade} que a cobertura $\to$ \textbf{colapso para a moda}.
+      O gerador é \textbf{muito mais incentivado a buscar qualidade}
+      do que cobertura $\to$ \textbf{colapso para a moda}.
     \end{alertblock}
   \end{frame}
 
@@ -813,38 +807,37 @@
     \end{alertblock}
   \end{frame}
 
-  %--- Slide: Exemplo numérico - o que cada valor representa ---
-  \begin{frame}{Exemplo Numérico}{O Que Cada Valor Representa}
-    Antes de calcular o $D_{JS}$, vamos ancorar cada símbolo em algo
-    \textbf{concreto}. Imagine que estamos treinando uma GAN para gerar
-    imagens em três categorias: \emph{gato}, \emph{cão} e
-    \emph{pássaro}. Identifique cada uma com $a$, $b$, $c$.
-    \vspace{0.3em}
-    \begin{itemize}
-      \item $P(x)$: fração das imagens \textbf{reais} (no dataset) em cada
-            categoria. É fixo, a verdade.
-      \item $P^{*}(x)$: fração das imagens \textbf{geradas} pelo modelo
-            atual em cada categoria. Muda conforme o gerador treina.
-      \item $D^{*}(x)$: probabilidade que o \textbf{discriminador ótimo}
-            atribui à categoria $x$ de ser real. Onde $P$ domina, $D^{*}$
-            tende a $1$; onde $P^{*}$ domina, $D^{*}$ tende a $0$.
-      \item $M(x) = \tfrac{1}{2}(P + P^{*})$: distribuição de
-            \textbf{mistura}, o referencial neutro contra o qual ambas as
-            divergências KL são medidas.
-      \item $D_{JS}(P^{*}\|P)$: o \textbf{único número} que resume a
-            distância entre o que o gerador faz hoje e o que deveria
-            fazer. Zero $\Rightarrow$ gerador perfeito;
-            $\ln 2 \Rightarrow$ suportes disjuntos.
-    \end{itemize}
+  %--- Slide: Exemplo numérico - a simplificação por trás das contas ---
+  \begin{frame}{Exemplo Numérico}
+    Na análise, $\mathbf{x}$ é uma imagem e $P$, $P^{*}$ são densidades em
+    alta dimensão. Para calcular $L[\bm{\phi}] = 2\,D_{JS}(P^{*}\|P) - 2\ln 2$
+    na mão, reduzimos a imagem a uma variável discreta: sua
+    \textbf{categoria} $x \in \{a, b, c\}$ (gato, cão, pássaro).
+    \begin{block}{O que entra na conta}
+      \begin{itemize}
+        \item $P(x)$: proporção de cada categoria no dataset real.
+        \item $P^{*}(x)$: proporção de cada categoria entre as imagens de um
+              gerador hipotético.
+        \item $D^{*}(x) = P(x)/\bigl(P(x) + P^{*}(x)\bigr)$: fração das
+              imagens da categoria $x$ que é real.
+      \end{itemize}
+    \end{block}
+    \begin{block}{O que fica de fora}
+      A qualidade de cada imagem: um gato gerado conta como um gato real.
+      Gerador e dados diferem apenas em \textbf{quantas} imagens de cada
+      categoria produzem.
+    \end{block}
+    A seguir: um gerador que erra as proporções e outro que omite uma categoria.
     \note{
-      Vale enfatizar: $P$ vem dos dados, $P^{*}$ vem do modelo. O
-      discriminador é uma \emph{ferramenta} que extrai o sinal dessa
-      diferença e empurra o gerador via gradiente.
+      Vale enfatizar: $P$ vem dos dados, $P^{*}$ vem do modelo. A
+      simplificação apaga a qualidade das instâncias para que a loss
+      dependa só das proporções e possa ser calculada em três linhas.
+      A mistura $M = \tfrac{1}{2}(P + P^{*})$ aparece no próximo slide.
     }
   \end{frame}
 
   %--- Slide: Exemplo numérico JS divergence ---
-  \begin{frame}{Exemplo Numérico: $D^{*}$ e $D_{JS}$ em 1D}
+  \begin{frame}{Exemplo Numérico: $D^{*}$ e $D_{JS}$ com três categorias}
     Suporte $\{a, b, c\}$.
     Real $P = (0.5,\, 0.3,\, 0.2)$;\quad
     gerada $P^{*} = (0.2,\, 0.5,\, 0.3)$.
@@ -888,49 +881,49 @@
 
   %--- Slide: Exemplo numérico - limite de suporte disjunto ---
   \begin{frame}{Exemplo Numérico: limite de suporte disjunto}
-    \footnotesize
-    Mesmo suporte $\{a, b, c\}$, mas agora a categoria $c$ \textbf{não
-    aparece} nos dados reais: $P = (0.6,\, 0.4,\, 0.0)$, gerada
-    $P^{*} = (0.2,\, 0.5,\, 0.3)$.
-    Mistura $M = (\, 0.40,\; 0.45,\; 0.15 \,)$.
+    Mesmo suporte $\{a, b, c\}$, mas a categoria $c$ \textbf{não aparece}
+    nos dados reais:
+    \[
+      P = (0.6,\; 0.4,\; \textcolor{HiAmber}{0.0}),\qquad
+      P^{*} = (0.2,\; 0.5,\; \textcolor{HiAmber}{0.3}),\qquad
+      M = \tfrac{1}{2}(P + P^{*}) = (0.40,\; 0.45,\; 0.15).
+    \]
+    \vspace{-0.8em}
     \begin{columns}[T]
-      \begin{column}{0.46\textwidth}
-        Em $x = c$ temos $P(c) = 0$: o termo $P\ln(P/M)$ se anula
-        (convenção $0\ln 0 = 0$). Já $P^{*}(c) = 0.3$ e
-        $M(c) = P^{*}(c)/2$, então
-        \[
-          P^{*}(c)\,\ln\!\frac{P^{*}(c)}{M(c)} = 0.3 \cdot \ln 2 \approx 0.21.
-        \]
-      \end{column}
-      \begin{column}{0.52\textwidth}
+      \begin{column}{0.5\textwidth}
         \centering
-        \resizebox{\linewidth}{!}{%
         \begin{tabular}{@{}c|c|c@{}}
           \toprule
           $x$      & $P\,\ln(P/M)$ & $P^{*}\,\ln(P^{*}/M)$ \\
           \midrule
-          $a$      & $+0.243$    & $-0.139$            \\
-          $b$      & $-0.047$    & $+0.053$            \\
-          $c$      & $\;\;\;0$     & $+0.208$            \\
+          $a$      & $+0.243$      & $-0.139$ \\
+          $b$      & $-0.047$      & $+0.053$ \\
+          $c$      & $\textcolor{HiAmber}{0}$ & $\textcolor{HiAmber}{+0.208}$ \\
           \midrule
-          $\Sigma$ & $D_{KL}(P\|M)\!=\!0.196$ & $D_{KL}(P^{*}\|M)\!=\!0.122$ \\
+          $\Sigma$ & $D_{KL}(P\|M) = 0.196$ & $D_{KL}(P^{*}\|M) = 0.122$ \\
           \bottomrule
-        \end{tabular}}
+        \end{tabular}
+      \end{column}
+      \begin{column}{0.48\textwidth}
+        Em $x = c$, $P(c) = 0$ e o termo $P\ln(P/M)$ se anula
+        (convenção $0\ln 0 = 0$). Já $M(c) = P^{*}(c)/2$, logo
         \[
-          D_{JS}(P^{*} \| P) \approx \mathbf{0.16}\ \text{nats}
+          P^{*}(c)\,\ln\!\frac{P^{*}(c)}{M(c)} = 0.3 \ln 2 \approx 0.21.
+        \]
+        \[
+          D_{JS}(P^{*} \| P) = \tfrac{1}{2}(0.196 + 0.122) \approx \mathbf{0.16}\ \text{nats}
         \]
       \end{column}
     \end{columns}
-    \begin{alertblock}{Limite de suporte totalmente disjunto}
-      Quando $P$ e $P^{*}$ não compartilham nenhum ponto de suporte,
-      $D_{JS}(P^{*} \| P) \to \ln 2 \approx 0.69$ nats (máximo da
-      Jensen--Shannon). $D_{JS}$ trava nesse valor e o gradiente do
-      gerador desaparece, motivando a distância de Wasserstein.
+    \begin{alertblock}{Suporte disjunto}
+      Sem suporte em comum, $D_{JS}(P^{*} \| P) \to \ln 2 \approx 0.69$
+      nats, seu valor máximo: a loss trava e o gradiente do gerador
+      desaparece. Isso motiva a distância de Wasserstein.
     \end{alertblock}
   \end{frame}
 
   %======================================================================
-  % SECTION 6: VANISHING GRADIENT
+  % SECTION 5: VANISHING GRADIENT
   %======================================================================
   \section{Vanishing Gradient}
 
@@ -952,9 +945,9 @@
       $\ln 2$.
     \end{itemize}
     \begin{alertblock}{Conclusão}
-      Distribuições disjuntas \textbf{não} são caso patológico raro:
-      são a situação típica para dados de alta dimensão. Por isso o
-      problema a seguir aparece em quase todo treino de GAN.
+      Para dados de alta dimensão, distribuições disjuntas são a
+      \textbf{regra}. Por isso o problema a seguir aparece em quase todo
+      treino de GAN.
     \end{alertblock}
   \end{frame}
 
@@ -985,8 +978,8 @@
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{itemize}
-          \item O discriminador é congelado após $1$, $10$ e $25$ épocas
-          e o gerador continua treinando.
+          \item O gerador é congelado após $1$, $10$ e $25$ épocas de
+          treino e o discriminador continua treinando sozinho.
           \item Conforme o discriminador fica ``bom demais'', o
           gradiente que chega ao gerador despenca (escala log).
           \item Sintoma típico: treinamento \emph{instável}, no qual o
@@ -996,8 +989,9 @@
       \end{column}
       \begin{column}{0.50\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/05-geradores/vanishing-gradient.png}\\
-        \tiny Adaptado de \citeauthoryear{arjovsky2017towards}.
+        \vanishinggradientfigure\\
+        \tiny Reprodução esquemática do experimento de
+        \citeauthoryear{arjovsky2017towards}.
       \end{column}
     \end{columns}
   \end{frame}
@@ -1020,7 +1014,7 @@
   \end{frame}
 
   %======================================================================
-  % SECTION 7: WASSERSTEIN GAN
+  % SECTION 6: WASSERSTEIN GAN
   %======================================================================
   \section{Wasserstein GAN}
 
@@ -1058,6 +1052,110 @@
         \item $T_{ij} \geq 0$
       \end{itemize}
     \end{itemize}
+  \end{frame}
+
+  %--- Slide: Movendo massa de P para Q ---
+  \begin{frame}{\textit{Wasserstein Distance} -- Movendo massa}
+    A massa que já está no lugar certo mantém a cor da distribuição; a
+    massa em \textcolor{MovedRed}{vermelho} precisa ser deslocada.
+    Trabalho $=$ massa $\times$ distância.
+    \begin{columns}[T]
+      \begin{column}{0.58\textwidth}
+        \centering
+        \begin{tikzpicture}[>={Stealth[length=4pt]}]
+          \def\s{0.78}  % largura de cada bin
+          \def\h{6.0}   % escala de altura
+          \def\yP{3.1}  % baseline de P
+          \tikzset{slicelabel/.style={font=\tiny, white, inner sep=0pt}}
+          % ================= P (origem) =================
+          % overlay 1: barras inteiras
+          \foreach \i/\v in {0/0.10,1/0.15,2/0.05,3/0.05,4/0.20,5/0.25,6/0.15,7/0.05}
+            \fill[gray!65, visible on=<1>] ({\i*\s+0.04},\yP) rectangle ({(\i+1)*\s-0.04},{\yP+\v*\h});
+          % overlay 2+: massa que fica (cinza, em cima) ...
+          \foreach \i/\ya/\v in {0/0.05/0.05, 1/0.10/0.05, 2/0/0.05, 6/0.10/0.05, 7/0/0.05}
+            \fill[gray!65, visible on=<2->] ({\i*\s+0.04},{\yP+\ya*\h}) rectangle ({(\i+1)*\s-0.04},{\yP+(\ya+\v)*\h});
+          % ... e fatias que saem (vermelho, embaixo), uma por destino: i / y0 / massa / destino
+          \foreach \i/\ya/\v/\j in {0/0/0.05/1, 1/0/0.10/2, 3/0/0.05/2, 4/0/0.20/3,
+                                    5/0/0.05/3, 5/0.05/0.20/4, 6/0/0.10/5}{
+            \fill[MovedRed, visible on=<2->] ({\i*\s+0.04},{\yP+\ya*\h}) rectangle ({(\i+1)*\s-0.04},{\yP+(\ya+\v)*\h});
+            \node[slicelabel, visible on=<2->] at ({(\i+0.5)*\s},{\yP+(\ya+\v/2)*\h}) {$\i{\to}\j$};
+          }
+          % separador tracejado entre as duas fatias do bin 5
+          \draw[white, dashed, line width=0.6pt, visible on=<2->] ({5*\s+0.04},{\yP+0.05*\h}) -- ({6*\s-0.04},{\yP+0.05*\h});
+          \draw[gray!60] (0,\yP) -- ({8*\s},\yP);
+          \foreach \i in {0,...,7}
+            \node[font=\tiny, gray, anchor=north] at ({(\i+0.5)*\s},{\yP-0.02}) {\i};
+          \node[font=\footnotesize, anchor=east] at (-0.15,{\yP+0.75}) {$P(x{=}i)$};
+          % ================= Q (destino) =================
+          % overlay 1: barras inteiras
+          \foreach \j/\v in {0/0.05,1/0.10,2/0.20,3/0.25,4/0.20,5/0.10,6/0.05,7/0.05}
+            \fill[teal!55, visible on=<1>] ({\j*\s+0.04},0) rectangle ({(\j+1)*\s-0.04},{\v*\h});
+          % overlay 2+: massa que fica (teal, embaixo) ...
+          \foreach \j/\v in {0/0.05, 1/0.05, 2/0.05, 6/0.05, 7/0.05}
+            \fill[teal!55, visible on=<2->] ({\j*\s+0.04},0) rectangle ({(\j+1)*\s-0.04},{\v*\h});
+          % ... e fatias que chegam (vermelho, em cima), uma por origem: j / y0 / massa / origem
+          \foreach \j/\ya/\v/\i in {1/0.05/0.05/0, 2/0.05/0.10/1, 2/0.15/0.05/3, 3/0/0.20/4,
+                                    3/0.20/0.05/5, 4/0/0.20/5, 5/0/0.10/6}{
+            \fill[MovedRed, visible on=<2->] ({\j*\s+0.04},{\ya*\h}) rectangle ({(\j+1)*\s-0.04},{(\ya+\v)*\h});
+            \node[slicelabel, visible on=<2->] at ({(\j+0.5)*\s},{(\ya+\v/2)*\h}) {$\i{\to}\j$};
+          }
+          % separadores tracejados entre fatias dos bins 2 e 3
+          \draw[white, dashed, line width=0.6pt, visible on=<2->] ({2*\s+0.04},{0.15*\h}) -- ({3*\s-0.04},{0.15*\h});
+          \draw[white, dashed, line width=0.6pt, visible on=<2->] ({3*\s+0.04},{0.20*\h}) -- ({4*\s-0.04},{0.20*\h});
+          \draw[gray!60] (0,0) -- ({8*\s},0);
+          \foreach \j in {0,...,7}
+            \node[font=\tiny, gray, anchor=north] at ({(\j+0.5)*\s},-0.02) {\j};
+          \node[font=\footnotesize, anchor=east] at (-0.15,0.75) {$Q(x{=}j)$};
+          % ================= Setas: origem i -> destino j =================
+          % espessura proporcional à massa; deslocamentos laterais separam setas que
+          % partem do mesmo bin ou chegam ao mesmo bin
+          % (coordenadas pré-calculadas: o operador "to" não aceita parênteses dentro de chaves)
+          \foreach \i/\j/\m/\dxs/\dxe in {0/1/0.05/0/0, 1/2/0.10/0/-0.12, 3/2/0.05/0/0.12,
+                                          4/3/0.20/0/-0.12, 5/3/0.05/-0.18/0.14,
+                                          5/4/0.20/0.10/0, 6/5/0.10/0/0}{
+            \pgfmathsetmacro\lw{\m*16}
+            \pgfmathsetmacro\xa{(\i+0.5)*\s+\dxs}
+            \pgfmathsetmacro\xb{(\j+0.5)*\s+\dxe}
+            \pgfmathsetmacro\ya{\yP-0.32}
+            \draw[->, MovedRed, line width=\lw pt, visible on=<2->]
+              (\xa,\ya) to[out=-90, in=90] (\xb,1.62);
+          }
+        \end{tikzpicture}
+      \end{column}
+      \begin{column}{0.40\textwidth}
+        \onslide<3->{
+        \small
+        \centering
+        \begin{tabular}{@{}c c c c@{}}
+          \toprule
+          $i \to j$ & massa $T_{ij}$ & $|i-j|$ & trabalho \\
+          \midrule
+          $0 \to 1$ & $0.05$ & $1$ & $0.05$ \\
+          $1 \to 2$ & $0.10$ & $1$ & $0.10$ \\
+          $3 \to 2$ & $0.05$ & $1$ & $0.05$ \\
+          $4 \to 3$ & $0.20$ & $1$ & $0.20$ \\
+          $5 \to 3$ & $0.05$ & $2$ & $0.10$ \\
+          $5 \to 4$ & $0.20$ & $1$ & $0.20$ \\
+          $6 \to 5$ & $0.10$ & $1$ & $0.10$ \\
+          \midrule
+          \multicolumn{3}{@{}l}{$D_{w}[P\,\|\,Q] = \sum_{i,j} T_{ij}\,|i-j|$} & $\mathbf{0.80}$ \\
+          \bottomrule
+        \end{tabular}
+        \vspace{0.6em}
+
+        \small
+        A massa que fica no lugar ($i = j$) custa zero. O plano mostrado é o
+        de menor trabalho: nenhuma seta cruza outra.
+        }
+      \end{column}
+    \end{columns}
+    \note{
+      Overlay 1: as duas distribuições. Overlay 2: separa a massa que já
+      coincide da que precisa viajar e mostra para onde cada pedaço vai;
+      a espessura da seta é proporcional à massa. Overlay 3: a conta do
+      trabalho, movimento a movimento. O plano é ótimo porque é monótono:
+      em 1D, trocar a ordem de dois pedaços nunca reduz o custo.
+    }
   \end{frame}
 
   %--- Slide: Transporte visual ---
@@ -1116,9 +1214,10 @@
       \end{scope}
     \end{tikzpicture}\\
     \vspace{0.3em}
-    \tiny Exemplo discreto com suporte $\{0,\dots,7\}$: as marginais do
-    plano $T$ (barras à esquerda e abaixo da matriz) reproduzem $P$ e $Q$,
-    e a célula destacada é $T_{54} = 0.2$. Neste exemplo, $D_{w} = 0.8$.
+    \tiny O mesmo transporte do slide anterior, agora como matriz: as
+    marginais do plano $T$ (barras à esquerda e abaixo) reproduzem $P$ e
+    $Q$, e a célula destacada é $T_{54} = 0.2$, a seta mais grossa.
+    $D_{w} = 0.8$.
     \note{
       A matriz de transporte só concentra massa na diagonal quando as
       distribuições já são iguais; quanto mais precisa ``empurrar''
@@ -1236,13 +1335,13 @@
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/05-geradores/wgan-gradients.png}\\
-        \vspace{0.2em}
-        \tiny Adaptado de Jonathan Hui (Medium, 2018).
+        \wgangradientsfigure\\
+        \tiny Reprodução esquemática do exemplo de Jonathan Hui (Medium,
+        2018): $P=\mathcal{N}(-5,1)$ e $P^{*}=\mathcal{N}(5,1)$.
       \end{column}
       \begin{column}{0.42\textwidth}
         \begin{itemize}
-          \item Discriminador \textcolor{red}{saturado}
+          \item Discriminador \emph{saturado} (tracejado)
           $\Rightarrow$ gradientes nulos.
           \item Crítico WGAN produz gradientes \textbf{lineares} mesmo
           em regiões disjuntas $\Rightarrow$ treinamento muito mais
@@ -1315,27 +1414,25 @@
   \end{frame}
 
   %======================================================================
-  % SECTION 8: TRICKS DE TREINAMENTO
+  % SECTION 7: TRICKS DE TREINAMENTO
   %======================================================================
   \section{Tricks de Treinamento}
 
   %--- Slide: Progressive growing ---
   \begin{frame}{\textit{Trick 1}: \textit{Progressive growing}\footfullcite{karras2018progressive}}
     \begin{columns}[T]
-      \begin{column}{0.48\textwidth}
+      \begin{column}{0.40\textwidth}
         \begin{itemize}
-          \item Começamos treinando GAN em resolução baixa
-          ($4{\times}4$).
+          \item Começamos treinando a GAN em $4{\times}4$.
           \item À medida que o treino avança, vamos \textbf{adicionando
           camadas} para dobrar a resolução até $1024{\times}1024$.
           \item Transições suaves entre resoluções evitam instabilidade.
-          \item Resultado: imagens de altíssima qualidade (faces
-          CelebA-HQ).
+          \item Resultado: faces CelebA-HQ em alta resolução.
         \end{itemize}
       \end{column}
-      \begin{column}{0.50\textwidth}
+      \begin{column}{0.58\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/05-geradores/progressive-growing.png}
+        \resizebox{\linewidth}{!}{\progressivegrowingfigure}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1377,7 +1474,7 @@
   \end{frame}
 
   %======================================================================
-  % SECTION 9: RESUMO E TRILEMA
+  % SECTION 8: RESUMO E TRILEMA
   %======================================================================
   \section{Panorama Geral}
 
@@ -1432,7 +1529,7 @@
       \end{column}
       \begin{column}{0.50\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{slides/img/05-geradores/gan-pipeline.png}
+        \resizebox{\linewidth}{!}{\ganpipelinefigure}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1479,7 +1576,6 @@
     \begin{itemize}
       \item Capítulo 15: \fullcite{prince2023understanding}
       \item \fullcite{goodfellow2014generative}
-      \item \fullcite{radford2015dcgan}
       \item \fullcite{arjovsky2017wasserstein}
       \item \url{https://vincentherrmann.github.io/blog/wasserstein/}
     \end{itemize}

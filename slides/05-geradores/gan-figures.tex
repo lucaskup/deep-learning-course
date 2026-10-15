@@ -1,0 +1,373 @@
+%------------------------------------------------------------------------
+%   TIKZ FIGURES FOR THE GAN LECTURE (slides/05-geradores/01-gans.tex)
+%
+%   Fragment without \documentclass (ignored by CI). Input it after
+%   colors.tex. Every figure is a macro so the same drawing can be reused
+%   at different sizes (wrap in \resizebox at the call site).
+%------------------------------------------------------------------------
+\usetikzlibrary{decorations.pathreplacing}
+
+%------------------------------------------------------------------------
+%   Helpers
+%------------------------------------------------------------------------
+
+% \featmap{x}{y}{w}{h}{d}{color}
+% Cuboid (feature map) with front face from (x,y) to (x+w,y+h) and depth d
+% drawn in cavalier projection towards the upper right. Draw left-to-right
+% so the next block hides the side face of the previous one.
+\newcommand{\featmap}[6]{%
+  \fill[#6!30, draw=#6!65!black, line width=0.4pt]
+    (#1,#2) rectangle ++(#3,#4);
+  \fill[#6!50, draw=#6!65!black, line width=0.4pt]
+    (#1,{#2+#4}) -- ++({0.5*#5},{0.5*#5}) -- ++(#3,0)
+    -- ++({-0.5*#5},{-0.5*#5}) -- cycle;
+  \fill[#6!72, draw=#6!65!black, line width=0.4pt]
+    ({#1+#3},#2) -- ++({0.5*#5},{0.5*#5}) -- ++(0,#4)
+    -- ++({-0.5*#5},{-0.5*#5}) -- cycle;
+}
+
+% \imageslab{x}{y}{side}{channels}{file}
+% Image drawn as a feature map in the same cavalier projection as
+% \featmap: the horizontal axis is the channel axis (thin front strip of
+% width #4), and the spatial plane is the oblique side face, so the
+% picture is sheared onto that face (depth direction = (0.5,0.5)).
+\newcommand{\imageslab}[5]{%
+  \fill[black!45, draw=black!60, line width=0.4pt]
+    (#1,#2) rectangle ++(#4,#3);
+  \fill[black!22, draw=black!60, line width=0.4pt]
+    (#1,{#2+#3}) -- ++({0.5*#3},{0.5*#3}) -- ++(#4,0)
+    -- ++({-0.5*#3},{-0.5*#3}) -- cycle;
+  \begin{scope}[shift={({#1+#4},#2)}, cm={0.5,0.5,0,1,(0,0)}]
+    \node[anchor=south west, inner sep=0pt, transform shape] at (0,0)
+      {\includegraphics[width=#3cm, height=#3cm]{#5}};
+    \draw[black!60, line width=0.4pt] (0,0) rectangle (#3,#3);
+  \end{scope}
+}
+
+% \flatimage{x}{y}{side}{file}: front-facing square image with a border.
+\newcommand{\flatimage}[4]{%
+  \node[anchor=south west, inner sep=0pt] at (#1,#2)
+    {\includegraphics[width=#3cm, height=#3cm]{#4}};
+  \draw[black!60, line width=0.4pt] (#1,#2) rectangle ++(#3,#3);
+}
+
+% \datapanel{x}{y}{sigmoid?}
+% Box with generated (red) and real (blue) 1-D samples drawn as arrows;
+% #3 = 1 overlays the discriminator sigmoid.
+\newcommand{\datapanel}[3]{%
+  \begin{scope}[shift={(#1,#2)}]
+    \draw[thick] (-0.95,-0.75) rectangle (0.95,0.75);
+    \foreach \x in {-0.78,-0.66,-0.57,-0.45,-0.34,-0.20,-0.05}
+      \draw[-{Stealth[length=2.5pt,width=2.2pt]}, GenRed, line width=0.7pt]
+        (\x,-0.73) -- (\x,-0.15);
+    \foreach \x in {-0.12,0.08,0.18,0.30,0.42,0.55,0.72,0.84}
+      \draw[-{Stealth[length=2.5pt,width=2.2pt]}, DiscBlue, line width=0.7pt]
+        (\x,-0.73) -- (\x,-0.15);
+    \node[font=\tiny, GenRed] at (-0.48,0.42) {geradas};
+    \node[font=\tiny, DiscBlue] at (0.50,0.42) {reais};
+    \node[font=\scriptsize, anchor=north] at (0,-0.78) {Dados};
+    \ifnum#3=1
+      \draw[gray!60, line width=1.4pt]
+        plot[domain=-0.95:0.95, samples=60] (\x,{-0.75+1.5/(1+exp(-7*(\x+0.05)))});
+    \fi
+  \end{scope}
+}
+
+%------------------------------------------------------------------------
+%   Figure 1: GAN pipeline (generator + discriminator + both losses)
+%------------------------------------------------------------------------
+\newcommand{\ganpipelinefigure}{%
+\begin{tikzpicture}[
+    font=\small,
+    >={Stealth[length=5pt]},
+    net/.style={draw, rounded corners=3pt, thick, minimum height=1.1cm,
+                minimum width=1.7cm, align=center},
+    lossbox/.style={draw=##1, rounded corners=3pt, thick, inner sep=5pt,
+                    font=\footnotesize},
+    lbl/.style={font=\footnotesize, align=center},
+    guide/.style={gray!50, dotted, thick},
+  ]
+  % --- main row ---
+  \node (z) at (0,0) {$\mathbf{z}^{(j)}$};
+  \node[net, fill=GenRed!18, draw=GenRed] (gen) at (1.75,0)
+    {$g[\mathbf{z}^{(j)},\thetav]$};
+  \node[lbl, below=0.15cm of gen] (genlbl) {Gerador};
+  \node[GenRed] (xgen) at (3.95,0) {$\{\mathbf{x}^{(j)*}\}$};
+  \node[DiscBlue] (xreal) at (3.95,1.1) {$\{\mathbf{x}^{(i)}\}$};
+  \draw[->] (z) -- (gen);
+  \draw[->] (gen) -- (xgen);
+  \draw[thick] (4.55,1.1) -- (4.8,1.1) -- (4.8,0) -- (4.55,0);
+  \draw[->] (4.8,0.55) -- (5.4,0.55);
+  \datapanel{6.4}{0.55}{0}
+  \draw[->] (7.4,0.55) -- (7.9,0.55);
+  \node[net, fill=DiscBlue!14, draw=DiscBlue] (disc) at (8.8,0.55)
+    {$\sigma\!\left(f[\,\cdot\,,\bm{\phi}]\right)$};
+  \node[lbl, below=0.15cm of disc] {Discriminador};
+  \draw[->] (9.7,0.55) -- (10.2,0.55);
+  \datapanel{11.2}{0.55}{1}
+  % --- captions with guides ---
+  \node[lbl] (zl) at (0,-1.35) {Variável\\latente};
+  \draw[guide] (z.south) -- (zl.north);
+  \node[lbl, DiscBlue] (rl) at (3.95,1.95) {Exemplos\\reais};
+  \draw[guide] (xreal.north) -- (rl.south);
+  \node[lbl, GenRed] (gl) at (3.95,-1.35) {Amostras\\geradas};
+  \draw[guide] (xgen.south) -- (gl.north);
+  \node[lbl] (pl) at (11.2,-1.35) {Probabilidade\\de ser real};
+  \draw[guide] (11.2,-0.2) -- (pl.north);
+  % --- discriminator loss ---
+  \node[lossbox=DiscBlue] (lossD) at (9.35,2.8)
+    {$-\sum_{j}\ln\!\left[1-\sigma\!\left(f[\mathbf{x}^{(j)*},\bm{\phi}]\right)\right]
+      -\sum_{i}\ln\!\left[\sigma\!\left(f[\mathbf{x}^{(i)},\bm{\phi}]\right)\right]$};
+  \node[lbl, DiscBlue, above=0.08cm of lossD]
+    {Loss do discriminador, $L[\bm{\phi}]$};
+  \node[font=\scriptsize, DiscBlue!80!black, anchor=north east]
+    at ([yshift=-0.08cm]lossD.south east)
+    {geradas $\mathbf{x}^{*}$: probabilidade baixa; reais $\mathbf{x}$: probabilidade alta};
+  \draw[->, dashed, DiscBlue] (12.15,1.35) to[bend right=20] (12.6,2.35);
+  % --- generator loss ---
+  \node[lossbox=GenRed] (lossG) at (6.9,-2.45)
+    {$\sum_{j}\ln\!\left[1-\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\bm{\phi}\right]\right)\right]$};
+  \node[lbl, GenRed, above=0.08cm of lossG]
+    {Loss do gerador, $L[\thetav]$};
+  \node[font=\scriptsize, GenRed!80!black, below=0.08cm of lossG]
+    {geradas $\mathbf{x}^{*} = g[\mathbf{z},\thetav]$: probabilidade alta segundo o discriminador};
+  \draw[->, dashed, GenRed] (lossG.west) to[bend left=20] (2.45,-0.75);
+\end{tikzpicture}%
+}
+
+%------------------------------------------------------------------------
+%   Figure 2: toy example, ideal discriminator for real N(7,1) and
+%   generated N(theta,1). D*(x) = sigma((7-theta)(x-(7+theta)/2)).
+%------------------------------------------------------------------------
+% \gantoypanel{theta}{title}{extra axis options}
+\newcommand{\gantoypanel}[3]{%
+  \begin{axis}[
+      width=5.0cm, height=4.3cm,
+      axis lines=left,
+      xmin=0, xmax=10, ymin=0, ymax=1.05,
+      xtick={0,5,10}, ytick={0,0.5,1},
+      xlabel={Dados, $x$},
+      xlabel style={font=\small, yshift=0.3em},
+      ylabel style={font=\small},
+      tick label style={font=\scriptsize},
+      title={#2}, title style={font=\small, yshift=-0.5em},
+      legend style={at={(0.04,0.97)}, anchor=north west, font=\scriptsize,
+                    draw=none, fill=none, row sep=-0.3em},
+      legend cell align=left,
+      clip=false,
+      #3
+    ]
+    \addplot[gray!55, line width=1.6pt, samples=120, domain=0:10, forget plot]
+      {1/(1+exp(-(7-#1)*(x-(7+#1)/2)))};
+    \addplot[ycomb, GenRed, line width=0.8pt, mark=triangle*, mark size=1.7pt]
+      table[row sep=\\, x expr=\thisrow{z}+#1, y expr=0.42]
+      {z\\ -1.6\\ -1.1\\ -0.9\\ -0.4\\ -0.2\\ 0.1\\ 0.3\\ 0.7\\ 1.0\\ 1.4\\};
+    \addlegendentry{geradas}
+    \addplot[ycomb, DiscBlue, line width=0.8pt, mark=triangle*, mark size=1.7pt]
+      table[row sep=\\, x expr=\thisrow{z}+7, y expr=0.42]
+      {z\\ -1.4\\ -0.8\\ -0.5\\ -0.1\\ 0.1\\ 0.4\\ 0.6\\ 0.9\\ 1.3\\ 1.9\\};
+    \addlegendentry{reais}
+  \end{axis}
+}
+
+% Single panel (a), theta = 3.0
+\newcommand{\gantoysinglefigure}{%
+  \begin{tikzpicture}
+    \gantoypanel{3.0}{$\theta = 3.0$}{
+      width=6.6cm, height=5.0cm,
+      ylabel={$\Pr(\text{real})$}}
+  \end{tikzpicture}%
+}
+
+% Three panels side by side
+\newcommand{\gantoypanelsfigure}{%
+  \begin{tikzpicture}
+    \gantoypanel{3.0}{a) $\theta = 3.0$}{name=pa, ylabel={$\Pr(\text{real})$}}
+    \gantoypanel{4.9}{b) $\theta = 4.9$}{name=pb, at={(pa.south east)},
+      anchor=south west, xshift=0.55cm, yticklabels={}}
+    \gantoypanel{6.7}{c) $\theta = 6.7$}{name=pc, at={(pb.south east)},
+      anchor=south west, xshift=0.55cm, yticklabels={}}
+  \end{tikzpicture}%
+}
+
+%------------------------------------------------------------------------
+%   Figure 3: vanishing generator gradient (schematic, log scale)
+%   y is plotted directly as log10 of the gradient norm.
+%------------------------------------------------------------------------
+\newcommand{\vanishinggradientfigure}{%
+\begin{tikzpicture}[font=\small]
+  \pgfmathsetseed{2017}
+  \begin{axis}[
+      width=6.6cm, height=5.0cm,
+      axis lines=left,
+      xmin=0, xmax=4000, ymin=-8, ymax=1,
+      xtick={0,1000,2000,3000,4000},
+      xticklabels={0,,2000,,4000},
+      ytick={-8,-6,-4,-2,0},
+      yticklabel={$10^{\pgfmathprintnumber{\tick}}$},
+      tick label style={font=\scriptsize},
+      xlabel={Iterações de treino do discriminador},
+      ylabel={$\|\nabla_{\thetav} L\|$ no gerador},
+      label style={font=\footnotesize},
+      legend style={
+        at={(0.5,-0.30)}, anchor=north, font=\small,
+        draw=none, fill=none, row sep=0.1em},
+      legend image post style={line width=1.4pt},
+      legend cell align=left,
+    ]
+    \addplot[gray!75, line width=0.35pt, samples=400, domain=0:4000]
+      {0.6 - 0.95*ln(1+x/150) + 0.40*rand};
+    \addlegendentry{gerador congelado após 1 época}
+    \addplot[GenRed!85, line width=0.35pt, samples=400, domain=0:4000]
+      {0.25 - 0.85*ln(1+x/150) + 0.45*rand};
+    \addlegendentry{gerador congelado após 10 épocas}
+    \addplot[DiscBlue!80, line width=0.35pt, samples=400, domain=0:4000]
+      {-3.2 - 0.55*ln(1+x/150) + 0.65*rand};
+    \addlegendentry{gerador congelado após 25 épocas}
+  \end{axis}
+\end{tikzpicture}%
+}
+
+%------------------------------------------------------------------------
+%   Figure 4: GAN discriminator vs. WGAN critic on disjoint supports
+%------------------------------------------------------------------------
+\newcommand{\wgangradientsfigure}{%
+\begin{tikzpicture}[font=\small]
+  \pgfmathsetseed{1701}
+  \begin{axis}[
+      width=7.6cm, height=5.8cm,
+      axis lines=left,
+      xmin=-8, xmax=8, ymin=-0.45, ymax=1.08,
+      xtick={-8,-4,0,4,8}, ytick={-0.4,0,0.4,0.8},
+      tick label style={font=\scriptsize},
+      xlabel={$x$}, label style={font=\footnotesize},
+      legend style={
+        at={(0.97,0.88)}, anchor=north east, font=\tiny,
+        draw=gray!40, fill=white, row sep=-0.2em},
+      legend cell align=left,
+      clip=false,
+    ]
+    \draw[gray!40, thin] (axis cs:-8,0) -- (axis cs:8,0);
+    \addplot[DiscBlue, thick, samples=160, domain=-8:8]
+      {0.3989*exp(-(x+5)^2/2)};
+    \addlegendentry{densidade real $P$}
+    \addplot[GenRed, thick, samples=160, domain=-8:8]
+      {0.3989*exp(-(x-5)^2/2)};
+    \addlegendentry{densidade gerada $P^{*}$}
+    \addplot[black!75, thick, dashed, samples=300, domain=-8:8]
+      {1/(1+exp(9*x))};
+    \addlegendentry{discriminador GAN $\sigma(f)$}
+    \addplot[MediumGreen!80!black, thick, samples=2, domain=-8:8]
+      {-0.4 + 0.70*(x+8)/16};
+    \addlegendentry{crítico WGAN $f$}
+    % amostras
+    \addplot[only marks, mark=*, mark size=0.55pt, DiscBlue, forget plot,
+             domain=0:1, samples=70]
+      ({-5+1.6*rand},{0.012*rand});
+    \addplot[only marks, mark=*, mark size=0.55pt, GenRed, forget plot,
+             domain=0:1, samples=70]
+      ({5+1.6*rand},{0.012*rand});
+    % anotações
+    \node[MediumGreen!70!black, font=\scriptsize, align=center]
+      at (axis cs:-6.0,-0.14) {gradientes lineares\\no WGAN};
+    \draw[->, gray, >={Stealth[length=3pt]}]
+      (axis cs:-4.3,-0.17) -- (axis cs:-3.3,-0.19);
+    \node[black!75, font=\scriptsize, align=center]
+      at (axis cs:5.0,-0.27) {gradientes nulos\\na GAN comum};
+    \draw[->, gray, >={Stealth[length=3pt]}]
+      (axis cs:5.0,-0.17) -- (axis cs:5.0,-0.03);
+  \end{axis}
+\end{tikzpicture}%
+}
+
+%------------------------------------------------------------------------
+%   Figure 5: progressive growing (rows a-c: network grows; row d: the
+%   same image at increasing resolution)
+%------------------------------------------------------------------------
+\newcommand{\progressivegrowingfigure}{%
+\begin{tikzpicture}[font=\small, >={Stealth[length=3.5pt]}]
+  \tikzset{dim/.style={font=\footnotesize, anchor=south},
+           xin/.style={midway, above=-1.5pt, font=\scriptsize}}
+  % ---- row a: 4x4 ----
+  \begin{scope}[shift={(0,3.8)}]
+    \node[anchor=east] at (-0.1,0.2) {a)};
+    \featmap{2.95}{0}{0.4}{0.07}{0.07}{GenRed}
+    \featmap{3.45}{0}{0.4}{0.35}{0.3}{GenRed}
+    \featmap{3.9}{0}{0.4}{0.35}{0.3}{GenRed}
+    \imageslab{4.45}{0}{0.35}{0.05}{slides/img/05-geradores/dcgan-cat-04.png}
+    \node[dim] at (3.9,0.6) {$4{\times}4{\times}512$};
+    \draw[->] (4.9,0.17) -- (5.3,0.17);
+    \featmap{5.4}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{5.85}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{6.35}{0}{0.4}{0.07}{0.07}{DiscBlue}
+    \fill[DiscBlue!75, draw=DiscBlue!65!black] (6.9,0) rectangle ++(0.1,0.1);
+  \end{scope}
+  % ---- row b: 4x4 -> 8x8 ----
+  \begin{scope}[shift={(0,2.3)}]
+    \node[anchor=east] at (-0.1,0.3) {b)};
+    \featmap{1.6}{0}{0.4}{0.07}{0.07}{GenRed}
+    \featmap{2.1}{0}{0.4}{0.35}{0.3}{GenRed}
+    \featmap{2.55}{0}{0.4}{0.35}{0.3}{GenRed}
+    \featmap{3.05}{0}{0.45}{0.6}{0.45}{GenRed}
+    \featmap{3.55}{0}{0.45}{0.6}{0.45}{GenRed}
+    \imageslab{4.2}{0}{0.6}{0.05}{slides/img/05-geradores/dcgan-cat-08.png}
+    \node[dim] at (3.6,0.93) {$8{\times}8{\times}512$};
+    \draw[->] (4.9,0.3) -- (5.3,0.3);
+    \featmap{5.4}{0}{0.45}{0.6}{0.45}{DiscBlue}
+    \featmap{5.9}{0}{0.45}{0.6}{0.45}{DiscBlue}
+    \featmap{6.5}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{6.95}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{7.45}{0}{0.4}{0.07}{0.07}{DiscBlue}
+    \fill[DiscBlue!75, draw=DiscBlue!65!black] (8.0,0) rectangle ++(0.1,0.1);
+  \end{scope}
+  % ---- row c: 4x4 -> 8x8 -> 16x16 ----
+  \begin{scope}[shift={(0,0.55)}]
+    \node[anchor=east] at (-0.1,0.45) {c)};
+    \featmap{0.0}{0}{0.4}{0.07}{0.07}{GenRed}
+    \featmap{0.5}{0}{0.4}{0.35}{0.3}{GenRed}
+    \featmap{0.95}{0}{0.4}{0.35}{0.3}{GenRed}
+    \featmap{1.5}{0}{0.45}{0.6}{0.45}{GenRed}
+    \featmap{2.0}{0}{0.45}{0.6}{0.45}{GenRed}
+    \featmap{2.6}{0}{0.5}{0.95}{0.6}{GenRed}
+    \featmap{3.2}{0}{0.5}{0.95}{0.6}{GenRed}
+    \imageslab{3.85}{0}{0.95}{0.05}{slides/img/05-geradores/dcgan-cat-16.png}
+    \node[font=\footnotesize, anchor=north] at (0.2,-0.06) {$1{\times}1{\times}512$};
+    \node[dim] at (0.95,0.6) {$4{\times}4{\times}512$};
+    \node[dim] at (2.0,0.93) {$8{\times}8{\times}512$};
+    \node[dim] at (3.15,1.35) {$16{\times}16{\times}512$};
+    \draw[->] (4.9,0.47) -- (5.3,0.47)
+      node[midway, below=-1pt, font=\tiny] {$\mathbf{x}$ ou $\mathbf{x}^{*}$};
+    \featmap{5.4}{0}{0.5}{0.95}{0.6}{DiscBlue}
+    \featmap{6.0}{0}{0.5}{0.95}{0.6}{DiscBlue}
+    \featmap{6.65}{0}{0.45}{0.6}{0.45}{DiscBlue}
+    \featmap{7.15}{0}{0.45}{0.6}{0.45}{DiscBlue}
+    \featmap{7.75}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{8.2}{0}{0.4}{0.35}{0.3}{DiscBlue}
+    \featmap{8.7}{0}{0.4}{0.07}{0.07}{DiscBlue}
+    \fill[DiscBlue!75, draw=DiscBlue!65!black] (9.25,0) rectangle ++(0.1,0.1);
+    \node[dim, DiscBlue] at (9.3,0.2) {$\Pr(\text{real})$};
+  \end{scope}
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}]
+    (0,0.1) -- (4.8,0.1) node[midway, below=5pt, font=\footnotesize] {Gerador};
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}]
+    (5.4,0.1) -- (9.4,0.1) node[midway, below=5pt, font=\footnotesize] {Discriminador};
+  % ---- row d: same image at increasing resolution ----
+  \begin{scope}[shift={(0,-1.95)}]
+    \node[anchor=east] at (-0.1,0.6) {d)};
+    \flatimage{0.0}{0}{0.4}{slides/img/05-geradores/dcgan-cat-04.png}
+    \node[font=\tiny, anchor=north] at (0.2,-0.05) {$4{\times}4$};
+    \flatimage{0.6}{0}{0.5}{slides/img/05-geradores/dcgan-cat-08.png}
+    \node[font=\tiny, anchor=north] at (0.85,-0.05) {$8{\times}8$};
+    \flatimage{1.3}{0}{0.65}{slides/img/05-geradores/dcgan-cat-16.png}
+    \node[font=\tiny, anchor=north] at (1.625,-0.05) {$16{\times}16$};
+    \flatimage{2.15}{0}{0.85}{slides/img/05-geradores/dcgan-cat-32.png}
+    \node[font=\tiny, anchor=north] at (2.575,-0.05) {$32{\times}32$};
+    \node[font=\normalsize] at (3.45,0.5) {$\cdots$};
+    \flatimage{3.75}{0}{1.2}{slides/img/05-geradores/dcgan-cat.jpg}
+    \node[font=\tiny, anchor=north] at (4.35,-0.05) {$1024{\times}1024$};
+    \node[font=\footnotesize, align=left, anchor=west] at (5.4,0.6)
+      {A camada nova entra com peso\\crescente (\emph{fade-in}), para\\não
+       perturbar o que já foi aprendido.};
+  \end{scope}
+\end{tikzpicture}%
+}
