@@ -86,7 +86,7 @@ jobs:
           echo ""
           echo "=== find+grep output (what compilation step sees) ==="
           find problems/ slides/ -name '*.tex' -print0 \
-            | xargs -0 grep -l '\\documentclass' | sort
+            | xargs -0 grep -l '^[^%]*\\documentclass' | sort
           echo "EXIT: $?"
           echo ""
           echo "=== locale ==="
@@ -151,7 +151,7 @@ jobs:
               SUMMARY_ROWS="${SUMMARY_ROWS}| \`${texfile}\` | Compilation error |"$'\n'
             fi
           done 3< <(find problems/ slides/ exams/ projects/ -name '*.tex' -print0 \
-                    | xargs -0 grep -l '\\documentclass' \
+                    | xargs -0 grep -l '^[^%]*\\documentclass' \
                     | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
                     | grep -Ev '_gabarito\.tex$')
 
@@ -221,7 +221,7 @@ jobs:
 
             # Locate the .tex source whose filename (without path) matches the log.
             texfile=$(find problems/ slides/ exams/ projects/ -name '*.tex' -print0 \
-              | xargs -0 grep -l '\\documentclass' \
+              | xargs -0 grep -l '^[^%]*\\documentclass' \
               | grep -Ev 'slides/(deprecated/|teste\.tex|testetikz\.tex)' \
               | grep -Ev '_gabarito\.tex$' \
               | awk -F/ -v name="${basename_only}.tex" '$NF == name {print; exit}')
