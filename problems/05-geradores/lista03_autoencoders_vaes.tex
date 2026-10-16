@@ -100,7 +100,7 @@
     % ------------------------------------------------------------------
     % Q8 — Medium (posterior collapse identification)
     % ------------------------------------------------------------------
-    \item Após treinar um VAE com \textit{decoder} muito expressivo, observa-se que $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$ tende a zero para todas as entradas, enquanto o erro de reconstrução do \textit{decoder} permanece elevado. O que esse padrão indica?
+    \item Após treinar um VAE com \textit{decoder} expressivo, observa-se que $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$ tende a zero para todas as entradas, enquanto o erro de reconstrução do \textit{decoder} permanece elevado. O que esse padrão indica?
     \begin{enumerate}[(a)]
         \item A taxa de aprendizado está alta demais e o gradiente do termo KL está dominando o gradiente da reconstrução.
         \item O ruído $\boldsymbol{\epsilon}^{*}$ do \textit{reparametrization trick} não está sendo amostrado de forma independente para cada exemplo.
@@ -189,7 +189,7 @@
 
     \textbf{III.} No termo $\tfrac{1}{2}(\mathrm{Tr}[\boldsymbol{\Sigma}] + \boldsymbol{\mu}^{\top}\boldsymbol{\mu} - D_z - \log\det\boldsymbol{\Sigma})$, a parcela $-\log\det\boldsymbol{\Sigma}$ cresce sem limite quando a variância do posterior tende a zero, penalizando o colapso do posterior a uma massa pontual.
 
-    \textbf{IV.} Um autoencoder determinístico comum pode gerar novas amostras simplesmente amostrando $\mathbf{z} \sim \mathcal{N}(0,\mathbf{I})$ e passando pelo \textit{decoder}, pois seu espaço latente já é gaussiano.
+    \textbf{IV.} Um autoencoder determinístico comum pode gerar novas amostras amostrando $\mathbf{z} \sim \mathcal{N}(0,\mathbf{I})$ e passando pelo \textit{decoder}, pois seu espaço latente já é gaussiano.
 
     {\sloppy \textbf{V.} A ELBO é um limite \emph{superior} de $\log p(\mathbf{x}|\thetav)$, e a diferença para $\log p(\mathbf{x}|\thetav)$ é $D_{KL}[q(\mathbf{z}|\mathbf{x},\phi)\,\|\,p(\mathbf{z}|\mathbf{x},\thetav)]$.\par}
 
@@ -290,7 +290,7 @@
     \item Considere um VAE treinado em MNIST cuja loss de treino apresenta o seguinte comportamento ao longo das épocas: o termo $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$ cai rapidamente para perto de zero, enquanto o termo de reconstrução estagna em um valor alto. As amostras geradas a partir de $\mathbf{z}^{*} \sim p(\mathbf{z})$ resultam em imagens de aparência média, com pouca variação entre amostras distintas.
     \begin{enumerate}[(a)]
         \item Nomeie o fenômeno observado e explique o que ele significa em termos da informação que o latente $\mathbf{z}$ carrega sobre $\mathbf{x}$.
-        \item Por que esse fenômeno é especialmente comum quando o \textit{decoder} é muito expressivo (por exemplo, autoregressivo)?
+        \item Por que esse fenômeno é comum quando o \textit{decoder} é expressivo (por exemplo, autoregressivo)?
         \item Cite uma estratégia conhecida para mitigar o problema e explique, em uma frase, como ela age sobre o ELBO.
     \end{enumerate}
 
@@ -356,7 +356,7 @@
     \item Diagnóstico do treino.
     \begin{enumerate}[(a)]
         \item O fenômeno é o \emph{posterior collapse}: o \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} para qualquer $\mathbf{x}$, de modo que o latente $\mathbf{z}$ deixa de carregar informação sobre a entrada. A consequência é que amostras geradas a partir do \textit{prior} se concentram em torno de uma reconstrução média, com pouca diversidade.
-        \item Quando o \textit{decoder} é poderoso o bastante para modelar $p(\mathbf{x} \mid \mathbf{z}, \thetav)$ ignorando $\mathbf{z}$ (por exemplo, modelos autoregressivos sobre os \textit{pixels}), o otimizador encontra um ótimo barato em zerar o termo KL: a contribuição de $\mathbf{z}$ para o ELBO fica marginal e o gradiente empurra $q$ na direção de $p(\mathbf{z})$.
+        \item Quando o \textit{decoder} consegue modelar $p(\mathbf{x} \mid \mathbf{z}, \thetav)$ ignorando $\mathbf{z}$ (por exemplo, modelos autoregressivos sobre os \textit{pixels}), o otimizador encontra um ótimo barato em zerar o termo KL: a contribuição de $\mathbf{z}$ para o ELBO fica marginal e o gradiente empurra $q$ na direção de $p(\mathbf{z})$.
         \item Estratégias comuns incluem \textit{KL annealing} (introduzir o termo KL gradualmente, começando com peso baixo) e \textit{free bits} (não penalizar a KL abaixo de um limiar por dimensão do latente). Ambas reduzem a pressão do termo de regularização nas fases iniciais, permitindo que o \textit{decoder} aprenda a usar $\mathbf{z}$ antes que o KL force o colapso.
     \end{enumerate}
 

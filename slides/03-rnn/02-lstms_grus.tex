@@ -6,6 +6,7 @@
 
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
+\usetikzlibrary{fit,backgrounds}
 
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
@@ -31,58 +32,97 @@
     rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
     inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
     outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
-    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\scriptsize, inner sep=2pt},
-    pw/.style={draw, circle, fill=PastelPink, minimum size=0.5cm, inner sep=1pt, font=\scriptsize},
-    pwt/.style={draw, ellipse, fill=PastelPink, inner sep=1.5pt, font=\scriptsize},
-    addop/.style={draw, circle, fill=white, minimum size=0.5cm, inner sep=1pt, font=\scriptsize},
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\small, inner sep=2pt},
+    pw/.style={draw, circle, fill=PastelPink, minimum size=0.55cm, inner sep=1pt, font=\normalsize},
+    pwt/.style={draw, ellipse, fill=PastelPink, inner sep=1.5pt, font=\normalsize},
+    addop/.style={draw, circle, fill=white, minimum size=0.55cm, inner sep=1pt, font=\normalsize},
+    gate/.style={opnode, font=\normalsize, minimum width=0.55cm, minimum height=0.45cm},
     junc/.style={circle, fill=black, inner sep=0pt, minimum size=2.4pt}
 }
 
-% Diagrama (reutilizável) da célula LSTM no estilo Colah. Usar dentro de um
-% tikzpicture; cada slide pode desenhar destaques vermelhos por cima,
-% referenciando os nós criados aqui (f, i, g, o, fmul, add, imul, omul, ctanh,
-% xin, hbubble) e as coordenadas das linhas (cWest, cEast, hWest, hEast).
+% Desenha uma célula recorrente vanilla com as operações internas (mesma macro
+% do deck 01). Os nós internos são posicionados em relação ao nó "+" e a caixa
+% da célula se ajusta ao conteúdo (biblioteca fit), com margem igual em todos
+% os lados. Argumentos:
+%   #1 sufixo dos nomes dos nós, pode ser vazio    #2 posição x do centro
+%   #3 rótulo da operação x·θ_ih      #4 rótulo da operação h·θ_hh
+%   #5 rótulo da operação h·θ_ho      #6 rótulo do nó de entrada
+%   #7 rótulo do nó de saída          #8 rótulo ŷ ao lado do nó de saída (ou vazio)
+\newcommand{\rnncellgraph}[8]{%
+    \node[draw, circle, inner sep=1pt, fill=white] (plus#1) at (#2, 0) {$+$};
+    \node[opnode, minimum width=1.45cm, left=0.3cm of plus#1] (hh#1) {#4};
+    \node[opnode, minimum width=1.45cm, right=0.3cm of plus#1] (tanh#1) {$\tanh$};
+    \node[opnode, below=0.4cm of plus#1] (xh#1) {#3};
+    \node[opnode, fill=PastelPink, above=0.4cm of plus#1] (out#1) {#5};
+    \begin{scope}[on background layer]
+        \node[rnncell, fit=(hh#1)(tanh#1)(xh#1)(out#1), inner sep=0.25cm] (cell#1) {};
+    \end{scope}
+    \node[inputnode] (xnode#1) at ($(plus#1 |- cell#1.south) + (0, -0.85)$) {#6};
+    \node[outputnode, minimum size=0.85cm] (ynode#1) at ($(plus#1 |- cell#1.north) + (0, 0.95)$) {#7};
+    \ifx\relax#8\relax\else
+        \node[font=\footnotesize, anchor=south west, inner sep=1pt] at (ynode#1.north east) {#8};
+    \fi
+    \draw[->] (xnode#1) -- (xh#1);
+    \draw[->] (xh#1) -- (plus#1);
+    \draw[->] (hh#1) -- (plus#1);
+    \draw[->] (plus#1) -- (tanh#1);
+    \draw[->] (tanh#1) |- (out#1);
+    \draw[->] (out#1) -- (ynode#1);
+}
+
+% Diagrama (reutilizável) da célula LSTM no estilo Colah. Os nós ficam numa
+% grade compacta e o corpo da célula se ajusta a eles (biblioteca fit), com
+% margem igual em todos os lados; as pontas das linhas e os nós externos são
+% posicionados em relação ao corpo. Usar dentro de um tikzpicture; cada slide
+% pode desenhar destaques vermelhos por cima, referenciando os nós (f, i, g, o,
+% fmul, add, imul, omul, ctanh, xin, hbubble) e as coordenadas (cWest, cEast,
+% hWest, hEast, catM, catH, catX, xcol, ctap, hsplit, jf, ji, jg).
 \newcommand{\lstmcell}{%
-    % corpo da célula
-    \node[rnncell, fill=PastelGreen, minimum width=8.2cm, minimum height=4.2cm] (body) at (3.4, 0.45) {};
-    % coordenadas das duas linhas horizontais (prolongadas para fora do bloco)
-    \coordinate (cWest) at (-1.6,1.9);
-    \coordinate (cEast) at (8.4,1.9);
-    \coordinate (hWest) at (-1.6,-0.85);
-    \coordinate (hEast) at (8.4,-1.0);
     % portas (camadas densas)
-    \node[opnode] (f) at (1.0,0.15) {$\sigma$};
-    \node[opnode] (i) at (2.2,0.15) {$\sigma$};
-    \node[opnode] (g) at (3.4,0.15) {$\tanh$};
-    % a porta de saída o fica sobre a linha inferior de h, alinhada com a omul
-    \node[opnode] (o) at (4.8,-1.0) {$\sigma$};
+    \node[gate] (f) at (0, 0) {$\sigma$};
+    \node[gate] (i) at (1.1, 0) {$\sigma$};
+    \node[gate] (g) at (2.1, 0) {$\tanh$};
+    \node[gate] (o) at (2.75, -0.9) {$\sigma$};
     % operações ponto a ponto
-    \node[pw]    (fmul)  at (1.0,1.9) {$\times$};
-    \node[addop] (add)   at (2.8,1.9) {$+$};
-    \node[pw]    (imul)  at (2.8,0.95) {$\times$};
-    \node[pwt]   (ctanh) at (6.0,1.15) {$\tanh$};
-    \node[pw]    (omul)  at (6.0,-1.0) {$\times$};
+    \node[pw]    (fmul)  at (0, 1.5) {$\times$};
+    \node[addop] (add)   at (1.6, 1.5) {$+$};
+    \node[pw]    (imul)  at (1.6, 0.85) {$\times$};
+    \node[pwt]   (ctanh) at (3.8, 0.6) {$\tanh$};
+    \node[pw]    (omul)  at (3.8, -0.9) {$\times$};
+    \coordinate (ctap)   at (3.8, 1.5);
+    \coordinate (hsplit) at (4.4, -0.9);
+    % concatenação [h_{t-1}, x_t]: h chega pela esquerda, x por baixo
+    \coordinate (catM) at (-0.7, -0.9);
+    \coordinate (catH) at (-1.0, -0.75);
+    \coordinate (catX) at (-1.0, -1.05);
+    \coordinate (xcol) at (-1.2, -1.05);
+    % corpo da célula ajustado ao conteúdo
+    \begin{scope}[on background layer]
+        \node[rnncell, fit=(fmul)(add)(ctanh)(f)(i)(g)(o)(omul)(imul)(hsplit)(catH)(catX)(xcol), inner sep=0.3cm] (body) {};
+    \end{scope}
+    % pontas externas das linhas de c e h
+    \coordinate (cWest) at ($(body.west |- fmul) + (-0.9, 0)$);
+    \coordinate (cEast) at ($(body.east |- add) + (0.9, 0)$);
+    \coordinate (hWest) at ($(body.west |- catH) + (-0.9, 0)$);
+    \coordinate (hEast) at ($(body.east |- hsplit) + (0.9, 0)$);
     % entradas / saídas externas
-    \node[inputnode]  (xin)     at (0.3,-2.5) {$\mathbf{x}_t$};
-    \node[outputnode] (hbubble) at (6.6,3.2)  {$\mathbf{h}_t$};
+    \node[inputnode]  (xin)     at ($(xcol |- body.south) + (0, -0.7)$) {$\mathbf{x}_t$};
+    \node[outputnode] (hbubble) at ($(hsplit |- body.north) + (0, 0.7)$) {$\mathbf{h}_t$};
     % ---- linha do estado de célula c (superior) ----
-    \draw[->] (cWest) -- (fmul.west) node[midway, above, font=\tiny] {$\mathbf{c}_{t-1}$};
+    \draw[->] (cWest) -- (fmul.west) node[pos=0.22, above, font=\small] {$\mathbf{c}_{t-1}$};
     \draw[->] (fmul.east) -- (add.west);
-    \draw[->] (add.east) -- (cEast) node[near end, above, font=\tiny] {$\mathbf{c}_t$};
-    \node[junc] (ctap) at (6.0,1.9) {};
+    \draw[->] (add.east) -- (cEast) node[pos=0.9, above, font=\small] {$\mathbf{c}_t$};
+    \node[junc] at (ctap) {};
     \draw[->] (ctap) -- (ctanh.north);
-    % ---- entrada concatenada [h_{t-1}, x_t] que alimenta apenas as portas ----
-    % h_{t-1} e x_t convergem num símbolo de concatenação. A linha inferior corre
-    % reta da esquerda até a porta de saída; o que sai à direita é h_t (produzido
-    % pela porta de saída), não o h_{t-1} de entrada.
-    \coordinate (catM) at (0.8,-1.0);
-    \draw (hWest) -- (0.5,-0.85) -- (catM);
-    \node[below, font=\tiny] at (-0.85,-0.85) {$\mathbf{h}_{t-1}$};
-    \draw (xin.north) -- (0.3,-1.15) -- (0.5,-1.15) -- (catM);
+    % ---- entrada concatenada [h_{t-1}, x_t] ----
+    \draw (hWest) -- (catH) -- (catM);
+    \node[below, font=\small] at ($(hWest)!0.35!(catH)$) {$\mathbf{h}_{t-1}$};
+    \draw (xin.north) -- (xcol) -- (catX) -- (catM);
     % barramento concatenado: sobe para f, i e g e segue reto até a porta o
-    \foreach \n/\x in {f/1.0, i/2.2, g/3.4}{
-        \node[junc] at (\x,-1.0) {};
-        \draw[->] (\x,-1.0) -- (\n.south);
+    \foreach \n in {f, i, g}{
+        \coordinate (j\n) at (\n |- catM);
+        \node[junc] at (j\n) {};
+        \draw[->] (j\n) -- (\n.south);
     }
     \draw[->] (catM) -- (o.west);
     % saídas das portas para as operações ponto a ponto
@@ -93,17 +133,15 @@
     \draw[->] (o.east) -- (omul.west);
     \draw[->] (ctanh.south) -- (omul.north);
     % rótulos das portas
-    \node[font=\tiny] at (1.28,0.66) {$\mathbf{f}_t$};
-    \node[font=\tiny] at (2.46,0.62) {$\mathbf{i}_t$};
-    \node[font=\tiny] at (3.70,0.62) {$\tilde{\mathbf{c}}_t$};
-    \node[font=\tiny] at (5.4,-0.74) {$\mathbf{o}_t$};
-    % saída h_t produzida pela porta de saída: a linha sai reta da omul ao longo
-    % da linha inferior e se divide num ponto, subindo para a bolha h_t e
-    % seguindo reto para a saída à direita
-    \node[junc] (hsplit) at (6.6,-1.0) {};
+    \node[font=\small, right] at ($(f.north)!0.5!(fmul.south) + (0.05, 0)$) {$\mathbf{f}_t$};
+    \node[font=\small, right] at ($(i.north) + (0.05, 0.2)$) {$\mathbf{i}_t$};
+    \node[font=\small, right] at ($(g.north) + (0.05, 0.2)$) {$\tilde{\mathbf{c}}_t$};
+    \node[font=\small, above] at ($(o.east)!0.5!(omul.west)$) {$\mathbf{o}_t$};
+    % saída h_t: segue da omul e se divide em hsplit (sobe para a bolha e segue à direita)
+    \node[junc] at (hsplit) {};
     \draw[->] (omul.east) -- (hsplit);
     \draw[->] (hsplit) -- (hbubble.south);
-    \draw[->] (hsplit) -- (hEast) node[near end, below, font=\tiny] {$\mathbf{h}_t$};
+    \draw[->] (hsplit) -- (hEast) node[near end, below, font=\small] {$\mathbf{h}_t$};
 }
 
 % destaques vermelhos por porta, desenhados sobre \lstmcell
@@ -111,39 +149,39 @@
 
 % destaque vermelho da entrada concatenada [h_{t-1}, x_t]
 \newcommand{\hlcat}{%
-    \draw[hl] (hWest) -- (0.5,-0.85) -- (catM);
-    \draw[hl] (xin.north) -- (0.3,-1.15) -- (0.5,-1.15) -- (catM);
+    \draw[hl] (hWest) -- (catH) -- (catM);
+    \draw[hl] (xin.north) -- (xcol) -- (catX) -- (catM);
 }
 
 \newcommand{\hlforget}{%
     \hlcat
-    \draw[hl] (catM) -- (1.0,-1.0);
-    \draw[hl, ->] (1.0,-1.0) -- (f.south);
+    \draw[hl] (catM) -- (jf);
+    \draw[hl, ->] (jf) -- (f.south);
     \draw[hl, ->] (cWest) -- (fmul.west);
     \draw[hl, ->] (f.north) -- (fmul.south);
-    \node[opnode, draw=red, line width=1pt] at (1.0,0.15) {$\sigma$};
-    \node[pw, draw=red, line width=1pt] at (1.0,1.9) {$\times$};
+    \node[gate, draw=red, line width=1pt] at (f) {$\sigma$};
+    \node[pw, draw=red, line width=1pt] at (fmul) {$\times$};
 }
 
 \newcommand{\hlinput}{%
     \hlcat
-    \draw[hl] (catM) -- (3.4,-1.0);
-    \draw[hl, ->] (2.2,-1.0) -- (i.south);
-    \draw[hl, ->] (3.4,-1.0) -- (g.south);
+    \draw[hl] (catM) -- (jg);
+    \draw[hl, ->] (ji) -- (i.south);
+    \draw[hl, ->] (jg) -- (g.south);
     \draw[hl, ->] (i.north) |- (imul.west);
     \draw[hl, ->] (g.north) |- (imul.east);
     \draw[hl, ->] (imul.north) -- (add.south);
-    \node[opnode, draw=red, line width=1pt] at (2.2,0.15) {$\sigma$};
-    \node[opnode, draw=red, line width=1pt] at (3.4,0.15) {$\tanh$};
-    \node[pw, draw=red, line width=1pt] at (2.8,0.95) {$\times$};
+    \node[gate, draw=red, line width=1pt] at (i) {$\sigma$};
+    \node[gate, draw=red, line width=1pt] at (g) {$\tanh$};
+    \node[pw, draw=red, line width=1pt] at (imul) {$\times$};
 }
 
 \newcommand{\hlmemory}{%
     \draw[hl, ->] (cWest) -- (fmul.west);
     \draw[hl, ->] (fmul.east) -- (add.west);
     \draw[hl, ->] (add.east) -- (cEast);
-    \node[pw, draw=red, line width=1pt]    at (1.0,1.9) {$\times$};
-    \node[addop, draw=red, line width=1pt] at (2.8,1.9) {$+$};
+    \node[pw, draw=red, line width=1pt]    at (fmul) {$\times$};
+    \node[addop, draw=red, line width=1pt] at (add) {$+$};
 }
 
 \newcommand{\hloutput}{%
@@ -155,62 +193,74 @@
     \draw[hl, ->] (omul.east) -- (hsplit);
     \draw[hl, ->] (hsplit) -- (hbubble.south);
     \draw[hl, ->] (hsplit) -- (hEast);
-    \node[opnode, draw=red, line width=1pt] at (4.8,-1.0) {$\sigma$};
-    \node[pwt, draw=red, line width=1pt] at (6.0,1.15) {$\tanh$};
-    \node[pw, draw=red, line width=1pt] at (6.0,-1.0) {$\times$};
-    \node[outputnode, draw=red, line width=1pt] at (6.6,3.2) {$\mathbf{h}_t$};
+    \node[gate, draw=red, line width=1pt] at (o) {$\sigma$};
+    \node[pwt, draw=red, line width=1pt] at (ctanh) {$\tanh$};
+    \node[pw, draw=red, line width=1pt] at (omul) {$\times$};
+    \node[outputnode, draw=red, line width=1pt] at (hbubble) {$\mathbf{h}_t$};
 }
 
-% Diagrama (reutilizável) da célula GRU no estilo Colah, consistente com \lstmcell:
-% linha superior conduz o estado h, as portas são alimentadas pela entrada
-% concatenada [h_{t-1}, x_t], e a saída h_t sai por uma única linha que se divide.
+% Diagrama (reutilizável) da célula GRU, construído da mesma forma que
+% \lstmcell: linha superior conduz o estado h, as portas são alimentadas pela
+% entrada concatenada [h_{t-1}, x_t], e a saída h_t sai por uma única linha
+% que se divide. Os nomes das portas ficam no texto do slide; no diagrama
+% aparecem apenas r_t, z_t e o candidato.
 \newcommand{\grucell}{%
-    % corpo da célula
-    \node[rnncell, fill=PastelGreen, minimum width=7.7cm, minimum height=4.6cm] (gbody) at (3.35,0.3) {};
-    \coordinate (ghW) at (-1.7,1.9);
-    \coordinate (ghE) at (8.5,1.9);
     % portas (camadas densas)
-    \node[opnode] (r)  at (1.4,0.0) {$\sigma$};
-    \node[opnode] (z)  at (3.0,0.0) {$\sigma$};
-    \node[opnode] (hc) at (4.4,-0.5) {$\tanh$};
+    \node[gate] (r)  at (1.2, 0) {$\sigma$};
+    \node[gate] (z)  at (2.4, 0) {$\sigma$};
+    \node[gate] (hc) at (3.7, -0.5) {$\tanh$};
     % operações ponto a ponto
-    \node[pw]    (rmul)   at (0.5,0.9) {$\times$};
-    \node[draw, circle, fill=white, minimum size=0.6cm, inner sep=0pt, font=\scriptsize] (onemz) at (3.0,1.0) {$1\!-$};
-    \node[pw]    (zmul)   at (5.7,-0.5) {$\times$};
-    \node[pw]    (topmul) at (3.0,1.9) {$\times$};
-    \node[addop] (add)    at (6.2,1.9) {$+$};
+    \node[pw]    (rmul)   at (0.3, 0.8) {$\times$};
+    \node[draw, circle, fill=white, minimum size=0.6cm, inner sep=0pt, font=\normalsize] (onemz) at (2.4, 1.0) {$1\!-$};
+    \node[pw]    (zmul)   at (4.8, -0.5) {$\times$};
+    \node[pw]    (topmul) at (2.4, 1.8) {$\times$};
+    \node[addop] (add)    at (5.4, 1.8) {$+$};
+    \coordinate (hbr)    at (-0.3, 1.8);
+    \coordinate (hsplit) at (5.9, 1.8);
+    % concatenação [h_{t-1}, x_t]: h desce pela esquerda, x sobe por baixo
+    \coordinate (catM) at (0.7, -0.9);
+    \coordinate (catH) at (0.4, -0.75);
+    \coordinate (catX) at (0.4, -1.05);
+    \coordinate (xcol) at (0.2, -1.05);
+    \coordinate (xlow) at (0.2, -1.5);
+    \coordinate (hcx)  at (3.7, -1.5);
+    % corpo da célula ajustado ao conteúdo
+    \begin{scope}[on background layer]
+        \node[rnncell, fit=(rmul)(topmul)(add)(hsplit)(r)(z)(hc)(zmul)(onemz)(hbr)(catH)(xcol)(xlow)(hcx), inner sep=0.3cm] (gbody) {};
+    \end{scope}
+    \coordinate (ghW) at ($(gbody.west |- hbr) + (-0.9, 0)$);
+    \coordinate (ghE) at ($(gbody.east |- hbr) + (0.9, 0)$);
     % entradas / saídas externas
-    \node[inputnode]  (gxin)    at (0.7,-2.6) {$\mathbf{x}_t$};
-    \node[outputnode] (hbubble) at (6.8,3.0)  {$\mathbf{h}_t$};
+    \node[inputnode]  (gxin)    at ($(xcol |- gbody.south) + (0, -0.7)$) {$\mathbf{x}_t$};
+    \node[outputnode] (hbubble) at ($(hsplit |- gbody.north) + (0, 0.7)$) {$\mathbf{h}_t$};
     % ---- linha do estado h (superior) ----
-    \draw[->] (ghW) -- (topmul.west) node[pos=0.3, above, font=\tiny] {$\mathbf{h}_{t-1}$};
+    \draw[->] (ghW) -- (topmul.west) node[pos=0.15, above, font=\small] {$\mathbf{h}_{t-1}$};
     \draw[->] (topmul.east) -- (add.west);
-    % saída h_t: uma única linha sai da soma e se divide (sobe e segue à direita)
-    \node[junc] (hsplit) at (6.8,1.9) {};
+    \node[junc] at (hsplit) {};
     \draw[->] (add.east) -- (hsplit);
     \draw[->] (hsplit) -- (hbubble.south);
-    \draw[->] (hsplit) -- (ghE) node[near end, above, font=\tiny] {$\mathbf{h}_t$};
-    % ---- distribuição de h_{t-1} ----
-    \node[junc] (hbr) at (0.0,1.9) {};
-    \draw (hbr) -- (0.0,-0.85);
-    \node[junc] at (0.0,0.9) {};
-    \draw[->] (0.0,0.9) -- (rmul.west);
-    % ---- entrada concatenada [h_{t-1}, x_t] que alimenta r e z ----
-    \coordinate (catM) at (0.9,-1.0);
-    \draw (0.0,-0.85) -- (0.6,-0.85) -- (catM);
-    \draw (gxin.north) -- (0.7,-1.15) -- (catM);
-    \draw (catM) -- (3.0,-1.0);
-    \node[junc] at (1.4,-1.0) {}; \draw[->] (1.4,-1.0) -- (r.south);
-    \node[junc] at (3.0,-1.0) {}; \draw[->] (3.0,-1.0) -- (z.south);
-    % ---- x_t também alimenta o candidato ----
-    \node[junc] (gxjh) at (0.7,-1.6) {};
-    \draw (gxjh) -- (4.4,-1.6);
-    \draw[->] (4.4,-1.6) -- (hc.south);
+    \draw[->] (hsplit) -- (ghE) node[near end, above, font=\small] {$\mathbf{h}_t$};
+    % ---- distribuição de h_{t-1}: desce até a concatenação e alimenta a porta de reset ----
+    \node[junc] at (hbr) {};
+    \draw (hbr) -- (hbr |- catH) -- (catH) -- (catM);
+    \node[junc] at (hbr |- rmul) {};
+    \draw[->] (hbr |- rmul) -- (rmul.west);
+    % ---- x_t: entra na concatenação e também alimenta o candidato ----
+    \draw (gxin.north) -- (xcol) -- (catX) -- (catM);
+    \node[junc] at (xlow) {};
+    \draw[->] (xlow) -- (hcx) -- (hc.south);
+    % ---- barramento concatenado alimenta r e z ----
+    \draw (catM) -- (z |- catM);
+    \foreach \n in {r, z}{
+        \node[junc] at (\n |- catM) {};
+        \draw[->] (\n |- catM) -- (\n.south);
+    }
     % ---- porta de reset multiplica h_{t-1} e entra no candidato ----
     \draw[->] (r.north) |- (rmul.east);
-    \draw[->] (rmul.south) -- (0.5,-0.5) -- (hc.west);
+    \draw[->] (rmul.south) |- (hc.west);
     % ---- porta de update: 1-z e os dois multiplicadores ----
-    \node[junc] (gzj) at (3.0,0.4) {};
+    \coordinate (gzj) at ($(z.north) + (0, 0.25)$);
+    \node[junc] at (gzj) {};
     \draw (z.north) -- (gzj);
     \draw[->] (gzj) -- (onemz.south);
     \draw[->] (gzj) -| (zmul.north);
@@ -218,9 +268,9 @@
     \draw[->] (onemz.north) -- (topmul.south);
     \draw[->] (zmul.east) -| (add.south);
     % rótulos das portas
-    \node[font=\tiny, align=center] at (2.15,0.0) {reset gate\\ $\mathbf{r}_t$};
-    \node[font=\tiny, align=center] at (3.85,0.0) {update gate\\ $\mathbf{z}_t$};
-    \node[font=\tiny] at (5.05,-0.22) {$\tilde{\mathbf{h}}_t$};
+    \node[font=\small, right] at ($(r.north) + (0.05, 0.3)$) {$\mathbf{r}_t$};
+    \node[font=\small, right] at ($(z.east) + (0.05, 0)$) {$\mathbf{z}_t$};
+    \node[font=\small, above] at ($(hc.east)!0.5!(zmul.west)$) {$\tilde{\mathbf{h}}_t$};
 }
 
 %----------------------------------------------------------------------------------------
@@ -263,7 +313,7 @@
         \draw[->, thick] (x\i) -- (c\i);
     }
     \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5}{
-        \draw[->, thick] (c\i) -- node[above, font=\tiny] {$h_\i$} (c\j);
+        \draw[->, thick] (c\i) -- node[above, font=\scriptsize] {$h_\i$} (c\j);
     }
     \node at (10.4, 0) {\dots};
     \node[rnncell, minimum width=1.0cm, minimum height=0.8cm] (cn) at (11.6, 0) {};
@@ -271,8 +321,8 @@
     \node[outputnode] (yn) at (11.6, 1.1) {$\hat{y}_n$};
     \draw[->, thick] (xn) -- (cn);
     \draw[->, thick] (cn) -- (yn);
-    \draw[->, thick] (c5) -- node[above, font=\tiny] {$h_5$} (10, 0);
-    \draw[->, thick] (10.8, 0) -- node[above, font=\tiny] {$h_{n-1}$} (cn);
+    \draw[->, thick] (c5) -- node[above, font=\scriptsize] {$h_5$} (10, 0);
+    \draw[->, thick] (10.8, 0) -- node[above, font=\scriptsize] {$h_{n-1}$} (cn);
     \node[font=\scriptsize, text=red] at (0, -1.8) {O};
     \node[font=\scriptsize, text=red] at (1.6, -1.8) {filme};
     \node[font=\scriptsize, text=red] at (3.2, -1.8) {é};
@@ -316,23 +366,10 @@
     \end{column}
     \begin{column}{.45\linewidth}
         \centering
-        \resizebox{0.8\linewidth}{!}{%
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
-            \node[opnode] (xh) at (0, -0.5) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
-            \node[opnode] (hh) at (-1.2, 0.4) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
-            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
-            \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
-            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$\mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o$};
-            \node[inputnode] (xnode) at (0, -2.0) {$\mathbf{x}_t$};
-            \node[outputnode] (ynode) at (0, 2.4) {$\hat{\mathbf{y}}_t$};
-            \draw[->] (xnode) -- (xh);
-            \draw[->] (xh) -- (plus);
-            \draw[->] (hh) -- (plus);
-            \draw[->] (plus) -- (tanh);
-            \draw[->] (tanh) |- (out);
-            \draw[->] (out) -- (ynode);
-            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$\mathbf{h}_t$};
+        \resizebox{0.85\linewidth}{!}{%
+        \begin{tikzpicture}
+            \rnncellgraph{}{0}{$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$}{$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$}{$\mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o$}{$\mathbf{x}_t$}{$\hat{\mathbf{y}}_t$}{}
+            \draw[->] (tanh.east) -- ++(0.8, 0) node[right, font=\small] {$\mathbf{h}_t$};
         \end{tikzpicture}}
     \end{column}
 \end{columns}
@@ -397,7 +434,7 @@
             \item Recebe $[\mathbf{h}_{t-1}, \mathbf{x}_t]$, passa por uma camada densa e por uma \textit{sigmoid}:
         \end{itemize}
         \[
-            \mathbf{f}_t = \sigma\bigl(\mathbf{\Theta}_f\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_f\bigr)
+            \mathbf{f}_t = \sigma\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_f^{T} + \mathbf{b}_f\bigr)
         \]
         \begin{itemize}
             \item $\mathbf{f}_t \in [0,1]$, multiplica $\mathbf{c}_{t-1}$ ponto a ponto.
@@ -427,10 +464,10 @@
             \item Duas camadas trabalham juntas:
         \end{itemize}
         \[
-            \mathbf{i}_t = \sigma\bigl(\mathbf{\Theta}_i\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_i\bigr)
+            \mathbf{i}_t = \sigma\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_i^{T} + \mathbf{b}_i\bigr)
         \]
         \[
-            \tilde{\mathbf{c}}_t = \tanh\bigl(\mathbf{\Theta}_c\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_c\bigr)
+            \tilde{\mathbf{c}}_t = \tanh\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_c^{T} + \mathbf{b}_c\bigr)
         \]
         \begin{itemize}
             \item $\mathbf{i}_t \in [0,1]$ filtra a contribuição.
@@ -495,7 +532,7 @@
     \prod_{k} \mathbf{f}_k
 \]
 \begin{itemize}\footnotesize
-    \item Nesse caminho não há $\tanh'$ repetido nem multiplicação por matrizes, apenas a porta $\mathbf{f}_k$ e uma \textbf{soma}.
+    \item Nesse caminho o gradiente passa apenas pela porta $\mathbf{f}_k$ e por uma \textbf{soma}, sem $\tanh'$ repetido nem multiplicação por matrizes.
     \item Quando o \textit{forget gate} aprende $\mathbf{f}_k \approx 1$, o gradiente é preservado por muitos passos (\textit{constant error carousel}). As demais rotas, pelas \textit{gates}, contribuem com termos menores.
 \end{itemize}
 \end{frame}
@@ -507,7 +544,7 @@
             \item Decide quais partes da memória devem ser \textbf{expostas} no estado oculto:
         \end{itemize}
         \[
-            \mathbf{o}_t = \sigma\bigl(\mathbf{\Theta}_o\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_o\bigr)
+            \mathbf{o}_t = \sigma\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_o^{T} + \mathbf{b}_o\bigr)
         \]
         \[
             \mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)
@@ -532,17 +569,17 @@
 \centering
 \begin{tabular}{l l}
     \toprule
-    \textit{Forget gate}    & $\mathbf{f}_t = \sigma(\mathbf{\Theta}_f\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_f)$ \\
-    \textit{Input gate}     & $\mathbf{i}_t = \sigma(\mathbf{\Theta}_i\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_i)$ \\
-    Candidato $\tilde{\mathbf{c}}_t$ & $\tilde{\mathbf{c}}_t = \tanh(\mathbf{\Theta}_c\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_c)$ \\
+    \textit{Forget gate}    & $\mathbf{f}_t = \sigma([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_f^{T} + \mathbf{b}_f)$ \\
+    \textit{Input gate}     & $\mathbf{i}_t = \sigma([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_i^{T} + \mathbf{b}_i)$ \\
+    Candidato $\tilde{\mathbf{c}}_t$ & $\tilde{\mathbf{c}}_t = \tanh([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_c^{T} + \mathbf{b}_c)$ \\
     Memória $\mathbf{c}_t$           & $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ \\
-    \textit{Output gate}    & $\mathbf{o}_t = \sigma(\mathbf{\Theta}_o\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_o)$ \\
+    \textit{Output gate}    & $\mathbf{o}_t = \sigma([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_o^{T} + \mathbf{b}_o)$ \\
     Estado oculto $\mathbf{h}_t$     & $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$ \\
     \bottomrule
 \end{tabular}
 \vspace{0.6em}
 \begin{itemize}\footnotesize
-    \item Cada peso $\mathbf{\Theta}_\bullet$ é uma matriz que opera sobre o vetor concatenado $[\mathbf{h}_{t-1}, \mathbf{x}_t]$.
+    \item Cada peso $\mathbf{\Theta}_\bullet$ é uma matriz que multiplica o vetor concatenado $[\mathbf{h}_{t-1}, \mathbf{x}_t]$, na mesma convenção $\mathbf{x}\,\mathbf{\Theta}^{T} + \mathbf{b}$ das camadas densas.
     \item Os \textit{bias} $\mathbf{b}_\bullet$ são vetores com a mesma dimensão da saída da \textit{gate}.
     \item Sendo $h_{\text{size}}$ a dimensão do estado oculto e $x_{\text{size}}$ a dimensão da entrada, os \textit{shapes} esperados são:
     \[
@@ -555,14 +592,14 @@
 \begin{columns}
     \begin{column}{.55\linewidth}
         \begin{itemize}\small
-            \item Vamos rodar um passo da LSTM com valores concretos.
+            \item Vamos rodar um passo da LSTM com valores numéricos.
             \item Estado inicial e entrada (escalares para simplificar):
         \end{itemize}
         \[
             c_0 = 0.5 \qquad h_0 = -0.6 \qquad x_0 = 0.8
         \]
         \begin{itemize}\small
-            \item Pesos das quatro camadas densas, cada $\theta_\bullet = [\theta_h, \theta_x]$ multiplica $[h_{t-1}, x_t]^T$:
+            \item Pesos das quatro camadas densas, cada $\theta_\bullet = [\theta_h, \theta_x]$ entra em $[h_{t-1}, x_t]\,\theta_\bullet^{T} + b_\bullet$:
         \end{itemize}
         {\footnotesize
         \begin{align*}
@@ -587,12 +624,12 @@
 \begin{columns}[T]
     \begin{column}{.58\linewidth}
         \begin{itemize}\small
-            \item Usando $[h_0, x_0]^T = [-0.6,\,0.8]^T$:
+            \item Usando $[h_0, x_0] = [-0.6,\,0.8]$:
         \end{itemize}
         {\footnotesize
         \begin{align*}
-            f_t &= \sigma\bigl([0.5,\,-0.5]\cdot[-0.6,\,0.8]^T + 0.3\bigr) \\
-                &= \sigma\bigl(0.5\cdot(-0.6) + (-0.5)\cdot 0.8 + 0.3\bigr) \\
+            f_t &= \sigma\bigl([-0.6,\,0.8]\cdot[0.5,\,-0.5]^T + 0.3\bigr) \\
+                &= \sigma\bigl((-0.6)\cdot 0.5 + 0.8\cdot(-0.5) + 0.3\bigr) \\
                 &= \sigma(-0.4) \approx 0.4013
         \end{align*}}
         \begin{itemize}\footnotesize
@@ -618,7 +655,7 @@
         \end{itemize}
         {\footnotesize
         \begin{align*}
-            i_t &= \sigma\bigl([0.3,\,-0.4]\cdot[-0.6,\,0.8]^T + 0.5\bigr) \\
+            i_t &= \sigma\bigl([-0.6,\,0.8]\cdot[0.3,\,-0.4]^T + 0.5\bigr) \\
                 &= \sigma(0) \approx 0.5000
         \end{align*}}
         \begin{itemize}\small
@@ -626,7 +663,7 @@
         \end{itemize}
         {\footnotesize
         \begin{align*}
-            \tilde{c}_t &= \tanh\bigl([0.1,\,-0.3]\cdot[-0.6,\,0.8]^T + 0.7\bigr) \\
+            \tilde{c}_t &= \tanh\bigl([-0.6,\,0.8]\cdot[0.1,\,-0.3]^T + 0.7\bigr) \\
                 &= \tanh(0.4) \approx 0.3799
         \end{align*}}
         \begin{itemize}\footnotesize
@@ -655,7 +692,7 @@
         \end{align*}}
         \begin{itemize}\footnotesize
             \item A nova memória $c_t$ combina parte da memória antiga (filtrada por $f_t$) com parte da nova proposta (filtrada por $i_t$).
-            \item No caminho de $c_t$ não há $\tanh$ nem multiplicação por matrizes, apenas operações ponto a ponto.
+            \item O caminho de $c_t$ contém apenas operações ponto a ponto, sem $\tanh$ nem multiplicação por matrizes.
         \end{itemize}
     \end{column}
     \begin{column}{.40\linewidth}
@@ -677,7 +714,7 @@
         \end{itemize}
         {\footnotesize
         \begin{align*}
-            o_t &= \sigma\bigl([-0.5,\,0.4]\cdot[-0.6,\,0.8]^T + 0.5\bigr) \\
+            o_t &= \sigma\bigl([-0.6,\,0.8]\cdot[-0.5,\,0.4]^T + 0.5\bigr) \\
                 &= \sigma(1.12) \approx 0.7540
         \end{align*}}
         \begin{itemize}\small
@@ -710,15 +747,15 @@
     \item Em vez de quatro multiplicações de matrizes, agrupamos os pesos das quatro camadas ($\mathbf{\Theta}_i, \mathbf{\Theta}_f, \mathbf{\Theta}_c, \mathbf{\Theta}_o$) e separamos o resultado depois:
     \begin{itemize}
         \item $is$: dimensão da entrada $\mathbf{x}_t$, \quad $hs$: dimensão do estado oculto $\mathbf{h}_t$.
-        \item Cada $\mathbf{\Theta}_\bullet\,[\mathbf{h}_{t-1}, \mathbf{x}_t]$ se separa em $\mathbf{x}_t\,\mathbf{W}_\bullet + \mathbf{h}_{t-1}\,\mathbf{U}_\bullet$: $\mathbf{W}$ reúne as colunas que multiplicam $\mathbf{x}_t$ e $\mathbf{U}$ as que multiplicam $\mathbf{h}_{t-1}$.
+        \item Cada $[\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_\bullet^{T}$ se separa em $\mathbf{x}_t\,\mathbf{W}_\bullet^{T} + \mathbf{h}_{t-1}\,\mathbf{U}_\bullet^{T}$: $\mathbf{W}$ reúne as colunas de $\mathbf{\Theta}_\bullet$ que multiplicam $\mathbf{x}_t$ e $\mathbf{U}$ as que multiplicam $\mathbf{h}_{t-1}$.
     \end{itemize}
     \[
-        \mathbf{W} \in \mathbb{R}^{is \times 4hs}, \quad \mathbf{U} \in \mathbb{R}^{hs \times 4hs}, \quad \mathbf{b} \in \mathbb{R}^{4hs}
+        \mathbf{W} \in \mathbb{R}^{4hs \times is}, \quad \mathbf{U} \in \mathbb{R}^{4hs \times hs}, \quad \mathbf{b} \in \mathbb{R}^{4hs}
     \]
 \end{itemize}
 {\footnotesize
 \begin{align*}
-    \mathbf{A}_t &= \mathbf{x}_t \mathbf{W} + \mathbf{h}_{t-1} \mathbf{U} + \mathbf{b} \\
+    \mathbf{A}_t &= \mathbf{x}_t \mathbf{W}^{T} + \mathbf{h}_{t-1} \mathbf{U}^{T} + \mathbf{b} \\
     \mathbf{i}_t &= \sigma(\mathbf{A}_t[:,\,0:hs]) \\
     \mathbf{f}_t &= \sigma(\mathbf{A}_t[:,\,hs:2hs]) \\
     \tilde{\mathbf{c}}_t &= \tanh(\mathbf{A}_t[:,\,2hs:3hs]) \\
@@ -726,7 +763,7 @@
 \end{align*}
 }
 \begin{itemize}\footnotesize
-    \item Essa é a convenção do PyTorch (\texttt{nn.LSTM}): \texttt{weight\_ih} ($\mathbf{W}$) e \texttt{weight\_hh} ($\mathbf{U}$) concatenam as \textit{gates} na ordem $i, f, g, o$ (o candidato $\tilde{\mathbf{c}}_t$ é o $\mathbf{g}_t$), com dois \textit{bias} $\mathbf{b}_{ih} + \mathbf{b}_{hh}$. \textbf{Atenção}: essa ordem coloca a \textit{input gate} antes da \textit{forget gate}, invertendo a ordem das equações anteriores.
+    \item Essa é a convenção do PyTorch (\texttt{nn.LSTM}): \texttt{weight\_ih} ($\mathbf{W}$, \textit{shape} $4hs \times is$) e \texttt{weight\_hh} ($\mathbf{U}$, \textit{shape} $4hs \times hs$) concatenam as \textit{gates} na ordem $i, f, g, o$ (o candidato $\tilde{\mathbf{c}}_t$ é o $\mathbf{g}_t$), com dois \textit{bias} $\mathbf{b}_{ih} + \mathbf{b}_{hh}$. \textbf{Atenção}: essa ordem coloca a \textit{input gate} antes da \textit{forget gate}, invertendo a ordem das equações anteriores.
 \end{itemize}
 \end{frame}
 
@@ -737,8 +774,8 @@ class MyLSTM(nn.Module):
         super().__init__()
         self.input_sz   = input_sz
         self.hidden_sz  = hidden_sz
-        self.W = nn.Parameter(torch.Tensor(input_sz,  hidden_sz * 4))
-        self.U = nn.Parameter(torch.Tensor(hidden_sz, hidden_sz * 4))
+        self.W = nn.Parameter(torch.Tensor(hidden_sz * 4, input_sz))
+        self.U = nn.Parameter(torch.Tensor(hidden_sz * 4, hidden_sz))
         self.bias = nn.Parameter(torch.Tensor(hidden_sz * 4))
         self.init_weights()  # nao mostrado
 \end{lstlisting}
@@ -758,7 +795,7 @@ def forward(self, x):
     hidden_seq = []
     for t in range(seq_sz):
         x_t   = x[:, t, :]
-        gates = x_t @ self.W + h_t @ self.U + self.bias
+        gates = x_t @ self.W.T + h_t @ self.U.T + self.bias
         i_t = torch.sigmoid(gates[:,    :HS])
         f_t = torch.sigmoid(gates[:, HS:HS*2])
         g_t = torch.tanh(   gates[:, HS*2:HS*3])
@@ -781,13 +818,13 @@ def forward(self, x):
         \begin{itemize}
             \item Introduzida por Cho et al. em 2014\footfullcite{cho2014gru}.
             \item É considerada uma versão \textbf{simplificada} da LSTM.
-            \item Não mantém um estado de memória $\mathbf{c}_t$ separado do estado oculto $\mathbf{h}_t$, ambos viram um único vetor.
+            \item Usa um único vetor de estado: $\mathbf{h}_t$ também faz o papel da memória $\mathbf{c}_t$.
             \item Em vez das três \textit{gates} da LSTM, a GRU tem apenas duas:
             \begin{itemize}
                 \item \textit{reset gate} $\mathbf{r}_t$,
                 \item \textit{update gate} $\mathbf{z}_t$.
             \end{itemize}
-            \item Menos parâmetros, treinamento mais rápido, com desempenho competitivo em muitas tarefas.
+            \item Menos parâmetros e treinamento mais rápido, com desempenho competitivo.
         \end{itemize}
     \end{column}
     \begin{column}{.45\linewidth}
@@ -805,19 +842,19 @@ def forward(self, x):
     \item \textit{Reset gate}: decide quanto do estado anterior é usado para computar o candidato.
 \end{itemize}
 \[
-    \mathbf{r}_t = \sigma\bigl(\mathbf{\Theta}_r\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_r\bigr)
+    \mathbf{r}_t = \sigma\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_r^{T} + \mathbf{b}_r\bigr)
 \]
 \begin{itemize}
     \item \textit{Update gate}: decide a mistura entre o estado anterior e o candidato.
 \end{itemize}
 \[
-    \mathbf{z}_t = \sigma\bigl(\mathbf{\Theta}_z\,[\mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_z\bigr)
+    \mathbf{z}_t = \sigma\bigl([\mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_z^{T} + \mathbf{b}_z\bigr)
 \]
 \begin{itemize}
     \item Candidato a estado oculto:
 \end{itemize}
 \[
-    \tilde{\mathbf{h}}_t = \tanh\bigl(\mathbf{\Theta}_h\,[\mathbf{r}_t \odot \mathbf{h}_{t-1}, \mathbf{x}_t] + \mathbf{b}_h\bigr)
+    \tilde{\mathbf{h}}_t = \tanh\bigl([\mathbf{r}_t \odot \mathbf{h}_{t-1}, \mathbf{x}_t]\,\mathbf{\Theta}_h^{T} + \mathbf{b}_h\bigr)
 \]
 \begin{itemize}
     \item Novo estado oculto:
@@ -840,13 +877,13 @@ def forward(self, x):
     \item \textit{Reset gate}:
 \end{itemize}
 \[
-    r_t = \sigma\bigl(0.5\cdot(-0.6) + (-0.4)\cdot 0.8 + 0.2\bigr) = \sigma(-0.42) \approx 0.3965
+    r_t = \sigma\bigl((-0.6)\cdot 0.5 + 0.8\cdot(-0.4) + 0.2\bigr) = \sigma(-0.42) \approx 0.3965
 \]
 \begin{itemize}\small
     \item \textit{Update gate}:
 \end{itemize}
 \[
-    z_t = \sigma\bigl((-0.3)\cdot(-0.6) + 0.6\cdot 0.8 + 0.1\bigr) = \sigma(0.76) \approx 0.6814
+    z_t = \sigma\bigl((-0.6)\cdot(-0.3) + 0.8\cdot 0.6 + 0.1\bigr) = \sigma(0.76) \approx 0.6814
 \]
 \end{frame}
 
@@ -861,7 +898,7 @@ def forward(self, x):
     \item Candidato a estado oculto, usando $[r_t \odot h_0,\, x_0] = [-0.2379,\,0.8]$:
 \end{itemize}
 \[
-    \tilde{h}_t = \tanh\bigl(0.4\cdot(-0.2379) + 0.5\cdot 0.8 + 0\bigr) = \tanh(0.3048) \approx 0.2957
+    \tilde{h}_t = \tanh\bigl((-0.2379)\cdot 0.4 + 0.8\cdot 0.5 + 0\bigr) = \tanh(0.3048) \approx 0.2957
 \]
 \begin{itemize}\small
     \item Novo estado oculto, mistura controlada por $z_t$:
@@ -870,7 +907,7 @@ def forward(self, x):
     h_t = (1 - z_t)\,h_0 + z_t\,\tilde{h}_t = 0.3186\cdot(-0.6) + 0.6814\cdot 0.2957 \approx 0.0103
 \]
 \begin{itemize}\footnotesize
-    \item Diferente da LSTM, não há memória $c_t$ separada: a \textbf{mesma} porta $z_t$ decide quanto manter de $h_0$ e quanto usar do candidato.
+    \item A \textbf{mesma} porta $z_t$ decide quanto manter de $h_0$ e quanto usar do candidato. Na LSTM, essa decisão é dividida entre $f_t$ e $i_t$, com a memória $c_t$ separada.
 \end{itemize}
 \end{frame}
 
@@ -899,17 +936,21 @@ def forward(self, x):
     \begin{column}{.5\linewidth}
         \centering
         \textbf{Bidirectional RNN}\\[0.3em]
-        \resizebox{!}{2.9cm}{%
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+        \resizebox{!}{3.2cm}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}, skip/.style={->, rounded corners=3pt}]
             \foreach \i in {1,2,3}{
                 \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelGreen] (f\i) at (1.9*\i, 0) {$\overrightarrow{h}_\i$};
-                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelPink] (b\i) at (1.9*\i, -1.0) {$\overleftarrow{h}_\i$};
-                \node[inputnode] (x\i) at (1.9*\i, -2.0) {$x_\i$};
-                \node[opnode] (y\i) at (1.9*\i, 1.1) {$[\overrightarrow{h}_\i; \overleftarrow{h}_\i]$};
+                \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelPink] (b\i) at (1.9*\i, -1.2) {$\overleftarrow{h}_\i$};
+                \node[inputnode] (x\i) at (1.9*\i, -2.3) {$x_\i$};
+                \node[opnode] (y\i) at (1.9*\i, 1.2) {$[\overrightarrow{h}_\i; \overleftarrow{h}_\i]$};
                 \draw[->] (x\i) -- (b\i);
-                \draw[->] (x\i.north) to[bend left=45] (f\i.south);
                 \draw[->] (f\i) -- (y\i);
-                \draw[->] (b\i.north) to[bend left=60] (y\i.south);
+                % x_i -> forward: contorna a célula backward pela direita
+                \draw[skip] (x\i.east) -- (1.9*\i+0.62, -2.3) -- (1.9*\i+0.62, -0.6)
+                    -- (1.9*\i+0.25, -0.6) -- ($(f\i.south) + (0.25, 0)$);
+                % backward -> saída: contorna a célula forward pela esquerda
+                \draw[skip] ($(b\i.north) + (-0.25, 0)$) -- (1.9*\i-0.25, -0.6) -- (1.9*\i-0.62, -0.6)
+                    -- (1.9*\i-0.62, 0.75) -- (1.9*\i-0.25, 0.75) -- ($(y\i.south) + (-0.25, 0)$);
             }
             \foreach \i/\j in {1/2, 2/3}{
                 \draw[->] (f\i) -- (f\j);
@@ -924,7 +965,7 @@ def forward(self, x):
     \begin{column}{.5\linewidth}
         \centering
         \textbf{Stacked RNN}\\[0.3em]
-        \resizebox{!}{2.9cm}{%
+        \resizebox{!}{3.2cm}{%
         \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             \foreach \i in {1,2,3}{
                 \node[rnncell, minimum width=0.9cm, minimum height=0.7cm, fill=PastelGreen] (l1\i) at (1.3*\i, 0) {$h^{(1)}_\i$};

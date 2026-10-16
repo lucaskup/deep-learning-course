@@ -6,6 +6,7 @@
 
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
+\usetikzlibrary{fit,backgrounds}
 
 %----------------------------------------------------------------------------------------
 %    TITLE PAGE
@@ -31,33 +32,48 @@
     rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
     inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
     outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
-    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\scriptsize, inner sep=2pt},
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\small, inner sep=2pt},
     grad/.style={->, red, very thick}
 }
 
-% Corpo (reutilizável) do diagrama desdobrado de duas células usado no BPTT.
-% Usar dentro de um tikzpicture; as setas vermelhas do gradiente são desenhadas
-% depois, em cada frame, referenciando os nós criados aqui (cell\i, xh\i, hh\i,
-% plus\i, tanh\i, out\i, xnode\i, ynode\i).
+% Desenha uma célula recorrente com as operações internas. Os nós internos são
+% posicionados em relação ao nó "+" e a caixa da célula se ajusta ao conteúdo
+% (biblioteca fit), com margem igual em todos os lados. Argumentos:
+%   #1 sufixo dos nomes dos nós (cell#1, xh#1, hh#1, plus#1, tanh#1, out#1,
+%      xnode#1, ynode#1), pode ser vazio
+%   #2 posição x do centro da célula
+%   #3 rótulo da operação x·θ_ih      #4 rótulo da operação h·θ_hh
+%   #5 rótulo da operação h·θ_ho      #6 rótulo do nó de entrada
+%   #7 rótulo do nó de saída          #8 rótulo ŷ ao lado do nó de saída (ou vazio)
+\newcommand{\rnncellgraph}[8]{%
+    \node[draw, circle, inner sep=1pt, fill=white] (plus#1) at (#2, 0) {$+$};
+    \node[opnode, minimum width=1.45cm, left=0.3cm of plus#1] (hh#1) {#4};
+    \node[opnode, minimum width=1.45cm, right=0.3cm of plus#1] (tanh#1) {$\tanh$};
+    \node[opnode, below=0.4cm of plus#1] (xh#1) {#3};
+    \node[opnode, fill=PastelPink, above=0.4cm of plus#1] (out#1) {#5};
+    \begin{scope}[on background layer]
+        \node[rnncell, fit=(hh#1)(tanh#1)(xh#1)(out#1), inner sep=0.25cm] (cell#1) {};
+    \end{scope}
+    \node[inputnode] (xnode#1) at ($(plus#1 |- cell#1.south) + (0, -0.85)$) {#6};
+    \node[outputnode, minimum size=0.85cm] (ynode#1) at ($(plus#1 |- cell#1.north) + (0, 0.95)$) {#7};
+    \ifx\relax#8\relax\else
+        \node[font=\footnotesize, anchor=south west, inner sep=1pt] at (ynode#1.north east) {#8};
+    \fi
+    \draw[->] (xnode#1) -- (xh#1);
+    \draw[->] (xh#1) -- (plus#1);
+    \draw[->] (hh#1) -- (plus#1);
+    \draw[->] (plus#1) -- (tanh#1);
+    \draw[->] (tanh#1) |- (out#1);
+    \draw[->] (out#1) -- (ynode#1);
+}
+
+% Diagrama desdobrado de duas células usado no BPTT. As setas vermelhas do
+% gradiente são desenhadas depois, em cada frame, referenciando os nós criados
+% por \rnncellgraph (sufixos 1 e 2).
 \newcommand{\bpttcells}{%
-    \foreach \i/\xpos/\xv/\hin/\hout/\yout in {1/0/1/0/0.462/0.462, 2/6.6/2/0.462/0.843/0.843}{
-        \node[rnncell, minimum width=3.4cm, minimum height=2.5cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
-        \node[opnode] (xh\i) at (\xpos, -0.5) {$\xv\,\theta_{ih}$};
-        \node[opnode] (hh\i) at (\xpos-1.15, 0.4) {$\hin\,\theta_{hh}$};
-        \node[draw, circle, inner sep=1pt, fill=white] (plus\i) at (\xpos, 0.4) {$+$};
-        \node[opnode] (tanh\i) at (\xpos+0.95, 0.4) {$\tanh$};
-        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.25) {$\hout\,\theta_{ho}$};
-        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.85) {$\xv$};
-        \node[outputnode, minimum size=0.85cm] (ynode\i) at (\xpos, 2.45) {$\yout$};
-        \node[font=\scriptsize] at (\xpos+0.6, 2.85) {$\hat{y}_\i$};
-        \draw[->] (xnode\i) -- (xh\i);
-        \draw[->] (xh\i) -- (plus\i);
-        \draw[->] (hh\i) -- (plus\i);
-        \draw[->] (plus\i) -- (tanh\i);
-        \draw[->] (tanh\i) |- (out\i);
-        \draw[->] (out\i) -- (ynode\i);
-    }%
-    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.462$} (hh2.west);
+    \rnncellgraph{1}{0}{$1\,\theta_{ih}$}{$0\,\theta_{hh}$}{$0.462\,\theta_{ho}$}{$1$}{$0.462$}{$\hat{y}_1$}
+    \rnncellgraph{2}{6.0}{$2\,\theta_{ih}$}{$0.462\,\theta_{hh}$}{$0.843\,\theta_{ho}$}{$2$}{$0.843$}{$\hat{y}_2$}
+    \draw[->] (tanh1.east) -- node[above, font=\scriptsize] {$h_1\!=\!0.462$} (hh2.west);
 }
 
 %----------------------------------------------------------------------------------------
@@ -122,12 +138,12 @@
 
 \begin{frame}{Exemplo: \textit{Image Captioning} (\textit{one-to-many})}
 \begin{columns}[c]
-    \begin{column}{.42\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         \includegraphics[width=\linewidth]{slides/03-rnn/imagens/captioning_gato.jpg}\\[0.4em]
         {\footnotesize\textit{``Um gato sentado na estrada''}}
     \end{column}
-    \begin{column}{.58\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.9, transform shape]
             \foreach \i in {0,1,2,3}{
@@ -246,7 +262,7 @@
 \end{itemize}
 \vspace{0.2em}
 \begin{columns}[T]
-    \begin{column}{.42\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         {\footnotesize\textit{``bela porcaria''}}\\[0.4em]
         \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.82, transform shape]
@@ -262,7 +278,7 @@
         \end{tikzpicture}\\[0.4em]
         {\footnotesize 2 palavras: $2\times 3 = \mathbf{6}$ pesos de entrada}
     \end{column}
-    \begin{column}{.58\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         {\footnotesize\textit{``esse filme é uma bela porcaria''}}\\[0.4em]
         \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.72, transform shape]
@@ -306,30 +322,36 @@
 \vspace{0.4em}
 \centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    \node at (-1.4, 0.4) {``bela''};
-    \node at (-1.4, -0.4) {``porc.''};
-    \foreach \j in {0,1,2,3,4}{
-        \draw[fill=PastelBlue!\fpeval{40+\j*15}!white] (\j*0.4, 0.2) rectangle (\j*0.4+0.4, 0.6);
-        \draw[fill=PastelBlue!\fpeval{30+\j*12}!white] (\j*0.4, -0.2) rectangle (\j*0.4+0.4, -0.6);
+    % word embeddings: one row per word, 5 dimensions each
+    \foreach \w [count=\i from 0] in {``o'', ``filme'', ``é'', ``muito'', ``bom''}{
+        \node[anchor=east] at (-0.3, 0.8-\i*0.4) {\w};
+        \foreach \j in {0,1,2,3,4}{
+            \draw[fill=PastelBlue!\fpeval{30+\i*8+\j*10}!white] (\j*0.4, 0.6-\i*0.4) rectangle (\j*0.4+0.4, 1.0-\i*0.4);
+        }
     }
-    \node[font=\tiny] at (1.0, 1.0) {\textit{word embedding}};
-    \draw[->] (2.05, 0.4) -- (2.55, 0.4);
-    \draw[->] (2.05, -0.4) -- (2.55, -0.4);
-    % kernel
-    \foreach \j in {0,1,2,3,4}{
-        \draw[fill=PastelYellow] (2.7+\j*0.4, 0.2) rectangle (2.7+\j*0.4+0.4, 0.6);
-        \draw[fill=PastelYellow] (2.7+\j*0.4, -0.2) rectangle (2.7+\j*0.4+0.4, -0.6);
+    \node[font=\tiny] at (1.0, 1.4) {\textit{word embedding}};
+    % window covered by the kernel at the first position
+    \draw[dashed, thick, Gray] (-0.07, -0.27) rectangle (2.07, 1.07);
+
+    \node[font=\normalsize] at (2.5, 0.4) {$\ast$};
+
+    % kernel: 3 words x 5 dimensions
+    \foreach \i in {0,1,2}{
+        \foreach \j in {0,1,2,3,4}{
+            \draw[fill=PastelYellow] (2.9+\j*0.4, 0.6-\i*0.4) rectangle (2.9+\j*0.4+0.4, 1.0-\i*0.4);
+        }
     }
-    \draw[thick] (2.65, -0.65) rectangle (4.75, 0.65);
-    \node[font=\tiny] at (3.7, 1.0) {\textit{kernel} $2\times 1$};
+    \draw[thick] (2.9, -0.2) rectangle (4.9, 1.0);
+    \node[font=\tiny] at (3.9, 1.4) {\textit{kernel} de tamanho 3};
 
-    \draw[->] (4.8, 0) -- (5.3, 0);
+    \draw[->] (5.05, 0.4) -- (5.55, 0.4);
 
-    % activation map
+    % activation map: one value per kernel position (5 - 3 + 1 = 3)
     \foreach \j in {0,1,2}{
-        \draw[fill=red!\fpeval{40+\j*20}!white] (5.4+\j*0.4, -0.2) rectangle (5.4+\j*0.4+0.4, 0.2);
+        \draw[fill=red!\fpeval{40+\j*20}!white] (5.7, 0.2-\j*0.4) rectangle (6.1, 0.6-\j*0.4);
     }
-    \node[font=\tiny] at (6.0, 0.6) {\textit{activation map}};
+    \draw[thick] (5.7, 0.2) rectangle (6.1, 0.6);
+    \node[font=\tiny] at (5.9, 1.4) {\textit{activation map}};
 \end{tikzpicture}
 \end{frame}
 
@@ -510,13 +532,13 @@ Precisamos de uma rede que:
         (ct.east) -- (1.4, 0.4) -- (1.4, 2.3) -- (-1.4, 2.3) -- (-1.4, 0.4) -- (ct.west);
     \node[font=\scriptsize, right] at (1.4, 1.3) {$h_t$};
 
-    \draw[thick] (2.4, -1.6) -- (2.4, 2.2);
+    \draw[thick] (2.3, -1.6) -- (2.3, 2.2);
 
     % unfolded
     \foreach \i in {0,1,2,3}{
-        \node[inputnode] (ux\i) at (3.2+2.6*\i, -0.8) {$x_\i$};
-        \node[rnncell] (uc\i) at (3.2+2.6*\i, 0.4) {};
-        \node[outputnode] (uy\i) at (3.2+2.6*\i, 1.6) {$\hat{y}_\i$};
+        \node[inputnode] (ux\i) at (3.7+2.6*\i, -0.8) {$x_\i$};
+        \node[rnncell] (uc\i) at (3.7+2.6*\i, 0.4) {};
+        \node[outputnode] (uy\i) at (3.7+2.6*\i, 1.6) {$\hat{y}_\i$};
         \draw[->, thick] (ux\i) -- (uc\i);
         \draw[->, thick] (uc\i) -- (uy\i);
     }
@@ -628,22 +650,9 @@ print(next_word)
     \end{column}
     \begin{column}{.55\linewidth}
         \centering
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
-            \node[opnode] (xh) at (0, -0.5) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
-            \node[opnode] (hh) at (-1.2, 0.4) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
-            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
-            \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
-            \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$\mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o$};
-            \node[inputnode] (xnode) at (0, -2.0) {$\mathbf{x}_t$};
-            \node[outputnode] (ynode) at (0, 2.4) {$\hat{\mathbf{y}}_t$};
-            \draw[->] (xnode) -- (xh);
-            \draw[->] (xh) -- (plus);
-            \draw[->] (hh) -- (plus);
-            \draw[->] (plus) -- (tanh);
-            \draw[->] (tanh) |- (out);
-            \draw[->] (out) -- (ynode);
-            \draw[->] (tanh.east) -- ++(0.6, 0) node[right] {$\mathbf{h}_t$};
+        \begin{tikzpicture}
+            \rnncellgraph{}{0}{$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$}{$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$}{$\mathbf{h}_t\,\mathbf{\Theta}_{ho}^{T} + \mathbf{b}_o$}{$\mathbf{x}_t$}{$\hat{\mathbf{y}}_t$}{}
+            \draw[->] (tanh.east) -- ++(0.8, 0) node[right, font=\small] {$\mathbf{h}_t$};
         \end{tikzpicture}
     \end{column}
 \end{columns}
@@ -658,23 +667,9 @@ print(next_word)
     \end{align*}
 \end{itemize}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    \node[rnncell, minimum width=3.6cm, minimum height=2.6cm, fill=PastelGreen] (cell) at (0, 0.4) {};
-    \node[opnode] (xh) at (0, -0.5) {$1\,\theta_{ih} + 0$};
-    \node[opnode] (hh) at (-1.2, 0.4) {$0\,\theta_{hh}$};
-    \node[draw, circle, inner sep=1pt] (plus) at (0, 0.4) {$+$};
-    \node[opnode] (tanh) at (0.9, 0.4) {$\tanh$};
-    \node[opnode, fill=PastelPink] (out) at (0, 1.2) {$0.462\,\theta_{ho} + 0$};
-    \node[inputnode, fill=PastelBlue] (xnode) at (0, -2.0) {$1$};
-    \node[outputnode, minimum size=1.0cm] (ynode) at (0, 2.5) {\scriptsize $0.462$};
-    \node[font=\scriptsize] at (0.5, 2.9) {$\hat{y}_1$};
-    \draw[->] (xnode) -- (xh);
-    \draw[->] (xh) -- (plus);
-    \draw[->] (hh) -- (plus);
-    \draw[->] (plus) -- (tanh);
-    \draw[->] (tanh) |- (out);
-    \draw[->] (out) -- (ynode);
-    \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$h_1\!=\!0.462$};
+\begin{tikzpicture}
+    \rnncellgraph{}{0}{$1\,\theta_{ih} + 0$}{$0\,\theta_{hh}$}{$0.462\,\theta_{ho} + 0$}{$1$}{$0.462$}{$\hat{y}_1$}
+    \draw[->] (tanh.east) -- ++(0.9, 0) node[right, font=\small] {$h_1\!=\!0.462$};
 \end{tikzpicture}
 \end{frame}
 
@@ -687,26 +682,12 @@ print(next_word)
     \end{align*}
 \end{itemize}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.9, transform shape]
-    \foreach \i/\xv/\hin/\hout/\yout/\xpos in {1/1/0/0.462/0.462/0, 2/2/0.462/0.843/0.843/5.0}{
-        \node[rnncell, minimum width=3.2cm, minimum height=2.4cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
-        \node[opnode] (xh\i) at (\xpos, -0.5) {$\xv\,\theta_{ih} + 0$};
-        \node[opnode] (hh\i) at (\xpos-1.05, 0.4) {$\hin\,\theta_{hh}$};
-        \node[draw, circle, inner sep=1pt] (plus\i) at (\xpos, 0.4) {$+$};
-        \node[opnode] (tanh\i) at (\xpos+0.8, 0.4) {$\tanh$};
-        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.2) {$\hout\,\theta_{ho}$};
-        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.9) {$\xv$};
-        \node[outputnode, minimum size=0.95cm] (ynode\i) at (\xpos, 2.4) {$\yout$};
-        \node[font=\scriptsize] at (\xpos+0.5, 2.8) {$\hat{y}_\i$};
-        \draw[->] (xnode\i) -- (xh\i);
-        \draw[->] (xh\i) -- (plus\i);
-        \draw[->] (hh\i) -- (plus\i);
-        \draw[->] (plus\i) -- (tanh\i);
-        \draw[->] (tanh\i) |- (out\i);
-        \draw[->] (out\i) -- (ynode\i);
-    }
-    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.462$} (hh2.west);
-\end{tikzpicture}
+\scalebox{0.9}{%
+\begin{tikzpicture}
+    \rnncellgraph{1}{0}{$1\,\theta_{ih} + 0$}{$0\,\theta_{hh}$}{$0.462\,\theta_{ho} + 0$}{$1$}{$0.462$}{$\hat{y}_1$}
+    \rnncellgraph{2}{6.0}{$2\,\theta_{ih} + 0$}{$0.462\,\theta_{hh}$}{$0.843\,\theta_{ho} + 0$}{$2$}{$0.843$}{$\hat{y}_2$}
+    \draw[->] (tanh1.east) -- node[above, font=\scriptsize] {$h_1\!=\!0.462$} (hh2.west);
+\end{tikzpicture}}
 \end{frame}
 
 \begin{frame}{Cálculo da \textit{Loss}}
@@ -733,9 +714,10 @@ print(next_word)
 \end{itemize}
 \vspace{0.1em}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.8, transform shape]
+\scalebox{0.9}{%
+\begin{tikzpicture}
     \bpttcells
-\end{tikzpicture}
+\end{tikzpicture}}
 \vspace{0.2em}
 \begin{itemize}\footnotesize
     \item Para treinar, vamos percorrer esse grafo \textbf{de trás para frente}, derivando o gradiente de $J$ em relação a cada parâmetro, um de cada vez.
@@ -744,15 +726,15 @@ print(next_word)
 
 \begin{frame}{\textit{Backward Pass}: Pesos da Saída}
 \begin{columns}[T]
-    \begin{column}{.35\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+        \begin{tikzpicture}
             \bpttcells
             \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
         \end{tikzpicture}}
     \end{column}
-    \begin{column}{.65\linewidth}
+    \begin{column}{.5\linewidth}
         \begin{itemize}\small
             \item Começamos pelos pesos da saída: o gradiente chega em $\hat{y}_2$ e atinge a cabeça de saída (em \textcolor{red}{vermelho}).
         \end{itemize}
@@ -771,10 +753,10 @@ print(next_word)
 
 \begin{frame}{\textit{Backward Pass}: Pesos da Entrada}
 \begin{columns}[T]
-    \begin{column}{.35\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+        \begin{tikzpicture}
             \bpttcells
             \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
             \draw<1->[grad] (out2.south) to[bend left=20] (tanh2.north);
@@ -786,7 +768,7 @@ print(next_word)
             \draw<2->[grad] (plus1.south) to[bend right=15] (xh1.north);
         \end{tikzpicture}}
     \end{column}
-    \begin{column}{.65\linewidth}
+    \begin{column}{.5\linewidth}
         \begin{itemize}\small
             \item Para os pesos $\theta_{ih}$, o gradiente \textbf{atravessa todos os passos de tempo}.
         \end{itemize}
@@ -809,10 +791,10 @@ print(next_word)
 
 \begin{frame}{\textit{Backward Pass}: \textit{bias} e Pesos Recorrentes}
 \begin{columns}[T]
-    \begin{column}{.35\linewidth}
+    \begin{column}{.5\linewidth}
         \centering
         \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
+        \begin{tikzpicture}
             \bpttcells
             \draw<1->[grad] (ynode2.south) to[bend left=20] (out2.north);
             \draw<1->[grad] (out2.south) to[bend left=20] (tanh2.north);
@@ -822,7 +804,7 @@ print(next_word)
             \draw<2->[grad] (tanh1.west) to[bend right=15] (hh1.east);
         \end{tikzpicture}}
     \end{column}
-    \begin{column}{.65\linewidth}
+    \begin{column}{.5\linewidth}
         \begin{itemize}\small
             \item A mesma ideia vale para o \textit{bias} $b_h$ e para os pesos recorrentes $\theta_{hh}$.
         \end{itemize}
@@ -887,26 +869,12 @@ print(next_word)
     \item Refazendo o \textit{forward} com os pesos atualizados ($\theta_{ih}=0.6493$, $\theta_{hh}=0.5288$, $b_h=0.087$, $\theta_{ho}=1.1818$, $b_o=0.2157$):
 \end{itemize}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.88, transform shape]
-    \foreach \i/\xpos/\xv/\hin/\hout/\yout in {1/0/1/0/0.627/0.957, 2/5.2/2/0.627/0.938/1.324}{
-        \node[rnncell, minimum width=3.0cm, minimum height=2.2cm, fill=PastelGreen] (cell\i) at (\xpos, 0.4) {};
-        \node[opnode] (xh\i) at (\xpos, -0.45) {$\xv\,\theta_{ih} + b_h$};
-        \node[opnode] (hh\i) at (\xpos-1.0, 0.4) {$\hin\,\theta_{hh}$};
-        \node[draw, circle, inner sep=1pt, fill=white] (plus\i) at (\xpos, 0.4) {$+$};
-        \node[opnode] (tanh\i) at (\xpos+0.8, 0.4) {$\tanh$};
-        \node[opnode, fill=PastelPink] (out\i) at (\xpos, 1.15) {$\hout\,\theta_{ho}$};
-        \node[inputnode, fill=PastelBlue] (xnode\i) at (\xpos, -1.7) {$\xv$};
-        \node[outputnode, minimum size=0.9cm] (ynode\i) at (\xpos, 2.3) {$\yout$};
-        \node[font=\scriptsize] at (\xpos+0.55, 2.7) {$\hat{y}_\i$};
-        \draw[->] (xnode\i) -- (xh\i);
-        \draw[->] (xh\i) -- (plus\i);
-        \draw[->] (hh\i) -- (plus\i);
-        \draw[->] (plus\i) -- (tanh\i);
-        \draw[->] (tanh\i) |- (out\i);
-        \draw[->] (out\i) -- (ynode\i);
-    }
-    \draw[->] (tanh1.east) -- node[above, font=\tiny] {$h_1\!=\!0.627$} (hh2.west);
-\end{tikzpicture}
+\scalebox{0.9}{%
+\begin{tikzpicture}
+    \rnncellgraph{1}{0}{$1\,\theta_{ih} + b_h$}{$0\,\theta_{hh}$}{$0.627\,\theta_{ho}$}{$1$}{$0.957$}{$\hat{y}_1$}
+    \rnncellgraph{2}{6.0}{$2\,\theta_{ih} + b_h$}{$0.627\,\theta_{hh}$}{$0.938\,\theta_{ho}$}{$2$}{$1.324$}{$\hat{y}_2$}
+    \draw[->] (tanh1.east) -- node[above, font=\scriptsize] {$h_1\!=\!0.627$} (hh2.west);
+\end{tikzpicture}}
 \vspace{0.3em}
 \begin{equation*}
     J_{\text{antes}} = \tfrac{1}{2}(0.843 - 3)^2 \approx 2.326
@@ -996,18 +964,21 @@ optimizer.step()
     \end{column}
     \begin{column}{.45\linewidth}
         \centering
-        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            \node[rnncell, minimum width=3.2cm, minimum height=2.0cm, fill=PastelGreen] (cell) at (0, 0) {};
-            \node[opnode] (xh) at (0, -0.6) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
-            \node[opnode] (hh) at (-1.0, 0.2) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
-            \node[draw, circle, inner sep=1pt] (plus) at (0, 0.2) {$+$};
-            \node[opnode] (tanh) at (0.8, 0.2) {$\tanh$};
-            \node[inputnode] (xnode) at (0, -1.8) {$\mathbf{x}_t$};
+        \begin{tikzpicture}
+            % mesma geometria de \rnncellgraph, sem a cabeça de saída
+            \node[draw, circle, inner sep=1pt, fill=white] (plus) at (0, 0) {$+$};
+            \node[opnode, minimum width=1.45cm, left=0.3cm of plus] (hh) {$\mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T}$};
+            \node[opnode, minimum width=1.45cm, right=0.3cm of plus] (tanh) {$\tanh$};
+            \node[opnode, below=0.4cm of plus] (xh) {$\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{b}_h$};
+            \begin{scope}[on background layer]
+                \node[rnncell, fit=(hh)(tanh)(xh), inner sep=0.25cm] (cell) {};
+            \end{scope}
+            \node[inputnode] (xnode) at ($(plus |- cell.south) + (0, -0.85)$) {$\mathbf{x}_t$};
             \draw[->] (xnode) -- (xh);
             \draw[->] (xh) -- (plus);
             \draw[->] (hh) -- (plus);
             \draw[->] (plus) -- (tanh);
-            \draw[->] (tanh.east) -- ++(0.7, 0) node[right] {$\mathbf{h}_t$};
+            \draw[->] (tanh.east) -- ++(0.8, 0) node[right, font=\small] {$\mathbf{h}_t$};
         \end{tikzpicture}
     \end{column}
 \end{columns}

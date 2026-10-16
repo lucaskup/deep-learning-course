@@ -1,5 +1,6 @@
 \documentclass{dlproblemset}
 \usepackage{tikz}
+\usetikzlibrary{calc,positioning,fit,backgrounds}
 \tikzset{every picture/.style={line width=0.75pt}}
 
 % Cores e estilos da célula recorrente (mesma convenção dos slides)
@@ -11,7 +12,7 @@
     rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
     inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
     outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
-    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\scriptsize, inner sep=2pt}
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\small, inner sep=2pt}
 }
 
 \title{Redes Recorrentes}
@@ -47,24 +48,32 @@ f(z) =
     \begin{figure}[H]
         \centering
         \resizebox{0.5\linewidth}{!}{%
-        \begin{tikzpicture}[every node/.style={font=\small}]
-            \node[rnncell, minimum width=4.4cm, minimum height=2.7cm] (cell) at (0.1, 0.4) {};
-            \node[opnode] (hh) at (-1.35, 0.4) {$h_{t-1}\,\theta_{hh}^{T}$};
-            \node[draw, circle, inner sep=1pt, fill=white] (plus) at (0.1, 0.4) {$+$};
-            \node[opnode] (act) at (1.15, 0.4) {$f[.]$};
-            \node[opnode] (xh) at (0.1, -0.6) {$x_t\,\theta_{ih}^{T} + b_h$};
-            \node[opnode, fill=PastelPink] (out) at (0.1, 1.3) {$h_t\,\theta_{ho}^{T} + b_o$};
-            \node[inputnode] (xnode) at (0.1, -2.2) {$x_t$};
-            \node[outputnode] (ynode) at (0.1, 2.6) {$\hat{y}_t$};
+        \begin{tikzpicture}
+            % mesma geometria da macro \rnncellgraph dos slides: nós internos
+            % posicionados em relação ao "+" e célula ajustada ao conteúdo
+            \node[draw, circle, inner sep=1pt, fill=white] (plus) at (0, 0) {$+$};
+            \node[opnode, minimum width=1.45cm, left=0.3cm of plus] (hh) {$h_{t-1}\,\theta_{hh}^{T}$};
+            \node[opnode, minimum width=1.45cm, right=0.3cm of plus] (act) {$f[.]$};
+            \node[opnode, below=0.4cm of plus] (xh) {$x_t\,\theta_{ih}^{T} + b_h$};
+            \node[opnode, fill=PastelPink, above=0.4cm of plus] (out) {$h_t\,\theta_{ho}^{T} + b_o$};
+            \begin{scope}[on background layer]
+                \node[rnncell, fit=(hh)(act)(xh)(out), inner sep=0.25cm] (cell) {};
+            \end{scope}
+            \node[inputnode] (xnode) at ($(plus |- cell.south) + (0, -0.85)$) {$x_t$};
+            \node[outputnode, minimum size=0.85cm] (ynode) at ($(plus |- cell.north) + (0, 0.95)$) {$\hat{y}_t$};
             \draw[->] (xnode) -- (xh);
             \draw[->] (xh) -- (plus);
             \draw[->] (hh) -- (plus);
             \draw[->] (plus) -- (act);
             \draw[->] (act) |- (out);
             \draw[->] (out) -- (ynode);
-            % estado interno h_t: sai e retorna (recorrência)
-            \draw[->, rounded corners=4pt] (act.east) -- (2.6, 0.4) node[above, pos=0.7] {$h_t$}
-                -- (2.6, -3.0) -- (-2.7, -3.0) -- (-2.7, 0.4) -- (hh.west);
+            % estado interno h_t: sai pela direita e retorna pela esquerda (recorrência)
+            \coordinate (R) at ($(cell.east) + (0.9, 0)$);
+            \coordinate (L) at ($(cell.west) + (-0.9, 0)$);
+            \coordinate (B) at ($(xnode.south) + (0, -0.5)$);
+            \draw[->, rounded corners=4pt] (act.east) -- (R |- act.east)
+                node[above, pos=0.8, font=\small] {$h_t$}
+                -- (R |- B) -- (L |- B) -- (L |- hh.west) -- (hh.west);
         \end{tikzpicture}}
         \caption{RNN para questão VI}
         \label{fig:rnn}
@@ -77,7 +86,7 @@ f(z) =
         \begin{enumerate}[a)]
             \item Caso utilizemos uma VGG-16, qual é o papel dela nesta tarefa? E qual é o papel da RNN? Por que não podemos usar apenas a VGG-16 para a tarefa inteira?
             
-            % \item Descreva conceitualmente como a informação é "entregue" da CNN para a RNN.
+            % \item Descreva conceitualmente como a informação é ``entregue'' da CNN para a RNN.
             
             \item Este processo de geração de palavras é autorregressivo. Descreva o que serve como input ($\mathbf{x}_t$) e o que serve como estado oculto anterior ($\mathbf{h}_{t-1}$) para a RNN nos seguintes passos de tempo:
                 \begin{enumerate}[i.)]
@@ -85,7 +94,7 @@ f(z) =
                     \item Para gerar a segunda palavra ($y_2$) no tempo $t=2$.
                 \end{enumerate}
             
-            \item A CNN (Encoder) processa a imagem uma única vez para gerar um vetor de contexto $\mathbf{v}$. Qual é a origem e o formato (shape) mais comum deste vetor $\mathbf{v}$? Ele é a saída da última camada convolucional (um tensor 3D), ou é a saída que foi "achatada" (flattened), ou é a saída já processada de uma camada totalmente conectada (FC)?
+            \item A CNN (Encoder) processa a imagem uma única vez para gerar um vetor de contexto $\mathbf{v}$. Qual é a origem e o formato (shape) mais comum deste vetor $\mathbf{v}$? Ele é a saída da última camada convolucional (um tensor 3D), ou é a saída que foi ``achatada'' (\textit{flattened}), ou é a saída já processada de uma camada totalmente conectada (FC)?
 
             \item Digamos que não queremos perder a informação espacial de cada frame ao passá-la para a RNN. Ou seja, queremos que o \textit{input} $\mathbf{x}_t$ e o \textit{estado oculto} $\mathbf{h}_t$ sejam eles mesmos mapas de características 3D (ex: [Altura, Largura, Canais]), e não vetores 1D. É possível utilizar operações de convolução \emph{dentro} da célula da RNN (para calcular $\mathbf{h}_t$ a partir de $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$) em vez das multiplicações de matrizes (camadas densas) tradicionais? Explique brevemente o conceito.
         \end{enumerate}
@@ -172,7 +181,7 @@ f(z) =
 
     \item As tarefas que envolvem dados sequenciais são muito variadas. Podemos fazer análise de sentimentos (classificar uma sequência), \textit{image captioning} no qual temos uma entrada e uma sequência como saída ou ainda sequence-to-sequence onde temos sequências na entrada e na saída. Dada essa grande variedade de problemas, seria um desperdício manter parâmetros de saída para cada unidade recorrente. Mantendo a unidade recorrente sem saída por padrão, os \textit{frameworks} transferem a responsabilidade de definir quando a saída deve ser computada (e onde os parâmetros devem ser aprendidos) para o desenvolvedor.
 
-    \item Do ponto de vista teórico uma RNN consegue processar entradas de qualquer tamanho, um item por vez. Contudo, na prática vemos que RNN não trabalham bem com dependências muito longas. Isso ocorre pois em RNN estamos sempre atualizando o estado oculto em cada uma das iterações ao longo do tempo.
+    \item Do ponto de vista teórico uma RNN consegue processar entradas de qualquer tamanho, um item por vez. Contudo, na prática vemos que RNNs não trabalham bem com dependências muito longas. Isso ocorre pois em RNN estamos sempre atualizando o estado oculto em cada uma das iterações ao longo do tempo.
 
     \item Redes recorrentes são mais sensíveis a esse tipo de problema pois além de serem profundas no número de camadas elas são profundas também na dimensão tempo. Dessa forma, durante o \textit{backpropagation through time} o gradiente sofre mais multiplicações e é acumulado em múltiplas iterações potencializando ambos problemas.
 
@@ -190,7 +199,7 @@ f(z) =
     
     \item 
         \begin{enumerate}[a)]
-            \item Sua função é processar a imagem, analisando e extraindo as características visuais importantes, comprimindo toda a informação em um único vetor ($\mathbf{v}$). Uma CNN como a VGG-16 não consegue, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
+            \item Sua função é processar a imagem, analisando e extraindo características visuais, comprimindo toda a informação em um único vetor ($\mathbf{v}$). Uma CNN como a VGG-16 não consegue, sozinha, gerar uma saída sequencial. A tarefa de decoder sequencial (gerar uma frase) requer uma arquitetura diferente, como uma RNN ou um Transformer.
 
             % \item Sua função é processar dados sequenciais, recebendo o vetor $v$ e utilizando ele como ponto de partida para gerar uma sequência de palavras gramaticalmente correta que descreva o contexto visual. Tecnicamente é possível alimentar uma RNN com pixels em sequência, porém ela é inadequada para entender a estrutura espacial 2D de uma imagem e falha em capturar relações de longo alcance, sendo uma escolha ineficiente como encoder de imagens.
 
@@ -231,7 +240,7 @@ f(z) =
                     $$
                     Exigindo que $\mathbf{h}_t$, $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$ sejam vetores 1D.
 
-                    \item Em uma ConvRNN: As multiplicações de matrizes por $\mathbf{\Theta}_{ih}$ e $\mathbf{\Theta}_{hh}$ são substituídas por operações de convolução. Neste caso, o \textit{input} $\mathbf{x}_t$ é o próprio mapa de características 3D da CNN (ex: $7 \times 7 \times 512$). É necessário que sejam preservadas as dimensões espaciais, permitindo que a RNN "lembre" não apenas o que viu nos frames anteriores, mas onde (espacialmente) viu.
+                    \item Em uma ConvRNN: As multiplicações de matrizes por $\mathbf{\Theta}_{ih}$ e $\mathbf{\Theta}_{hh}$ são substituídas por operações de convolução. Neste caso, o \textit{input} $\mathbf{x}_t$ é o próprio mapa de características 3D da CNN (ex: $7 \times 7 \times 512$). É necessário que sejam preservadas as dimensões espaciais, permitindo que a RNN ``lembre'' não apenas o que viu nos frames anteriores, mas onde (espacialmente) viu.
                 \end{enumerate}
 
         \end{enumerate}

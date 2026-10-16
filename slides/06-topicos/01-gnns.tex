@@ -75,11 +75,11 @@
     \end{columns}
     \note{
       \begin{itemize}
-        \item A motivação aqui é mostrar que \enquote{grafo} não é caso de nicho: é a estrutura natural
+        \item A motivação aqui é mostrar que \enquote{grafo} é a estrutura
               de muitos problemas que vemos em produção.
         \item Para a turma da PUCRS, vale citar dois exemplos próximos: o mapa de transporte
               público de Porto Alegre é um grafo; o LinkedIn de cada um é um grafo.
-        \item Importante contrastar mentalmente com imagens/áudio (grade regular, ordem natural)
+        \item Vale contrastar mentalmente com imagens/áudio (grade regular, ordem natural)
               que vimos em CNN/RNN.
       \end{itemize}
     }
@@ -87,7 +87,7 @@
 
   %--- Slide: Notação e tipos de grafos ---
   \begin{frame}{Notação e Tipos de Grafos}
-    \begin{block}{Definição básica}
+    \begin{block}{Definição}
       Um grafo é $G = (V, E)$ com $|V| = n$ nós e $|E| = m$ arestas. A
       \textit{adjacency matrix} $\mathbf{A} \in \{0,1\}^{n \times n}$ codifica $E$.
       Atributos de nó vivem em $\mathbf{X} \in \mathbb{R}^{n \times d}$.
@@ -103,9 +103,9 @@
     \note{
       \begin{itemize}
         \item Esta aula vai focar em grafos não-dirigidos, homogêneos e estáticos para
-              manter o escopo. Heterogêneos e dinâmicos são extensões naturais.
-        \item Mostrar que $\mathbf{X}$ existe é importante: GNNs se diferenciam de embeddings
-              clássicos justamente por usar atributos de nó como sinal supervisor.
+              manter o escopo. Heterogêneos e dinâmicos são extensões do mesmo esquema.
+        \item Vale mostrar que $\mathbf{X}$ existe: GNNs se diferenciam de embeddings
+              clássicos por usar atributos de nó como sinal supervisor.
       \end{itemize}
     }
   \end{frame}
@@ -172,14 +172,14 @@
 
     \vspace{0.5em}
     \begin{alertblock}{O desafio}
-      Diferente de imagens (grade regular) e texto (sequência), um grafo
-      \textbf{não tem ordem canônica} nem \textbf{vizinhança de tamanho fixo}.
+      Um grafo \textbf{não tem ordem canônica} nem \textbf{vizinhança de tamanho fixo},
+      ao contrário de imagens (grade regular) e texto (sequência).
       Não dá para empilhar uma CNN diretamente em cima.
     \end{alertblock}
     \note{
       Esse slide é a ponte: a próxima seção desenvolve por que grafos são difíceis.
-      Vale antecipar: a resposta vai envolver invariância à permutação como simetria
-      central, do mesmo modo que CNNs codificam invariância à translação.
+      Vale antecipar: a resposta vai envolver invariância à permutação como a simetria
+      a respeitar, do mesmo modo que CNNs codificam invariância à translação.
     }
   \end{frame}
 
@@ -299,8 +299,8 @@
       \end{column}
     \end{columns}
     \note{
-      Uma comparação útil: na CNN, a translação não é apenas tolerada, ela é
-      explorada via convolução. Em grafos a permutação é a versão correspondente,
+      Comparação: na CNN, a convolução explora a translação como simetria.
+      Em grafos a permutação é a versão correspondente,
       e uma camada GNN bem desenhada é equivariante por construção.
     }
   \end{frame}
@@ -333,9 +333,9 @@
     \vspace{0.2em}
     {\footnotesize (\textit{Message passing} e \textit{readout} são detalhados adiante; por ora: ``trocar informação entre vizinhos'' e ``produzir a saída final da tarefa''.)}
     \note{
-      Esse é provavelmente o slide mais importante da primeira metade da aula.
+      Esse slide ancora a primeira metade da aula.
       Insista no paralelo com CNN: \enquote{o que a translação é para a CNN, a permutação
-      é para a GNN}. Isso é a simetria central.
+      é para a GNN}. Essa é a simetria que a arquitetura precisa respeitar.
     }
   \end{frame}
 
@@ -435,7 +435,7 @@
       \end{column}
     \end{columns}
     \note{
-      Três perguntas concretas para fixar: \enquote{qual a subárea deste artigo?}
+      Três perguntas para fixar: \enquote{qual a subárea deste artigo?}
       (nó), \enquote{esses dois fármacos interagem?} (aresta), \enquote{esta
       molécula inibe HIV?} (grafo). As três voltam nos datasets OGB logo adiante.
     }
@@ -453,7 +453,7 @@
           \end{itemize}
         \end{block}
         \centering
-        \begin{tikzpicture}[scale=0.48,
+        \begin{tikzpicture}[scale=0.55,
             tr/.style={circle, fill=NodeBlue, inner sep=2.2pt},
             te/.style={circle, draw=NodeRed, thick, fill=white, inner sep=1.8pt},
             e/.style={EdgeGray, thick}]
@@ -477,7 +477,7 @@
           \end{itemize}
         \end{block}
         \centering
-        \begin{tikzpicture}[scale=0.45,
+        \begin{tikzpicture}[scale=0.55,
             n/.style={circle, fill=NodeBlue, inner sep=2pt},
             nn/.style={circle, fill=NodeGreen, inner sep=2pt},
             e/.style={EdgeGray, thick}]
@@ -497,6 +497,7 @@
       \end{column}
     \end{columns}
 
+    \vspace{-0.5em}
     \begin{alertblock}{Por que importa}
       GCN precisa do grafo todo; GraphSAGE nasce indutivo via \textit{sampling}.
     \end{alertblock}
@@ -562,7 +563,7 @@
       \item Pipeline padrão em \textit{PyTorch Geometric} (PyG) ou \textit{DGL}.
     \end{itemize}
     \note{
-      \texttt{ogbl-ddi} (drug-drug interaction) é um exemplo bonito de aplicação real:
+      \texttt{ogbl-ddi} (drug-drug interaction) é um exemplo de aplicação:
       identificar interações perigosas entre fármacos. Resolver bem essa tarefa tem
       impacto direto em farmácia clínica.
     }
@@ -585,8 +586,8 @@
     \vspace{1em}
     \begin{block}{Por que link prediction é diferente}
       Em um grafo com $n$ nós existem $\mathcal{O}(n^2)$ arestas possíveis. Calcular
-      AUC contra todas as não-arestas é caro e o desbalanceamento é absurdo
-      ($>99.99\%$ de negativos). A solução é \textbf{negative sampling}:
+      AUC contra todas as não-arestas é caro, e os negativos passam de
+      $99.99\%$ do total. A solução é \textbf{negative sampling}:
       avaliamos cada positivo contra um subconjunto fixo de negativos amostrados.
     \end{block}
     \note{
@@ -661,7 +662,7 @@
     Note como a query $u_2$ (rank 1) puxa o MRR para cima sozinha, enquanto Hits@K
     apenas conta acertos binários.
     \note{
-      Esse exemplo é o ponto principal da seção. Ande com calma. Pergunte para a turma:
+      Ande com calma neste exemplo. Pergunte para a turma:
       \enquote{se eu trocar o Hits@1 por Hits@5, qual é o resultado?} (resposta: 1, todas as
       queries têm o positivo entre top-5, já que existem só 5 candidatos por query).
       Isso ajuda a fixar a intuição de que Hits@K perto do tamanho do conjunto vira trivial.
@@ -716,8 +717,8 @@
       \end{column}
     \end{columns}
     \note{
-      Comparação direta com Word2Vec: \enquote{palavras} $=$ nós, \enquote{sentenças} $=$ random walks,
-      \enquote{coocorrência} $=$ proximidade no grafo. É um pulo conceitual pequeno se a turma
+      Comparação com Word2Vec: \enquote{palavras} $=$ nós, \enquote{sentenças} $=$ random walks,
+      \enquote{coocorrência} $=$ proximidade no grafo. O pulo conceitual é direto se a turma
       já viu Word2Vec.
     }
   \end{frame}
@@ -735,7 +736,7 @@
         Permite balancear \textit{homofilia} vs \textit{equivalência estrutural}.
       \end{column}
       \begin{column}{0.42\textwidth}
-        \begin{alertblock}{Limites fundamentais}
+        \begin{alertblock}{Limites}
           \begin{itemize}
             \item \textbf{Transdutivo}: embeddings só existem para nós vistos no treino.
             \item \textbf{Sem atributos}: ignora $\mathbf{X}$.
@@ -785,7 +786,7 @@
     \end{block}
     {\footnotesize Convenções: $\mathbf{h}^{(0)}_v = \mathbf{x}_v$ (atributos iniciais do nó), $\mathcal{N}(v)$ é a vizinhança de $v$ e $e_{uv}$ é o atributo (opcional) da aresta.}
     \note{
-      O ponto-chave: \textbf{AGG deve ser invariante à ordem dos vizinhos} (soma,
+      Ponto a reforçar: \textbf{AGG deve ser invariante à ordem dos vizinhos} (soma,
       média, máx, atenção, etc.). É essa propriedade que dá equivariância à
       permutação de toda a camada.
     }
@@ -905,9 +906,8 @@
     \begin{block}{Forma por nó}
       \[
         \mathbf{h}^{(k)}_v = \sigma\!\left(
-          \mathbf{W}^{(k)} \cdot
-          \sum_{u \in \mathcal{N}(v) \cup \{v\}}
-            \frac{1}{\sqrt{\tilde d_v\, \tilde d_u}}\, \mathbf{h}^{(k-1)}_u
+          \Bigl(\sum_{u \in \mathcal{N}(v) \cup \{v\}}
+            \frac{1}{\sqrt{\tilde d_v\, \tilde d_u}}\, \mathbf{h}^{(k-1)}_u\Bigr)\, \mathbf{W}^{(k)\top}
         \right)
       \]
       onde $\tilde d_v$ é o grau de $v$ no grafo com auto-laços adicionados.
@@ -936,7 +936,7 @@
     \begin{block}{Camada GCN inteira de uma vez}
       \[
         \mathbf{H}^{(k)} = \sigma\!\left(
-          \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}\, \mathbf{H}^{(k-1)}\, \mathbf{W}^{(k)}
+          \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}\, \mathbf{H}^{(k-1)}\, \mathbf{W}^{(k)\top}
         \right)
       \]
     \end{block}
@@ -953,7 +953,7 @@
     \note{
       Se a turma já viu CNN, vale dizer: \enquote{essa expressão é uma convolução em
       domínio irregular, com kernel definido pelo Laplaciano normalizado}.
-      Mas evite cair no buraco espectral profundo, a forma matricial basta.
+      Mas evite entrar na teoria espectral, a forma matricial basta.
     }
   \end{frame}
 
@@ -1034,7 +1034,7 @@
       \textit{expressividade}.
     \end{alertblock}
     \note{
-      Esse exemplo deixa claro como GCN é uma média ponderada de vizinhos:
+      Esse exemplo mostra como GCN é uma média ponderada de vizinhos:
       o nó $1$ tem só dois vizinhos em $\tilde{\mathbf{A}}$ (ele mesmo e o nó $2$),
       então $h^{(1)}_1$ é uma combinação linear de duas entradas apenas.
     }
@@ -1058,16 +1058,16 @@
 
     \vspace{0.5em}
     \begin{block}{A ideia de \citeauthoryear{hamilton2017graphsage}}
-      Em vez de operar no grafo todo, \textbf{amostrar uma vizinhança fixa}
-      $S_k(v) \subseteq \mathcal{N}(v)$ por nó por camada. O custo por minibatch
+      \textbf{Amostrar uma vizinhança fixa}
+      $S_k(v) \subseteq \mathcal{N}(v)$ por nó por camada, sem tocar o grafo todo. O custo por minibatch
       passa a depender de $|S_k|^K$, não de $n$.
     \end{block}
 
     \vspace{0.4em}
     Bônus: como o modelo aprende uma função $f(\cdot)$ que age sobre vizinhanças
-    locais, ele é naturalmente \textbf{indutivo}: pode ser aplicado a grafos novos.
+    locais, ele é \textbf{indutivo}: pode ser aplicado a grafos novos.
     \note{
-      A motivação central é prática: GraphSAGE é o que torna possível treinar
+      A motivação é prática: GraphSAGE é o que torna possível treinar
       em grafos de centenas de milhões de nós. Mencione PyG e DGL como
       bibliotecas que implementam \textit{neighbor sampling} fora da caixa.
     }
@@ -1099,7 +1099,7 @@
             \For{cada nó $v$ no minibatch}
               \State $S_k(v) \gets$ amostra de $S_k$ vizinhos de $\mathcal{N}(v)$
               \State $\mathbf{a}^{(k)}_v \gets \mathrm{AGG}(\{\mathbf{h}^{(k-1)}_u : u \in S_k(v)\})$
-              \State $\mathbf{h}^{(k)}_v \gets \sigma\!\bigl(\mathbf{W}^{(k)}\,[\mathbf{h}^{(k-1)}_v \,\Vert\, \mathbf{a}^{(k)}_v]\bigr)$
+              \State $\mathbf{h}^{(k)}_v \gets \sigma\!\bigl([\mathbf{h}^{(k-1)}_v \,\Vert\, \mathbf{a}^{(k)}_v]\, \mathbf{W}^{(k)\top}\bigr)$
               \State $\mathbf{h}^{(k)}_v \gets \mathbf{h}^{(k)}_v / \|\mathbf{h}^{(k)}_v\|_2$
             \EndFor
           \EndFor
@@ -1158,7 +1158,7 @@
     \begin{itemize}
       \item Custo por nó: no máximo $1 + S_1 + S_1 S_2 = 7$ nós visitados,
             \textbf{independente de $n$}.
-      \item A amostra é redesenhada a cada época: a variância extra também
+      \item A amostra é redesenhada a cada época: a variância introduzida pela amostragem também
             age como regularização.
     \end{itemize}
     \note{
@@ -1183,7 +1183,7 @@
     \begin{block}{Coeficientes de atenção}
       \[
         e_{vu} = \mathrm{LeakyReLU}\!\left(
-          \mathbf{a}^{\top}\, [\,\mathbf{W} \mathbf{h}_v \,\Vert\, \mathbf{W} \mathbf{h}_u\,]
+          [\,\mathbf{h}_v \mathbf{W}^{\top} \,\Vert\, \mathbf{h}_u \mathbf{W}^{\top}\,]\, \mathbf{a}^{\top}
         \right)
       \]
       \[
@@ -1191,7 +1191,7 @@
         = \frac{\exp(e_{vu})}{\sum_{u' \in \mathcal{N}(v)} \exp(e_{vu'})}
       \]
       \[
-        \mathbf{h}^{(k)}_v = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu}\, \mathbf{W} \mathbf{h}^{(k-1)}_u\right)
+        \mathbf{h}^{(k)}_v = \sigma\!\left(\sum_{u \in \mathcal{N}(v)} \alpha_{vu}\, \mathbf{h}^{(k-1)}_u \mathbf{W}^{\top}\right)
       \]
     \end{block}
 
@@ -1211,7 +1211,7 @@
         Como em Transformers, \textbf{múltiplas cabeças} de atenção são empilhadas:
         \[
           \mathbf{h}^{(k)}_v = \big\Vert_{i=1}^{H}\, \sigma\!\left(
-            \sum_{u \in \mathcal{N}(v)} \alpha^{(i)}_{vu}\, \mathbf{W}^{(i)} \mathbf{h}^{(k-1)}_u
+            \sum_{u \in \mathcal{N}(v)} \alpha^{(i)}_{vu}\, \mathbf{h}^{(k-1)}_u \mathbf{W}^{(i)\top}
           \right)
         \]
         Na camada final costuma-se \textbf{tirar a média} das cabeças em vez
@@ -1234,29 +1234,28 @@
       \end{column}
     \end{columns}
     \note{
-      Esse paralelo com o módulo 04 é um dos pontos pedagógicos mais valiosos da
-      aula. Reforce: GAT não é um conceito novo desconectado, é o mesmo mecanismo
+      Reforce o paralelo com o módulo 04: GAT é o mesmo mecanismo
       de atenção que vimos em \textit{self-attention}, restrito por estrutura.
     }
   \end{frame}
 
   %--- Slide: Exemplo numérico GAT ---
   \begin{frame}{Exemplo Numérico: Coeficientes de Atenção em GAT}
-    Nó $v$ com 3 vizinhos. Após projeção, $\mathbf{W} \mathbf{h}_v = (1, 0)$ e
+    Nó $v$ com 3 vizinhos. Após projeção, $\mathbf{h}_v \mathbf{W}^{\top} = (1, 0)$ e
     \[
-      \mathbf{W} \mathbf{h}_{u_1} = (1, 0), \qquad
-      \mathbf{W} \mathbf{h}_{u_2} = (0, 1), \qquad
-      \mathbf{W} \mathbf{h}_{u_3} = (0.5,\, 0.5).
+      \mathbf{h}_{u_1} \mathbf{W}^{\top} = (1, 0), \qquad
+      \mathbf{h}_{u_2} \mathbf{W}^{\top} = (0, 1), \qquad
+      \mathbf{h}_{u_3} \mathbf{W}^{\top} = (0.5,\, 0.5).
     \]
     Vetor de atenção (parâmetro aprendido): $\mathbf{a} = (1, 0, 1, 0)$, de dimensão $4$ ($2\times$ a dos embeddings projetados, por causa da concatenação).
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        Scores $e_{v,u_k} = \mathbf{a}^\top [\mathbf{W} \mathbf{h}_v \,\Vert\, \mathbf{W} \mathbf{h}_{u_k}]$
+        Scores $e_{v,u_k} = [\mathbf{h}_v \mathbf{W}^{\top} \,\Vert\, \mathbf{h}_{u_k} \mathbf{W}^{\top}]\, \mathbf{a}^{\top}$
         (todos positivos, LeakyReLU é identidade):
         \begin{align*}
-          e_{v, u_1} &= (1,0,1,0)\cdot(1,0,1,0) = 2 \\
-          e_{v, u_2} &= (1,0,1,0)\cdot(1,0,0,1) = 1 \\
-          e_{v, u_3} &= (1,0,1,0)\cdot(1,0,0.5,0.5) = 1.5
+          e_{v, u_1} &= (1,0,1,0)\,(1,0,1,0)^{\top} = 2 \\
+          e_{v, u_2} &= (1,0,0,1)\,(1,0,1,0)^{\top} = 1 \\
+          e_{v, u_3} &= (1,0,0.5,0.5)\,(1,0,1,0)^{\top} = 1.5
         \end{align*}
         Softmax sobre os scores:
         \[
@@ -1266,7 +1265,7 @@
       \begin{column}{0.45\textwidth}
         \begin{block}{Embedding final de $v$}
           \[
-            \mathbf{h}_v^{\text{novo}} = \sum_{k} \alpha_{v, u_k}\, \mathbf{W} \mathbf{h}_{u_k}
+            \mathbf{h}_v^{\text{novo}} = \sum_{k} \alpha_{v, u_k}\, \mathbf{h}_{u_k} \mathbf{W}^{\top}
           \]
           \[
             \approx 0.51\,(1,0) + 0.19\,(0,1) + 0.31\,(0.5,\, 0.5)
@@ -1469,7 +1468,7 @@
     \end{itemize}
 
     \vspace{0.4em}
-    \begin{alertblock}{Trade-off central}
+    \begin{alertblock}{Trade-off}
       Profundidade $\leftrightarrow$ \textit{receptive field} $\leftrightarrow$
       diversidade de embeddings. Não dá para maximizar os três simultaneamente.
     \end{alertblock}
@@ -1495,14 +1494,14 @@
       \item Se duas estruturas produzem embeddings idênticos, a GNN não pode
             separá-las em nenhuma tarefa \textit{downstream}.
       \item Algumas estruturas (e.g., contar triângulos, ciclos longos) são
-            surpreendentemente difíceis para message passing puro.
+            difíceis para message passing puro.
     \end{itemize}
 
     \vspace{0.5em}
     \begin{block}{Roteiro da seção}
       (i) Um teste clássico de isomorfismo, o \textbf{1-WL}; (ii) o resultado de
       que toda MPNN é \textbf{no máximo} tão poderosa quanto ele; (iii) um par de
-      grafos concreto em que ambos falham; (iv) a arquitetura que \textbf{atinge}
+      grafos em que ambos falham; (iv) a arquitetura que \textbf{atinge}
       esse teto, a GIN.
     \end{block}
     \note{
@@ -1532,11 +1531,11 @@
     \vspace{0.4em}
     \begin{block}{Conexão com message passing}
       Compare a equação acima com a forma genérica \textbf{message--aggregate--update}.
-      É \textbf{exatamente o mesmo padrão}, com $\mathrm{HASH}$ substituindo
+      É \textbf{o mesmo padrão}, com $\mathrm{HASH}$ substituindo
       $U(\cdot, \mathrm{AGG}(\cdot))$. WL é message passing com hash injetivo.
     \end{block}
     \note{
-      Esse paralelo é a chave da próxima slide: se WL é o teto teórico do
+      Esse paralelo prepara o próximo slide: se WL é o teto teórico do
       message passing, podemos perguntar quais GNNs alcançam esse teto.
     }
   \end{frame}
@@ -1597,7 +1596,7 @@
     \note{
       Para grafos mais difíceis (mesma sequência de graus, isomorfismo local
       coincidente), 1-WL precisa de mais iterações ou falha completamente.
-      É justamente nesses casos que GIN com soma $+$ MLP atinge o teto que
+      Nesses casos, GIN com soma $+$ MLP atinge o teto que
       mean/max não atingem.
     }
   \end{frame}
@@ -1746,7 +1745,7 @@
 
     \vspace{0.7em}
     Média e máximo \textbf{descartam a multiplicidade} do multiset; a soma a
-    preserva. É exatamente a injetividade que o teto 1-WL exige.
+    preserva. Essa é a injetividade que o teto 1-WL exige.
     \note{
       Intuição química: um carbono com dois vizinhos hidrogênio é diferente de
       um carbono com um. Média e máximo não veem essa diferença se os atributos
@@ -1773,7 +1772,7 @@
       \end{column}
       \begin{column}{0.40\textwidth}
         \centering
-        \begin{tikzpicture}[scale=0.55,
+        \begin{tikzpicture}[scale=0.7,
             n/.style={circle, fill=NodeBlue, inner sep=1.8pt},
             e/.style={EdgeGray, semithick}]
           % cluster esquerdo
@@ -1808,8 +1807,8 @@
     \vspace{0.2em}
     Solução: injetar a estrutura via \textbf{positional encoding} ou \textbf{bias} de atenção.
     \note{
-      Over-squashing é menos visto em aulas introdutórias mas é um dos motivos
-      mais importantes para considerar Graph Transformers em grafos com
+      Over-squashing é menos visto em aulas introdutórias, mas é um dos motivos
+      para considerar Graph Transformers em grafos com
       gargalos topológicos (e.g., grafos em árvore, moléculas longas).
     }
   \end{frame}
@@ -1836,9 +1835,9 @@
       em camadas paralelas. Vence vários benchmarks OGB.
     \end{block}
     \note{
-      O ponto principal: PE em grafos é tema ativo de pesquisa, não há
-      \enquote{solução padrão} como em Transformers de texto. RWPE é um bom
-      \textit{default} prático.
+      PE em grafos é tema ativo de pesquisa, não há
+      \enquote{solução padrão} como em Transformers de texto. RWPE é o
+      \textit{default} usual.
     }
   \end{frame}
 
@@ -1875,7 +1874,7 @@
 
   %--- Slide: LLMs + grafos ---
   \begin{frame}{LLMs $+$ Grafos}{Tendência Atual}
-    Linha de pesquisa em forte expansão (2023--2026):
+    Linha de pesquisa em expansão (2023--2026):
 
     \vspace{0.4em}
     \begin{itemize}
@@ -1892,7 +1891,7 @@
     \end{itemize}
 
     \vspace{0.4em}
-    O curso Stanford CS224W dedica cerca de 3 aulas inteiras a esse tópico.
+    O curso Stanford CS224W dedica cerca de 3 aulas a esse tópico.
     \note{
       Esse é o slide \enquote{para onde a pesquisa está indo}. Não tente cobrir cada
       sub-tópico, apenas dar a paisagem.
@@ -1905,8 +1904,8 @@
       \begin{column}{0.5\textwidth}
         \begin{itemize}
           \item \textbf{AlphaFold} \citeauthoryear{jumper2021alphafold}:
-                proteínas como grafos com message passing especializado;
-                referência mundial em biologia computacional.
+                proteínas como grafos com message passing especializado
+                para predição de estrutura.
           \item \textbf{Descoberta de fármacos}: \texttt{ogbg-molhiv} e variantes,
                 screening em escala industrial.
           \item \textbf{Recomendação}: PinSage (Pinterest), grafos
@@ -1930,8 +1929,8 @@
       \end{column}
     \end{columns}
     \note{
-      Encerre dizendo: \enquote{esta aula cobre o núcleo universal; CS224W é o próximo
-      passo natural se vocês quiserem se aprofundar}.
+      Encerre dizendo: \enquote{esta aula cobre o núcleo; CS224W é o próximo
+      passo se vocês quiserem se aprofundar}.
     }
   \end{frame}
 
@@ -1943,7 +1942,7 @@
   \begin{frame}{Resumo}
     \begin{itemize}
       \item Grafos são domínio não-euclidiano sem ordem canônica; \textbf{permutação}
-            é a simetria central.
+            é a simetria a respeitar.
       \item Tarefas: \textbf{node / link / graph classification}; transdutivo vs
             indutivo muda o que o modelo precisa.
       \item \textbf{OGB} é o benchmark padrão; \textbf{Hits@K} e \textbf{MRR} são
@@ -1957,7 +1956,7 @@
       \item \textbf{GIN} alcança o teto do teste 1-WL; soma $+$ MLP é o que dá
             expressividade.
       \item \textbf{Graph Transformers} e \textbf{LLMs $+$ grafos} são as
-            fronteiras ativas atuais.
+            fronteiras atuais.
     \end{itemize}
   \end{frame}
 
@@ -1973,7 +1972,7 @@
             Graphs} (Jure Leskovec). Slides e vídeos em
             \texttt{web.stanford.edu/class/cs224w}.
       \item \textbf{Livro}: Hamilton, \textit{Graph Representation Learning}
-            (2020), introdução acessível e abrangente.
+            (2020), livro introdutório que cobre toda a aula.
       \item \textbf{Artigos seminais} (em ordem sugerida): GCN
             \citeauthoryear{kipf2017gcn}; GraphSAGE
             \citeauthoryear{hamilton2017graphsage}; GAT

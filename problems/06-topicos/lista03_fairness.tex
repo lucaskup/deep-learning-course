@@ -21,10 +21,10 @@
         %c
     \end{enumerate}
 
-    \item Um sistema de triagem de currículos remove explicitamente o campo de gênero do vetor de entrada e, mesmo assim, continua aprovando homens em proporção muito maior. Investigando, descobre-se que o modelo usa fortemente o nome de clubes esportivos e de cursos extracurriculares listados pelos candidatos. Qual afirmação descreve corretamente a situação?
+    \item Um sistema de triagem de currículos remove explicitamente o campo de gênero do vetor de entrada e, mesmo assim, continua aprovando homens em proporção maior. Investigando, descobre-se que o modelo se apoia no nome de clubes esportivos e de cursos extracurriculares listados pelos candidatos. Qual afirmação descreve corretamente a situação?
     \begin{enumerate}[(a)]
         \item A disparidade é impossível depois de remover o atributo, então a auditoria deve ter algum erro de medição.
-        \item A disparidade persiste porque os atributos restantes atuam como \textit{proxies} do gênero, carregando a informação removida.
+        \item A disparidade persiste porque os atributos restantes atuam como \textit{proxies} do gênero.
         \item A remoção do atributo garante \textit{fairness} individual, mas não \textit{fairness} de grupo, que exige rebalanceamento.
         \item O modelo está calibrado por gênero, logo a diferença observada é estatisticamente esperada e aceitável.
         %b
@@ -83,7 +83,7 @@
     \begin{enumerate}[(a)]
         \item O critério é satisfeito, pois tanto os $TPR$ quanto os $FPR$ coincidem entre os grupos.
         \item O critério é violado, pois embora os $FPR$ coincidam em $0{,}25$, os $TPR$ diferem ($0{,}80$ contra $0{,}70$).
-        \item O critério é violado, pois os $FPR$ diferem ($0{,}25$ contra $0{,}40$), embora os $TPR$ coincidam.
+        \item O critério é violado, pois os $FPR$ diferem ($0{,}25$ contra $0{,}40$), embora os $TPR$ coincidam em $0{,}80$.
         \item O critério é satisfeito, pois a taxa de decisões favoráveis é igual nos dois grupos.
         %b
     \end{enumerate}
@@ -97,7 +97,7 @@
         %a
     \end{enumerate}
 
-    \item Em um sistema de score de crédito, entre as pessoas do grupo $a{=}0$ classificadas como ``baixo risco'' ($\hat{y}{=}1$), $62\%$ de fato pagaram o empréstimo; no grupo $a{=}1$, essa fração é de $61\%$. Já a fração de bons pagadores incorretamente marcados como alto risco difere bastante entre os grupos. Que critério está aproximadamente satisfeito e qual está em questão?
+    \item Em um sistema de score de crédito, entre as pessoas do grupo $a{=}0$ classificadas como ``baixo risco'' ($\hat{y}{=}1$), $62\%$ de fato pagaram o empréstimo; no grupo $a{=}1$, essa fração é de $61\%$. Já a fração de bons pagadores incorretamente marcados como alto risco difere entre os grupos. Que critério está aproximadamente satisfeito e qual está em questão?
     \begin{enumerate}[(a)]
         \item Está satisfeita a igualdade de oportunidade (igualdade de $TPR$); o que difere é a calibração.
         \item Está satisfeita a paridade demográfica; o que difere é o valor preditivo positivo.
@@ -110,7 +110,7 @@
     \begin{enumerate}[(a)]
         \item Os $FPR$ ficam iguais, pois fixar $PPV$ e $FNR$ determina completamente o $FPR$ de cada grupo.
         \item Os $FPR$ ficam iguais, pois a identidade não depende da taxa-base quando o classificador é imperfeito.
-        \item Os $FPR$ ficam diferentes, pois o fator $\frac{p}{1-p}$ cresce com $p$ e os demais fatores são iguais entre os grupos.
+        \item Os $FPR$ ficam diferentes, pois o fator $\frac{p}{1-p}$ varia com a taxa-base.
         \item Os $FPR$ ficam diferentes apenas se o classificador for perfeito; com erro, eles coincidem.
         %c
     \end{enumerate}
@@ -118,7 +118,7 @@
     \item Uma equipe recebe um modelo de linguagem de terceiros via API, sem acesso aos pesos nem ao pipeline de treino, e precisa reduzir associações tóxicas com um grupo religioso já na semana seguinte. Qual família de métodos de \textit{debiasing} é a mais adequada à restrição?
     \begin{enumerate}[(a)]
         \item Métodos distribucionais, que rebalanceiam o corpus e exigem retreinar o modelo do zero.
-        \item Métodos inferenciais, que atuam na inferência sem alterar parâmetros e funcionam sobre modelos de terceiros.
+        \item Métodos inferenciais, que atuam no momento da predição sem alterar os parâmetros do modelo.
         \item Métodos de \textit{one-step-training}, que adicionam um termo de regularização ao objetivo durante o treino.
         \item Métodos de \textit{two-step-training}, que ajustam o modelo com uma segunda etapa de \textit{fine-tuning}.
         %b
@@ -136,7 +136,7 @@
     \item Dois candidatos a crédito têm exatamente o mesmo histórico financeiro relevante e diferem apenas no atributo protegido $a$. O modelo aprova um e nega o outro. Considerando as duas famílias de critérios vistas em aula, qual noção de \textit{fairness} é diretamente violada por esse caso isolado?
     \begin{enumerate}[(a)]
         \item \textit{Fairness} individual, que exige tratamento similar para indivíduos similares na tarefa.
-        \item Paridade demográfica, que exige taxas de aprovação iguais entre os grupos.
+        \item \textit{Counterfactual fairness}, que exige que a decisão não mude ao se intervir causalmente em $a$ e em seus descendentes.
         \item Calibração por grupo, que exige que o escore tenha o mesmo significado nos grupos.
         \item Igualdade de oportunidade, que exige $TPR$ igual entre os grupos.
         %a
@@ -207,11 +207,11 @@
 
 \paragraph{Múltipla Escolha.}
 \begin{enumerate}[I)]
-    \item \textbf{(c)} O problema está no rótulo: ``bom pagador'' foi definido a partir de decisões passadas já enviesadas (poucos bairros recebiam crédito), então o alvo aprendido não mede a capacidade real de pagamento, e sim o padrão histórico. Isso é viés histórico. Não é amostragem (não se trata de número de exemplos por grupo), nem medição (a renda não foi medida com instrumento distinto), nem agregação (não há um único modelo forçado sobre subpopulações com relações distintas; o defeito está na variável-alvo).
+    \item \textbf{(c)} O problema está no rótulo: ``bom pagador'' foi definido a partir de decisões passadas já enviesadas (poucos bairros recebiam crédito), então o alvo aprendido mede o padrão histórico de decisões, não a capacidade de pagamento. Isso é viés histórico. Não é amostragem (não se trata de número de exemplos por grupo), nem medição (a renda não foi medida com instrumento distinto), nem agregação (não há um único modelo forçado sobre subpopulações com relações distintas; o defeito está na variável-alvo).
 
-    \item \textbf{(b)} Remover o atributo protegido (\textit{fairness through unawareness}) não garante \textit{fairness}: atributos correlacionados (clubes, cursos) funcionam como \textit{proxies} e reconstroem a informação removida. A alternativa (a) está errada porque a disparidade é justamente esperada via \textit{proxies}; (c) inverte o que a remoção garante, pois ela não garante nenhuma das duas noções; (d) calibração é outro critério e nada nos números informados a sustenta.
+    \item \textbf{(b)} Remover o atributo protegido (\textit{fairness through unawareness}) não garante \textit{fairness}: atributos correlacionados (clubes, cursos) funcionam como \textit{proxies} e reconstroem a informação removida. A alternativa (a) está errada porque a disparidade é esperada via \textit{proxies}; (c) inverte o que a remoção garante, pois ela não garante nenhuma das duas noções; (d) calibração é outro critério e nada nos números informados a sustenta.
 
-    \item \textbf{(d)} $TPR = \frac{TP}{TP+FN} = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A alternativa (c) traz $\frac{TP}{TP+FP}=\frac{70}{150}\approx 0{,}47$, que é o $PPV$, fácil de confundir com o $TPR$; (a) é $\frac{TP}{P_{\text{previstos}}}$ aproximado e (b) corresponde a outra razão da matriz, ambos cálculos com o denominador errado.
+    \item \textbf{(d)} $TPR = \frac{TP}{TP+FN} = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A alternativa (c) traz $\frac{TP}{TP+FP}=\frac{70}{150}\approx 0{,}47$, que é o $PPV$, com o denominador $TP+FP$ no lugar de $TP+FN$; (a) é o $FPR$ ($\frac{80}{200} = 0{,}40$), a taxa da outra linha da matriz; (b) corresponde a outra razão da matriz com o denominador errado.
 
     \item \textbf{(a)} A paridade demográfica exige $P(\hat{y}{=}1 \mid a{=}0) = P(\hat{y}{=}1 \mid a{=}1)$. Como ambos os grupos recebem o anúncio a uma taxa de $30\%$, a paridade está satisfeita. As demais alternativas exigiriam condicionar em $y$ (oportunidade, chances) ou olhar $P(y{=}1\mid \hat{y})$ (calibração); os dados informados não dizem nada sobre $y$, então não há como afirmar que esses critérios valem.
 
@@ -221,15 +221,15 @@
 
     \item \textbf{(a)} $TPR = 1 - FNR = 1 - 0{,}28 = 0{,}72$. A alternativa (c) repete o $FPR$, e (d) repete o $FNR$, ambos confundindo qual taxa foi pedida.
 
-    \item \textbf{(d)} A igualdade de $PPV$ entre grupos é exatamente a versão binarizada da calibração ($P(y{=}1\mid \hat{y}{=}1)$), aqui $62\%$ contra $61\%$, aproximadamente satisfeita. A fração de bons pagadores marcados como alto risco que difere é o $FNR$ (entre $y{=}1$, os que recebem $\hat{y}{=}0$). As demais alternativas trocam o critério satisfeito ($TPR$, paridade, $FPR$), que não corresponde a $P(y{=}1\mid\hat{y}{=}1)$.
+    \item \textbf{(d)} A igualdade de $PPV$ entre grupos é a versão binarizada da calibração ($P(y{=}1\mid \hat{y}{=}1)$), aqui $62\%$ contra $61\%$, aproximadamente satisfeita. A fração de bons pagadores marcados como alto risco que difere é o $FNR$ (entre $y{=}1$, os que recebem $\hat{y}{=}0$). As demais alternativas trocam o critério satisfeito ($TPR$, paridade, $FPR$), que não corresponde a $P(y{=}1\mid\hat{y}{=}1)$.
 
-    \item \textbf{(c)} Com $PPV$ e $FNR$ iguais nos dois grupos, na identidade só varia o fator $\frac{p}{1-p}$, que cresce com $p$. Como $p_1 > p_0$, o grupo $a{=}1$ tem $\frac{p}{1-p}$ maior e, portanto, $FPR$ maior; os $FPR$ não podem coincidir. (a) e (b) ignoram a dependência em $p$; (d) inverte o papel do classificador perfeito, que é justamente a exceção em que o teorema não se aplica.
+    \item \textbf{(c)} Com $PPV$ e $FNR$ iguais nos dois grupos, na identidade só varia o fator $\frac{p}{1-p}$, que cresce com $p$. Como $p_1 > p_0$, o grupo $a{=}1$ tem $\frac{p}{1-p}$ maior e, portanto, $FPR$ maior; os $FPR$ não podem coincidir. (a) e (b) ignoram a dependência em $p$; (d) inverte o papel do classificador perfeito, que é a exceção em que o teorema não se aplica.
 
     \item \textbf{(b)} Sem acesso aos pesos nem ao treino e com prazo curto, só os métodos inferenciais se aplicam: atuam na inferência (\textit{prompting}, edição de saída) sem alterar parâmetros e servem modelos de terceiros via API. Distribucionais (a) e \textit{one-step} (c) exigem retreinar; \textit{two-step} (d) exige acesso aos pesos para a segunda etapa de treino, indisponível aqui.
 
-    \item \textbf{(d)} O \textit{two-step-training} parte do modelo já treinado e adiciona uma etapa barata (\textit{fine-tuning}, adapters), viável em foundation models (mesma economia do PEFT) e mais persistente que correções só na inferência. Distribucional (a) e \textit{one-step} (b) implicam retreinar do zero, proibitivo na escala dada; a edição na inferência (c) é justamente o tipo de correção reversível que o enunciado quer evitar.
+    \item \textbf{(d)} O \textit{two-step-training} parte do modelo já treinado e adiciona uma etapa barata (\textit{fine-tuning}, adapters), viável em foundation models (mesma economia do PEFT) e mais persistente que correções só na inferência. Distribucional (a) e \textit{one-step} (b) implicam retreinar do zero, proibitivo na escala dada; a edição na inferência (c) é o tipo de correção reversível que o enunciado quer evitar.
 
-    \item \textbf{(a)} Dois indivíduos idênticos na tarefa recebem decisões opostas: isso viola diretamente a \textit{fairness} individual (tratamento similar para similares). As noções de grupo (b, c, d) são estatísticas agregadas e podem estar satisfeitas mesmo com esse caso individual injusto, pois não olham pares de indivíduos.
+    \item \textbf{(a)} Dois indivíduos idênticos na tarefa recebem decisões opostas: isso viola diretamente a \textit{fairness} individual (tratamento similar para similares). A alternativa (b) exige intervir causalmente em $a$ para um mesmo indivíduo, e aqui são duas pessoas distintas, não contrafactuais uma da outra. As noções de grupo (c, d) são estatísticas agregadas e podem estar satisfeitas mesmo com esse caso individual injusto, pois não olham pares de indivíduos.
 \end{enumerate}
 
 \paragraph{Dissertativas.}
@@ -243,7 +243,7 @@
 
     \item
     \begin{enumerate}[(a)]
-        \item Fator comum aos dois grupos: $\frac{1-PPV}{PPV}\cdot(1-FNR)=\frac{1-0{,}60}{0{,}60}\cdot(1-0{,}30)=\frac{0{,}40}{0{,}60}\cdot 0{,}70=0{,}6667\cdot 0{,}70\approx 0{,}4667$. Grupo $0$: $\frac{p_0}{1-p_0}=\frac{0{,}30}{0{,}70}\approx 0{,}4286$, então $FPR_0\approx 0{,}4286\cdot 0{,}4667\approx 0{,}20$. Grupo $1$: $\frac{p_1}{1-p_1}=\frac{0{,}60}{0{,}40}=1{,}5$, então $FPR_1\approx 1{,}5\cdot 0{,}4667\approx 0{,}70$. Os $FPR$ diferem fortemente ($0{,}20$ contra $0{,}70$).
+        \item Fator comum aos dois grupos: $\frac{1-PPV}{PPV}\cdot(1-FNR)=\frac{1-0{,}60}{0{,}60}\cdot(1-0{,}30)=\frac{0{,}40}{0{,}60}\cdot 0{,}70=0{,}6667\cdot 0{,}70\approx 0{,}4667$. Grupo $0$: $\frac{p_0}{1-p_0}=\frac{0{,}30}{0{,}70}\approx 0{,}4286$, então $FPR_0\approx 0{,}4286\cdot 0{,}4667\approx 0{,}20$. Grupo $1$: $\frac{p_1}{1-p_1}=\frac{0{,}60}{0{,}40}=1{,}5$, então $FPR_1\approx 1{,}5\cdot 0{,}4667\approx 0{,}70$. Os $FPR$ diferem ($0{,}20$ contra $0{,}70$).
         \item Na identidade, $FPR$ é o produto de três fatores. Igualar $PPV$ e $FNR$ entre os grupos torna os dois últimos fatores idênticos, mas o primeiro, $\frac{p}{1-p}$, é estritamente crescente em $p$. Com $p_0\neq p_1$, esse fator difere e arrasta o $FPR$ para valores distintos. Logo, fixar calibração e igualdade de $FNR$ \textbf{força} $FPR$ desiguais; não há classificador imperfeito que satisfaça os três ao mesmo tempo sob taxas-base diferentes.
         \item A Northpointe mediu calibração (igualdade de $PPV$, o escore significa o mesmo nos grupos) e a considerou aproximadamente satisfeita; a ProPublica mediu as taxas de erro (igualdade de $FPR$ e de $FNR$) e mostrou que estavam desbalanceadas. Pelo teorema, com as taxas-base de reincidência diferentes entre os grupos, nenhum classificador imperfeito poderia satisfazer calibração e igualdade de $FPR$/$FNR$ simultaneamente. Ambos os lados calcularam corretamente métricas legítimas e incompatíveis; a disputa era normativa, sobre qual noção de justiça deveria prevalecer.
     \end{enumerate}
@@ -257,8 +257,8 @@
     \item
     \begin{enumerate}[(a)]
         \item Baixar $\tau_1$ faz com que mais indivíduos do grupo $a{=}1$ ultrapassem o limiar e recebam $\hat{y}{=}1$. Entre os verdadeiramente positivos ($y{=}1$), mais passam a ser corretamente aprovados, então o $TPR_1$ sobe e a lacuna em relação a $TPR_0$ diminui. O custo é que também mais negativos ($y{=}0$) ultrapassam o limiar, então o $FPR_1$ \textbf{aumenta} junto: o ajuste compra $TPR$ pagando em $FPR$.
-        \item É um método inferencial (pós-processamento clássico de Hardt et al., ajuste de limiar por grupo), pois não altera nenhum parâmetro do modelo. Vantagem: barato, reversível e aplicável mesmo sem acesso aos pesos. Limitação: correção superficial, o viés permanece nos pesos/no escore e pode reaparecer; além disso, usar limiares diferentes por grupo é em si uma decisão normativa que precisa ser justificada.
-        \item Igualar o $TPR$ entre grupos e observar que os $FPR$ passam a diferir é exatamente o que o teorema da impossibilidade prevê: com taxas-base distintas, não dá para igualar todos os critérios ao mesmo tempo. Consertar a igualdade de oportunidade (uma componente do \textit{equalized odds}) força uma das outras quantidades a divergir. Não há contradição: a \textit{fairness} não é booleana, é um trade-off, então melhorar um critério às custas de outro é o comportamento esperado, e a escolha de qual igualar deve ser decidida e documentada.
+        \item É um método inferencial (pós-processamento de Hardt et al., ajuste de limiar por grupo), pois não altera nenhum parâmetro do modelo. Vantagem: barato, reversível e aplicável mesmo sem acesso aos pesos. Limitação: correção superficial, o viés permanece nos pesos/no escore e pode reaparecer; além disso, usar limiares diferentes por grupo é em si uma decisão normativa que precisa ser justificada.
+        \item Igualar o $TPR$ entre grupos e observar que os $FPR$ passam a diferir é o que o teorema da impossibilidade prevê: com taxas-base distintas, não dá para igualar todos os critérios ao mesmo tempo. Consertar a igualdade de oportunidade (uma componente do \textit{equalized odds}) força uma das outras quantidades a divergir. Não há contradição: a \textit{fairness} é um trade-off, então melhorar um critério às custas de outro é o comportamento esperado, e a escolha de qual igualar deve ser decidida e documentada.
     \end{enumerate}
 \end{enumerate}
 

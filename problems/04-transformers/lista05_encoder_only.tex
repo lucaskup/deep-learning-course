@@ -1,19 +1,6 @@
 \documentclass{dlproblemset}
 \usepackage{booktabs}
-\usepackage{hyperref}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,decorations.pathreplacing,positioning}
-\usepackage{emoji}
-\tikzset{every picture/.style={line width=0.75pt}}
-
-\definecolor{CellBlue}{HTML}{BBDEFB}
-\definecolor{CellGreen}{HTML}{C8E6C9}
-\definecolor{CellYellow}{HTML}{FFF9C4}
-\definecolor{CellRed}{HTML}{FFCDD2}
-\definecolor{LightGray}{HTML}{F5F5F5}
-\definecolor{DarkBlue}{HTML}{1565C0}
-\definecolor{DarkGreen}{HTML}{1B5E20}
-\definecolor{DarkRed}{HTML}{C62828}
+\usepackage{needspace}
 
 \title{Atenção e Transformers}
 \subtitle{Modelos Encoder-Only}
@@ -31,8 +18,9 @@
 % ------------------------------------------------------------------
 % Q1 — Fácil (NER: esquema BIO)
 % ------------------------------------------------------------------
+\Needspace{19\baselineskip}
 \item Na tarefa de \textit{Named Entity Recognition} (NER) com esquema
-      \textbf{BIO}, as categorias são: \textbf{B}egin (início de entidade),
+      \textbf{BIO2}, as categorias são: \textbf{B}egin (início de entidade),
       \textbf{I}nside (continuação) e \textbf{O}utside. Para a frase
 
 \begin{center}
@@ -40,7 +28,7 @@
 \end{center}
 
 considerando as entidades \textit{Lucas} (pessoa), \textit{PUCRS} (organização)
-e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
+e \textit{Porto Alegre} (local, dois tokens), tratando cada palavra como um token, qual sequência de
 \textit{tags} é correta?
 
 \begin{enumerate}[a)]
@@ -54,6 +42,7 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 % ------------------------------------------------------------------
 % Q2 — Médio (BERT: contagem de parâmetros de atenção)
 % ------------------------------------------------------------------
+\Needspace{18\baselineskip}
 \item O BERT-Base tem $L = 12$ camadas, dimensão oculta $d = 768$ e
       $H = 12$ cabeças de atenção com $d_k = d/H = 64$ por cabeça.
       Em uma única camada de \textit{self-attention}, as projeções são:
@@ -76,111 +65,93 @@ e \textit{Porto Alegre} (local, dois \textit{tokens}), qual sequência de
 % ------------------------------------------------------------------
 % Q3 — Médio (MLM: regra 80/10/10 e desalinhamento treino-inferência)
 % ------------------------------------------------------------------
-\item No pré-treino do BERT, a estratégia MLM seleciona aleatoriamente
-      $15\%$ dos \textit{tokens}. Um estudante propõe simplificar a regra
-      $80/10/10$ substituindo $\mathbf{100\%}$ dos \textit{tokens}
-      selecionados pelo \textit{token} especial \texttt{[MASK]} (em vez
-      de $80\%$ por \texttt{[MASK]}, $10\%$ por palavra aleatória e
-      $10\%$ mantidos inalterados). Qual é a principal desvantagem
-      dessa simplificação?
+\Needspace{18\baselineskip}
+\item No pré-treino do BERT, MLM seleciona $15\%$ das posições.
+      Entre as selecionadas, $80\%$ recebem \texttt{[MASK]}, $10\%$
+      recebem um token aleatório e $10\%$ preservam o token original.
+      Considere substituir todos os tokens selecionados por \texttt{[MASK]}.
+      Qual efeito dessa mudança motiva a mistura original?
 
 \begin{enumerate}[a)]
-    \item A perda MLM fica indefinida porque \texttt{[MASK]} não faz
-          parte do vocabulário usado no \textit{fine-tuning}.
-    \item O modelo nunca vê \textit{tokens} reais nas posições
-          selecionadas durante o pré-treino, criando um desalinhamento
-          com o \textit{fine-tuning}.
-    \item Os gradientes da posição \texttt{[MASK]} se anulam quando
-          todas as posições selecionadas recebem o mesmo \textit{token}.
-    \item O modelo aprende a ignorar a posição dos \textit{tokens}, pois
-          \texttt{[MASK]} é sempre o mesmo símbolo, independentemente
-          da posição.
+    \item Reduzir o vocabulário de saída disponível para as posições supervisionadas no pré-treino.
+    \item Aumentar a diferença entre as entradas supervisionadas no pré-treino e nas tarefas discriminativas.
+    \item Eliminar os gradientes dos estados ocultos nas posições selecionadas para a perda de reconstrução.
+    \item Remover a informação posicional dos tokens substituídos durante a construção da entrada do encoder.
 \end{enumerate}
 % R: b
 
 % ------------------------------------------------------------------
-% Q4 — Médio (BERT: segment embeddings e tarefas par-de-sentença)
+% Q4 — Médio (BERT: remoção dos segment embeddings)
 % ------------------------------------------------------------------
-\item A representação de entrada do BERT é $\mathbf{x}_i = \mathbf{e}_{\text{token}}(w_i)
-      + \mathbf{e}_{\text{segmento}}(s_i) + \mathbf{e}_{\text{posição}}(i)$, onde
-      $\mathbf{e}_{\text{segmento}}$ assume o valor $\mathbf{e}_A$ para tokens da primeira
-      sentença e $\mathbf{e}_B$ para tokens da segunda. Um pesquisador remove
-      o componente $\mathbf{e}_{\text{segmento}}$ para simplificar o modelo.
-      Em qual das seguintes tarefas essa remoção causaria a
-      \textbf{maior degradação} de desempenho?
+\Needspace{19\baselineskip}
+\item Um BERT recebe \texttt{[CLS] pergunta [SEP] contexto [SEP]},
+      com representação de entrada
+      \[
+        \mathbf{x}_i=\mathbf e_{\text{token}}(w_i)
+          +\mathbf e_{\text{segmento}}(s_i)+\mathbf e_{\text{posição}}(i).
+      \]
+      Um pesquisador remove apenas $\mathbf e_{\text{segmento}}$, mantendo
+      os tokens, suas posições e a máscara de atenção.
+      Qual descrição corresponde à alteração realizada?
 
 \begin{enumerate}[a)]
-    \item \textit{POS tagging} em uma única sentença, com um rótulo por token.
-    \item Classificação de sentimento em uma única sentença (SST-2), com um
-          rótulo por sentença.
-    \item \textit{Extractive QA} (SQuAD): identificar o trecho que responde
-          a uma pergunta.
-    \item \textit{Named Entity Recognition} (NER) em uma única sentença, com
-          um rótulo por token.
+    \item A indicação posicional é removida, preservando os separadores e os embeddings de segmento.
+    \item A marcação por separadores é removida, preservando as posições e os embeddings de tokens.
+    \item A indicação aditiva do segmento é removida, preservando os separadores e os embeddings posicionais.
+    \item A interação entre segmentos é removida, preservando os tokens e as posições de cada segmento.
 \end{enumerate}
 % R: c
 
 % ------------------------------------------------------------------
-% Q5 — Médio (ELECTRA vs. BERT: eficiência de treino)
+% Q5 — Médio (ELECTRA vs. BERT: posições supervisionadas)
 % ------------------------------------------------------------------
-\item O ELECTRA (Clark et al., 2020) substitui o objetivo MLM do BERT
-      pelo \textit{Replaced Token Detection} (RTD): um gerador pequeno
-      cria \textit{tokens} substitutos para $\approx 15\%$ das posições,
-      e o discriminador ELECTRA deve classificar \textbf{cada posição}
-      da sequência como ``real'' ou ``substituído''. Comparado ao BERT
-      com MLM, qual é a principal vantagem do ELECTRA em eficiência
-      de treinamento?
+\Needspace{15\baselineskip}
+\item Considere uma entrada com $T$ posições válidas, sem padding.
+      No BERT, o conjunto $M$ reúne as posições selecionadas para MLM.
+      No ELECTRA, um gerador propõe substituições e o discriminador
+      usa o objetivo \textit{Replaced Token Detection} (RTD).
+      Em quais posições são calculados os termos de perda do MLM
+      e do RTD do discriminador, respectivamente?
 
 \begin{enumerate}[a)]
-    \item O ELECTRA não precisa de uma camada de vocabulário na saída
-          (custo $d \times |V|$), pois a classificação RTD é binária.
-    \item O ELECTRA gera sinal de gradiente em \textbf{todas} as posições
-          da sequência, e não apenas nos $\approx 15\%$ mascarados do MLM.
-    \item O ELECTRA não precisa de \textit{fine-tuning}, pois o RTD
-          já otimiza diretamente tarefas discriminativas como NER.
-    \item O ELECTRA usa \textit{batches} menores que o BERT por precisar
-          do gerador auxiliar, reduzindo o consumo de memória e
-          acelerando o treino por passo.
+    \item MLM: nas $T$ posições; RTD: nas posições de $M$.
+    \item MLM: nas posições de $M$; RTD: nas $T$ posições.
+    \item MLM: nas posições de $M$; RTD: nas posições de $M$.
+    \item MLM: nas $T$ posições; RTD: nas $T$ posições.
 \end{enumerate}
 % R: b
 
 % ------------------------------------------------------------------
-% Q6 — Médio (CLS vanilla falha em STS: anisotropia)
+% Q6 — Médio (CLS em STS: objetivo de adaptação)
 % ------------------------------------------------------------------
-\item Um engenheiro extrai $\mathbf{h}_{[\texttt{CLS}]}^{(L)}$ (estado
-      oculto final do \texttt{[CLS]}) de um BERT pré-treinado
-      \textbf{sem fine-tuning} para medir a similaridade semântica entre
-      sentenças via cosseno. No experimento de Reimers \& Gurevych (2019),
-      esse método obtém $16.50$ de correlação de Spearman no
-      STS-Benchmark, abaixo do GloVe ($58.02$). Qual raciocínio
-      explica corretamente esse fenômeno?
+\Needspace{17\baselineskip}
+\item Um engenheiro compara frases pelo cosseno entre estados finais
+      de \texttt{[CLS]} de um BERT sem adaptação.
+      Na avaliação de Reimers e Gurevych (2019), essa abordagem obteve
+      $100\rho=16{,}50$ no STS-B, enquanto a média de embeddings GloVe
+      obteve $100\rho=58{,}02$, com $\rho$ indicando Spearman.
+      Qual objetivo de adaptação atua diretamente sobre a organização
+      dos vetores para essa comparação?
 
 \begin{enumerate}[a)]
-    \item O \texttt{[CLS]} foi treinado no NSP, um objetivo binário e
-          ruidoso que não organiza o espaço para similaridade cosseno;
-          o espaço resultante é anisotrópico.
-    \item O BERT usa \textit{position embeddings} aprendidos, logo
-          o \texttt{[CLS]} captura apenas informação posicional e
-          perde a semântica do restante da sentença.
-    \item O \texttt{[CLS]} usa apenas os \textit{tokens} da última camada,
-          enquanto o GloVe usa toda a hierarquia de \textit{n}-grams
-          (mais informação leva ao melhor desempenho).
-    \item O BERT foi pré-treinado apenas em inglês, e o STS-Benchmark
-          contém sentenças em múltiplos idiomas, favorecendo o GloVe
-          multilíngue.
+    \item Aproximar pares semanticamente similares e afastar pares diferentes no espaço de embeddings.
+    \item Prever tokens selecionados usando o contexto das posições de cada sentença corrompida.
+    \item Prever se um segmento de texto é a continuação de outro no documento.
+    \item Distinguir tokens originais de substitutos amostrados por um gerador auxiliar de tokens.
 \end{enumerate}
 % R: a
 
 % ------------------------------------------------------------------
 % Q7 — Médio (mean pooling mascarado: cálculo com token [PAD])
 % ------------------------------------------------------------------
+\Needspace{23\baselineskip}
 \item No SBERT, o \textit{mean pooling} mascarado calcula o vetor de
       sentença excluindo posições \texttt{[PAD]}:
       \[
         \mathbf{u} = \frac{\sum_{i=1}^{L} m_i\,\mathbf{h}_i}{\sum_{i=1}^{L} m_i},
         \qquad m_i \in \{0,1\}.
       \]
-      Uma sentença tem $L = 3$ tokens com os seguintes \textit{embeddings}
+      Uma entrada preenchida tem $L = 3$ posições com os seguintes estados ocultos
       $\mathbf{h}_i \in \mathbb{R}^2$ e máscara de atenção:
 
 \begin{center}
@@ -208,50 +179,47 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
 % ------------------------------------------------------------------
 % Q8 — Médio (bi-encoder vs. cross-encoder: latência de consulta)
 % ------------------------------------------------------------------
-\item Um sistema de busca semântica precisa classificar $n = 100\,000$
-      documentos em relação a uma consulta. Um \textbf{cross-encoder}
-      requer $1$ \textit{forward pass} por par (consulta, documento);
-      um \textbf{bi-encoder} pré-computa os documentos \textit{offline} e,
-      no momento da consulta, realiza apenas $1$ \textit{forward pass}
-      (para a consulta) seguido de busca vetorial. Cada \textit{forward
-      pass} demora $t = 10\text{ ms}$. Qual é a redução de latência no
-      momento da consulta ao usar o bi-encoder?
+\Needspace{16\baselineskip}
+\item Um cross-encoder avalia uma consulta contra $100\,000$ documentos,
+      executando as inferências sequencialmente, sem batching. Cada par
+      custa $10\text{ ms}$.
+      Um bi-encoder já possui os documentos indexados: codificar a consulta
+      custa $10\text{ ms}$ e a busca vetorial custa mais $10\text{ ms}$.
+      Desconsidere os demais custos.
+      Qual é a razão entre a latência do cross-encoder e a do bi-encoder?
 
 \begin{enumerate}[a)]
-    \item $\approx 100\times$
-    \item $\approx 1\,000\times$
-    \item $\approx 100\,000\times$
-    \item Nenhuma redução de latência.
+    \item $10\,000\times$
+    \item $25\,000\times$
+    \item $50\,000\times$
+    \item $100\,000\times$
 \end{enumerate}
 % R: c
 
 % ------------------------------------------------------------------
 % Q9 — Médio (InfoNCE: efeito do tamanho de batch)
 % ------------------------------------------------------------------
-\item Na perda \textit{InfoNCE} com \textit{in-batch negatives}, um
-      \textit{batch} de $N = 4$ pares $(x_i, x_i^+)$ fornece $N - 1 = 3$
-      negativos por âncora. Um engenheiro aumenta o \textit{batch}
-      para $N = 1\,024$. Qual é o efeito esperado desse aumento?
+\Needspace{14\baselineskip}
+\item Um treinamento usa InfoNCE direcional com pares $(x_i,x_i^+)$:
+      cada âncora $x_i$ é comparada aos positivos de todos os pares do lote.
+      Há um único positivo rotulado por âncora, e os demais candidatos
+      são tratados como negativos.
+      Ao aumentar o lote de $4$ para $1\,024$ pares, quantos candidatos
+      negativos passam a participar da perda de cada âncora?
 
 \begin{enumerate}[a)]
-    \item O treino fica mais lento por \textit{token}, mas cada âncora
-          distingue seu positivo de mais competidores, melhorando a
-          qualidade dos \textit{embeddings}.
-    \item O treino produz resultado equivalente ao de $N = 4$: a perda
-          InfoNCE é normalizada pelo número de negativos e compensa
-          automaticamente o aumento.
-    \item O treino diverge com $N$ grande porque o denominador do
-          \textit{softmax} fica muito grande, zerando os gradientes.
-    \item O benefício de $N$ grande é apenas computacional (melhor
-          utilização de GPU), sem impacto na qualidade final dos
-          \textit{embeddings}.
+    \item $1\,023$
+    \item $1\,024$
+    \item $2\,046$
+    \item $2\,047$
 \end{enumerate}
 % R: a
 
 % ------------------------------------------------------------------
-% Q10 — Difícil (triplet loss: cálculo numérico)
+% Q10 — Médio (triplet loss: cálculo numérico)
 % ------------------------------------------------------------------
-\item \emoji{skull-and-crossbones} Considere três \textit{embeddings}
+\Needspace{18\baselineskip}
+\item Considere três \textit{embeddings}
       (já normalizados) e a \textit{triplet loss} com margem $\alpha = 0.5$:
       \[
         \mathbf{f}(x) = [1.0,\;0.0], \quad
@@ -267,20 +235,22 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
 \begin{enumerate}[a)]
     \item $0.50$
     \item $1.90$
-    \item $-1.90$
+    \item $2.90$
     \item $0$
 \end{enumerate}
 % R: d
 
 % ------------------------------------------------------------------
-% Q11 — Difícil (MLM loss: cálculo numérico)
+% Q11 — Médio (MLM loss: cálculo numérico)
 % ------------------------------------------------------------------
-\item \emoji{skull-and-crossbones} O BERT pré-treina com a perda MLM:
+\Needspace{17\baselineskip}
+\item O BERT pré-treina com a perda MLM:
       \[
         \mathcal{L}_{\text{MLM}}
-          = -\frac{1}{|M|}\sum_{i \in M} \log p(w_i \mid \mathbf{w}_{\setminus M}).
+          = -\frac{1}{|M|}\sum_{i \in M} \ln p_\theta(w_i \mid \tilde{\mathbf w}).
       \]
-      Em um passo de treino, $|M| = 3$ posições são mascaradas. O modelo
+      A sequência corrompida é $\tilde{\mathbf w}$, e $M$ reúne as posições
+      selecionadas para predição. Em um passo de treino, $|M| = 3$. O modelo
       atribui as seguintes probabilidades ao \textit{token} correto em cada
       posição: $p_1 = 0.50$,\ $p_2 = 0.25$,\ $p_3 = 0.125$.
       Qual é o valor de $\mathcal{L}_{\text{MLM}}$?
@@ -297,12 +267,13 @@ Qual é o vetor de sentença $\mathbf{u}$ produzido pelo \textit{mean pooling} m
 
 
 % ============================================================
+\clearpage
 \section*{Soluções}
 % ============================================================
 
 % --- Solução Q1 ---
-\subsection*{I — Resposta: (a)}
-O esquema BIO exige que o \textbf{primeiro token} de qualquer entidade receba
+\subsection*{I: Resposta: (a)}
+O esquema BIO2 exige que o \textbf{primeiro token} de qualquer entidade receba
 a \textit{tag} \textbf{B-} (Begin), e os tokens subsequentes da mesma entidade
 recebam \textbf{I-} (Inside). Tokens fora de entidades recebem \textbf{O}.
 Na frase:
@@ -318,8 +289,8 @@ A opção~(c) usa \texttt{I-ORG} para ``PUCRS'' (mesmo erro para organização).
 A opção~(d) usa \texttt{I-PER} para ``Lucas'' (mesmo erro para pessoa).
 
 % --- Solução Q2 ---
-\subsection*{II — Resposta: (c)}
-Como $H \cdot d_k = 12 \times 64 = 768 = d$, todas as quatro matrizes são
+\subsection*{II: Resposta: (c)}
+Como $H \cdot d_k = 12 \times 64 = 768 = d$, todas as quatro matrizes pertencem a
 $\mathbb{R}^{768 \times 768}$. O número de parâmetros em cada uma é
 $768 \times 768 = 589\,824$, e no total:
 \[
@@ -331,62 +302,70 @@ cabeças de volta à dimensão $d$ e é tão grande quanto as demais.
 A opção~(d) duplica o resultado correto (erro de dupla contagem).
 
 % --- Solução Q3 ---
-\subsection*{III — Resposta: (b)}
-O \texttt{[MASK]} é um token \textbf{exclusivo do pré-treino}: ele nunca aparece
-na fase de \textit{fine-tuning} nem na inferência. Se todos os tokens selecionados
-fossem substituídos por \texttt{[MASK]}, o modelo \textbf{nunca aprenderia a
-representar tokens reais}; ao encontrá-los no \textit{fine-tuning}, suas
-representações seriam subótimas. A regra $80/10/10$ mitiga esse desalinhamento
-ao forçar o modelo a lidar com tokens reais (intactos ou aleatórios) mesmo durante
-o pré-treino.
-A opção~(a) é falsa: \texttt{[MASK]} é um token do vocabulário do BERT.
-A opção~(c) é falsa: posições com o mesmo \textit{token} ainda produzem gradiente
-distinto, pois os estados ocultos dependem do contexto.
-A opção~(d) confunde mascaramento com ignorância de posição; a \textit{position
-embedding} é somada antes de qualquer mascaramento.
+\subsection*{III: Resposta: (b)}
+A regra $80/10/10$ permite que parte das posições supervisionadas receba
+um token visível, original ou aleatório. Se todas recebessem \texttt{[MASK]},
+a supervisão direta de reconstrução ficaria restrita a entradas com esse símbolo,
+enquanto tarefas discriminativas usualmente recebem texto sem \texttt{[MASK]}.
+As posições não selecionadas continuam contendo tokens reais, portanto o modelo
+continua aprendendo representações desses tokens.
+
+A opção~(a) é incorreta: o vocabulário de saída permanece inalterado.
+A opção~(c) é incorreta: o símbolo de entrada compartilhado não anula os
+gradientes, pois os estados dependem também das posições e do contexto.
+A opção~(d) é incorreta: a corrupção substitui tokens antes da construção
+dos embeddings; os embeddings posicionais continuam sendo somados à entrada.
 
 % --- Solução Q4 ---
-\subsection*{IV — Resposta: (c)}
-No formato SQuAD, a entrada é \texttt{[CLS] pergunta [SEP] contexto [SEP]}, com
-os tokens da pergunta recebendo $\mathbf{e}_A$ e os do contexto recebendo $\mathbf{e}_B$. Sem
-\textit{segment embeddings}, o modelo \textbf{não distingue} quais tokens são a
-pergunta e quais são o contexto, degradando drasticamente a tarefa de
-identificação de \textit{spans}.
-As tarefas (a), (b) e (d) operam em uma única sentença, portanto todos os tokens
-compartilhariam $\mathbf{e}_A$: a remoção de $\mathbf{e}_{\text{segmento}}$ não altera
-o comportamento nessas tarefas.
+\subsection*{IV: Resposta: (c)}
+A entrada passa a ser
+\[
+  \mathbf x_i=\mathbf e_{\text{token}}(w_i)+\mathbf e_{\text{posição}}(i).
+\]
+A indicação aditiva por $\mathbf e_A$ e $\mathbf e_B$ é removida.
+Os separadores e as posições continuam fornecendo informação sobre a
+organização da sequência. O efeito no desempenho exige avaliação empírica,
+inclusive em tarefas com apenas um segmento.
+
+A opção~(a) remove o componente posicional, que foi mantido.
+A opção~(b) remove os tokens separadores, que foram mantidos.
+A opção~(d) confunde a remoção de um embedding com uma restrição de atenção:
+a máscara continua permitindo interação entre pergunta e contexto.
 
 % --- Solução Q5 ---
-\subsection*{V — Resposta: (b)}
-No MLM do BERT, o gradiente só flui pelas $\approx 15\%$ das posições
-mascaradas. No ELECTRA, o discriminador classifica \textbf{todas} as $L$ posições
-(``real'' ou ``substituído''), gerando gradiente \textbf{denso} a cada passo.
-Esse sinal mais rico permite que o ELECTRA alcance o mesmo desempenho do BERT
-com $\approx 25\%$ do \textit{compute} de pré-treino.
-A opção~(a) é parcialmente verdadeira (a cabeça de saída é binária), mas a
-camada de vocabulário do gerador ainda existe; a vantagem principal é o sinal denso.
-A opção~(c) é falsa: o ELECTRA ainda requer \textit{fine-tuning}.
-A opção~(d) inverte o raciocínio: o gerador aumenta o custo por passo, mas o
-ganho em eficiência vem do sinal mais informativo.
+\subsection*{V: Resposta: (b)}
+MLM calcula termos de reconstrução nas posições de $M$. RTD calcula
+termos de classificação em todas as $T$ posições válidas da entrada.
+Essa supervisão mais densa é uma fonte de eficiência do ELECTRA.
+A classificação do discriminador verifica se o token coincide com o original;
+uma amostra do gerador que reproduza o original recebe o rótulo de token original.
+
+Posições fora de $M$ também podem receber gradientes do MLM indiretamente,
+pois seus estados participam da contextualização das posições supervisionadas.
+A comparação diz respeito aos termos de perda explícitos por posição.
+
+A opção~(a) troca os conjuntos de posições dos dois objetivos.
+A opção~(c) restringe indevidamente RTD às posições de $M$.
+A opção~(d) estende indevidamente a perda MLM a todas as posições.
 
 % --- Solução Q6 ---
-\subsection*{VI — Resposta: (a)}
-O \texttt{[CLS]} é treinado no NSP (classificação binária ``é ou não é a
-próxima sentença''), sem nenhum incentivo para estruturar o espaço de
-\textit{embeddings} de forma que \textbf{frases similares fiquem próximas}.
-O resultado é um espaço \textbf{anisotrópico}: todos os vetores se concentram
-em um cone estreito do hiperespaço, tornando as distâncias cosseno pouco
-discriminativas (frases totalmente diferentes podem ter cosseno $> 0.9$).
-O GloVe, embora estático, captura co-ocorrências e produz um espaço
-mais isotrópico, o que o torna superior para STS \textit{vanilla}.
-A opção~(b) confunde \textit{position embeddings} com o objetivo do
-\texttt{[CLS]}.
-A opção~(c) inventa um mecanismo inexistente.
-A opção~(d) é falsa: o BERT original foi pré-treinado em inglês, assim como o
-GloVe mais comum, e o STS-Benchmark é predominantemente em inglês.
+\subsection*{VI: Resposta: (a)}
+Um objetivo que compara pares de frases atua sobre a geometria usada na
+avaliação por cosseno. A definição dos pares e a função de perda orientam
+a aproximação de exemplos similares e a separação de exemplos diferentes.
+MLM e NSP supervisionam outras tarefas, portanto o bom desempenho nesses
+objetivos não garante embeddings de sentença adequados a STS.
+
+A anisotropia pode prejudicar a discriminação por cosseno, mas os resultados
+citados não demonstram que NSP seja sua causa exclusiva, nem que GloVe seja
+sempre superior a representações de BERT.
+
+A opção~(b) descreve reconstrução MLM, sem otimização direta da comparação de frases.
+A opção~(c) descreve NSP, que classifica a relação entre segmentos apresentados juntos.
+A opção~(d) descreve RTD, que supervisiona decisões sobre tokens.
 
 % --- Solução Q7 ---
-\subsection*{VII — Resposta: (d)}
+\subsection*{VII: Resposta: (d)}
 A máscara zera a contribuição de $w_3$; o numerador é
 $m_1\mathbf{h}_1 + m_2\mathbf{h}_2 + m_3\mathbf{h}_3
  = [2,\,0] + [0,\,2] + \mathbf{0} = [2,\,2]$
@@ -402,47 +381,44 @@ A opção~(c) exclui o \texttt{[PAD]} do numerador (correto), mas divide por $L 
 de $\sum m_i = 2$, gerando $[2,\,2]/3 = [\tfrac{2}{3},\,\tfrac{2}{3}]$: erro de normalização.
 
 % --- Solução Q8 ---
-\subsection*{VIII — Resposta: (c)}
-O cross-encoder requer $1$ \textit{forward pass} por par, logo $n = 100\,000$
-passes no momento da consulta:
+\subsection*{VIII: Resposta: (c)}
+Sob a execução sequencial especificada no enunciado:
 \[
-  100\,000 \times 10\text{ ms} = 1\,000\,000\text{ ms} = 1\,000\text{ s}.
+  t_{\text{cross}}=100\,000\cdot10\text{ ms}=1\,000\,000\text{ ms}.
 \]
-O bi-encoder pré-computa todos os documentos \textit{offline}. Na consulta, basta
-$1$ \textit{forward pass} para a \textit{query} ($10\text{ ms}$) seguido de busca
-vetorial (produto escalar em hardware SIMD, $\ll 1\text{ ms}$ para $10^5$ vetores).
-Redução de latência:
+O bi-encoder codifica a consulta e depois executa a busca vetorial:
 \[
-  \frac{1\,000\,000\text{ ms}}{10\text{ ms}} = 100\,000\times.
+  t_{\text{bi}}=10\text{ ms}+10\text{ ms}=20\text{ ms},
+  \qquad
+  \frac{t_{\text{cross}}}{t_{\text{bi}}}=50\,000.
 \]
-A opção~(a) erra ao supor que o bi-encoder ainda faz um \textit{forward pass} por
-documento em tempo de consulta (documentos estão pré-computados).
-A opção~(b) chega a $1\,000\times$ por confundir $n = 100\,000$ com $n = 1\,000$.
-A opção~(d) supõe que a busca vetorial custa tanto quanto um \textit{forward pass}
-completo por um transformer, ignorando o fator de $\sim 10^4$--$10^6$ entre um produto
-escalar e uma passagem pela rede.
+Os valores são hipóteses deste exemplo. Em uma aplicação, batching, hardware,
+índice e tamanho dos vetores afetam a comparação.
+
+A opção~(a) equivaleria a atribuir $100\text{ ms}$ ao bi-encoder.
+A opção~(b) equivaleria a atribuir $40\text{ ms}$ ao bi-encoder.
+A opção~(d) desconsidera os $10\text{ ms}$ da busca vetorial.
 
 % --- Solução Q9 ---
-\subsection*{IX — Resposta: (a)}
-Na perda InfoNCE, para cada âncora $x_i$ o positivo $x_i^+$ deve ser identificado
-entre todos os $x_j^+$ do \textit{batch}:
+\subsection*{IX: Resposta: (a)}
+Para cada âncora, o objetivo direcional compara $N$ candidatos:
 \[
-  \mathcal{L}_{\text{NCE}} = -\frac{1}{N}\sum_{i=1}^{N} \log
-    \frac{e^{\text{sim}(\mathbf{f}(x_i),\,\mathbf{f}(x_i^+))/\tau}}
-         {\sum_{j=1}^{N} e^{\text{sim}(\mathbf{f}(x_i),\,\mathbf{f}(x_j^+))/\tau}}.
+  \ell_i=-\ln\frac{\exp(\operatorname{sim}(f(x_i),f(x_i^+))/\tau)}
+    {\sum_{j=1}^{N}\exp(\operatorname{sim}(f(x_i),f(x_j^+))/\tau)}.
 \]
-Com $N = 1\,024$, cada âncora compete com $1\,023$ negativos simultâneos, gerando
-gradiente mais rico e discriminativo. Empiricamente, o desempenho escala com
-$\log N$, motivando \textit{batches} de $1\,024$--$16\,384$ em modelos SOTA.
-A opção~(b) erra: a normalização pelo $N$ no denominador da média \textbf{não} é
-equivalente a neutralizar o efeito de mais negativos: o denominador do
-\textit{softmax} cresce com $N$, tornando o problema de classificação mais difícil.
-A opção~(c) erra: o \textit{softmax} com denominador grande concentra gradiente
-nos negativos mais difíceis, não o zera.
-A opção~(d) erra: mais negativos melhoram a qualidade, não apenas a eficiência.
+Um candidato é o positivo rotulado. Os demais são tratados como negativos,
+portanto há $N-1=1\,023$ candidatos negativos por âncora.
+O aumento do lote amplia as comparações, mas o efeito na qualidade depende
+dos dados, da temperatura e da presença de falsos negativos. Lotes maiores
+também oferecem mais oportunidades de colisões semânticas.
+
+A opção~(b) inclui o positivo na contagem de negativos.
+A opção~(c) duplica a contagem, como se as duas direções fossem reunidas na perda de cada âncora.
+A opção~(d) conta como negativos todos os outros $2N-1$ elementos do conjunto de pares,
+embora o objetivo especificado use apenas os $N$ candidatos $x_j^+$.
 
 % --- Solução Q10 ---
-\subsection*{X — Resposta: (d)}
+\subsection*{X: Resposta: (d)}
 \textbf{Cálculo das distâncias quadráticas:}
 \begin{align*}
   \|\mathbf{f}(x) - \mathbf{f}(x^+)\|_2^2
@@ -464,14 +440,12 @@ O positivo ($d^2 = 0.80$) já está $2.40$ unidades mais próximo que o negativo
 restrição e não gera gradiente.
 A opção~(a) ocorreria se as duas distâncias fossem iguais ($d^+ = d^-$); nesse
 caso $\mathcal{L} = \alpha = 0.50$.
-A opção~(c), $-1.90$, é o argumento $d^+ - d^- + \alpha$ antes do $\max(0,\cdot)$;
-como ele é negativo, o truncamento por zero é justamente o que leva à resposta correta.
-A opção~(b), $+1.90$, é o mesmo valor com o sinal trocado, $d^- - d^+ - \alpha$, erro de
-quem inverte a ordem das distâncias no argumento. Note que a diferença das distâncias
-sozinha é $d^- - d^+ = 2.40$, e não $1.90$.
+A opção~(b), $1.90$, troca o sinal do argumento negativo antes da aplicação do máximo.
+A opção~(c), $2.90$, usa $d_-^2-d_+^2+\alpha=3.20-0.80+0.50$,
+invertendo o papel das distâncias na fórmula.
 
 % --- Solução Q11 ---
-\subsection*{XI — Resposta: (b)}
+\subsection*{XI: Resposta: (b)}
 As probabilidades dos tokens corretos são $p_1 = \tfrac{1}{2}$,
 $p_2 = \tfrac{1}{4}$, $p_3 = \tfrac{1}{8}$. Aplicando a fórmula com $|M| = 3$:
 \begin{align*}
@@ -485,7 +459,7 @@ $p_2 = \tfrac{1}{4}$, $p_3 = \tfrac{1}{8}$. Aplicando a fórmula com $|M| = 3$:
   \item \emph{(a) $\approx 0.693$}: considera apenas $-\ln(0.50) = \ln 2$,
         ou seja, somente a primeira posição, sem a média.
   \item \emph{(c) $\approx 2.079$}: usa $|M| = 2$ no denominador ($6\ln 2 / 2 = 3\ln 2$),
-        como se apenas duas posições fossem mascaradas.
+        como se apenas duas posições fossem selecionadas.
   \item \emph{(d) $\approx 4.159$}: omite a normalização $1/|M|$ por completo
         ($-(\ln\tfrac{1}{2}+\ln\tfrac{1}{4}+\ln\tfrac{1}{8}) = 6\ln 2$).
 \end{itemize}
