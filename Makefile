@@ -6,7 +6,7 @@
 problems:
 	@mkdir -p build
 	@FAILED=0; COMPILED=0; \
-	for texfile in $$(grep -rl '\\documentclass' problems/ --include='*.tex'); do \
+	for texfile in $$(grep -rl '^[^%]*\\documentclass' problems/ --include='*.tex'); do \
 		echo "--- Compiling: $$texfile ---"; \
 		if latexmk -lualatex -cd- "$$texfile"; then \
 			pdffile="build/$$(basename "$${texfile%.tex}").pdf"; \
@@ -27,7 +27,7 @@ problems:
 	test $$FAILED -eq 0
 
 clean-problems:
-	latexmk -lualatex -cd- -C $$(grep -rl '\\documentclass' problems/ --include='*.tex')
+	latexmk -lualatex -cd- -C $$(grep -rl '^[^%]*\\documentclass' problems/ --include='*.tex')
 	@rm -rf build/
 
 # Compile every exam .tex file (provas and gabaritos). The CI pipeline
@@ -35,7 +35,7 @@ clean-problems:
 exams:
 	@mkdir -p build
 	@FAILED=0; COMPILED=0; \
-	for texfile in $$(grep -rl '\\documentclass' exams/ --include='*.tex'); do \
+	for texfile in $$(grep -rl '^[^%]*\\documentclass' exams/ --include='*.tex'); do \
 		echo "--- Compiling: $$texfile ---"; \
 		if latexmk -lualatex -cd- "$$texfile"; then \
 			pdffile="build/$$(basename "$${texfile%.tex}").pdf"; \
@@ -56,7 +56,7 @@ exams:
 	test $$FAILED -eq 0
 
 clean-exams:
-	latexmk -lualatex -cd- -C $$(grep -rl '\\documentclass' exams/ --include='*.tex')
+	latexmk -lualatex -cd- -C $$(grep -rl '^[^%]*\\documentclass' exams/ --include='*.tex')
 
 # Compile every project spec .tex file. Projects use \documentclass{dlproblemset}
 # (resolved via the TEXINPUTS extension in latexmkrc), so this must also run
@@ -64,7 +64,7 @@ clean-exams:
 projects:
 	@mkdir -p build
 	@FAILED=0; COMPILED=0; \
-	for texfile in $$(grep -rl '\\documentclass' projects/ --include='*.tex'); do \
+	for texfile in $$(grep -rl '^[^%]*\\documentclass' projects/ --include='*.tex'); do \
 		echo "--- Compiling: $$texfile ---"; \
 		if latexmk -lualatex -cd- "$$texfile"; then \
 			pdffile="build/$$(basename "$${texfile%.tex}").pdf"; \
@@ -85,4 +85,4 @@ projects:
 	test $$FAILED -eq 0
 
 clean-projects:
-	latexmk -lualatex -cd- -C $$(grep -rl '\\documentclass' projects/ --include='*.tex')
+	latexmk -lualatex -cd- -C $$(grep -rl '^[^%]*\\documentclass' projects/ --include='*.tex')
