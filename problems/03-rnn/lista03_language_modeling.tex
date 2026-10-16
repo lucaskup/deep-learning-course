@@ -35,7 +35,7 @@ Qual é a probabilidade conjunta da frase \texttt{The dog runs}?
 % ------------------------------------------------------------------
 % Q2 — Medium (parâmetros da camada de saída; distrator = sem bias)
 % ------------------------------------------------------------------
-\item A camada de saída de um LM calcula $\text{logits} = \mathbf{W} \mathbf{h} + \mathbf{b}$ a partir de um vetor de
+\item A camada de saída de um LM calcula $\text{logits} = \mathbf{h}\,\mathbf{W}^{\top} + \mathbf{b}$ a partir de um vetor de
 contexto $\mathbf{h} \in \mathbb{R}^{d}$, com $\mathbf{W} \in \mathbb{R}^{|V| \times d}$. Para $d = 8$ e
 vocabulário $|V| = 50$, quantos parâmetros treináveis (pesos e \textit{bias}) essa camada possui?
 
@@ -294,7 +294,7 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.2$. Com $\alpha
 % ------------------------------------------------------------------
 % Q14 (peso de atenção de produto escalar em seq2seq)
 % ------------------------------------------------------------------
-\item Em um modelo \textit{seq2seq} com atenção de produto escalar, o estado do decodificador no passo $t$ é $\mathbf{h}_t = (1;\ 1)$ e os estados do codificador são $\mathbf{s}_1 = (2;\ 2)$, $\mathbf{s}_2 = (1;\ 1)$ e $\mathbf{s}_3 = (0;\ -1)$. Os \textit{scores} são $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ e os pesos de atenção são
+\item Em um modelo \textit{seq2seq} com atenção de produto escalar, o estado do decodificador no passo $t$ é $\mathbf{h}_t = (1;\ 1)$ e os estados do codificador são $\mathbf{s}_1 = (2;\ 2)$, $\mathbf{s}_2 = (1;\ 1)$ e $\mathbf{s}_3 = (0;\ -1)$. Os \textit{scores} são $\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t\,\mathbf{s}_k^{\top}$ e os pesos de atenção são
 \[
 a_k^{(t)} = \frac{\exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_{i=1}^{3}\exp(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_i))}.
 \]
@@ -314,7 +314,7 @@ Qual o valor aproximado de $a_1^{(t)}$?
 
 \end{enumerate}
 
-\subsection*{Gabarito - Objetivas}
+\subsection*{Gabarito das Objetivas}
 \color{blue}
 \begin{enumerate}[I)]
     \item \textbf{c.} Pela regra da cadeia, $P = 0.5 \cdot 0.4 \cdot 0.3 = 0.06$. A
@@ -430,7 +430,7 @@ Qual o valor aproximado de $a_1^{(t)}$?
 % ------------------------------------------------------------------
 \item Em um mecanismo de atenção com \textit{score} do tipo \textit{dot-product}, o estado do \textit{decoder} é
 $\mathbf{h}_t = (1;\, 2)$ e há três estados do \textit{encoder}: $\mathbf{s}_1 = (2;\, 0)$, $\mathbf{s}_2 = (0;\, 2)$ e
-$\mathbf{s}_3 = ({-}1;\, 1)$. Use $\text{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t^{\top} \mathbf{s}_k$ e
+$\mathbf{s}_3 = ({-}1;\, 1)$. Use $\text{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t\,\mathbf{s}_k^{\top}$ e
 $a_k^{(t)} = \dfrac{\exp(\text{score}(\mathbf{h}_t, \mathbf{s}_k))}{\sum_i \exp(\text{score}(\mathbf{h}_t, \mathbf{s}_i))}$.
 Calcule, passo a passo (use 4 casas decimais quando necessário):
 \begin{enumerate}[(a)]
@@ -546,7 +546,7 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
 % ------------------------------------------------------------------
 % D8 — Medium (context vector com atenção de produto escalar em RNN)
 % ------------------------------------------------------------------
-\item A figura abaixo ilustra o processo de atenção em uma rede recorrente. Nessa rede recorrente, temos que tanto os estados ocultos do \textit{encoder} $\mathbf{h}_i$ quanto o estado oculto do \textit{decoder} $\mathbf{s}$ possuem tamanho $2$. Qual é o valor do vetor de contexto ao computar a atenção por produto escalar do estado do \textit{decoder} $\mathbf{s}_1$ para todos os estados do \textit{encoder} $\mathbf{h}_i$?
+\item A figura abaixo ilustra o processo de atenção em uma rede recorrente. Nessa rede recorrente, temos que tanto os estados ocultos do \textit{encoder} $\mathbf{s}_k$ quanto o estado oculto do \textit{decoder} $\mathbf{h}_t$ possuem tamanho $2$. Qual é o valor do vetor de contexto ao computar a atenção por produto escalar do estado do \textit{decoder} $\mathbf{h}_1$ para todos os estados do \textit{encoder} $\mathbf{s}_k$?
 
 \begin{figure}[H]
     \centering
@@ -559,20 +559,20 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
         % estados do encoder
         \node[enc] (h1a) at (0, 0.6) {$6$};
         \node[enc] (h1b) at (0, 0)   {$2$};
-        \node at (0, -0.7) {$\mathbf{h}_1$};
+        \node at (0, -0.7) {$\mathbf{s}_1$};
 
         \node[enc] (h2a) at (1.8, 0.6) {$-2$};
         \node[enc] (h2b) at (1.8, 0)   {$1$};
-        \node at (1.8, -0.7) {$\mathbf{h}_2$};
+        \node at (1.8, -0.7) {$\mathbf{s}_2$};
 
         \node[enc] (h3a) at (3.6, 0.6) {$6$};
         \node[enc] (h3b) at (3.6, 0)   {$-1$};
-        \node at (3.6, -0.7) {$\mathbf{h}_3$};
+        \node at (3.6, -0.7) {$\mathbf{s}_3$};
 
         % estado do decoder
         \node[dec] (s1a) at (7.0, 0.6) {$2$};
         \node[dec] (s1b) at (7.0, 0)   {$1$};
-        \node at (7.0, -0.7) {$\mathbf{s}_1$};
+        \node at (7.0, -0.7) {$\mathbf{h}_1$};
 
         % fluxo recorrente do encoder e ligação com o decoder
         \draw[->, EncArrow, thick] (h1a.south east) -- (h2a.south west);
@@ -582,7 +582,7 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
         \node at (1.8, -1.35) {encoder};
         \node at (7.0, -1.35) {decoder};
     \end{tikzpicture}
-    \caption{Diagrama contemplando os estados ocultos $\mathbf{h}_i$ de um \textit{encoder} baseado em RNNs e o estado oculto de um \textit{decoder} $\mathbf{s}_1$. A representação dos tokens e dos \textit{embeddings} dos \textit{tokens} foram removidas da figura para simplificar o diagrama.}
+    \caption{Diagrama contemplando os estados ocultos $\mathbf{s}_k$ de um \textit{encoder} baseado em RNNs e o estado oculto de um \textit{decoder} $\mathbf{h}_1$. A representação dos tokens e dos \textit{embeddings} dos \textit{tokens} foram removidas da figura para simplificar o diagrama.}
     \label{fig:rnn-attention}
 \end{figure}
 
@@ -595,7 +595,7 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
 % ----- D1 -----
 \item Passo completo de atenção.
 \begin{enumerate}[(a)]
-    \item \textit{Scores} (produto interno $\mathbf{h}_t^{\top} \mathbf{s}_k$ com $\mathbf{h}_t = (1;\, 2)$):
+    \item \textit{Scores} (produto interno $\mathbf{h}_t\,\mathbf{s}_k^{\top}$ com $\mathbf{h}_t = (1;\, 2)$):
     \begin{align*}
         \text{score}(\mathbf{h}_t, \mathbf{s}_1) &= 1 \cdot 2 + 2 \cdot 0 = 2, \\
         \text{score}(\mathbf{h}_t, \mathbf{s}_2) &= 1 \cdot 0 + 2 \cdot 2 = 4, \\
@@ -751,19 +751,18 @@ a cada passo o \textit{decoder} calcula uma média ponderada de todos os estados
 gerando.
 
 % ----- D8 -----
-\item \textit{Scores} de produto escalar com $\mathbf{s}_1 = (2;\, 1)$:
-$\mathbf{s}_1^{\top}\mathbf{h}_1 = 12 + 2 = 14$,
-$\mathbf{s}_1^{\top}\mathbf{h}_2 = -4 + 1 = -3$ e
-$\mathbf{s}_1^{\top}\mathbf{h}_3 = 12 - 1 = 11$. \textit{Softmax}: $e^{14} \approx 1{,}2026 \times 10^{6}$,
+\item \textit{Scores} de produto escalar com $\mathbf{h}_1 = (2;\, 1)$:
+$\mathbf{h}_1\,\mathbf{s}_1^{\top} = 12 + 2 = 14$,
+$\mathbf{h}_1\,\mathbf{s}_2^{\top} = -4 + 1 = -3$ e
+$\mathbf{h}_1\,\mathbf{s}_3^{\top} = 12 - 1 = 11$. \textit{Softmax}: $e^{14} \approx 1{,}2026 \times 10^{6}$,
 $e^{-3} \approx 0{,}05$ e $e^{11} \approx 5{,}9874 \times 10^{4}$, logo
 $\mathbf{a} \approx [\,0.9526;\; 0.0000;\; 0.0474\,]$. Vetor de contexto:
 \[
     \mathbf{c} = 0.9526\,(6;\, 2) + 0.0474\,(6;\, -1)
-    \approx (6;\; 1.905 - 0.047)
-    = \begin{bmatrix} 6 \\ 1.86 \end{bmatrix}.
+    \approx (6;\; 1.905 - 0.047) = (6;\; 1.86).
 \]
 Os dois estados com \textit{score} alto compartilham a primeira componente $6$, por isso ela
-se preserva exatamente; a segunda componente é dominada por $\mathbf{h}_1$.
+se preserva exatamente; a segunda componente é dominada por $\mathbf{s}_1$.
 
 \end{enumerate}
 \color{black}

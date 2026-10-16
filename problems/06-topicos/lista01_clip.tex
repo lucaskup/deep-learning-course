@@ -14,10 +14,10 @@
 
     \item Considere o paradigma dominante em visão computacional antes do CLIP, baseado em pré-treino supervisionado em \texttt{ImageNet} seguido de \textit{linear probe} ou \textit{fine-tuning}. Qual das alternativas abaixo melhor caracteriza a principal limitação dessa abordagem para tarefas de vocabulário aberto?
     \begin{enumerate}[(a)]
-        \item O conjunto de classes é fixado em tempo de treino e a rotulação manual é cara, o que dificulta cobrir conceitos novos.
-        \item A função de ativação utilizada na última camada impede que a rede generalize para novas distribuições de imagens.
-        \item As camadas convolucionais não conseguem extrair características semânticas úteis sem regularização adicional.
-        \item O número de parâmetros do \textit{backbone} é insuficiente para representar mais de 1000 classes simultaneamente.
+        \item O conjunto de classes é fixado em tempo de treino e a rotulação manual é cara.
+        \item As \textit{features} do \textit{backbone} só transferem para imagens na mesma resolução e distribuição de cores do \texttt{ImageNet}.
+        \item O \textit{linear probe} exige re-treinar todas as camadas convolucionais para cada conjunto de dados alvo.
+        \item O pré-treino supervisionado converge para representações que só separam classes vistas com mais de mil exemplos.
         %a
     \end{enumerate}
 
@@ -25,8 +25,8 @@
     \begin{enumerate}[(a)]
         \item Rótulos categóricos atribuídos por anotadores humanos a cada imagem do conjunto.
         \item Pseudo-rótulos produzidos por uma CNN previamente treinada em \texttt{ImageNet}.
-        \item A associação natural entre cada imagem e a legenda que a acompanha na página de origem.
-        \item Máscaras de segmentação derivadas automaticamente de modelos generativos auxiliares.
+        \item A legenda que acompanha cada imagem na página de origem.
+        \item Rótulos propagados por vizinhança a partir de um subconjunto anotado de \texttt{ImageNet}.
         %c
     \end{enumerate}
 
@@ -42,9 +42,9 @@
     \item Antes de compor a matriz $\mathbf{S}$ usada na \textit{InfoNCE}, o CLIP projeta as saídas dos \textit{encoders} em um espaço comum e normaliza os vetores. Qual operação de similaridade entre um vetor de imagem $\mathbf{u}$ e um vetor de texto $\mathbf{v}$ é efetivamente computada após essa normalização?
     \begin{enumerate}[(a)]
         \item Distância euclidiana $\lVert \mathbf{u} - \mathbf{v} \rVert_2$ entre as projeções.
-        \item Produto interno cru $\mathbf{u}^{\top}\mathbf{v}$ sobre os vetores não normalizados.
-        \item Similaridade do cosseno, equivalente a $\tilde{\mathbf{u}}^{\top}\tilde{\mathbf{v}}$ após normalização L2.
-        \item Divergência de Kullback-Leibler entre as distribuições $\mathbf{u}$ e $\mathbf{v}$.
+        \item Produto interno $\mathbf{u}\,\mathbf{v}^{\top}$ sem normalização prévia.
+        \item Similaridade do cosseno entre $\mathbf{u}$ e $\mathbf{v}$.
+        \item Distância de Mahalanobis com covariância estimada no \textit{batch}.
         %c
     \end{enumerate}
 
@@ -72,10 +72,10 @@
 
     \item A perda total do CLIP é definida como $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(\mathcal{L}_{i \to t} + \mathcal{L}_{t \to i})$. Qual é a justificativa principal para essa simetrização?
     \begin{enumerate}[(a)]
-        \item Garantir que a matriz $\mathbf{S}$ seja simétrica em todos os passos de treino.
-        \item Permitir que cada modalidade atue como consulta sobre a outra, evitando viés em uma única direção de recuperação.
-        \item Reduzir pela metade o custo computacional do passo de \textit{backpropagation}.
-        \item Forçar os dois \textit{encoders} a compartilhar pesos durante o treino.
+        \item Garantir que a matriz $\mathbf{S}$ fique simétrica, igualando $S_{ij}$ e $S_{ji}$ ao longo do treino.
+        \item Permitir que cada modalidade atue como consulta sobre a outra.
+        \item Reduzir o custo do \textit{backpropagation}, já que as duas direções compartilham a mesma $\mathbf{S}$.
+        \item Forçar os dois \textit{encoders} a convergir para projeções com os mesmos pesos.
         %b
     \end{enumerate}
 
@@ -84,38 +84,38 @@
         \item Os \textit{encoders} de imagem e de texto compartilham pesos e formam um único \textit{transformer} multimodal.
         \item O \textit{encoder} de texto recebe como entrada o vetor de saída do \textit{encoder} de imagem para então gerar a representação textual.
         \item Apenas o \textit{encoder} de imagem é treinado; o \textit{encoder} de texto é congelado a partir de um BERT pré-treinado.
-        \item Os \textit{encoders} são independentes, treinados conjuntamente, e se conectam apenas no espaço de projeção onde a similaridade é calculada.
+        \item Os \textit{encoders} são independentes e se conectam apenas no espaço de projeção.
         %d
     \end{enumerate}
 
     \item Para realizar classificação \textit{zero-shot} com CLIP em um problema com $K$ classes, qual pipeline descreve corretamente o procedimento de inferência?
     \begin{enumerate}[(a)]
-        \item Codificar a imagem de teste e cada uma das $K$ classes como texto, calcular a similaridade entre os vetores e tomar o $\arg\max$ das similaridades.
+        \item Codificar a imagem e as $K$ descrições de classe, e tomar o $\arg\max$ das similaridades.
         \item Treinar uma camada linear sobre o \textit{encoder} de imagem usando exemplos rotulados das $K$ classes antes da inferência.
         \item Submeter a imagem a uma busca por vizinhos mais próximos no \texttt{ImageNet} e propagar o rótulo majoritário.
-        \item Gerar legendas candidatas com um \textit{decoder} autoregressivo e selecionar aquela com maior probabilidade.
+        \item Gerar legendas candidatas com um \textit{decoder} autoregressivo condicionado na imagem e escolher a de maior verossimilhança.
         %a
     \end{enumerate}
 
     \item Estudos com CLIP mostram que utilizar \textit{prompts} como ``\textit{a photo of a \{classe\}}'' produz acurácia maior do que usar apenas o nome da classe (``\textit{\{classe\}}''). Qual é a explicação mais consistente com o modo como o modelo foi treinado?
     \begin{enumerate}[(a)]
         \item O \textit{prompt} aumenta o número de \textit{tokens} de entrada, o que melhora a capacidade do \textit{transformer} de texto.
-        \item As legendas vistas em treino são frases completas, então frases bem formadas ficam mais próximas dessa distribuição que palavras isoladas.
-        \item O \textit{prompt} introduz \textit{tokens} de pontuação que estabilizam a normalização L2 no espaço de projeção.
-        \item A média sobre múltiplos \textit{tokens} reduz a variância da estimativa de temperatura $\tau$.
+        \item A entrada passa a se parecer com as legendas vistas no pré-treino.
+        \item O \textit{template} fixa a posição do nome da classe, o que estabiliza o \textit{pooling} no token \texttt{[EOS]}.
+        \item Frases mais longas produzem vetores de norma maior antes da normalização L2, o que aumenta os \textit{logits}.
         %b
     \end{enumerate}
 
     \item Considere quatro estratégias para adaptar o CLIP a uma tarefa específica: (1) \textit{full fine-tuning}, (2) \textit{linear probe}, (3) \textit{adapter modules}, (4) LoRA. Qual delas mantém o \textit{backbone} congelado e treina apenas matrizes \textit{low rank} inseridas em camadas selecionadas?
     \begin{enumerate}[(a)]
-        \item \textit{Full fine-tuning}, que ajusta todos os pesos da rede.
-        \item \textit{Linear probe}, que aprende uma única camada linear sobre as \textit{features}.
-        \item \textit{Adapter modules}, que adicionam pequenos blocos com não linearidade entre as camadas.
-        \item LoRA, que adiciona produtos \textit{low rank} $\mathbf{A}\mathbf{B}^{\top}$ às matrizes de pesos congeladas.
+        \item \textit{Full fine-tuning}.
+        \item \textit{Linear probe}.
+        \item \textit{Adapter modules}.
+        \item LoRA.
         %d
     \end{enumerate}
 
-    \item Sobre as limitações conhecidas do CLIP, qual alternativa identifica corretamente um cenário em que o modelo apresenta desempenho notavelmente fraco?
+    \item Sobre as limitações conhecidas do CLIP, qual alternativa identifica corretamente um cenário em que o modelo apresenta desempenho fraco?
     \begin{enumerate}[(a)]
         \item Recuperação semântica em grandes coleções de imagens a partir de consultas textuais curtas.
         \item Classificação \textit{zero-shot} de classes amplas presentes em \texttt{ImageNet}.
@@ -144,7 +144,7 @@
     \begin{enumerate}[(a)]
         \item A escolha de um \textit{template} de \textit{prompt} e o motivo pelo qual ele tende a superar o uso do nome da classe isolado.
         \item Como obter os vetores de cada classe a partir do \textit{encoder} de texto e o que fazer com a normalização.
-        \item Como decidir a classe para uma imagem nova e como tratar empates ou similaridades muito próximas (por exemplo, indicar abstenção ou usar um \textit{ensemble} de \textit{prompts}).
+        \item Como decidir a classe para uma imagem nova e como tratar empates ou similaridades próximas (por exemplo, indicar abstenção ou usar um \textit{ensemble} de \textit{prompts}).
     \end{enumerate}
 
     \item (\textbf{Recuperação semântica}) Descreva como utilizar \textit{embeddings} do CLIP para construir um motor de busca sobre uma coleção de $1\,000\,000$ de imagens, considerando os seguintes pontos:
@@ -154,7 +154,7 @@
         \item Discuta o comportamento esperado quando a consulta é uma frase descritiva longa em comparação com uma única palavra, considerando o limite de 76 \textit{tokens} do \textit{encoder} de texto e a distribuição das legendas vistas em treino.
     \end{enumerate}
 
-    \item (\textbf{Vieses e mitigação}) O CLIP foi treinado em pares (imagem, texto) coletados da web sem curadoria fina. Liste dois modos concretos de falha que podem surgir desse processo (por exemplo, associações demográficas indesejadas, reconhecimento privilegiado de marcas, estereótipos profissionais) e proponha um experimento de auditoria. O experimento deve indicar:
+    \item (\textbf{Vieses e mitigação}) O CLIP foi treinado em pares (imagem, texto) coletados da web sem curadoria fina. Liste dois modos de falha que podem surgir desse processo (por exemplo, associações demográficas indesejadas, reconhecimento privilegiado de marcas, estereótipos profissionais) e proponha um experimento de auditoria. O experimento deve indicar:
     \begin{enumerate}[(a)]
         \item Quais \textit{prompts} usar para sondar a falha (incluindo \textit{prompt ensembling}, se aplicável).
         \item Qual métrica reportar, e como interpretar a magnitude observada.
@@ -205,19 +205,19 @@
     \begin{enumerate}[(a)]
         \item $\mathcal{L}_{i \to t} = -\tfrac{1}{N}\sum_{i=1}^{N} \log\frac{\exp(S_{ii}/\tau)}{\sum_{j=1}^{N} \exp(S_{ij}/\tau)}$. A temperatura $\tau$ controla a ``nitidez'' da distribuição: $\tau$ pequeno aproxima a $\mathrm{softmax}$ do $\arg\max$, e $\tau$ grande a aproxima da distribuição uniforme.
         \item Para $\tau = 1.0$: linha 1 $\mathrm{softmax}(0.96,\, 0.64) \approx (0.579,\, 0.421)$, linha 2 $\mathrm{softmax}(0.36,\, 0.96) \approx (0.354,\, 0.646)$, então $\mathcal{L}_{i \to t} \approx \tfrac{1}{2}(-\log 0.579 - \log 0.646) \approx 0.492$. Para $\tau = 0.1$: linha 1 $\approx (0.961,\, 0.039)$, linha 2 $\approx (0.0025,\, 0.9975)$, então $\mathcal{L}_{i \to t} \approx \tfrac{1}{2}(0.040 + 0.0025) \approx 0.021$.
-        \item Quando $\tau \to 0$, a $\mathrm{softmax}$ concentra toda a massa no maior \textit{logit}, então um negativo enganoso (com $S_{ij}$ próximo ao positivo) gera gradiente extremamente grande na direção de afastar esse par. Para evitar instabilidade numérica e gradientes explosivos, os autores aprendem $\log(1/\tau)$ e o recortam em $\log 100$, ou seja, $\tau \geq 0.01$.
+        \item Quando $\tau \to 0$, a $\mathrm{softmax}$ concentra toda a massa no maior \textit{logit}, então um negativo enganoso (com $S_{ij}$ próximo ao positivo) gera gradiente grande na direção de afastar esse par. Para evitar instabilidade numérica e gradientes explosivos, os autores aprendem $\log(1/\tau)$ e o recortam em $\log 100$, ou seja, $\tau \geq 0.01$.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
         \item Usar um \textit{template} como ``\textit{a photo of a \{classe\}}'' aproxima a entrada da distribuição de legendas vistas em treino, em que frases completas predominam sobre palavras isoladas. Isso reduz a diferença entre as entradas vistas no treino e as usadas na inferência \textit{zero-shot}.
         \item Para cada classe $k \in \{\text{samambaia}, \text{cacto}, \text{orquídea}\}$, gere o \textit{prompt} correspondente, passe-o pelo \textit{encoder} de texto e aplique normalização L2 ao vetor de saída para obter $\tilde{\mathbf{v}}_k$. Esses três vetores podem ser pré-computados uma única vez.
-        \item Dada uma imagem nova, codifica-se a imagem (com normalização L2 também), calcula-se a similaridade do cosseno com cada $\tilde{\mathbf{v}}_k$, escala-se por $1/\tau$ e aplica-se $\mathrm{softmax}$. A classe escolhida é o $\arg\max$. Para empates ou similaridades muito próximas, pode-se usar \textit{prompt ensembling} (média dos vetores de vários \textit{templates}, como ``\textit{a photo of a \{classe\}}'', ``\textit{a close-up of a \{classe\}}'', ``\textit{an image of a \{classe\}}'') e definir um limiar de confiança mínimo, abaixo do qual o sistema se abstém.
+        \item Dada uma imagem nova, codifica-se a imagem (com normalização L2 também), calcula-se a similaridade do cosseno com cada $\tilde{\mathbf{v}}_k$, escala-se por $1/\tau$ e aplica-se $\mathrm{softmax}$. A classe escolhida é o $\arg\max$. Para empates ou similaridades próximas, pode-se usar \textit{prompt ensembling} (média dos vetores de vários \textit{templates}, como ``\textit{a photo of a \{classe\}}'', ``\textit{a close-up of a \{classe\}}'', ``\textit{an image of a \{classe\}}'') e definir um limiar de confiança mínimo, abaixo do qual o sistema se abstém.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
-        \item Etapa \textit{offline}: para cada imagem da coleção, passar pelo \textit{encoder} de imagem, normalizar L2 e armazenar o vetor (em geral 512 ou 768 dimensões) junto com o identificador da imagem. Com $1\,000\,000$ de itens, a busca exata por força bruta ainda é viável, mas um índice aproximado (HNSW ou IVF-PQ, disponíveis na biblioteca FAISS) reduz bastante a latência das consultas.
+        \item Etapa \textit{offline}: para cada imagem da coleção, passar pelo \textit{encoder} de imagem, normalizar L2 e armazenar o vetor (em geral 512 ou 768 dimensões) junto com o identificador da imagem. Com $1\,000\,000$ de itens, a busca exata por força bruta ainda é viável, mas um índice aproximado (HNSW ou IVF-PQ, disponíveis na biblioteca FAISS) reduz a latência das consultas.
         \item Etapa \textit{online}: a consulta textual é passada pelo \textit{encoder} de texto, normalizada L2 e usada como vetor de busca. A métrica é a similaridade do cosseno, equivalente a produto interno sobre vetores normalizados. O índice retorna os $k$ vizinhos com maior similaridade.
         \item Frases descritivas longas tendem a funcionar bem porque se aproximam da distribuição de legendas usadas em treino, desde que respeitem o limite de 76 \textit{tokens}. Palavras isoladas ficam mais distantes dessa distribuição e podem produzir vetores menos discriminativos; é o mesmo efeito que motiva o uso de \textit{templates} no \textit{zero-shot}. Consultas que excedem o limite são truncadas, então detalhes ao final da frase são descartados pelo \textit{encoder}.
     \end{enumerate}
@@ -226,7 +226,7 @@
     Exemplo de resposta:
     \begin{enumerate}[(a)]
         \item Falhas plausíveis incluem associações demográficas (por exemplo, profissões correlacionadas a gênero ou etnia em \textit{prompts} como ``\textit{a photo of a CEO}'') e privilégio a marcas conhecidas (logos de grandes empresas reconhecidos com alta confiança, em detrimento de pequenas marcas). Para sondar, monta-se um conjunto de \textit{prompts} pareados que diferem apenas no atributo sensível (``\textit{a photo of a male nurse}'' vs.\ ``\textit{a photo of a female nurse}'') e usa-se \textit{prompt ensembling} sobre cada lado para reduzir variância de formulação.
-        \item Uma métrica útil é a diferença de probabilidade média entre os lados pareados em um conjunto fixo de imagens neutras, ou a taxa de classificação correta condicionada ao atributo sensível. Magnitudes pequenas e consistentemente próximas de zero indicam pouca dependência; diferenças sistemáticas grandes indicam viés que merece intervenção.
+        \item Uma métrica é a diferença de probabilidade média entre os lados pareados em um conjunto fixo de imagens neutras, ou a taxa de classificação correta condicionada ao atributo sensível. Magnitudes pequenas e consistentemente próximas de zero indicam pouca dependência; diferenças sistemáticas grandes indicam viés que merece intervenção.
         \item Mitigações incluem curadoria do conjunto de classes (remover ou unir rótulos com forte associação demográfica), calibração de \textit{prompts} (subtrair a contribuição de \textit{prompts} neutros) e restrição do vocabulário em produção. Os limites: essas mitigações atuam na inferência e não corrigem o viés latente dos pesos, então casos novos de associação podem aparecer fora do conjunto auditado.
     \end{enumerate}
 \end{enumerate}

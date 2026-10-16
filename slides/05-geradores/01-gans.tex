@@ -72,11 +72,11 @@
       \item Desenvolvida originalmente por Ian Goodfellow em 2014.
     \end{itemize}
     \note{
-      Pontos importantes para a aula:
+      Pontos para a aula:
       \begin{itemize}
         \item GANs são modelos \emph{implícitos} de distribuição: não
         calculamos $P(\mathbf{x})$, apenas sabemos amostrar dela.
-        \item A ideia central é transformar um problema de modelagem
+        \item A ideia é transformar um problema de modelagem
         densa em um problema de classificação, algo que redes neurais
         resolvem bem.
         \item O termo \emph{adversarial} vem do fato de gerador e
@@ -112,7 +112,7 @@
       \textit{pix2pix}\footfullcite{isola2017image} (mapa $\to$ foto,
       esboço $\to$ foto) e \textit{CycleGAN}\footfullcite{zhu2017unpaired}
       (cavalo $\leftrightarrow$ zebra) sem pares alinhados.
-      \item \textbf{Super resolução}: ampliar imagens preservando
+      \item \textbf{Super-resolução}: ampliar imagens preservando
       textura plausível.
       \item \textbf{Aumento de dados}: gerar amostras sintéticas para
       classes raras em domínios médicos e industriais.
@@ -123,12 +123,12 @@
       Bom momento para uma rápida discussão sobre uso responsável.
       Mencionar que muitas dessas aplicações já migraram para modelos
       difusores nos últimos anos, mas o ferramental conceitual de GAN
-      ainda é central.
+      continua em uso.
     }
   \end{frame}
 
   %--- Slide: Princípios - processo gerativo ---
-  \begin{frame}{\textit{GANs} -- Princípios}
+  \begin{frame}{Princípios das \textit{GANs}}
     \textbf{Objetivo:} gerar novas instâncias
     $\{\mathbf{x}^{(j)*}\}$ que sigam a mesma distribuição dos dados de treino
     $\{\mathbf{x}^{(i)}\}$.
@@ -153,7 +153,7 @@
   \end{frame}
 
   %--- Slide: Princípios - indistinguibilidade ---
-  \begin{frame}{\textit{GANs} -- Princípios}
+  \begin{frame}{Princípios das \textit{GANs}}
     \begin{itemize}
       \item Teremos atingido o objetivo quando as instâncias geradas
       forem \textbf{indistinguíveis} das instâncias do conjunto de
@@ -180,7 +180,7 @@
   \end{frame}
 
   %--- Slide: Exemplo toy - parte 1 ---
-  \begin{frame}{\textit{GANs} -- Princípios: um exemplo \textit{toy}}
+  \begin{frame}{Princípios das \textit{GANs}: um exemplo \textit{toy}}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{itemize}
@@ -192,7 +192,7 @@
           \[
             x^{(j)*} = z^{(j)} + \theta.
           \]
-          \item A sigmóide representa o classificador binário ideal.
+          \item A sigmoide representa o classificador binário ideal.
         \end{itemize}
       \end{column}
       \begin{column}{0.50\textwidth}
@@ -206,18 +206,18 @@
       Esse exemplo \emph{toy} tem uma única variável de decisão no
       gerador: a translação $\theta$. Ele é útil para visualizar por que
       o discriminador empurra o gerador para a região correta: onde as
-      distribuições se sobrepõem, a sigmóide fica próxima de 0.5, e o
+      distribuições se sobrepõem, a sigmoide fica próxima de 0.5, e o
       sinal para o gerador desaparece.
     }
   \end{frame}
 
   %--- Slide: Exemplo toy - parte 2 ---
-  \begin{frame}{\textit{GANs} -- Princípios: sobreposição de distribuições}
+  \begin{frame}{Princípios das \textit{GANs}: sobreposição de distribuições}
     \begin{itemize}
       \item Valores diferentes de $\theta$ fazem com que o classificador
       tenha maior ou menor dificuldade em separar as distribuições.
       \item Quando $\theta \approx 7$, as distribuições coincidem e o
-      classificador ideal degenera para chance aleatória (sigmóide
+      classificador ideal degenera para chance aleatória (sigmoide
       quase plana).
     \end{itemize}
     \centering
@@ -244,7 +244,7 @@
     \]
     \vspace{0.2em}
     \begin{itemize}
-      \item $\sigma(\cdot)$ é a sigmóide que mapeia o logit $f[\cdot,\bm{\phi}]$
+      \item $\sigma(\cdot)$ é a sigmoide que mapeia o logit $f[\cdot,\bm{\phi}]$
       para probabilidade de ``real''.
       \item A primeira parcela penaliza rotular geradas como reais; a
       segunda penaliza rotular reais como geradas.
@@ -274,7 +274,7 @@
 
   %--- Slide: MinMax formulation ---
   \begin{frame}{\textit{MinMax Loss}}
-    Plugando a definição do gerador e \textbf{invertendo o objetivo do
+    Substituindo a definição do gerador e \textbf{invertendo o objetivo do
     gerador}, obtemos a formulação adversarial conjunta:
     \vspace{0.3em}
     \[
@@ -301,7 +301,7 @@
   \end{frame}
 
   %--- Slide: MinMax with brace annotations ---
-  \begin{frame}{\textit{MinMax Loss} -- Papéis de gerador e discriminador}
+  \begin{frame}{\textit{MinMax Loss}: Papéis de gerador e discriminador}
     \vspace{-0.3em}
     \[
       \hat{\bm{\phi}},\hat{\thetav} =
@@ -322,7 +322,7 @@
   \end{frame}
 
   %--- Slide: Loss por rede ---
-  \begin{frame}{\textit{MinMax Loss} -- Loss por rede}
+  \begin{frame}{\textit{MinMax Loss}: Loss por rede}
     Na prática, treinamos as redes alternadamente, cada uma otimizando
     sua própria loss:
     \vspace{0.8em}
@@ -343,29 +343,25 @@
   \end{frame}
 
   %--- Slide: Non-saturating loss ---
-  \begin{frame}{\textit{Non-saturating Loss} -- Truque prático do gerador}
+  \begin{frame}{\textit{Non-saturating Loss}: Truque prático do gerador}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
-        No início do treino o discriminador vence facilmente:
-        $\sigma(f[g(\mathbf{z}),\bm{\phi}]) \approx 0$. A loss $\ln[1-\sigma(\cdot)]$
-        fica quase plana em $0$, e o gradiente que chega ao gerador é
-        \emph{minúsculo}.
+        Defina $D_j = \sigma(f[g(\mathbf{z}^{(j)},\thetav),\bm{\phi}])$.
+        No início, $D_j \approx 0$: o gradiente da loss original
+        em relação ao logit fica próximo de zero.
         \vspace{0.3em}
         \begin{block}{Substituição usada na prática}
           \[
-            L_{\text{NS}}[\thetav] = \sum_{j}
-              \!\left(-\ln\!\left[\sigma\!\left(f\!\left[g[\mathbf{z}^{(j)},\thetav],\bm{\phi}\right]\right)\right]\right)
+            L_{\text{NS}}[\thetav] = -\sum_j \ln D_j
           \]
         \end{block}
-        \footnotesize
+        \small
         \begin{itemize}
-          \item O gerador \emph{maximiza a probabilidade de parecer real},
-          em vez de \emph{minimizar a probabilidade de ser pego}.
-          \item Mesmo ponto fixo (equilíbrio em $\sigma = \tfrac{1}{2}$),
-          mas gradiente saudável quando o gerador é fraco.
-          \item Já estava na proposta original de
-          \citeauthoryear{goodfellow2014generative} e é o default em
-          praticamente todas as implementações.
+          \item O gerador aumenta a probabilidade de suas amostras
+          serem classificadas como reais.
+          \item Preserva o equilíbrio em $D_j = \tfrac{1}{2}$ e
+          mantém o gradiente quando $D_j \approx 0$.
+          \item Proposta por \citeauthoryear{goodfellow2014generative}.
         \end{itemize}
       \end{column}
       \begin{column}{0.48\textwidth}
@@ -381,7 +377,7 @@
               xtick={-6,-3,0,3,6},
               legend style={
                 at={(0.5,-0.30)}, anchor=north,
-                legend columns=1, font=\tiny,
+                legend columns=1, font=\scriptsize,
                 draw=none, fill=white,
               },
               clip=false,
@@ -399,16 +395,15 @@
           \end{axis}
         \end{tikzpicture}\\
         \vspace{0.4em}
-        \tiny Quando o discriminador vence ($\sigma \approx 0$,
-        $d \to -\infty$) o gradiente da loss original some, o da NS
-        permanece próximo de 1. O gráfico mostra $|\partial L/\partial d|$,
-        os sinais reais são negativos ($-\sigma(d)$ e $\sigma(d)-1$).
+        \scriptsize O gráfico mostra módulos. As derivadas são
+        $-\sigma(d)$ (original) e $\sigma(d)-1$ (NS).
       \end{column}
     \end{columns}
   \end{frame}
 
   %--- Slide: Algoritmo de treino ---
-  \begin{frame}{\textit{MinMax Loss} -- Algoritmo de treino}
+  \begin{frame}{\textit{MinMax Loss}: Algoritmo de treino}
+    \small
     Treinamos as redes \textbf{alternadamente}, em passos de gradiente:
     \vspace{0.3em}
     \begin{algorithmic}[1]
@@ -448,7 +443,7 @@
       \begin{column}{0.48\textwidth}
         \centering
         \includegraphics[width=\linewidth]{slides/img/05-geradores/mode-collapse-lsun.png}\\
-        \tiny GAN em LSUN: cenas muito similares.
+        \tiny GAN em LSUN: cenas repetidas.
       \end{column}
       \begin{column}{0.48\textwidth}
         \centering
@@ -460,7 +455,7 @@
     O motivo disso fica aparente ao analisarmos a função de custo.
     \note{
       \emph{Mode collapse} é um dos fracassos mais famosos das GANs: o
-      gerador encontra um conjunto pequeno de amostras que enganam bem
+      gerador encontra poucas amostras que enganam bem
       o discriminador e fica preso ali.
     }
   \end{frame}
@@ -471,7 +466,7 @@
   \section{Análise da Loss}
 
   %--- Slide: Divide by number ---
-  \begin{frame}{Análise da Loss -- Normalização}
+  \begin{frame}{Análise da Loss: Normalização}
     Partimos da loss do discriminador, escrita aqui sem o sinal de menos
     (a forma que o discriminador \textbf{maximiza}), e \textbf{dividimos
     cada somatório} pelo número de instâncias (geradas $J$ ou reais $I$):
@@ -492,7 +487,7 @@
   \end{frame}
 
   %--- Slide: Expectation ---
-  \begin{frame}{Análise da Loss -- Esperança/Expectativa}
+  \begin{frame}{Análise da Loss: Esperança/Expectativa}
     Ao dividir pelo número de instâncias, cada termo vira uma
     \textbf{esperança} sobre a distribuição correspondente:
     \vspace{0.4em}
@@ -510,7 +505,7 @@
   \end{frame}
 
   %--- Slide: Integral ---
-  \begin{frame}{Análise da Loss -- Integrais}
+  \begin{frame}{Análise da Loss: Integrais}
     Aplicando a definição de esperança, ficamos com \textbf{duas
     integrais}:
     \vspace{0.4em}
@@ -527,7 +522,7 @@
   \end{frame}
 
   %--- Slide: Optimal discriminator ---
-  \begin{frame}{Análise da Loss -- Discriminador ótimo}
+  \begin{frame}{Análise da Loss: Discriminador ótimo}
     A saída $\sigma\!\left[f[\tilde{\mathbf{x}},\bm{\phi}]\right]$ é a probabilidade
     que o discriminador atribui ao rótulo \emph{real} dada uma amostra
     $\tilde{\mathbf{x}}$. Por \textbf{regra de Bayes}:
@@ -571,7 +566,7 @@
   \end{frame}
 
   %--- Slide: Substituting ---
-  \begin{frame}{Análise da Loss -- Substituindo o discriminador ótimo}
+  \begin{frame}{Análise da Loss: Substituindo o discriminador ótimo}
     Substituindo $\sigma(f[\mathbf{x},\bm{\phi}]) = \frac{P(\mathbf{x})}{P(\mathbf{x})+P(\mathbf{x}^*)}$ na loss:
     \vspace{0.2em}
     \[
@@ -589,7 +584,7 @@
   \end{frame}
 
   %--- Slide: Multiply and divide by 2 ---
-  \begin{frame}{Análise da Loss -- Truque do fator 2}
+  \begin{frame}{Análise da Loss: Truque do fator 2}
     Multiplicar e dividir por \textcolor{HiAmber}{2} dentro dos logaritmos
     não altera o $\argmin$:
     \vspace{-0.3em}
@@ -636,7 +631,7 @@
   \end{frame}
 
   %--- Slide: Recognizing KL ---
-  \begin{frame}{Análise da Loss -- Reconhecendo KL}
+  \begin{frame}{Análise da Loss: Reconhecendo KL}
     Cada parcela tem a forma da \textbf{KL Divergence}:
     \vspace{0.3em}
     \[
@@ -651,7 +646,7 @@
   \end{frame}
 
   %--- Slide: Jensen-Shannon ---
-  \begin{frame}{Análise da Loss -- \textit{Jensen--Shannon Divergence}}
+  \begin{frame}{Análise da Loss: \textit{Jensen--Shannon Divergence}}
     Reconhecemos a definição da \textbf{Jensen--Shannon Divergence}:
     \vspace{0.3em}
     \[
@@ -670,7 +665,7 @@
   \end{frame}
 
   %--- Slide: qualidade x cobertura ---
-  \begin{frame}{Análise da Loss -- Qualidade vs.\ Cobertura}
+  \begin{frame}{Análise da Loss: Qualidade vs.\ Cobertura}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         \vspace{-0.4em}
@@ -765,7 +760,7 @@
   \end{frame}
 
   %--- Slide: segundo termo não depende de gerador ---
-  \begin{frame}{Análise da Loss -- Por que há colapso de moda}
+  \begin{frame}{Análise da Loss: Por que há colapso de moda}
     \[
       D_{JS}[P(\mathbf{x}^*)\|P(\mathbf{x})] =
       \tfrac{1}{2}D_{KL}\!\!\left[P(\mathbf{x}^*)\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]
@@ -780,13 +775,13 @@
       $\tfrac{1}{2}P(\mathbf{x})\log 2$, \emph{independente} de $P(\mathbf{x}^*)$.
       \vspace{0.3em}
 
-      O gerador é \textbf{muito mais incentivado a buscar qualidade}
+      O gerador é \textbf{mais incentivado a buscar qualidade}
       do que cobertura $\to$ \textbf{colapso para a moda}.
     \end{alertblock}
   \end{frame}
 
   %--- Slide: Recap analítico ---
-  \begin{frame}{Análise da Loss -- Recapitulando}
+  \begin{frame}{Análise da Loss: Recapitulando}
     A cadeia de manipulações que aplicamos:
     \begin{enumerate}
       \item Loss original = entropia cruzada binária do discriminador.
@@ -873,8 +868,8 @@
     \]
     \note{
       Em bits (log base 2), o máximo de $D_{JS}$ é $1$; em nats,
-      $\ln 2 \approx 0.693$. Diferente do $D_{KL}$, $D_{JS}$ é sempre
-      limitado, mas ainda satura quando os suportes não se encontram,
+      $\ln 2 \approx 0.693$. $D_{JS}$ é sempre limitado, diferente do
+      $D_{KL}$, mas ainda satura quando os suportes não se encontram,
       o que produz gradientes fracos para o gerador.
     }
   \end{frame}
@@ -892,6 +887,7 @@
     \begin{columns}[T]
       \begin{column}{0.5\textwidth}
         \centering
+        \setlength{\tabcolsep}{4.5pt}
         \begin{tabular}{@{}c|c|c@{}}
           \toprule
           $x$      & $P\,\ln(P/M)$ & $P^{*}\,\ln(P^{*}/M)$ \\
@@ -911,7 +907,7 @@
           P^{*}(c)\,\ln\!\frac{P^{*}(c)}{M(c)} = 0.3 \ln 2 \approx 0.21.
         \]
         \[
-          D_{JS}(P^{*} \| P) = \tfrac{1}{2}(0.196 + 0.122) \approx \mathbf{0.16}\ \text{nats}
+          D_{JS}(P^{*} \| P) \approx \mathbf{0.16}\ \text{nats}
         \]
       \end{column}
     \end{columns}
@@ -930,7 +926,7 @@
   %--- Slide: Manifold hypothesis ---
   \begin{frame}{Por que distribuições disjuntas são a regra}
     \begin{itemize}
-      \item Dados naturais ocupam apenas uma pequena fatia do espaço de
+      \item Dados naturais ocupam apenas uma fatia do espaço de
       pixels: rostos, por exemplo, formam uma superfície curva de
       dimensão muito menor que a dimensão da imagem. Chamamos essa
       superfície de \emph{manifold}.
@@ -952,7 +948,7 @@
   \end{frame}
 
   %--- Slide: Vanishing gradient - teoria ---
-  \begin{frame}{\textit{Vanishing Gradient} -- Motivação}
+  \begin{frame}{\textit{Vanishing Gradient}: Motivação}
     \begin{itemize}
       \item Vimos que, no caso de discriminador ótimo, a loss minimiza
       uma \textbf{distância} ($D_{JS}$) entre instâncias reais e
@@ -974,7 +970,7 @@
   \end{frame}
 
   %--- Slide: Vanishing gradient - empírico ---
-  \begin{frame}{\textit{Vanishing Gradient} -- Evidência empírica\footfullcite{arjovsky2017towards}}
+  \begin{frame}{\textit{Vanishing Gradient}: Evidência empírica\footfullcite{arjovsky2017towards}}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{itemize}
@@ -1035,7 +1031,7 @@
   \end{frame}
 
   %--- Slide: Wasserstein discreta ---
-  \begin{frame}{\textit{Wasserstein Distance} -- Caso discreto}
+  \begin{frame}{\textit{Wasserstein Distance}: Caso discreto}
     \begin{block}{Definição}
       \[
         D_{w}\!\left[P(x)\,\|\,Q(x)\right] =
@@ -1055,7 +1051,7 @@
   \end{frame}
 
   %--- Slide: Movendo massa de P para Q ---
-  \begin{frame}{\textit{Wasserstein Distance} -- Movendo massa}
+  \begin{frame}{\textit{Wasserstein Distance}: Movendo massa}
     A massa que já está no lugar certo mantém a cor da distribuição; a
     massa em \textcolor{MovedRed}{vermelho} precisa ser deslocada.
     Trabalho $=$ massa $\times$ distância.
@@ -1159,7 +1155,7 @@
   \end{frame}
 
   %--- Slide: Transporte visual ---
-  \begin{frame}{\textit{Wasserstein Distance} -- Visualização}
+  \begin{frame}{\textit{Wasserstein Distance}: Visualização}
     \centering
     \begin{tikzpicture}
       \definecolor{otlow}{RGB}{42,13,10}
@@ -1226,7 +1222,7 @@
   \end{frame}
 
   %--- Slide: Primal vs Dual ---
-  \begin{frame}{\textit{Wasserstein Distance} -- Formulação dual}
+  \begin{frame}{\textit{Wasserstein Distance}: Formulação dual}
     \begin{itemize}
       \item Para obter o valor de $D_{w}$, precisamos resolver um
       problema de \textbf{programação linear} em $T$.
@@ -1237,7 +1233,7 @@
   \end{frame}
 
   %--- Slide: De onde vem o f (LP duality) ---
-  \begin{frame}{\textit{Wasserstein Distance} -- De onde vem o $f$?}
+  \begin{frame}{\textit{Wasserstein Distance}: De onde vem o $f$?}
     \begin{itemize}
       \item O primal do slide anterior é um \textbf{LP}: minimizamos
       $\sum_{i,j} T_{ij}\,|i-j|$ sobre o plano $T$, sujeito às marginais
@@ -1263,7 +1259,7 @@
   \end{frame}
 
   %--- Slide: Dual form ---
-  \begin{frame}{\textit{Wasserstein Distance} -- Forma dual}
+  \begin{frame}{\textit{Wasserstein Distance}: Forma dual}
     Reescrevendo em sua forma dual, temos uma nova variável de
     otimização $f$ que \textbf{maximizamos} sob a restrição de que
     valores adjacentes não se alterem em mais de uma unidade:
@@ -1282,7 +1278,7 @@
   \end{frame}
 
   %--- Slide: Wasserstein loss no contínuo ---
-  \begin{frame}{\textit{Wasserstein GAN} -- Loss}
+  \begin{frame}{\textit{Wasserstein GAN}: Loss}
     Considerando que as distribuições são aproximadas pelas instâncias
     reais e geradas, obtemos a loss do \textbf{WGAN}:
     \vspace{0.3em}
@@ -1294,7 +1290,7 @@
     Sujeito à restrição: $\left|\frac{\partial f(\mathbf{x},\bm{\phi})}{\partial \mathbf{x}}\right| \le 1$
     \vspace{0.3em}
     \begin{itemize}
-      \item Não há mais sigmóide: $f$ é um \textbf{crítico}, não um
+      \item Não há mais sigmoide: $f$ é um \textbf{crítico}, não um
       classificador.
       \item A restrição de Lipschitz é imposta via \emph{weight clipping}
       (a seguir) ou \emph{gradient penalty}\cite{gulrajani2017improved}.
@@ -1302,7 +1298,7 @@
   \end{frame}
 
   %--- Slide: Weight clipping ---
-  \begin{frame}{\textit{Wasserstein GAN} -- Weight clipping}
+  \begin{frame}{\textit{Wasserstein GAN}: Weight clipping}
     \begin{itemize}
       \item Como garantir, na prática, que o crítico $f$ seja
       \textbf{1-Lipschitz} ao longo do treino?
@@ -1331,7 +1327,7 @@
   \end{frame}
 
   %--- Slide: WGAN gradient comparison ---
-  \begin{frame}{\textit{WGAN} -- Gradientes em distribuições disjuntas}
+  \begin{frame}{\textit{WGAN}: Gradientes em distribuições disjuntas}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         \centering
@@ -1344,9 +1340,9 @@
           \item Discriminador \emph{saturado} (tracejado)
           $\Rightarrow$ gradientes nulos.
           \item Crítico WGAN produz gradientes \textbf{lineares} mesmo
-          em regiões disjuntas $\Rightarrow$ treinamento muito mais
+          em regiões disjuntas $\Rightarrow$ treinamento mais
           estável.
-          \item A restrição de Lipschitz é a chave: evita que o crítico
+          \item A restrição de Lipschitz evita que o crítico
           ``exploda'' para separar as distribuições.
         \end{itemize}
       \end{column}
@@ -1354,7 +1350,8 @@
   \end{frame}
 
   %--- Slide: WGAN algorithm ---
-  \begin{frame}{\textit{WGAN} -- Algoritmo}
+  \begin{frame}{\textit{WGAN}: Algoritmo}
+    \small
     \begin{algorithmic}[1]
       \Require taxa $\alpha$, limiar de clipping $c$, batch $m$, passos do crítico $n_{\text{critic}}$
       \Require parâmetros iniciais $w_0$ (crítico), $\thetav_0$ (gerador)
@@ -1390,7 +1387,7 @@
   \end{frame}
 
   %--- Slide: WGAN-GP ---
-  \begin{frame}{\textit{WGAN-GP} -- Gradient Penalty\footfullcite{gulrajani2017improved}}
+  \begin{frame}{\textit{WGAN-GP}: Gradient Penalty\footfullcite{gulrajani2017improved}}
     \emph{Weight clipping} impõe Lipschitz, mas reduz a capacidade do
     crítico (pesos saturam em $\pm c$). \textbf{WGAN-GP} substitui o
     clipping por um termo de penalidade na loss:
@@ -1441,8 +1438,8 @@
   \begin{frame}{\textit{Trick 2}: \textit{Minibatch discrimination}\footfullcite{salimans2016improved}}
     \begin{itemize}
       \item Adicione \textbf{estatísticas do \textit{minibatch}} como
-      entrada extra do discriminador.
-      \item Exemplos: variância intra-batch, distâncias par-a-par entre
+      entrada adicional do discriminador.
+      \item Exemplos: variância intra-batch, distâncias entre pares entre
       amostras.
       \item \textbf{Efeito}: força o batch gerado a ter variabilidade
       semelhante ao batch real.
@@ -1480,6 +1477,7 @@
 
   %--- Slide: Avaliação ---
   \begin{frame}{Como avaliar uma GAN?}
+    \small
     Não há log-verossimilhança para reportar. Métricas usuais:
     \begin{itemize}
       \item \textbf{Inception Score}\footfullcite{salimans2016improved}
@@ -1516,7 +1514,7 @@
           \end{itemize}
           \item \textbf{Pontos fortes}
           \begin{itemize}
-            \item Resultados bastante realistas.
+            \item Resultados realistas.
             \item Inferência ``rápida'' (1 passagem pelo gerador).
           \end{itemize}
           \item \textbf{Pontos fracos}

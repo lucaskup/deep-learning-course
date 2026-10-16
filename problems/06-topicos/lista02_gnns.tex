@@ -22,10 +22,10 @@
 
     \item Uma camada de \textit{message passing} agrega as mensagens dos vizinhos por meio de uma função $\mathrm{AGG}$. Que propriedade essa função precisa satisfazer para que a camada seja equivariante à permutação dos nós do grafo?
     \begin{enumerate}[(a)]
-        \item Ser uma transformação linear dos embeddings dos vizinhos.
+        \item Ser linear na ordem em que os vizinhos chegam.
         \item Ser indiferente à ordem em que os vizinhos são apresentados.
         \item Ser uma função monotônica crescente do grau do nó central.
-        \item Ser injetiva sobre vetores individuais de atributos de nó.
+        \item Ser injetiva sobre a sequência ordenada dos embeddings dos vizinhos.
         %b
     \end{enumerate}
 
@@ -42,12 +42,12 @@
         %a
     \end{enumerate}
 
-    \item Na forma matricial do GCN, $\mathbf{H}^{(k)} = \sigma(\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)})$, o fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ é calculado uma única vez e reaproveitado a cada camada e a cada época. Qual característica do problema justifica esse reaproveitamento?
+    \item Na forma matricial do GCN, $\mathbf{H}^{(k)} = \sigma(\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2} \mathbf{H}^{(k-1)} \mathbf{W}^{(k)\top})$, o fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ é calculado uma única vez e reaproveitado a cada camada e a cada época. Qual característica do problema justifica esse reaproveitamento?
     \begin{enumerate}[(a)]
-        \item Esse fator é recalculado por \textit{backpropagation} mas converge nas primeiras épocas.
+        \item Esse fator é determinado pelos atributos iniciais $\mathbf{X}$, que não mudam durante o treino.
         \item Esse fator depende de $\mathbf{W}^{(k)}$, que permanece congelado durante todo o treino.
-        \item Esse fator muda a cada camada porque incorpora a não-linearidade $\sigma$.
-        \item Esse fator não contém parâmetros aprendíveis e depende somente da estrutura fixa do grafo.
+        \item Esse fator é a projeção dos atributos de nó, calculada antes da primeira camada.
+        \item Esse fator depende somente da estrutura do grafo, sem parâmetros aprendíveis.
         %d
     \end{enumerate}
 
@@ -98,7 +98,7 @@
 
     \item Uma equipe empilha $12$ camadas de GCN para classificação de nós em um grafo de citações de diâmetro pequeno e observa que a acurácia de validação cai em relação a um modelo de $3$ camadas. Qual fenômeno explica essa queda e qual intervenção o ataca diretamente?
     \begin{enumerate}[(a)]
-        \item \textit{Overfitting} de parâmetros, mitigado por aumentar a taxa de aprendizado.
+        \item \textit{Overfitting} de parâmetros, mitigado por \textit{dropout} nas camadas intermediárias.
         \item \textit{Vanishing gradient} na entrada, mitigado por remover a normalização de grau.
         \item Desbalanceamento de classes, mitigado por reamostrar os nós de treino.
         \item \textit{Oversmoothing} dos embeddings, mitigado por \textit{skip connections} entre camadas.
@@ -107,9 +107,9 @@
 
     \item \emoji{skull-and-crossbones} Considere dois grafos não isomorfos, ambos com todos os nós de grau $2$ e atributos iniciais idênticos: $G_1$ é um ciclo de seis nós e $G_2$ são dois triângulos disjuntos. Sobre a capacidade de uma GNN de \textit{message passing} de distinguir esses dois grafos, qual afirmação é correta?
     \begin{enumerate}[(a)]
-        \item Distingue após uma camada, pois os graus diferem entre os grafos.
+        \item Distingue após duas camadas, pois os vizinhos de segunda ordem diferem entre os grafos.
         \item Distingue se a agregação usar soma em vez de média, pois a soma é injetiva.
-        \item Não distingue, pois em toda iteração os \textit{multisets} de rótulos coincidem entre os grafos.
+        \item Não distingue, pois os \textit{multisets} de rótulos coincidem a cada iteração.
         \item Não distingue, pois ambos os grafos têm o mesmo número de arestas.
         %c
     \end{enumerate}
@@ -120,7 +120,7 @@
 
 \begin{enumerate}[I)]
 
-    \item (\textbf{Propagação do GCN à mão}) Considere o caminho $G$ com $V = \{1,2,3\}$ e arestas $E = \{(1,2),(2,3)\}$, atributos escalares iniciais $\mathbf{h}^{(0)} = (2,\, 4,\, 6)^\top$, $W^{(1)} = 1$ e $\sigma = \mathrm{Id}$.
+    \item (\textbf{Propagação do GCN à mão}) Considere o caminho $G$ com $V = \{1,2,3\}$, arestas $E = \{(1,2),(2,3)\}$ e atributos escalares iniciais $\mathbf{h}^{(0)} = (2,\, 4,\, 6)^\top$. Use $W^{(1)} = 1$ e $\sigma = \mathrm{Id}$.
     \begin{enumerate}[(a)]
         \item Escreva $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ e o vetor de graus $\tilde{\mathbf{d}}$ no grafo com auto-laços.
         \item Calcule a matriz normalizada $\hat{\mathbf{A}} = \tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$, entrada a entrada.
@@ -158,21 +158,21 @@
 \begin{enumerate}[I)]
     \item \textbf{(a)} Contando as arestas incidentes a cada nó: o nó $1$ aparece só em $(1,2)$, logo $d_1 = 1$; o nó $2$ aparece em $(1,2),(2,3),(2,4)$, logo $d_2 = 3$; o nó $3$ aparece em $(2,3),(3,4)$, logo $d_3 = 2$; o nó $4$ aparece em $(2,4),(3,4)$, logo $d_4 = 2$. O vetor $(2,4,3,3)$ corresponde aos graus no grafo com auto-laços $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$, não ao grafo original. As outras opções não batem com a lista de arestas.
 
-    \item \textbf{(b)} A equivariância à permutação exige que reordenar os vizinhos não altere o resultado da agregação, ou seja, que $\mathrm{AGG}$ seja invariante à ordem de seus argumentos (soma, média, máximo e atenção satisfazem isso). Linearidade não é necessária nem suficiente. Depender do grau ou ser injetiva sobre vetores individuais são propriedades distintas que não garantem invariância à ordem.
+    \item \textbf{(b)} A equivariância à permutação exige que reordenar os vizinhos não altere o resultado da agregação, ou seja, que $\mathrm{AGG}$ seja invariante à ordem de seus argumentos (soma, média, máximo e atenção satisfazem isso). Linearidade na ordem de chegada e injetividade sobre a sequência ordenada dependem da ordem, o oposto do exigido; depender do grau é uma propriedade distinta que não garante invariância à ordem.
 
     \item \textbf{(a)} A vizinhança de $2$ é $\{1,3,4\}$, então $\mathcal{N}(2) \cup \{2\} = \{1,2,3,4\}$ com os quatro valores $(1,2,3,4)$. A média é $(1+2+3+4)/4 = 10/4 = 2{,}5$. A opção $3{,}0$ ignora o próprio nó na contagem, $4{,}5$ usa apenas alguns vizinhos e $2{,}0$ não corresponde a nenhuma agregação coerente.
 
-    \item \textbf{(d)} O fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ depende apenas de $\tilde{\mathbf{A}}$ e $\tilde{\mathbf{D}}$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não é produzido por \textit{backpropagation}, não depende de $\mathbf{W}^{(k)}$ e não incorpora $\sigma$, que é aplicada fora dele.
+    \item \textbf{(d)} O fator $\tilde{\mathbf{D}}^{-1/2} \tilde{\mathbf{A}} \tilde{\mathbf{D}}^{-1/2}$ depende apenas de $\tilde{\mathbf{A}}$ e $\tilde{\mathbf{D}}$, que são determinados pela estrutura do grafo e não contêm parâmetros treináveis, por isso é constante durante o treino. Ele não depende dos atributos $\mathbf{X}$ (alternativas (a) e (c)) nem de $\mathbf{W}^{(k)}$ (alternativa (b)).
 
     \item \textbf{(b)} Com auto-laços, os graus são $\tilde d_2 = 4$ e $\tilde d_3 = 3$, então o peso é $1/\sqrt{4 \cdot 3} = 1/\sqrt{12} \approx 0{,}29$. O valor $0{,}41 = 1/\sqrt{6}$ usaria graus $2$ e $3$, $0{,}50$ ignoraria a normalização cruzada e $0{,}33$ corresponderia a uma média simples por grau.
 
     \item \textbf{(c)} Os nós $3$ e $4$ são estruturalmente simétricos: ambos têm grau $2$ e estão ligados ao nó $2$ e entre si, formando vizinhanças intercambiáveis. Com atributos iniciais iguais, o GCN não consegue diferenciá-los e produz o mesmo embedding. O nó $1$ tem grau $1$ e o nó $2$ tem grau $3$, então nenhum dos outros pares é simétrico.
 
-    \item \textbf{(b)} GraphSAGE aprende uma função de agregação que age sobre vizinhanças locais, então pode ser aplicada a grafos novos sem reprocessar o grafo de treino: é indutivo por construção. O GCN na forma matricial precisa do grafo inteiro para montar o fator de propagação, o que o torna naturalmente transdutivo. A amostragem de vizinhos não dispensa os atributos de nó.
+    \item \textbf{(b)} GraphSAGE aprende uma função de agregação que age sobre vizinhanças locais, então pode ser aplicada a grafos novos sem reprocessar o grafo de treino: é indutivo por construção. O GCN na forma matricial precisa do grafo inteiro para montar o fator de propagação, o que o torna transdutivo. A amostragem de vizinhos não dispensa os atributos de nó.
 
     \item \textbf{(c)} A $\mathrm{softmax}$ dos \textit{scores} $(2{,}0,\, 1{,}0,\, 1{,}5)$ dá $\exp(2{,}0) \approx 7{,}39$, $\exp(1{,}0) \approx 2{,}72$ e $\exp(1{,}5) \approx 4{,}48$, com soma $\approx 14{,}59$. Então $\alpha_{v,u_1} \approx 7{,}39/14{,}59 \approx 0{,}51$. Os valores $0{,}33$, $0{,}19$ e $0{,}67$ correspondem a outras normalizações ou aos demais coeficientes.
 
-    \item \textbf{(a)} No GCN o peso de cada vizinho é $1/\sqrt{\tilde d_v \tilde d_u}$, fixado pelos graus e idêntico para qualquer tarefa. No GAT o coeficiente $\alpha_{vu}$ é obtido de $e_{vu} = \mathrm{LeakyReLU}(\mathbf{a}^\top [\mathbf{W} \mathbf{h}_v \Vert \mathbf{W} \mathbf{h}_u])$, ou seja, depende do conteúdo dos embeddings e se ajusta à tarefa. As demais opções trocam os papéis ou descrevem ambos como fixos.
+    \item \textbf{(a)} No GCN o peso de cada vizinho é $1/\sqrt{\tilde d_v \tilde d_u}$, fixado pelos graus e idêntico para qualquer tarefa. No GAT o coeficiente $\alpha_{vu}$ é obtido de $e_{vu} = \mathrm{LeakyReLU}([\mathbf{h}_v \mathbf{W}^{\top} \Vert \mathbf{h}_u \mathbf{W}^{\top}]\, \mathbf{a}^{\top})$, ou seja, depende do conteúdo dos embeddings e se ajusta à tarefa. As demais opções trocam os papéis ou descrevem ambos como fixos.
 
     \item \textbf{(d)} Empilhar muitas camadas em um grafo de diâmetro pequeno leva ao \textit{oversmoothing}: após poucas camadas cada nó já vê quase todo o grafo e os embeddings convergem para vetores quase idênticos, perdendo poder discriminativo. \textit{Skip connections} atacam isso preservando a informação da camada anterior em cada passo. As outras opções diagnosticam fenômenos que não explicam a queda observada com mais camadas.
 
@@ -222,7 +222,7 @@
     \item
     \begin{enumerate}[(a)]
         \item Média: para $v$, $\tfrac{a+a}{2} = a$; para $v'$, $\tfrac{a}{1} = a$. Os dois resultados coincidem, então a média não distingue. Soma: para $v$, $a + a = 2a$; para $v'$, $a$. Como $2a \neq a$ (para $a \neq 0$), a soma distingue $v$ de $v'$.
-        \item A soma é injetiva sobre \textit{multisets} porque preserva a multiplicidade dos elementos: \textit{multisets} diferentes (como $\{\!\!\{a,a\}\!\!\}$ e $\{\!\!\{a\}\!\!\}$) produzem somas diferentes, ao passo que média e máximo descartam quantos elementos havia. A camada do GIN usa exatamente uma soma sobre os vizinhos seguida de um MLP, justamente para manter essa injetividade e atingir o teto de expressividade dado pelo teste 1-WL.
+        \item A soma é injetiva sobre \textit{multisets} porque preserva a multiplicidade dos elementos: \textit{multisets} diferentes (como $\{\!\!\{a,a\}\!\!\}$ e $\{\!\!\{a\}\!\!\}$) produzem somas diferentes, ao passo que média e máximo descartam quantos elementos havia. A camada do GIN usa uma soma sobre os vizinhos seguida de um MLP para manter essa injetividade e atingir o teto de expressividade dado pelo teste 1-WL.
         \item Em classificação de moléculas, por exemplo, um átomo de carbono ligado a dois hidrogênios é quimicamente diferente de um ligado a um único hidrogênio. Se a agregação usar média ou máximo e os atributos dos vizinhos forem iguais, o modelo não vê a diferença de multiplicidade; com soma, vê. Por isso GIN costuma vencer GCN e GAT em tarefas de classificação de grafo que dependem de subestruturas.
     \end{enumerate}
 

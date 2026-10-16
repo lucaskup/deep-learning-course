@@ -43,7 +43,7 @@
     \vspace{0.4em}
     \begin{itemize}
       \item Uma das primeiras formas de aprendizado
-      \textbf{auto-supervisionado} / não supervisionado.
+      \textbf{autossupervisionado} / não supervisionado.
       \item A ideia é criar uma \textbf{representação útil} das
       instâncias de interesse na etapa intermediária (\emph{gargalo}).
     \end{itemize}
@@ -58,7 +58,7 @@
   \end{frame}
 
   %--- Slide: pipeline ---
-  \begin{frame}{\textit{Autoencoders} -- Pipeline}
+  \begin{frame}{\textit{Autoencoders}: Pipeline}
     \centering
     \includegraphics[width=0.82\linewidth]{slides/img/05-geradores/ae-encoder-decoder.png}\\
     \vspace{0.4em}
@@ -71,12 +71,12 @@
   \end{frame}
 
   %--- Slide: regularização ---
-  \begin{frame}{\textit{Autoencoders} -- Regularização}
+  \begin{frame}{\textit{Autoencoders}: Regularização}
     \begin{itemize}
-      \item É importante que o \textit{autoencoder} tenha
+      \item O \textit{autoencoder} precisa de
       \textbf{regularização} para evitar soluções triviais.
       \item Se \textbf{não houver um gargalo}, o \textit{autoencoder}
-      pode simplesmente copiar a imagem.
+      pode copiar a imagem.
       \item Se houver \textbf{unidades suficientes} no vetor latente,
       é possível \emph{indexar} as imagens originais (memorização).
     \end{itemize}
@@ -152,7 +152,7 @@
         \scriptsize Esquema: 1 canal $\to$ representação $\to$ 3 canais.
       \end{column}
     \end{columns}
-            \footnotesize Problema \textbf{mal-posto}: várias colorações
+            \footnotesize Problema \textbf{mal posto}: várias colorações
         são plausíveis. MSE básico tende a cores \emph{desaturadas}
         (média entre opções); variantes probabilísticas (VAE, GAN,
         difusão) geram cores mais vívidas.
@@ -198,8 +198,9 @@
         \end{tikzpicture}
         \vspace{0.2em}
         \begin{alertblock}{Por que funciona?}
-          \scriptsize O AE só aprendeu a distribuição dos dados de
-          treino, ele não tem como reconstruir o que nunca viu.
+          \scriptsize O AE aprende padrões dos dados de treino.
+          Anomalias podem ter erro maior, mas também podem ser bem
+          reconstruídas. O erro é um indicador, sem garantia de separação.
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -281,78 +282,73 @@
   \end{frame}
 
   %--- Slide: arquitetura VAE (panorama, posicionado cedo) ---
-  \begin{frame}{Arquitetura VAE -- Panorama}
-    \begin{columns}[T]
-      \begin{column}{0.40\textwidth}
-        \begin{itemize}
-          \item \textcolor{EncRed}{\textit{Encoder}} $g[\mathbf{x},\bm{\phi}]$ recebe
-          $\mathbf{x}$ e produz $\boldsymbol{\mu}(\mathbf{x}),\, \boldsymbol{\Sigma}(\mathbf{x})$.
-          \item Definimos
-          $q(\mathbf{z}\mid \mathbf{x},\bm{\phi}) = \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$.
-          \item Amostramos $\mathbf{z}^{*} \sim q(\mathbf{z}\mid \mathbf{x},\bm{\phi})$.
-          \item \textcolor{DecBlue}{\textit{Decoder}} $f[\mathbf{z}^{*},\thetav]$
-          gera os parâmetros de $p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$.
-          \item Perda: $-\mathrm{ELBO} =$ reconstrução $+$ KL.
-        \end{itemize}
+  \begin{frame}{Arquitetura VAE: Panorama}
 
-      \end{column}
-      \begin{column}{0.58\textwidth}
-        \centering
-        \resizebox{\linewidth}{!}{%
-        \begin{tikzpicture}[
-          every node/.style={font=\scriptsize},
-          block/.style={draw, thick, minimum width=1.1cm, minimum height=0.9cm,
-                        rounded corners=2pt},
-          enc/.style={block, draw=EncRed, fill=EncRed!10, text=EncRed},
-          dec/.style={block, draw=DecBlue, fill=DecBlue!10, text=DecBlue},
-          arrow/.style={->, thick, >=stealth},
-          ann/.style={font=\tiny, text=black!70, align=center},
-          callout/.style={draw, dashed, rounded corners=1pt, fill=white,
-                          inner sep=2pt, font=\tiny, align=center}
-        ]
-          % Main pipeline
-          \node (x) {$\mathbf{x}$};
-          \node[enc, right=0.35cm of x] (g) {$g[\mathbf{x},\bm{\phi}]$};
-          \node[right=0.5cm of g] (q) {$q(\mathbf{z}\mid \mathbf{x},\bm{\phi})$};
-          \node[draw, NoiseAmber, fill=NoiseAmber!15, minimum width=0.55cm,
-                minimum height=0.55cm, right=0.5cm of q] (z) {$\mathbf{z}^{*}$};
-          \node[dec, right=0.5cm of z] (f) {$f[\mathbf{z}^{*},\thetav]$};
-          \node[right=0.4cm of f] (px) {$p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$};
+    \begin{itemize}
+      \item \textcolor{EncRed}{\textit{Encoder}} $g[\mathbf{x},\bm{\phi}]$ recebe
+      $\mathbf{x}$ e produz $\boldsymbol{\mu}(\mathbf{x}),\, \boldsymbol{\Sigma}(\mathbf{x})$.
+      \item Definimos
+      $q(\mathbf{z}\mid \mathbf{x},\bm{\phi}) = \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$.
+      \item Amostramos $\mathbf{z}^{*} \sim q(\mathbf{z}\mid \mathbf{x},\bm{\phi})$.
+      \item \textcolor{DecBlue}{\textit{Decoder}} $f[\mathbf{z}^{*},\thetav]$
+      gera os parâmetros de $p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$.
+      \item Perda: $-\mathrm{ELBO} =$ reconstrução $+$ KL.
+    \end{itemize}
 
-          \draw[arrow] (x) -- (g);
-          \draw[arrow] (g) -- (q) node[midway, above, ann] {$\boldsymbol{\mu}, \boldsymbol{\Sigma}$};
-          \draw[arrow] (q) -- (z) node[midway, above, yshift=0.18cm, ann] {amostra};
-          \draw[arrow] (z) -- (f);
-          \draw[arrow] (f) -- (px);
+    \end{frame}
 
-          % Labels under boxes
-          \node[ann, below=0.08cm of x] {entrada};
-          \node[ann, below=0.08cm of g] {encoder};
-          \node[ann, below=0.08cm of q] {posterior aprox.};
-          \node[ann, below=0.08cm of z] {amostra};
-          \node[ann, below=0.08cm of f] {decoder};
-          \node[ann, below=0.08cm of px] {verossimilhança};
+  \begin{frame}{Arquitetura VAE: Diagrama}
 
-          % Loss callouts above
-          \node[callout, draw=EncRed, text=EncRed, above=1.0cm of q]
-            (kl) {variacional $\approx$ \textit{prior}\\$D_{KL}[q(\mathbf{z}\mid \mathbf{x},\bm{\phi})\,\|\,p(\mathbf{z})]$};
-          \node[callout, draw=black!60, above=1.0cm of z, xshift=0.6cm]
-            (loss) {função de perda\\$\mathrm{ELBO}[\thetav,\bm{\phi}]$};
-          \node[callout, draw=DecBlue, text=DecBlue, above=1.0cm of px]
-            (rec) {dado deve ter prob. alta\\$\log p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$};
+    \centering
+    \resizebox{\linewidth}{!}{%
+    \begin{tikzpicture}[
+      every node/.style={font=\scriptsize},
+      block/.style={draw, thick, minimum width=1.1cm, minimum height=0.9cm,
+                    rounded corners=2pt},
+      enc/.style={block, draw=EncRed, fill=EncRed!10, text=EncRed},
+      dec/.style={block, draw=DecBlue, fill=DecBlue!10, text=DecBlue},
+      arrow/.style={->, thick, >=stealth},
+      ann/.style={font=\tiny, text=black!70, align=center},
+      callout/.style={draw, dashed, rounded corners=1pt, fill=white,
+                      inner sep=2pt, font=\tiny, align=center}
+    ]
+      % Main pipeline
+      \node (x) {$\mathbf{x}$};
+      \node[enc, right=0.35cm of x] (g) {$g[\mathbf{x},\bm{\phi}]$};
+      \node[right=0.5cm of g] (q) {$q(\mathbf{z}\mid \mathbf{x},\bm{\phi})$};
+      \node[draw, NoiseAmber, fill=NoiseAmber!15, minimum width=0.55cm,
+            minimum height=0.55cm, right=0.5cm of q] (z) {$\mathbf{z}^{*}$};
+      \node[dec, right=0.5cm of z] (f) {$f[\mathbf{z}^{*},\thetav]$};
+      \node[right=0.4cm of f] (px) {$p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$};
 
-          \draw[->, dashed, EncRed!70, thin] (kl) -- (q);
-          \draw[->, dashed, DecBlue!70, thin] (rec) -- (px);
-        \end{tikzpicture}}\\
-        \vspace{0.3em}
-        \tiny Adaptado de Prince (2023), Fig.~17.9.
-      \end{column}
-    \end{columns}
-            \begin{block}{Use como mapa}
-          \scriptsize Toda a matemática a seguir refere-se a esses
-          mesmos blocos.
-        \end{block}
-  \end{frame}
+      \draw[arrow] (x) -- (g);
+      \draw[arrow] (g) -- (q) node[midway, above, ann] {$\boldsymbol{\mu}, \boldsymbol{\Sigma}$};
+      \draw[arrow] (q) -- (z) node[midway, above, yshift=0.18cm, ann] {amostra};
+      \draw[arrow] (z) -- (f);
+      \draw[arrow] (f) -- (px);
+
+      % Labels under boxes
+      \node[ann, below=0.08cm of x] {entrada};
+      \node[ann, below=0.08cm of g] {encoder};
+      \node[ann, below=0.08cm of q] {posterior aprox.};
+      \node[ann, below=0.08cm of z] {amostra};
+      \node[ann, below=0.08cm of f] {decoder};
+      \node[ann, below=0.08cm of px] {verossimilhança};
+
+      % Loss callouts above
+      \node[callout, draw=EncRed, text=EncRed, above=1.0cm of q]
+        (kl) {variacional $\approx$ \textit{prior}\\$D_{KL}[q(\mathbf{z}\mid \mathbf{x},\bm{\phi})\,\|\,p(\mathbf{z})]$};
+      \node[callout, draw=black!60, above=1.0cm of z, xshift=0.6cm]
+        (loss) {função de perda\\$\mathrm{ELBO}[\thetav,\bm{\phi}]$};
+      \node[callout, draw=DecBlue, text=DecBlue, above=1.0cm of px]
+        (rec) {dado deve ter prob. alta\\$\log p(\mathbf{x}\mid \mathbf{z}^{*},\thetav)$};
+
+      \draw[->, dashed, EncRed!70, thin] (kl) -- (q);
+      \draw[->, dashed, DecBlue!70, thin] (rec) -- (px);
+    \end{tikzpicture}}\\
+    \vspace{0.3em}
+    \tiny Adaptado de Prince (2023), Fig.~17.9.
+    \end{frame}
 
   %--- Slide: modelos de variáveis latentes ---
   \begin{frame}{Modelos de variáveis latentes}
@@ -367,7 +363,7 @@
     \]
     \vspace{0.3em}
     \begin{block}{Motivação}
-      Distribuições relativamente simples $p(\mathbf{x} \mid \mathbf{z})$ e $p(\mathbf{z})$ podem,
+      Distribuições simples $p(\mathbf{x} \mid \mathbf{z})$ e $p(\mathbf{z})$ podem,
       por marginalização, definir distribuições $p(\mathbf{x})$
       \textbf{complexas}.
     \end{block}
@@ -557,7 +553,7 @@
   \section{Treinamento e ELBO}
 
   %--- Slide: Treinamento intratável ---
-  \begin{frame}{Treinamento -- O problema}
+  \begin{frame}{Treinamento: O problema}
     Maximizar a log-verossimilhança direta é \textbf{inviável}:
     \[
       \hat{\thetav} = \argmax_{\thetav}
@@ -572,7 +568,7 @@
       \item Monte Carlo direto $p(\mathbf{x}) \approx \tfrac{1}{K}\sum_{k} p(\mathbf{x}\mid \mathbf{z}_k)$
       com $\mathbf{z}_k \sim p(\mathbf{z})$ também \textbf{falha}: para um $\mathbf{x}$ específico,
       $\mathbf{z}$ amostrado do prior quase nunca explica $\mathbf{x}$, então
-      $p(\mathbf{x}\mid \mathbf{z})$ é minúsculo na enorme maioria das amostras.
+      $p(\mathbf{x}\mid \mathbf{z})$ é minúsculo na maioria das amostras.
     \end{itemize}
     \begin{alertblock}{Estratégia}
       Maximizamos um \textbf{limite inferior} da log-verossimilhança,
@@ -758,7 +754,7 @@
   \end{frame}
 
   %--- Slide: derivação do limite inferior ---
-  \begin{frame}{Limite Inferior -- Derivação}
+  \begin{frame}{Limite Inferior: Derivação}
     \small
     Reescrevemos a integral como uma esperança sob $q$ e aplicamos
     Jensen na concavidade do $\log$:
@@ -785,7 +781,7 @@
   \end{frame}
 
   %--- Slide: ponte ELBO -> identidade ---
-  \begin{frame}{Limite Inferior -- Conexão com a posterior}
+  \begin{frame}{Limite Inferior: Conexão com a posterior}
     \small
     A partir daqui escrevemos $q$ como $q(\mathbf{z}\mid \mathbf{x},\bm{\phi})$ (o encoder
     condiciona em $\mathbf{x}$). Aplicando a regra do produto
@@ -816,7 +812,7 @@
   \end{frame}
 
   %--- Slide: identidade ELBO + KL ---
-  \begin{frame}{ELBO -- A identidade mestre}
+  \begin{frame}{ELBO: A identidade mestre}
     Da derivação anterior, chega-se à \textbf{identidade exata}:
     \vspace{0.3em}
     \[
@@ -837,7 +833,7 @@
   \end{frame}
 
   %--- Slide: ELBO reorganizado ---
-  \begin{frame}{ELBO -- Reorganizando}
+  \begin{frame}{ELBO: Reorganizando}
     \[
       \mathrm{ELBO}[\thetav, \bm{\phi}] =
       \int q(\mathbf{z} \mid \mathbf{x},\bm{\phi}) \log\!\left(\frac{p(\mathbf{x}, \mathbf{z} \mid \thetav)}{q(\mathbf{z} \mid \mathbf{x},\bm{\phi})}\right) d\mathbf{z}
@@ -852,7 +848,7 @@
   \end{frame}
 
   %--- Slide: interpretação ELBO ---
-  \begin{frame}{ELBO -- Interpretação}
+  \begin{frame}{ELBO: Interpretação}
     \[
       \mathrm{ELBO}[\thetav, \bm{\phi}] =
       \underbrace{\int q(\mathbf{z} \mid \mathbf{x},\bm{\phi}) \log p(\mathbf{x} \mid \mathbf{z}, \thetav)\, d\mathbf{z}}_{\textcolor{DecBlue}{\text{Reconstruction Loss}}}
@@ -902,7 +898,7 @@
   \end{frame}
 
   %--- Slide: KL entre gaussianas 1/2 ---
-  \begin{frame}{KL entre gaussianas (1/2) -- Partindo da definição}
+  \begin{frame}{KL entre gaussianas (1/2): Partindo da definição}
     A KL entre duas distribuições quaisquer é:
     \vspace{0.3em}
     \[
@@ -931,7 +927,7 @@
   \end{frame}
 
   %--- Slide: KL entre gaussianas 2/2 ---
-  \begin{frame}{KL entre gaussianas (2/2) -- Forma fechada}
+  \begin{frame}{KL entre gaussianas (2/2): Forma fechada}
     Tomando esperanças sob $q$ (usando
     $\mathbb{E}_q[\mathbf{z}] = \boldsymbol{\mu}$ e $\mathbb{E}_q[\mathbf{z}\mathbf{z}^{\top}] = \boldsymbol{\Sigma} + \boldsymbol{\mu}\boldsymbol{\mu}^{\top}$):
     \vspace{0.3em}
@@ -955,7 +951,7 @@
       }
     \]
     \note{
-      Cada termo tem um papel pedagogicamente claro: $\mathrm{Tr}[\boldsymbol{\Sigma}]$
+      Cada termo tem um papel: $\mathrm{Tr}[\boldsymbol{\Sigma}]$
       penaliza variância grande, $\boldsymbol{\mu}^{\top}\boldsymbol{\mu}$ penaliza se afastar da
       origem, $\log\det\boldsymbol{\Sigma}$ penaliza variância pequena demais (evita
       colapso), $D_z$ é só normalização.
@@ -1007,7 +1003,7 @@
   \end{frame}
 
   %--- Slide: Monte Carlo sample ---
-  \begin{frame}{VAE -- Aproximação por \textit{Monte Carlo}}
+  \begin{frame}{VAE: Aproximação por \textit{Monte Carlo}}
     O primeiro termo do ELBO ainda é uma integral intratável. Porém,
     como é uma \textbf{esperança}, podemos aproximá-lo por
     \textit{Monte Carlo}:
@@ -1053,14 +1049,14 @@
     \]
     \vspace{0.2em}
     Para $\boldsymbol{\Sigma}$ diagonal (caso usual), $\boldsymbol{\Sigma}^{1/2}\,\boldsymbol{\epsilon}^{*} = \boldsymbol{\sigma} \odot \boldsymbol{\epsilon}^{*}$ (forma elemento a elemento).
-    \begin{block}{Ideia chave}
+    \begin{block}{Ideia}
       O ruído $\boldsymbol{\epsilon}^{*}$ é amostrado \emph{fora} da rede; $\boldsymbol{\mu}$ e
       $\boldsymbol{\Sigma}$ permanecem no caminho diferenciável.
     \end{block}
   \end{frame}
 
   %--- Slide: reparametrization diagrama ---
-  \begin{frame}{\textit{Reparametrization Trick} -- Diagrama}
+  \begin{frame}{\textit{Reparametrization Trick}: Diagrama}
     \centering
     \resizebox{\linewidth}{!}{%
     \begin{tikzpicture}[
@@ -1130,7 +1126,7 @@
 
   %--- Slide: amostras e interpolação ---
   %  Figuras geradas por scripts/train_vae_mnist.py
-  \begin{frame}{VAE em ação -- Amostras e interpolação}
+  \begin{frame}{VAE em ação: Amostras e interpolação}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \centering
@@ -1143,8 +1139,8 @@
         }\\
         \vspace{0.3em}
         \scriptsize \textbf{Amostragem}: $\mathbf{z}\sim p(\mathbf{z})$, depois
-        $\mathbf{x} = f(\mathbf{z},\thetav)$. Resultado reconhecível mas \emph{borrado}
-        (limite inferior não é apertado).
+        $\mathbf{x} = f(\mathbf{z},\thetav)$. A média de uma saída
+        gaussiana pode suavizar detalhes e produzir dígitos borrados.
       \end{column}
       \begin{column}{0.48\textwidth}
         \centering
@@ -1226,8 +1222,8 @@
           decoder).
           \item \textbf{Cobertura / diversidade}: $\checkmark$
           (maximização do ELBO cobre toda a distribuição).
-          \item \textbf{Qualidade visual}: $\times$ (imagens
-          tipicamente borradas; o limite inferior não é apertado).
+          \item \textbf{Qualidade visual}: $\times$ (a média de uma
+          saída gaussiana pode suavizar detalhes).
         \end{itemize}
         \vspace{0.4em}
       \end{column}

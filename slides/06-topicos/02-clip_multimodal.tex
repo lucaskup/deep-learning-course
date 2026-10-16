@@ -55,7 +55,7 @@
         \end{itemize}
 
         \vspace{0.4em}
-        Receita robusta, porém com dois custos altos: rótulos manuais e classes fixas.
+        Essa receita tem dois custos: rótulos manuais e classes fixas.
       \end{column}
       \begin{column}{0.42\textwidth}
         \centering
@@ -84,7 +84,7 @@
       \begin{column}{0.48\textwidth}
         \begin{block}{PLN}
           \begin{itemize}
-            \item Pré-treino \textit{auto-supervisionado} massivo (BERT, GPT-2, GPT-3)
+            \item Pré-treino \textit{auto-supervisionado} (BERT, GPT-2, GPT-3)
             \item Bilhões de tokens de texto bruto da web
             \item Sem necessidade de rótulos humanos
           \end{itemize}
@@ -106,7 +106,7 @@
     \textbf{Pergunta:} podemos importar para visão a receita ``coleta web $+$ pré-treino sem rótulos''?
     \note{
       Comparar com a explosão de PLN entre 2018--2020. A turma deve perceber que o gargalo
-      não era o modelo, era o sinal de supervisão.
+      era o sinal de supervisão, não o modelo.
     }
   \end{frame}
 
@@ -130,7 +130,7 @@
   \end{frame}
 
   %--- Slide: Hipótese chave ---
-  \begin{frame}{Hipótese-Chave: Legendas da Web São Supervisão Suficiente}
+  \begin{frame}{Hipótese: Legendas da Web São Supervisão Suficiente}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         Cada imagem na web tende a vir acompanhada de um texto:
@@ -166,7 +166,7 @@
     \end{columns}
 
     \vspace{0.5em}
-    Resta projetar uma função de custo que aproveite esse sinal fraco em escala massiva.
+    Resta projetar uma função de custo que aproveite esse sinal fraco em centenas de milhões de pares.
   \end{frame}
 
   %--- Slide: Posicionamento ---
@@ -264,7 +264,7 @@
         \begin{block}{Definição}
           \[
             \mathrm{sim}(\mathbf{u}, \mathbf{v}) =
-            \frac{\mathbf{u}^{\top}\mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}
+            \frac{\mathbf{u}\,\mathbf{v}^{\top}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}
             = \cos\theta
           \]
         \end{block}
@@ -277,7 +277,7 @@
           \tilde{\mathbf{v}} = \mathbf{v}/\|\mathbf{v}\|
         \]
         Assim $\mathrm{sim}(\tilde{\mathbf{u}},\tilde{\mathbf{v}}) =
-        \tilde{\mathbf{u}}^{\top}\tilde{\mathbf{v}} \in [-1, 1]$.
+        \tilde{\mathbf{u}}\,\tilde{\mathbf{v}}^{\top} \in [-1, 1]$.
       \end{column}
       \begin{column}{0.42\textwidth}
         \centering
@@ -368,7 +368,7 @@
         \small
         \begin{enumerate}\setlength{\itemsep}{4pt}
           \item<1-> Um \textit{embedding} normalizado por imagem ($\mathbf{u}_i$, linhas de $\mathbf{U}$) e por texto ($\mathbf{v}_j$, linhas de $\mathbf{V}$).
-          \item<2-> Cada célula é um produto interno, $S_{ij} = \mathbf{u}_i^{\top}\mathbf{v}_j$: as $N^2$ células saem de uma única multiplicação de matrizes.
+          \item<2-> Cada célula é um produto interno, $S_{ij} = \mathbf{u}_i\,\mathbf{v}_j^{\top}$: as $N^2$ células saem de uma única multiplicação de matrizes.
           \item<3-> A \textcolor{ClipGreen}{\textbf{diagonal}} contém os $N$ pares \textbf{positivos}; as demais células são os $N(N{-}1)$ \textcolor{ClipRed}{\textbf{negativos}}.
           \item<4-> A \textcolor{ClipBlue}{\textbf{linha}} $i$ compara uma imagem com todos os textos; a \textcolor{ClipOrange}{\textbf{coluna}} $j$, um texto com todas as imagens. Nas duas, o alvo é a diagonal.
         \end{enumerate}
@@ -379,7 +379,7 @@
   %--- Slide: InfoNCE formal ---
   \begin{frame}{A Perda \textit{InfoNCE}\footfullcite{oord2018infonce}}
     Em um \textit{batch} de $N$ pares $\{(\mathbf{u}_i, \mathbf{v}_i)\}_{i=1}^{N}$ (já normalizados),
-    formamos $\mathbf{S} \in \mathbb{R}^{N\times N}$ com $S_{ij}=\mathbf{u}_i^{\top}\mathbf{v}_j$. Aqui $\tau>0$ é a \textit{temperatura}, que controla o quão ``afiada'' fica a \textit{softmax}.
+    formamos $\mathbf{S} \in \mathbb{R}^{N\times N}$ com $S_{ij}=\mathbf{u}_i\,\mathbf{v}_j^{\top}$. Aqui $\tau>0$ é a \textit{temperatura}, que controla o quão ``afiada'' fica a \textit{softmax}.
 
     \begin{block}{Loss simétrica de CLIP}
       \small
@@ -455,14 +455,14 @@
   \begin{frame}{Exemplo Trabalhado I: Matriz de Similaridade}
     Batch com $N=2$. \textit{Embeddings} já normalizados em $\mathbb{R}^3$:
     \[
-      \mathbf{u}_1 = \begin{pmatrix}0.8 \\ 0.6 \\ 0\end{pmatrix},\;
-      \mathbf{u}_2 = \begin{pmatrix}0 \\ 0.8 \\ 0.6\end{pmatrix},\;
-      \mathbf{v}_1 = \begin{pmatrix}1 \\ 0 \\ 0\end{pmatrix},\;
-      \mathbf{v}_2 = \begin{pmatrix}0 \\ 0.6 \\ 0.8\end{pmatrix}
+      \mathbf{u}_1 = (0.8,\, 0.6,\, 0),\;
+      \mathbf{u}_2 = (0,\, 0.8,\, 0.6),\;
+      \mathbf{v}_1 = (1,\, 0,\, 0),\;
+      \mathbf{v}_2 = (0,\, 0.6,\, 0.8)
     \]
 
     \vspace{0.2em}
-    Cada $S_{ij} = \mathbf{u}_i^{\top}\mathbf{v}_j$:
+    Cada $S_{ij} = \mathbf{u}_i\,\mathbf{v}_j^{\top}$:
     \begin{itemize}\setlength{\itemsep}{0pt}
       \item $S_{11} = 0.8\!\cdot\!1 + 0.6\!\cdot\!0 + 0 = \mathbf{0.80}$ (positivo)
       \item $S_{12} = 0 + 0.6\!\cdot\!0.6 + 0 = \mathbf{0.36}$ (negativo)
@@ -503,8 +503,8 @@
 
     \vspace{0.2em}
     \begin{itemize}\setlength{\itemsep}{0pt}
-      \item Diminuir $\tau$ \textbf{recompensa fortemente} positivos já bem separados.
-      \item Mas amplifica ruído: um negativo enganoso vira gradiente enorme.
+      \item Diminuir $\tau$ \textbf{recompensa} positivos já bem separados.
+      \item Mas amplifica ruído: um negativo enganoso passa a dominar o gradiente.
       \item Daí a temperatura aprendível com \textit{clipping} em $\log 100$.
     \end{itemize}
   \end{frame}
@@ -611,7 +611,7 @@
   \end{frame}
 
   %--- Slide: Encoder de texto ---
-  \begin{frame}{\textit{Encoder} de Texto: Transformer Compacto}
+  \begin{frame}{\textit{Encoder} de Texto: Transformer de 12 Camadas}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         Detalhes do \textit{transformer} de texto:
@@ -653,8 +653,8 @@
 
     Projetamos linearmente para a \textbf{mesma dimensão} $d_e$ e normalizamos:
     \[
-      \mathbf{u}_i = \frac{\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}}{\|\mathbf{W}_i\, \mathbf{h}_i^{\text{img}}\|},\quad
-      \mathbf{v}_t = \frac{\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}}{\|\mathbf{W}_t\, \mathbf{h}_t^{\text{txt}}\|}
+      \mathbf{u}_i = \frac{\mathbf{h}_i^{\text{img}}\, \mathbf{W}_i^{\top}}{\|\mathbf{h}_i^{\text{img}}\, \mathbf{W}_i^{\top}\|},\quad
+      \mathbf{v}_t = \frac{\mathbf{h}_t^{\text{txt}}\, \mathbf{W}_t^{\top}}{\|\mathbf{h}_t^{\text{txt}}\, \mathbf{W}_t^{\top}\|}
     \]
     com $\mathbf{W}_i \in \mathbb{R}^{d_e \times d_v}$ e $\mathbf{W}_t \in \mathbb{R}^{d_e \times d_t}$.
 
@@ -680,8 +680,8 @@
           \Require batch $\{(\mathrm{img}_i, \mathrm{txt}_i)\}_{i=1}^{N}$, $\tau$
           \State $\mathbf{H}^{\text{img}} \gets \texttt{ImageEncoder}(\mathrm{img})$
           \State $\mathbf{H}^{\text{txt}} \gets \texttt{TextEncoder}(\mathrm{txt})$
-          \State $\mathbf{U} \gets \texttt{normalize}(\mathbf{W}_i\, \mathbf{H}^{\text{img}})$
-          \State $\mathbf{V} \gets \texttt{normalize}(\mathbf{W}_t\, \mathbf{H}^{\text{txt}})$
+          \State $\mathbf{U} \gets \texttt{normalize}(\mathbf{H}^{\text{img}}\, \mathbf{W}_i^{\top})$
+          \State $\mathbf{V} \gets \texttt{normalize}(\mathbf{H}^{\text{txt}}\, \mathbf{W}_t^{\top})$
           \State $\mathbf{S} \gets \mathbf{U}\, \mathbf{V}^{\top} / \tau$
           \State $\mathbf{y} \gets [0, 1, \ldots, N{-}1]$
           \State $\mathcal{L}_1 \gets \texttt{CE}(\mathbf{S}, \mathbf{y})$
@@ -777,7 +777,7 @@
         \end{block}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \begin{alertblock}{Computação real (paper)}
+        \begin{alertblock}{Computação usada no paper}
           \begin{itemize}
             \item ResNet-50x64: \textbf{18 dias} em \textbf{592 V100}
             \item ViT-L/14: \textbf{12 dias} em \textbf{256 V100}
@@ -795,7 +795,7 @@
   \begin{frame}{Truques para Escalar o \textit{Batch}}
     \begin{itemize}
       \item \textbf{\textit{Sharded embeddings}}: distribuir $\mathbf{U}$ e $\mathbf{V}$ entre GPUs; cada GPU calcula sua fatia de $\mathbf{S}$
-      \item \textbf{\textit{Gradient checkpointing}} nos \textit{encoders} pesados (ViT-L)
+      \item \textbf{\textit{Gradient checkpointing}} nos \textit{encoders} maiores (ViT-L)
       \item \textbf{\textit{Mixed precision}} reduz memória dos forward passes pela metade
       \item \textbf{\textit{Local contrastive}}: cada GPU vê o batch global de $\mathbf{V}$ via \textit{all-gather}, calcula sua linha de $\mathbf{S}$ e devolve gradientes
     \end{itemize}
@@ -851,8 +851,8 @@
     \vspace{0.6em}
     \begin{itemize}\setlength{\itemsep}{0pt}
       \item Zero-shot CLIP \textbf{empata} com ResNet-50 \emph{supervisionada} em ImageNet
-      \item Em \texttt{ObjectNet} (distribuição shiftada) o ganho é dramático: $32.6\% \to 72.3\%$
-      \item \textit{Robustness}: CLIP cai muito menos sob mudança de domínio
+      \item Em \texttt{ObjectNet} (distribuição shiftada) a acurácia vai de $32.6\%$ para $72.3\%$
+      \item \textit{Robustness}: CLIP degrada menos sob mudança de domínio
     \end{itemize}
   \end{frame}
 
@@ -874,7 +874,7 @@
 
       \node[draw=PastelYellow!90!black, fill=PastelYellow,
             rounded corners=3pt, font=\scriptsize, text width=2.6cm,
-            align=center, right=0.6cm of ui, yshift=-0.9cm] (sim) {logits $= \mathbf{u}^{\top}\mathbf{v}_k / \tau$};
+            align=center, right=0.6cm of ui, yshift=-0.9cm] (sim) {logits $= \mathbf{u}\,\mathbf{v}_k^{\top} / \tau$};
       \node[stage, right=0.5cm of sim] (sm) {\textit{softmax} $\to$ argmax};
 
       \draw[arr] (img) -- (ui);
@@ -920,17 +920,17 @@
 
     \vspace{0.5em}
     \begin{block}{Como classificar}
-      Codificamos a imagem em $\mathbf{u}$, cada \textit{prompt} em $\mathbf{v}_k$, e aplicamos \textit{softmax} sobre $s_k = \mathbf{u}^{\top}\mathbf{v}_k$.
+      Codificamos a imagem em $\mathbf{u}$, cada \textit{prompt} em $\mathbf{v}_k$, e aplicamos \textit{softmax} sobre $s_k = \mathbf{u}\,\mathbf{v}_k^{\top}$.
     \end{block}
   \end{frame}
 
   %--- Slide: Worked example III — zero-shot ---
   \begin{frame}{Exemplo Trabalhado III: \textit{Zero-Shot} com 3 Classes}
-    \textit{Embedding} da imagem de entrada $\mathbf{x}$ (o filhote): $\mathbf{u} = (0.6,\, 0.8,\, 0)^{\top}$. \textit{Embeddings} dos \textit{prompts}:
+    \textit{Embedding} da imagem de entrada $\mathbf{x}$ (o filhote): $\mathbf{u} = (0.6,\, 0.8,\, 0)$. \textit{Embeddings} dos \textit{prompts}:
     \[
-      \mathbf{v}_{\text{gato}}     = (0, 1.0, 0)^{\top},\;
-      \mathbf{v}_{\text{cachorro}} = (0.8, 0.6, 0)^{\top},\;
-      \mathbf{v}_{\text{carro}}    = (0, 0, 1.0)^{\top}
+      \mathbf{v}_{\text{gato}}     = (0,\, 1.0,\, 0),\;
+      \mathbf{v}_{\text{cachorro}} = (0.8,\, 0.6,\, 0),\;
+      \mathbf{v}_{\text{carro}}    = (0,\, 0,\, 1.0)
     \]
 
     Similaridades: $s_{\text{gato}} = 0.80,\; s_{\text{cachorro}} = 0.96,\; s_{\text{carro}} = 0.00$
@@ -978,10 +978,10 @@
         \begin{block}{Cabeçalho linear}
           Congelar CLIP, treinar uma camada $\mathbf{W} \in \mathbb{R}^{K \times d_e}$
           sobre os \textit{embeddings}.\\ \footnotesize
-          \textit{Linear probe} clássico, baixíssimo custo.
+          \textit{Linear probe}: treina só $K \times d_e$ parâmetros.
         \end{block}
         \begin{block}{CLIP-Adapter}
-          Pequeno MLP residual sobre $\mathbf{u}$, com mistura ponderada:
+          MLP residual sobre $\mathbf{u}$, com mistura ponderada:
           $\mathbf{u}' = \alpha\, \texttt{MLP}(\mathbf{u}) + (1-\alpha)\, \mathbf{u}$.
         \end{block}
       \end{column}
@@ -992,7 +992,7 @@
           \footnotesize Apenas $0.1$--$1\%$ dos parâmetros treinados.
         \end{block}
         \begin{alertblock}{Quando NÃO fazer fine-tuning}
-          Se a tarefa cabe em \textit{zero-shot} robusto, o \textit{fine-tuning}
+          Se o \textit{zero-shot} já resolve a tarefa, o \textit{fine-tuning}
           piora a generalização \textit{out-of-distribution}.
         \end{alertblock}
       \end{column}
@@ -1005,7 +1005,7 @@
       \item \textbf{Indexação} (offline): para cada imagem $\mathbf{x}_n$ no acervo, salvar $\mathbf{u}_n = f_{\text{img}}(\mathbf{x}_n)$
       \item Construir índice \textit{Approximate Nearest Neighbor} (FAISS, HNSW, ScaNN) sobre $\{\mathbf{u}_n\}$ usando produto interno
       \item \textbf{Consulta} (online): dado um texto $q$, computar $\mathbf{v}_q = f_{\text{txt}}(q)$
-      \item Recuperar \textit{top-}$k$ pelo cosseno $\mathbf{v}_q^{\top}\mathbf{u}_n$
+      \item Recuperar \textit{top-}$k$ pelo cosseno $\mathbf{v}_q\,\mathbf{u}_n^{\top}$
     \end{enumerate}
 
     \vspace{0.4em}
@@ -1068,7 +1068,7 @@
         \begin{itemize}\setlength{\itemsep}{2pt}
           \item \textbf{Texto na imagem}: CLIP ``lê'' palavras pintadas e enviesa a classificação
             (uma maçã com etiqueta \texttt{"iPod"} é classificada como \texttt{iPod})
-          \item \textbf{Generalização para MNIST}: $88\%$ \textit{accuracy} (pior que regressão logística simples),
+          \item \textbf{Generalização para MNIST}: $88\%$ \textit{accuracy} (pior que regressão logística),
             dígitos manuscritos são raros em pares web
           \item \textbf{Contagem de objetos}: ``três cachorros'' vs.\ ``cinco cachorros'' é difícil
           \item \textbf{Granularidade fina}: distinguir espécies próximas exige supervisão dedicada
@@ -1167,7 +1167,7 @@
       \begin{column}{0.48\textwidth}
         \begin{block}{SigLIP (2023)}
           Substitui \textit{softmax} por \textbf{sigmoide} pareada:
-          $\ell_{ij} = \log\!\left(1 + e^{-y_{ij}\, \mathbf{u}_i^{\top}\mathbf{v}_j / \tau}\right)$
+          $\ell_{ij} = \log\!\left(1 + e^{-y_{ij}\, \mathbf{u}_i\,\mathbf{v}_j^{\top} / \tau}\right)$
           \begin{itemize}
             \item Não exige \textit{batch} grande
             \item Cada par é independente
@@ -1185,7 +1185,7 @@
   \begin{frame}{LAION-5B e a Democratização do Pré-treino Multimodal}
     \begin{itemize}
       \item \textbf{5.85B} pares (imagem, texto), abertos, multilíngues
-      \item Filtragem usa CLIP: descarta pares com baixa similaridade $\Rightarrow$ recursão útil
+      \item Filtragem usa o próprio CLIP: descarta pares com baixa similaridade
       \item Possibilita treinar variantes de CLIP, Stable Diffusion, vários modelos abertos
     \end{itemize}
 

@@ -12,18 +12,18 @@
 
 \begin{enumerate}[I)]
 
-    \item Um modelo já treinado contém o texto integral de uma obra protegida e o titular dos direitos exige sua remoção sob o GDPR. A equipe considera retreinar o modelo do zero apenas com o corpus sem a obra. Por que, na prática, essa rota raramente é adotada quando chegam novos pedidos de remoção?
+    \item Um modelo já treinado contém o texto integral de uma obra protegida e o titular dos direitos exige sua remoção. A equipe considera retreinar o modelo do zero apenas com o corpus sem a obra. Por que, na prática, essa rota raramente é adotada quando chegam novos pedidos de remoção?
     \begin{enumerate}[(a)]
-        \item Retreinar exige reanotar manualmente todo o corpus restante antes de reiniciar o treino.
-        \item O custo de \textit{compute} se repete por inteiro a cada pedido, sendo da ordem de centenas de milhares de GPU-horas para um modelo de 7B.
+        \item O corpus restante precisa ser refiltrado por licença a cada pedido, repetindo a curadoria de dados inteira.
+        \item O custo de \textit{compute} do retreino se repete por inteiro a cada novo pedido de remoção.
         \item O modelo retreinado deixaria de responder qualquer pergunta sobre o universo da obra, violando o pedido.
-        \item A remoção de um único documento altera a tokenização do corpus inteiro, inviabilizando o reaproveitamento de dados.
+        \item Cada remoção obriga a reconstruir o vocabulário do tokenizador, invalidando os \textit{checkpoints} intermediários.
         %b
     \end{enumerate}
 
     \item Uma colega afirma que o objetivo do \textit{unlearning} é fazer com que $\theta_u$ passe a \textbf{acertar} todas as perguntas sobre $D_f$ de forma diferente do modelo original. Considerando a definição de objetivo vista em aula, qual correção é adequada?
     \begin{enumerate}[(a)]
-        \item O objetivo é aproximar a distribuição de saída de $\theta_u$ da de $\theta^\star$ em consultas relacionadas a $D_f$, e o \textit{oracle} também não acerta essas perguntas.
+        \item O objetivo é aproximar a distribuição de saída de $\theta_u$ da de $\theta^\star$ em consultas relacionadas a $D_f$.
         \item O objetivo é igualar $\theta_u$ a $\theta^\star$ em todos os parâmetros, garantindo respostas idênticas.
         \item O objetivo é maximizar a probabilidade da resposta correta sobre $D_f$, reduzindo a perda nesse conjunto.
         \item O objetivo é zerar a probabilidade de qualquer saída do modelo em consultas sobre $D_f$, recusando-se a responder.
@@ -35,7 +35,7 @@
         \item É um método aproximado, pois nunca reproduz exatamente o comportamento desejado, e é evitado por ser numericamente instável.
         \item É um método aproximado de baixo custo, preferido em produção por rodar em uma única GPU-hora por pedido.
         \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo proibitivo de \textit{compute}.
-        \item É um método exato e barato, raramente usado apenas por falta de bibliotecas que o automatizem.
+        \item É um método exato cujo custo é comparável ao do \textit{unlearning} aproximado, mas sem garantias sobre $D_r$.
         %c
     \end{enumerate}
 
@@ -43,14 +43,14 @@
     \begin{enumerate}[(a)]
         \item $D_f$ recebe tanto o texto literal quanto o material sobre o universo, e $D_r$ fica vazio.
         \item $D_f$ recebe apenas os nomes próprios da saga e $D_r$ recebe os parágrafos completos dos livros.
-        \item $D_f$ e $D_r$ recebem cópias idênticas do corpus, deixando a separação para a função de perda.
-        \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material sobre o universo, como FanWiki e resenhas.
+        \item $D_f$ recebe o material sobre o universo e $D_r$ recebe o texto literal dos livros, já que o texto é o que se quer preservar.
+        \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material de terceiros sobre o universo.
         %d
     \end{enumerate}
 
     \item Em uma pergunta de \textit{forget set} sobre HP, a paráfrase da resposta correta $\tilde{a}$ tem probabilidade por \textit{token} $0{,}40$ e as três paráfrases erradas têm $\{0{,}30,\, 0{,}45,\, 0{,}60\}$. Calcule o \textit{truth ratio} $R_{\text{truth}}$ e interprete o resultado quanto ao esquecimento.
     \begin{enumerate}[(a)]
-        \item $R_{\text{truth}} \approx 0{,}40$, indicando que o modelo ainda lembra fortemente da resposta.
+        \item $R_{\text{truth}} \approx 0{,}40$, indicando que o modelo ainda lembra da resposta.
         \item $R_{\text{truth}} \approx 1{,}13$, sugerindo esquecimento compatível com o \textit{oracle}.
         \item $R_{\text{truth}} \approx 0{,}45$, indicando memorização residual elevada.
         \item $R_{\text{truth}} \approx 2{,}25$, sugerindo que o modelo prefere as respostas erradas.
@@ -71,7 +71,7 @@
         \item A sigmoide da perda satura cedo demais, anulando o gradiente antes do esquecimento.
         \item O termo de \textit{retain} ausente faria a perda divergir para $-\infty$ apenas nas entradas de $D_r$.
         \item O modelo de referência $p_{\text{ref}}$ deixa de calibrar o gradiente quando $D_r$ não é usado.
-        \item A perda $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente, então maximizá-la empurra os \textit{logits} de $D_f$ sem freio e degrada todo o modelo.
+        \item A perda $\mathcal{L}_{\text{NLL}}$ é ilimitada superiormente, então maximizá-la não tem ponto de parada.
         %d
     \end{enumerate}
 
@@ -84,7 +84,7 @@
         %c
     \end{enumerate}
 
-    \item A vantagem central da NPO sobre o \textit{Gradient Ascent} é que a sigmoide $\sigma$ na perda satura quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$. Que consequência prática essa saturação produz durante o \textit{fine-tuning}?
+    \item A vantagem da NPO sobre o \textit{Gradient Ascent} é que a sigmoide $\sigma$ na perda satura quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$. Que consequência prática essa saturação produz durante o \textit{fine-tuning}?
     \begin{enumerate}[(a)]
         \item O gradiente cresce indefinidamente nas amostras já esquecidas, acelerando a convergência.
         \item A perda passa a depender apenas de $D_r$, dispensando o conjunto de esquecimento.
@@ -105,7 +105,7 @@
     \item A SimNPO modifica a NPO trocando a razão $p_\theta/p_{\text{ref}}$ por uma \textit{log-prob} normalizada por comprimento, $-\frac{\beta}{|y|}\log p_\theta(y\mid x)$, descartando o modelo de referência. Quais consequências decorrem dessa escolha?
     \begin{enumerate}[(a)]
         \item Reintroduz o viés de referência, mas reduz o uso de memória pela metade durante o \textit{fine-tuning}.
-        \item Elimina o viés de referência e dispensa armazenar $p_{\text{ref}}$, reduzindo a memória de \textit{fine-tuning}.
+        \item Elimina o viés de referência e dispensa armazenar $p_{\text{ref}}$, mas passa a depender da escolha da margem $\gamma$.
         \item Elimina o viés de referência, porém exige manter duas cópias do modelo em memória.
         \item Mantém o modelo de referência, mas adiciona a margem $\gamma$ para acelerar o colapso controlado.
         %b
@@ -136,7 +136,7 @@
     \item \emoji{skull-and-crossbones} (\textbf{Métricas MUSE em um relatório}) Após aplicar um método de \textit{unlearning} ao corpus de HP, um relatório MUSE traz: VerbMem $= 0{,}05$, KnowMem(\textit{forget}) $= 0{,}18$, Utility (KnowMem no \textit{retain}) $= 0{,}93$ e PrivLeak (AUC) $= 0{,}87$.
     \begin{enumerate}[(a)]
         \item Para VerbMem, KnowMem(\textit{forget}), Utility e PrivLeak, indique a direção desejável de cada métrica (alto ou próximo de um alvo) e diga se o valor observado é bom ou ruim.
-        \item O contraste entre KnowMem(\textit{forget}) $= 0{,}18$ e Utility $= 0{,}93$ é considerado o ponto-chave do MUSE. Explique, em termos de texto versus universo da obra, o que esse contraste demonstra.
+        \item O contraste entre KnowMem(\textit{forget}) $= 0{,}18$ e Utility $= 0{,}93$ é o contraste que o MUSE destaca. Explique, em termos de texto versus universo da obra, o que esse contraste demonstra.
         \item O PrivLeak observado contradiz as três métricas \textit{deployer-side}. Explique o que um AUC de $0{,}87$ revela sobre a \textit{loss} dos \textit{in-members} e por que esse modelo ainda não pode ser considerado privado.
     \end{enumerate}
 
@@ -174,13 +174,13 @@
 
 \paragraph{Múltipla Escolha.}
 \begin{enumerate}[I)]
-    \item \textbf{(b)} Retreinar do zero é o \textit{oracle}, mas seu custo de \textit{compute} se paga por inteiro a cada pedido (da ordem de $184\,000$ GPU-horas para um modelo de 7B), o que inviabiliza atender a um fluxo de remoções. A alternativa (a) inventa uma reanotação manual; (c) confunde esquecer o texto com esquecer o universo, e o \textit{oracle} treinado em $D_r$ pode preservar conhecimento de fontes legítimas; (d) inventa um efeito sobre a tokenização.
+    \item \textbf{(b)} Retreinar do zero é o \textit{oracle}, mas seu custo de \textit{compute} se paga por inteiro a cada pedido (da ordem de $184\,000$ GPU-horas para um modelo de 7B), o que inviabiliza atender a um fluxo de remoções. A alternativa (a) inventa uma nova curadoria por licença a cada pedido; (c) confunde esquecer o texto com esquecer o universo, e o \textit{oracle} treinado em $D_r$ pode preservar conhecimento de fontes legítimas; (d) inventa um efeito sobre o tokenizador.
 
     \item \textbf{(a)} O objetivo é tornar $\theta_u$ comportamentalmente indistinguível de $\theta^\star$ nas distribuições de saída sobre consultas relacionadas a $D_f$, e o \textit{oracle}, que nunca viu $D_f$, também não acerta essas perguntas. A alternativa (b) exige igualdade em parâmetros, que não é requerida; (c) descreve o oposto do esquecimento; (d) descreve uma política de recusa, não o objetivo distribucional.
 
-    \item \textbf{(c)} O retreino em $D_r$ é o \textit{oracle}: exato por construção, pois nunca viu $D_f$. Os métodos práticos o evitam apenas pelo custo de \textit{compute}, não por instabilidade. A alternativa (a) o chama de aproximado; (b) o trata como barato; (d) afirma que é barato e só falta automação.
+    \item \textbf{(c)} O retreino em $D_r$ é o \textit{oracle}: exato por construção, pois nunca viu $D_f$. Os métodos práticos o evitam apenas pelo custo de \textit{compute}, não por instabilidade. A alternativa (a) o chama de aproximado; (b) o trata como barato; (d) afirma que o custo é comparável ao do \textit{unlearning} aproximado.
 
-    \item \textbf{(d)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (a) coloca o universo em $D_f$, o que apagaria também o conceito; (b) e (c) invertem ou anulam a separação.
+    \item \textbf{(d)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (a) coloca o universo em $D_f$, o que apagaria também o conceito; (b) e (c) invertem a separação entre texto e universo.
 
     \item \textbf{(b)} A média das paráfrases erradas é $(0{,}30 + 0{,}45 + 0{,}60)/3 = 0{,}45$, e $R_{\text{truth}} = 0{,}45/0{,}40 \approx 1{,}13$. Como $R_{\text{truth}} \to 1$ indica esquecimento compatível com o \textit{oracle}, o valor é bom. A alternativa (a) usa só a probabilidade da resposta correta; (c) usa só a média do numerador; (d) inverte numerador e denominador.
 
@@ -192,7 +192,7 @@
 
     \item \textbf{(d)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o método ``para sozinho'' e evita o \textit{catastrophic collapse}. A alternativa (a) inverte o efeito da saturação; (b) e (c) descrevem comportamentos que a NPO não tem.
 
-    \item \textbf{(c)} O peso é proporcional a $1/p_{\text{ref}}$, logo $B$ ($1/0{,}02 = 50$) recebe peso vinte e cinco vezes maior que $A$ ($1/0{,}40 = 2{,}5$), e os trechos raros dominam o gradiente em vez dos típicos que de fato queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
+    \item \textbf{(c)} O peso é proporcional a $1/p_{\text{ref}}$, logo $B$ ($1/0{,}02 = 50$) recebe peso vinte vezes maior que $A$ ($1/0{,}40 = 2{,}5$), e os trechos raros dominam o gradiente em vez dos típicos que queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
 
     \item \textbf{(b)} Trocar a razão por uma \textit{log-prob} normalizada por comprimento e remover $p_{\text{ref}}$ elimina o viés de referência e dispensa armazenar o modelo de referência, reduzindo a memória de \textit{fine-tuning}. A alternativa (a) afirma que o viés é reintroduzido; (c) afirma que ainda são precisas duas cópias; (d) afirma que $p_{\text{ref}}$ é mantido.
 

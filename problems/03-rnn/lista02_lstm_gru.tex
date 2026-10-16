@@ -83,7 +83,7 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
 
 \textbf{IV.} A LSTM faz circular dois estados ao longo do tempo: o estado oculto $h_t$ e o estado de célula (memória) $c_t$, ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$.
 
-\textbf{V.} Um modelo de linguagem extremamente confiante e sempre correto pode atingir perplexidade inferior a $1$.
+\textbf{V.} Um modelo de linguagem determinístico e sempre correto pode atingir perplexidade inferior a $1$.
 
 \begin{enumerate}[a)]
     \item Apenas II, III e IV estão corretas.
@@ -122,7 +122,7 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
 
 \end{enumerate}
 
-\subsection*{Gabarito - Objetivas}
+\subsection*{Gabarito das Objetivas}
 \color{blue}
 \begin{enumerate}[I)]
     \item \textbf{a.} Cada \textit{gate} tem $(hs+is)\cdot hs$ pesos mais $hs$ \textit{bias},
@@ -156,7 +156,7 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
 \item Considere uma célula LSTM \emph{escalar} com estado inicial $c_0 = 0.2$,
 $h_0 = 0.5$ e entrada $x_0 = -0.4$, de modo que o vetor concatenado é
 $[h_0,\, x_0] = [0.5,\, -0.4]$. Cada camada densa interna tem pesos
-$\theta_\bullet = [\theta_h,\, \theta_x]$ que multiplicam $[h_{t-1},\, x_t]^T$:
+$\theta_\bullet = [\theta_h,\, \theta_x]$ que entram em $[h_{t-1},\, x_t]\,\theta_\bullet^{T} + b_\bullet$:
 \[
     \theta_f = [0.4,\, 0.6],\ b_f = -0.1; \qquad
     \theta_i = [0.5,\, -0.2],\ b_i = 0.1;
@@ -183,8 +183,8 @@ Calcule, passo a passo (use 4 casas decimais):
     Explique por que isso evita o desaparecimento do gradiente, comparando com a RNN
     \textit{vanilla}, cujo gradiente acumula o produto
     $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$, escrito no caso escalar.
-    \item \emoji{skull-and-crossbones} A GRU não mantém um estado de memória $\mathbf{c}_t$ separado;
-    o estado é atualizado por $\mathbf{h}_t = (1 - \mathbf{z}_t)\, \mathbf{h}_{t-1} + \mathbf{z}_t\, \tilde{\mathbf{h}}_t$. Identifique qual
+    \item \emoji{skull-and-crossbones} A GRU usa um único vetor de estado $\mathbf{h}_t$, sem memória $\mathbf{c}_t$ separada,
+    atualizado por $\mathbf{h}_t = (1 - \mathbf{z}_t)\, \mathbf{h}_{t-1} + \mathbf{z}_t\, \tilde{\mathbf{h}}_t$. Identifique qual
     termo desempenha, na GRU, o papel análogo ao do \textit{forget gate} da LSTM na preservação
     do gradiente e diga sob qual condição do \textit{update gate} $\mathbf{z}_t$ o gradiente é carregado
     quase sem atenuação.
@@ -195,13 +195,13 @@ Calcule, passo a passo (use 4 casas decimais):
 % ------------------------------------------------------------------
 \item Considere uma célula LSTM \textbf{escalar} (todas as dimensões iguais a $1$), com as equações vistas em aula:
 \[
-f_t = \sigma(\boldsymbol{\theta}_f\,[h_{t-1}, x_t] + b_f), \qquad
-i_t = \sigma(\boldsymbol{\theta}_i\,[h_{t-1}, x_t] + b_i), \qquad
-\tilde{c}_t = \tanh(\boldsymbol{\theta}_c\,[h_{t-1}, x_t] + b_c),
+f_t = \sigma([h_{t-1}, x_t]\,\boldsymbol{\theta}_f^{T} + b_f), \qquad
+i_t = \sigma([h_{t-1}, x_t]\,\boldsymbol{\theta}_i^{T} + b_i), \qquad
+\tilde{c}_t = \tanh([h_{t-1}, x_t]\,\boldsymbol{\theta}_c^{T} + b_c),
 \]
 \[
 c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t, \qquad
-o_t = \sigma(\boldsymbol{\theta}_o\,[h_{t-1}, x_t] + b_o), \qquad
+o_t = \sigma([h_{t-1}, x_t]\,\boldsymbol{\theta}_o^{T} + b_o), \qquad
 h_t = o_t \odot \tanh(c_t).
 \]
 O estado inicial é $c_0 = -0{,}2$ e $h_0 = 0{,}4$, e a entrada no passo $1$ é $x_1 = 0{,}5$, de modo que $[h_0, x_1] = [0{,}4,\ 0{,}5]$. Os parâmetros são:
@@ -230,14 +230,14 @@ Pode arredondar para $4$ casas decimais.
 \begin{enumerate}[(a)]
     \item \textit{Forget} e \textit{input gates}:
     \begin{align*}
-        f_t &= \sigma\bigl(0.4 \cdot 0.5 + 0.6 \cdot (-0.4) - 0.1\bigr)
+        f_t &= \sigma\bigl(0.5 \cdot 0.4 + (-0.4) \cdot 0.6 - 0.1\bigr)
             = \sigma(-0.14) \approx 0.4651 \\
-        i_t &= \sigma\bigl(0.5 \cdot 0.5 + (-0.2) \cdot (-0.4) + 0.1\bigr)
+        i_t &= \sigma\bigl(0.5 \cdot 0.5 + (-0.4) \cdot (-0.2) + 0.1\bigr)
             = \sigma(0.43) \approx 0.6059
     \end{align*}
     \item Candidato:
     \[
-        \tilde{c}_t = \tanh\bigl(-0.3 \cdot 0.5 + 0.5 \cdot (-0.4) + 0.4\bigr)
+        \tilde{c}_t = \tanh\bigl(0.5 \cdot (-0.3) + (-0.4) \cdot 0.5 + 0.4\bigr)
             = \tanh(0.05) \approx 0.0500
     \]
     \item Nova memória:
@@ -247,7 +247,7 @@ Pode arredondar para $4$ casas decimais.
     \]
     \item \textit{Output gate} e estado oculto:
     \begin{align*}
-        o_t &= \sigma\bigl(0.2 \cdot 0.5 + 0.3 \cdot (-0.4) + 0\bigr)
+        o_t &= \sigma\bigl(0.5 \cdot 0.2 + (-0.4) \cdot 0.3 + 0\bigr)
             = \sigma(-0.02) \approx 0.4950 \\
         h_t &= 0.4950 \cdot \tanh(0.1233) \approx 0.4950 \cdot 0.1227 \approx 0.0607
     \end{align*}
@@ -277,14 +277,14 @@ Pode arredondar para $4$ casas decimais.
 \begin{enumerate}[(a)]
     \item Portões, candidato e estado de célula:
     \begin{align*}
-        f_1 &= \sigma(0{,}5 \cdot 0{,}4 + (-0{,}4) \cdot 0{,}5 + 0{,}2) = \sigma(0{,}2) \approx 0{,}5498 \\
-        i_1 &= \sigma((-0{,}3) \cdot 0{,}4 + 0{,}6 \cdot 0{,}5 - 0{,}1) = \sigma(0{,}08) \approx 0{,}5200 \\
-        \tilde{c}_1 &= \tanh(0{,}2 \cdot 0{,}4 + 0{,}8 \cdot 0{,}5 + 0) = \tanh(0{,}48) \approx 0{,}4462 \\
+        f_1 &= \sigma(0{,}4 \cdot 0{,}5 + 0{,}5 \cdot (-0{,}4) + 0{,}2) = \sigma(0{,}2) \approx 0{,}5498 \\
+        i_1 &= \sigma(0{,}4 \cdot (-0{,}3) + 0{,}5 \cdot 0{,}6 - 0{,}1) = \sigma(0{,}08) \approx 0{,}5200 \\
+        \tilde{c}_1 &= \tanh(0{,}4 \cdot 0{,}2 + 0{,}5 \cdot 0{,}8 + 0) = \tanh(0{,}48) \approx 0{,}4462 \\
         c_1 &= f_1 \cdot c_0 + i_1 \cdot \tilde{c}_1 \approx 0{,}5498 \cdot (-0{,}2) + 0{,}5200 \cdot 0{,}4462 \approx -0{,}1100 + 0{,}2320 = 0{,}1221
     \end{align*}
     \item Porta de saída e estado oculto:
     \begin{align*}
-        o_1 &= \sigma(0{,}7 \cdot 0{,}4 + 0{,}1 \cdot 0{,}5 - 0{,}3) = \sigma(0{,}03) \approx 0{,}5075 \\
+        o_1 &= \sigma(0{,}4 \cdot 0{,}7 + 0{,}5 \cdot 0{,}1 - 0{,}3) = \sigma(0{,}03) \approx 0{,}5075 \\
         h_1 &= o_1 \cdot \tanh(c_1) \approx 0{,}5075 \cdot \tanh(0{,}1221) \approx 0{,}5075 \cdot 0{,}1215 \approx 0{,}0617
     \end{align*}
     \textit{Explicação esperada:} o caminho de $c_{t-1}$ para $c_t$ é aditivo e sua derivada é $\partial c_t / \partial c_{t-1} = f_t$; retropropagando por $T$ passos o gradiente carrega $\prod_k f_k$, e como a rede pode aprender a manter $f_k \approx 1$, esse produto não decai necessariamente com $T$, ao contrário da RNN \textit{vanilla}, cujo produto $\prod_k \theta_{hh}(1-\tanh^2(z_k))$ tende a zero (\textit{constant error carousel}).
