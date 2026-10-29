@@ -128,7 +128,7 @@
       \item Contextualizar a escala: The Pile tem 825 GB, FineWeb tem 15 trilhões de tokens (ambos cabem num disco SSD, mas o treino consome meses em centenas de GPUs).
       \item \textbf{Deduplicação} é crítica: documentos duplicados causam ``memorização'' e \textit{overfitting}. MinHash é $O(N)$ por documento; suffix arrays encontram duplicatas exatas em $O(N\log N)$.
       \item \textbf{Shuffling} embaralha a ordem temporal dos documentos: sem isso, o gradiente tem correlação serial (notícias do mesmo dia juntas, por exemplo) e o Adam acumula estimativas enviesadas.
-      \item A regra qualidade $>$ quantidade pode surpreender os alunos: intuitivamente mais dados = melhor. Mostre o exemplo do LIMA na próxima seção para reforçar esse ponto.
+      \item A regra qualidade $>$ quantidade pode surpreender os alunos: intuitivamente mais dados = melhor. O exemplo do LIMA reforça esse ponto.
     \end{itemize}
   }
   \end{frame}
@@ -311,8 +311,8 @@
   \note{
     \textbf{Como usar a tabela:}
     \begin{itemize}
-      \item \textbf{LLaMA 1} (Touvron et al., 2023, seção 2.3): AdamW com $\beta_1=0.9$, $\beta_2=0.95$, \textit{cosine} até 10\% do LR máximo, \textit{weight decay} 0.1, \textit{gradient clipping} 1.0, 2\,000 passos de \textit{warm-up}. O LR e o batch variam com o tamanho: 7B usa $3\times10^{-4}$ e 65B usa $1{,}5\times10^{-4}$, ambos com 4M tokens por batch. É a origem dos ``valores padrão'' citados no slide anterior de otimizador.
-      \item \textbf{Llama 3 405B} (Grattafiori et al., 2024, seção 3.4.1): LR de pico $8\times10^{-5}$, \textit{warm-up} linear de 8\,000 passos, \textit{cosine} até $8\times10^{-7}$ ao longo de 1,2M passos. O batch começa em 4M tokens com sequências de 4\,096, dobra para 8M tokens e sequências de 8\,192 após 252M tokens, e dobra de novo para 16M após 2,87T tokens. A justificativa dos autores é estabilidade no início do treino: é exatamente o \textit{batch ramp-up} do slide anterior. \textit{Weight decay} e \textit{clipping} não são informados no relatório, por isso a célula só diz AdamW.
+      \item \textbf{LLaMA 1} (Touvron et al., 2023, seção 2.3): AdamW com $\beta_1=0.9$, $\beta_2=0.95$, \textit{cosine} até 10\% do LR máximo, \textit{weight decay} 0.1, \textit{gradient clipping} 1.0, 2\,000 passos de \textit{warm-up}. O LR e o batch variam com o tamanho: 7B usa $3\times10^{-4}$ e 65B usa $1{,}5\times10^{-4}$, ambos com 4M tokens por batch. É a origem dos ``valores padrão'' de otimizador.
+      \item \textbf{Llama 3 405B} (Grattafiori et al., 2024, seção 3.4.1): LR de pico $8\times10^{-5}$, \textit{warm-up} linear de 8\,000 passos, \textit{cosine} até $8\times10^{-7}$ ao longo de 1,2M passos. O batch começa em 4M tokens com sequências de 4\,096, dobra para 8M tokens e sequências de 8\,192 após 252M tokens, e dobra de novo para 16M após 2,87T tokens. A justificativa dos autores é estabilidade no início do treino: é exatamente o \textit{batch ramp-up}. \textit{Weight decay} e \textit{clipping} não são informados no relatório, por isso a célula só diz AdamW.
       \item \textbf{SmolLM2-1.7B} (Allal et al., 2025): 11T tokens em quatro estágios com misturas de dados diferentes, LR de pico $5\times10^{-4}$, 2\,000 passos de \textit{warm-up}, batch de 2M tokens, sequência de 2\,048 (estendida para 8\,192 no fim). O \textit{schedule} é WSD: LR constante e decaimento linear a zero nos últimos 10\% do treino. Como o treino foi planejado em estágios, o WSD permitiu ajustar a mistura de dados sem reiniciar o \textit{schedule}.
       \item Enfatizar que os números não são universais: modelos com arquiteturas ou tokenizadores diferentes (Qwen, Gemma, DeepSeek) usam outras combinações, mas a estrutura (\textit{warm-up}, decaimento, batch grande, $\beta_2$ menor) é a mesma.
     \end{itemize}
@@ -1177,7 +1177,7 @@
       \item Percorrer as colunas: ``Precisa de RM?'' elimina todos exceto RLHF-PPO e GRPO*. ``Online?'' elimina todos exceto RLHF-PPO e GRPO.
       \item A nota de rodapé do GRPO é importante: na maioria dos usos, o ``RM'' do GRPO é um verificador simbólico/algorítmico (solução matemática, execução de código), não uma rede neural treinada em preferências humanas. É muito mais barato e confiável. Nada impede, porém, usar GRPO com um RM neural em tarefas sem verificador.
       \item \textbf{Decisão prática para os alunos:} ``Você tem pares de preferência humana? Use DPO. Você quer alinhamento sem modelo de referência? Use SimPO. Você quer treinar raciocínio matemático/código com verificação automática? Use GRPO. Você precisa de alinhamento de última geração com orçamento computacional alto? Use RL online (PPO ou GRPO) com RM e verificadores combinados.''
-      \item \textbf{Exemplos de pipelines reais:} Llama 3 (Grattafiori et al., 2024) fez seis rodadas de rejection sampling + SFT + DPO; Tülu 3 fez SFT + DPO + RLVR; DeepSeek-R1 e Qwen3 fazem SFT curto + GRPO em larga escala. A mensagem: não há um método vencedor, há uma composição.
+      \item \textbf{Exemplos de pipelines reais:} Llama 3 (Grattafiori et al., 2024) fez seis rodadas de rejection sampling + SFT + DPO; Tülu 3 fez SFT + DPO + RLVR; DeepSeek-R1 e Qwen3 fazem SFT curto + GRPO em larga escala. Cada \textit{pipeline} é uma composição de métodos, sem um vencedor único.
     \end{itemize}
   }
   \end{frame}
@@ -1548,7 +1548,7 @@
       \item \textbf{TP} (Megatron-LM) divide cada matriz $\mathbf{W}$ por colunas ou linhas entre GPUs, de modo que a atenção e a MLP de uma camada sejam calculadas em paralelo. Exige comunicação a cada camada, por isso fica confinado às GPUs de um mesmo nó (NVLink, $\sim$600--900 GB/s).
       \item \textbf{PP} coloca camadas diferentes em GPUs diferentes; o problema são as bolhas (GPUs ociosas esperando o estágio anterior). Mitiga-se dividindo o batch em micro-batches (GPipe, 1F1B).
       \item \textbf{Gradient checkpointing} (Chen et al., 2016): sem ele, um transformador guarda várias ativações intermediárias por camada e por token (entrada da atenção, scores, saída da MLP etc.). Com checkpoints a cada $\sqrt{L}$ camadas, o custo é um forward extra ($\sim$1/3 do passo). É o padrão em HF \texttt{gradient\_checkpointing=True}.
-      \item Ligar com a próxima seção: tudo isso é infraestrutura de quem treina o modelo base ou faz full fine-tuning. Para a maioria dos alunos, o caminho realista é PEFT em uma GPU.
+      \item Tudo isso é infraestrutura de quem treina o modelo base ou faz full fine-tuning. Para a maioria dos alunos, o caminho realista é PEFT em uma GPU.
     \end{itemize}
   }
   \end{frame}

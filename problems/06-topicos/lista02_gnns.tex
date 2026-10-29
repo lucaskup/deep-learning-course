@@ -5,7 +5,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $G = (V, E)$ para o grafo, $\mathbf{A}$ para a \textit{adjacency matrix}, $\mathbf{X}$ para os atributos de nó, $\mathcal{N}(v)$ para a vizinhança de $v$, $\mathbf{h}^{(k)}_v$ para o embedding de $v$ na camada $k$, $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ e $\tilde{\mathbf{D}} = \mathrm{diag}(\tilde{\mathbf{A}} \mathbf{1})$ para a normalização do GCN, e $\alpha_{vu}$ para os coeficientes de atenção do GAT. Em valores numéricos use a vírgula como separador decimal.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Use a notação: $G = (V, E)$ para o grafo, $\mathbf{A}$ para a \textit{adjacency matrix}, $\mathbf{X}$ para os atributos de nó, $\mathcal{N}(v)$ para a vizinhança de $v$, $\mathbf{h}^{(k)}_v$ para o embedding de $v$ na camada $k$, $\tilde{\mathbf{A}} = \mathbf{A} + \mathbf{I}$ e $\tilde{\mathbf{D}} = \mathrm{diag}(\tilde{\mathbf{A}} \mathbf{1})$ para a normalização do GCN, e $\alpha_{vu}$ para os coeficientes de atenção do GAT. Em valores numéricos use a vírgula como separador decimal.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -144,7 +144,7 @@
     \item (\textbf{Profundidade e \textit{oversmoothing}}) Uma equipe quer aumentar o \textit{receptive field} de uma GCN para capturar dependências de longo alcance e cogita empilhar muitas camadas.
     \begin{enumerate}[(a)]
         \item Explique o que acontece com os embeddings dos nós à medida que o número de camadas cresce em um grafo de diâmetro pequeno, e por que isso degrada o desempenho.
-        \item Descreva duas mitigações vistas em aula e explique, para cada uma, como ela ataca o problema.
+        \item Descreva duas mitigações e explique, para cada uma, como ela ataca o problema.
         \item Comente o \textit{trade-off} entre profundidade, \textit{receptive field} e diversidade dos embeddings, indicando por que não é possível maximizar os três ao mesmo tempo.
     \end{enumerate}
 
@@ -229,7 +229,7 @@
     \item
     \begin{enumerate}[(a)]
         \item Cada camada faz o nó agregar informação de mais um salto, então após $K$ camadas o embedding de $v$ reúne informação a até $K$-hops. Em um grafo de diâmetro pequeno, depois de poucas camadas todos os nós já enxergam praticamente o grafo inteiro e suas representações passam a misturar as mesmas mensagens repetidamente, convergindo para embeddings quase idênticos. Esse é o \textit{oversmoothing}: os nós deixam de ser distinguíveis e a acurácia cai.
-        \item Duas mitigações vistas em aula: (i) \textit{skip connections} no estilo $\mathbf{h}^{(k)}_v = \mathbf{h}^{(k-1)}_v + \mathrm{GNN}^{(k)}(\ldots)$, que preservam a informação da camada anterior e impedem que o embedding seja totalmente substituído pela média dos vizinhos; (ii) \textit{Jumping Knowledge} (JK-Net), que concatena ou faz \textit{max-pool} das ativações de todas as camadas no final, recuperando representações menos suavizadas das camadas iniciais. (Outras respostas válidas: \textit{DropEdge}, normalizações como \textit{PairNorm}, ou atenção global de Graph Transformers.)
+        \item Duas mitigações: (i) \textit{skip connections} no estilo $\mathbf{h}^{(k)}_v = \mathbf{h}^{(k-1)}_v + \mathrm{GNN}^{(k)}(\ldots)$, que preservam a informação da camada anterior e impedem que o embedding seja totalmente substituído pela média dos vizinhos; (ii) \textit{Jumping Knowledge} (JK-Net), que concatena ou faz \textit{max-pool} das ativações de todas as camadas no final, recuperando representações menos suavizadas das camadas iniciais. (Outras respostas válidas: \textit{DropEdge}, normalizações como \textit{PairNorm}, ou atenção global de Graph Transformers.)
         \item Aumentar a profundidade amplia o \textit{receptive field}, mas, passado o diâmetro do grafo, esse ganho vem acompanhado de \textit{oversmoothing}, que reduz a diversidade dos embeddings. Manter embeddings diversos favorece camadas rasas, que por sua vez limitam o \textit{receptive field}. Como aumentar a profundidade simultaneamente eleva o \textit{receptive field} e derruba a diversidade, não há como maximizar os três ao mesmo tempo: é preciso escolher um ponto de equilíbrio, em geral poucas camadas combinadas com mitigações.
     \end{enumerate}
 \end{enumerate}

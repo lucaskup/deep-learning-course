@@ -151,7 +151,7 @@
     \end{enumerate}
     %e
 
-    \item Um único parâmetro $\theta$ é otimizado por descida de gradiente com \textit{momentum}, na formulação vista em aula:
+    \item Um único parâmetro $\theta$ é otimizado por descida de gradiente com \textit{momentum}:
     \[
     v_{t+1} = \beta\,v_{t} + (1-\beta)\,\nabla_{\theta}\mathcal{L}(\theta_{t}), \qquad \theta_{t+1} = \theta_{t} - \eta\,v_{t+1},
     \]
@@ -596,7 +596,7 @@ $$\boldsymbol{\theta}_{2} \approx \begin{bmatrix} 5.193\\ 9.801 \end{bmatrix}$$
     (h) & $[-6\ \ 0]^{\top}$ & $-24$ & $+12$ & $-\nabla\mathcal{L}_1 + \nabla\mathcal{L}_2$ \\
     \end{tabular}
     \end{center}
-    A alternativa (a) é o próprio passo do SGD; reduzir $\eta$, normalizar ou aplicar \textit{clipping} na norma só mudam o tamanho do passo, e a degradação de $\mathcal{L}_2$ continua. (b) é o que o Adam faz com histórico estável: normalizar entrada a entrada muda a direção, mas não a torna ortogonal a $\nabla\mathcal{L}_2$. (c) desce na soma $\mathcal{L}_1 + \mathcal{L}_2$; como $\|\nabla\mathcal{L}_2\|^2 = 5 < 7 = -(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2$, o conflito domina e $\mathcal{L}_2$ ainda piora. (e) guarda exatamente a componente que devia ser removida: é a direção de $\nabla\mathcal{L}_2$, que sobe em $\mathcal{L}_2$. (f) é ortogonal a $\nabla\mathcal{L}_2$, mas sobe em $\mathcal{L}_1$, porque aplica $+\mathbf{g}$ em vez de $-\mathbf{g}$. (g) melhora apenas $\mathcal{L}_2$ e deixa $\mathcal{L}_1$ parada em primeira ordem, invertendo o papel dos objetivos. (h) soma $\nabla\mathcal{L}_2$ ao passo em vez de subtraí-lo, agravando a degradação. Observe que ortogonalizar a matriz de atualização, como faz o Muon, é diferente de tornar a atualização ortogonal a uma direção dada; nenhum dos otimizadores vistos em aula resolve esse conflito sozinho.
+    A alternativa (a) é o próprio passo do SGD; reduzir $\eta$, normalizar ou aplicar \textit{clipping} na norma só mudam o tamanho do passo, e a degradação de $\mathcal{L}_2$ continua. (b) é o que o Adam faz com histórico estável: normalizar entrada a entrada muda a direção, mas não a torna ortogonal a $\nabla\mathcal{L}_2$. (c) desce na soma $\mathcal{L}_1 + \mathcal{L}_2$; como $\|\nabla\mathcal{L}_2\|^2 = 5 < 7 = -(\nabla\mathcal{L}_1)^{\top}\nabla\mathcal{L}_2$, o conflito domina e $\mathcal{L}_2$ ainda piora. (e) guarda exatamente a componente que devia ser removida: é a direção de $\nabla\mathcal{L}_2$, que sobe em $\mathcal{L}_2$. (f) é ortogonal a $\nabla\mathcal{L}_2$, mas sobe em $\mathcal{L}_1$, porque aplica $+\mathbf{g}$ em vez de $-\mathbf{g}$. (g) melhora apenas $\mathcal{L}_2$ e deixa $\mathcal{L}_1$ parada em primeira ordem, invertendo o papel dos objetivos. (h) soma $\nabla\mathcal{L}_2$ ao passo em vez de subtraí-lo, agravando a degradação. Observe que ortogonalizar a matriz de atualização, como faz o Muon, é diferente de tornar a atualização ortogonal a uma direção dada; nenhum dos otimizadores citados resolve esse conflito sozinho.
 
     \item f. \textbf{Adam.} Com histórico estável, $\widetilde{\mathbf{m}}/\sqrt{\widetilde{\mathbf{v}}} = \mathbf{M}_{t+1}/|\mathbf{M}_{t+1}|$ entrada a entrada: cada entrada anda com a mesma magnitude, no sentido do seu próprio sinal. Todas as entradas de $\mathbf{M}_{t+1}$ são positivas, então
     \[

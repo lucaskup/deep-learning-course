@@ -11,7 +11,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $p_X(\mathbf{x})$ para a densidade modelada, $p_Z(\mathbf{z})$ para a distribuição base, $f$ para a transformação inversível com parâmetros $\thetav$, e $J = \partial f / \partial \mathbf{z}$ para a Jacobiana. Em camadas \textit{coupling}, $\mathbf{x}^A$ é a metade copiada e $\mathbf{x}^B$ é a metade transformada. Questões marcadas com \emoji{skull-and-crossbones} são consideradas mais difíceis.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Use a notação: $p_X(\mathbf{x})$ para a densidade modelada, $p_Z(\mathbf{z})$ para a distribuição base, $f$ para a transformação inversível com parâmetros $\thetav$, e $J = \partial f / \partial \mathbf{z}$ para a Jacobiana. Em camadas \textit{coupling}, $\mathbf{x}^A$ é a metade copiada e $\mathbf{x}^B$ é a metade transformada. Questões marcadas com \emoji{skull-and-crossbones} são consideradas mais difíceis.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -284,7 +284,7 @@
 
 \paragraph{Múltipla Escolha.}
 \begin{enumerate}[I)]
-    \item \textbf{(a)} As quatro propriedades discutidas em aula são: paramétrica (para haver o que aprender), inversível (para suportar amostragem e avaliação), diferenciável (para \textit{backprop}) e Jacobiana com determinante eficiente (para tornar a NLL tratável). A alternativa (b) impõe $\det = 1$, perdendo a deformação de volume que é justamente o que carrega a densidade. (c) e (d) acrescentam restrições gratuitas (ortogonalidade, monotonicidade coordenada a coordenada, linearidade) que limitam fortemente a expressividade.
+    \item \textbf{(a)} As quatro propriedades de um \textit{flow} são: paramétrica (para haver o que aprender), inversível (para suportar amostragem e avaliação), diferenciável (para \textit{backprop}) e Jacobiana com determinante eficiente (para tornar a NLL tratável). A alternativa (b) impõe $\det = 1$, perdendo a deformação de volume que é justamente o que carrega a densidade. (c) e (d) acrescentam restrições gratuitas (ortogonalidade, monotonicidade coordenada a coordenada, linearidade) que limitam fortemente a expressividade.
 
     \item \textbf{(b)} Para \textit{affine coupling}, $\log|\det J| = \sum_i s_i = 0.2 + (-0.5) + 0.7 = 0.4$. A alternativa (a) seria $\sum_i |s_i| = 1.4$, um erro comum de quem aplica módulo a cada $s_i$. A (c) corresponde a $\prod_i \exp(s_i) \approx \exp(0.4) \approx 1.49$, ou seja, devolve $|\det J|$ em vez de seu log. A (d) é a média dos $s_i$.
 
@@ -316,7 +316,7 @@
     \[
     p_Y(1) = p_X(0) \cdot \tfrac{1}{3} \approx \frac{0{,}399}{3} \approx 0{,}133.
     \]
-    A (a) multiplica por $3$ em vez de dividir; a transformação \emph{estica} o espaço, logo a densidade deve \emph{diminuir}. A (b) multiplica por $2$: coeficiente errado e direção errada da correção de volume. A (c) ignora o Jacobiano por completo. A (d) é $p_X(1)$: avalia no ponto errado e ignora o Jacobiano. A (e) divide por $2$, reproduzindo o coeficiente do exemplo visto em aula em vez do da questão. A (g) avalia a densidade base em $y = 1$ em vez de em $x = (y-1)/3 = 0$ ($p_X(1)/3$). A (h) divide por $9$, elevando o Jacobiano ao quadrado.
+    A (a) multiplica por $3$ em vez de dividir; a transformação \emph{estica} o espaço, logo a densidade deve \emph{diminuir}. A (b) multiplica por $2$: coeficiente errado e direção errada da correção de volume. A (c) ignora o Jacobiano por completo. A (d) é $p_X(1)$: avalia no ponto errado e ignora o Jacobiano. A (e) divide por $2$, reproduzindo o coeficiente de um exemplo com escala $2$ em vez do da questão. A (g) avalia a densidade base em $y = 1$ em vez de em $x = (y-1)/3 = 0$ ($p_X(1)/3$). A (h) divide por $9$, elevando o Jacobiano ao quadrado.
 \end{enumerate}
 
 \paragraph{Dissertativas.}
@@ -346,7 +346,7 @@
         \item \textbf{VAE}: (i) avaliação aproximada via ELBO (limite inferior de $\log p_X(\mathbf{x})$, não o valor exato); (ii) amostragem rápida (uma passagem pelo \textit{decoder}); (iii) qualidade visual em geral inferior à de GANs e modelos difusores, com tendência a amostras borradas devido à perda de reconstrução pixel a pixel.
         \item \textbf{Normalizing Flow}: (i) avaliação exata de $\log p_X(\mathbf{x})$ pela fórmula de mudança de variável; (ii) amostragem rápida (uma passagem direta pelo \textit{flow}); (iii) qualidade visual inferior a GANs e modelos difusores em \textit{datasets} grandes como ImageNet/FFHQ, em parte pela restrição arquitetural (inversibilidade) que limita a expressividade por parâmetro.
 
-        Conclusão: NFs ocupam o canto \emph{velocidade $+$ cobertura} (com avaliação exata) do trilema. Aplicações em que esse canto é preferível: detecção de anomalias (precisamos de $\log p_X(\mathbf{x})$ para definir limiar), inferência variacional (substituir $q(\mathbf{z}\mid \mathbf{x})$ por uma distribuição expressiva e ainda tratável), física computacional e \textit{Boltzmann generators} (amostragem em equilíbrio com densidade exata para reponderação).
+        NFs ocupam o canto \emph{velocidade $+$ cobertura} (com avaliação exata) do trilema. Aplicações em que esse canto é preferível: detecção de anomalias (precisamos de $\log p_X(\mathbf{x})$ para definir limiar), inferência variacional (substituir $q(\mathbf{z}\mid \mathbf{x})$ por uma distribuição expressiva e ainda tratável), física computacional e \textit{Boltzmann generators} (amostragem em equilíbrio com densidade exata para reponderação).
     \end{enumerate}
 
     \item
