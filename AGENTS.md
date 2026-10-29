@@ -128,6 +128,8 @@ Avoid constructions that first state what something is not and only then state w
 
 Avoid noun + adjective pairs where the adjective only signals importance, judgement, or degree instead of adding technical content: "problema concreto", "ideia central", "diferença crítica", "assimetria importante", "propriedade interessante", "consequência absurda", "componente fundamental", "pico claro", "pequeno MLP", "cuidado extra", "especialmente fácil", "exemplo real". Drop the adjective or rewrite the sentence so the claim stands on its own ("um MLP aplicado a cada posição", "O modelo aprende a copiar"). Keep adjectives that carry a technical meaning the sentence needs: "produto escalar", "máscara causal", "limite superior bem definido", "$d$ grande", "dicionário suave" (as the name of an analogy). Block and frame titles follow the same rule ("Consequência", not "Consequência absurda").
 
+Every lecture, problem set, and exam is self-contained. Do not refer to other decks, listas, or units by their position in the course: no "na próxima aula", "no próximo deck", "da aula anterior", "na unidade anterior", "voltaremos a isso na unidade 4", and no frame titles built on that ("O MLP da aula anterior como grafo computacional"). Lecture order changes between semesters and decks are published individually, so such references go stale or promise content the student may not have. Restate the needed fact in place, or name the concept directly ("o MLP de duas camadas", "a perda half SSE") without saying where it was introduced.
+
 ### Objective-question authoring (problem sets and exams)
 
 Objective questions (multiple choice, true/false) must not let a student guess the answer without understanding the content. Two common leakage patterns to avoid:
