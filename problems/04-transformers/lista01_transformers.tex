@@ -23,7 +23,7 @@
     A \textit{query} do \textit{decoder} para a primeira posição do alvo é $\mathbf{q} = [\,2,\; 1\,]$. Usando \textit{scaled dot-product attention}, $\mathbf{c} = \mathrm{softmax}\!\left(\mathbf{q}\mathbf{K}^\top / \sqrt{d_k}\right)\mathbf{V}$, calcule os \textit{scores}, os pesos de atenção e o vetor de contexto $\mathbf{c}$ dessa posição (use 4 casas decimais quando necessário).
 
     \item (Prince, 2024) Considerando que um mecanismo de \textit{self-attention} processa $N$ entradas de tamanho $D$ para produzir $N$ saídas de tamanho $D$.
-    Quantos parâmetros treináveis são usados para computar \textit{querys}, \textit{keys} e \textit{values}?
+    Quantos parâmetros treináveis são usados para computar \textit{queries}, \textit{keys} e \textit{values}?
     Caso seja utilizada uma camada linear densa ao invés do mecanismo de atenção, o número de parâmetros treináveis seria maior ou menor?
 
     \item Qual é o limite teórico do tamanho de sequências que podemos processar com o mecanismo de \textit{self-attention}?
@@ -31,7 +31,7 @@
     \item É comum no treinamento e na inferência de \textit{transformers} limitarmos o tamanho das sequências tanto na entrada quanto na saída.
     Qual o motivo disso?
 
-    \item Por que a camada de \textit{self-attention} no \textit{encoder} do \textit{transformer} original não possui máscaras e no \textit{decoder} possui máscaras?
+    \item Por que a camada de \textit{self-attention} no \textit{encoder} do \textit{transformer} original não possui máscara causal e no \textit{decoder} possui?
 
     \item Qual a diferença entre \textit{cross-attention} e \textit{self-attention}?
 
@@ -577,12 +577,14 @@ Dessa forma percebemos que o número de parâmetros treináveis é menor com o m
 Contudo sabemos que existe um custo computacional quadrático em relação ao tamanho da sequência, isso acaba criando limites práticos para o tamanho de sequências que conseguimos processar.
 (Podemos ser preciosistas ao responder essa questão e apontar que apesar de conseguir computar a atenção em uma sequência de tamanho arbitrariamente grande, o limite efetivo que conseguimos processar tem relação com o tamanho dos vetores de \textit{query} e \textit{keys}, pois queremos ser capazes de diferenciar a similaridade entre todos os vetores processados).
 
-\item Existem vários motivos para limitarmos o tamanho da sequência tanto em treino quanto em inferência sendo que praticamente todos remetem a questões de eficiência.
-Por exemplo, temos que garantir que exista vram suficiente para o treinamento e uma forma de fazer isso é limitando o tamanho das sequências; outra questão importante é garantirmos que o modelo consegue interpretar adequadamente os \textit{positional embeddings}, embora em teoria o modelo deva ser capaz de generalizar para sequências maiores na prática isso pode não ocorrer; Durante o treinamento queremos ser capazes de colocar todas as sentenças de um \textit{batch} em um único tensor, para permitir esse processo é comum completarmos sequências mais curtas com \texttt{<PAD>} para facilitar esse processo limitamos o tamanho das sequências e também implementamos um processo de \textit{bucketing}.
+\item Limitamos o tamanho da sequência em treino e em inferência por motivos de eficiência.
+A memória da GPU é finita: o custo da atenção cresce com o quadrado do comprimento, e fixar um comprimento máximo garante que o treinamento caiba na VRAM disponível.
+O modelo também precisa interpretar corretamente os \textit{positional embeddings}: em teoria ele deveria generalizar para sequências maiores que as vistas no treino, mas na prática isso frequentemente não ocorre.
+Por fim, durante o treinamento queremos colocar todas as sentenças de um \textit{batch} em um único tensor. Para isso, completamos as sequências mais curtas com \texttt{<PAD>}; limitar o comprimento máximo e agrupar sequências de tamanho parecido (\textit{bucketing}) reduzem o desperdício com \textit{padding}.
 
-\item Durante o \textit{treino} com \textit{teacher forcing}, o \textit{decoder} recebe toda a sequência alvo de uma só vez, em paralelo. A máscara causal impede que a posição $t$ veja as posições futuras $t+1, t+2, \ldots$ ao computar a atenção, garantindo que cada predição use apenas o contexto que estará disponível em inferência (autoregressiva). Sem a máscara, o modelo simplesmente copiaria o próximo \textit{token} da sequência alvo (trapaceando) e não aprenderia a prever. O \textit{encoder}, ao contrário, processa a frase de entrada de uma só vez e toda ela está disponível ao mesmo tempo, então não há razão para mascarar.
+\item Durante o \textit{treino} com \textit{teacher forcing}, o \textit{decoder} recebe toda a sequência alvo de uma só vez, em paralelo. A máscara causal impede que a posição $t$ veja as posições futuras $t+1, t+2, \ldots$ ao computar a atenção, garantindo que cada predição use apenas o contexto que estará disponível em inferência (autorregressiva). Sem a máscara, o modelo simplesmente copiaria o próximo \textit{token} da sequência alvo (trapaceando) e não aprenderia a prever. O \textit{encoder}, ao contrário, processa a frase de entrada de uma só vez e toda ela está disponível ao mesmo tempo, então não há razão para uma máscara causal (resta apenas a máscara de \textit{padding}, quando o \textit{batch} mistura comprimentos).
 
-\item Em \textit{Cross-attention} as querys e \textit{keys} vem de sequências diferentes enquanto que em \textit{self-attention} as \textit{querys} e \textit{keys} vem da mesma sequência.
+\item Em \textit{cross-attention} as \textit{queries} e \textit{keys} vêm de sequências diferentes, enquanto em \textit{self-attention} as \textit{queries} e \textit{keys} vêm da mesma sequência.
 
 \item A principal vantagem é representacional: cada cabeça aprende a atender a um \textbf{tipo de relação diferente} entre os \textit{tokens} da sequência, por exemplo, relações sintáticas (sujeito-verbo, modificador-substantivo), semânticas (referente de um pronome), posicionais (próximo \textit{token}) ou de longo alcance. Trabalhos como \textit{Voita et al.\ (2019)} \textit{Analyzing Multi-Head Self-Attention} mostram empiricamente que cabeças individuais especializam-se em diferentes funções linguísticas. Como benefício secundário, o cômputo das múltiplas cabeças é trivialmente paralelizável (operação \textit{batched} em GPU), mas esse não é o motivo principal, uma única cabeça de mesma dimensão total seria igualmente paralelizável.
 
@@ -740,12 +742,12 @@ de $H$ e $N$ ($H^2 \cdot N$).
 % --- Solução Q16 ---
 \subsubsection*{XVII — Resposta: (d)}
 \textit{BatchNorm} computa média e variância \emph{por feature}, agregando
-sobre o eixo do \textit{batch} e (em sequências) sobre o eixo temporal.
-Com sequências de comprimentos muito distintos, o número de \textit{tokens}
-que contribuem para cada posição varia: posições próximas ao início
-acumulam centenas de amostras, enquanto posições próximas ao fim recebem
-apenas algumas. As estatísticas resultantes ficam ruidosas e dependentes
-da composição do \textit{batch}. \textit{LayerNorm}, por outro lado,
+sobre o eixo do \textit{batch} em cada posição da sequência. Com sequências
+de comprimentos muito distintos, o número de \textit{tokens} que contribuem
+para cada posição varia: posições próximas ao início acumulam amostras de
+todas as sequências, enquanto posições próximas ao fim recebem apenas as
+poucas sequências longas (ou tokens de \textit{padding}). As estatísticas
+resultantes ficam ruidosas e dependentes da composição do \textit{batch}. \textit{LayerNorm}, por outro lado,
 normaliza \emph{por token} (linha), independendo do tamanho do
 \textit{batch} ou do comprimento das sequências.
 A opção~(a) inverte o eixo de normalização do BatchNorm. A opção~(b)

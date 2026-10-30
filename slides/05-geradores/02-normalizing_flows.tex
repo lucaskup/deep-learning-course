@@ -140,7 +140,7 @@
     \begin{block}{Durante anos, a referência visual}
       O \textit{Glow} foi durante anos o melhor resultado de imagem de um
       \textit{flow}, firmando a percepção de que NFs ficavam atrás de GANs e
-      modelos difusores. Como veremos a seguir, isso mudou.
+      modelos difusores. Isso mudou a partir de 2024.
     \end{block}
   \end{frame}
 
@@ -179,32 +179,18 @@
 
   %--- Slide: 1D transformation ---
   \begin{frame}{\textit{Normalizing Flows}: Transformação 1D}
-    Gaussiana base $\to$ distribuição bimodal via \textit{flow}:
+    Distribuição bimodal dos dados $\leftrightarrow$ gaussiana base via \textit{flow}:
     \vspace{0.3em}
     \centering
     \resizebox{0.92\linewidth}{!}{%
       \begin{tikzpicture}[font=\small]
-        % base density (left)
+        % data density (left)
         \begin{axis}[
-          name=base,
-          width=6cm, height=4cm,
-          axis lines=left,
-          xmin=-3, xmax=3, ymin=0, ymax=0.5,
-          xlabel={$z$}, title={\textit{Base density}},
-          xtick=\empty, ytick=\empty,
-          clip=false,
-        ]
-          \addplot[domain=-3:3, samples=80, thick, DecBlue, fill=DecBlue, fill opacity=0.25]
-            {1/(sqrt(2*pi))*exp(-x^2/2)} \closedcycle;
-        \end{axis}
-        % model density (right) --- mixture-like bimodal
-        \begin{axis}[
-          at={(base.east)}, xshift=5cm, anchor=west,
           name=model,
           width=6cm, height=4cm,
           axis lines=left,
           xmin=-3, xmax=3, ymin=0, ymax=0.8,
-          xlabel={$x$}, title={\textit{Model density}},
+          xlabel={$x$}, title={Densidade dos dados $p(x)$},
           xtick=\empty, ytick=\empty,
           clip=false,
         ]
@@ -212,11 +198,25 @@
             {0.55/(sqrt(2*pi)*0.35)*exp(-(x+0.9)^2/(2*0.35^2))
             + 0.45/(sqrt(2*pi)*0.45)*exp(-(x-1.0)^2/(2*0.45^2))} \closedcycle;
         \end{axis}
-        % forward/inverse arrows between the two axes
-        \draw[->, thick, MediumBlue] ($(base.east)+(0.2,0.5)$) -- ($(model.west)+(-0.2,0.5)$)
-          node[midway, above, font=\scriptsize] {\textit{Inverse} $f^{-1}(z)$};
-        \draw[<-, thick, MediumBlue] ($(base.east)+(0.2,-0.2)$) -- ($(model.west)+(-0.2,-0.2)$)
-          node[midway, below, font=\scriptsize] {\textit{Forward} $f(x)$};
+        % base density (right)
+        \begin{axis}[
+          at={(model.east)}, xshift=5cm, anchor=west,
+          name=base,
+          width=6cm, height=4cm,
+          axis lines=left,
+          xmin=-3, xmax=3, ymin=0, ymax=0.5,
+          xlabel={$z$}, title={Densidade base $p(z)$},
+          xtick=\empty, ytick=\empty,
+          clip=false,
+        ]
+          \addplot[domain=-3:3, samples=80, thick, DecBlue, fill=DecBlue, fill opacity=0.25]
+            {1/(sqrt(2*pi))*exp(-x^2/2)} \closedcycle;
+        \end{axis}
+        % forward (left -> right) and inverse (right -> left) arrows
+        \draw[->, thick, MediumBlue] ($(model.east)+(0.2,0.5)$) -- ($(base.west)+(-0.2,0.5)$)
+          node[midway, above, font=\scriptsize] {\textit{Forward} $z = f(x)$};
+        \draw[<-, thick, MediumBlue] ($(model.east)+(0.2,-0.2)$) -- ($(base.west)+(-0.2,-0.2)$)
+          node[midway, below, font=\scriptsize] {\textit{Inverse} $x = f^{-1}(z)$};
       \end{tikzpicture}%
     }
     \vspace{0.4em}
@@ -284,10 +284,10 @@
           \begin{tikzpicture}[font=\small]
             % Eixos x compartilhados: 1 unidade tikz = 1 unidade de dado,
             % origem em tikz x=0 (data 0) nos dois plots.
-            % --- Plot de cima: p(y), uniforme em [1,3], altura 0,5 ---
-            \draw[->, thick] (0,2.8) -- (4.0,2.8) node[right] {$y$};
+            % --- Plot de cima: p(z), uniforme em [1,3], altura 0,5 ---
+            \draw[->, thick] (0,2.8) -- (4.0,2.8) node[right] {$z$};
             \draw[->, thick] (0,2.8) -- (0,4.3);
-            \node[left] at (0,4.2) {$p(y)$};
+            \node[left] at (0,4.2) {$p(z)$};
             \fill[DecBlue, opacity=0.6] (1,2.8) rectangle (3,3.3);
             \node[below, font=\scriptsize] at (1,2.8) {$1$};
             \node[below, font=\scriptsize] at (3,2.8) {$3$};
@@ -305,18 +305,18 @@
               \draw[->, EncRed, thick] (\xs,1.05) -- (\xt,2.75);
             }
             \node[EncRed, font=\scriptsize, anchor=west] at (3.2,2.05) {$f(x) = 2x+1$};
-            \node[EncRed, font=\scriptsize, anchor=west] at (3.2,1.55) {$f^{-1}(y) = \tfrac{y-1}{2}$};
+            \node[EncRed, font=\scriptsize, anchor=west] at (3.2,1.55) {$f^{-1}(z) = \tfrac{z-1}{2}$};
           \end{tikzpicture}%
         }\\
-        \tiny Uniforme $p(x)$ transformada em $p(y)$ mais larga e menos
-        alta por $y = 2x+1$.
+        \tiny Uniforme $p(x)$ transformada em $p(z)$ mais larga e menos
+        alta por $z = 2x+1$.
       \end{column}
     \end{columns}
     \note{
       Observação didática: se o intervalo duplica de largura, a altura
       tem que ser cortada pela metade para preservar a área. É
-      exatamente esse fator de escala (o módulo do Jacobiano) que vai
-      aparecer na fórmula na próxima transparência.
+      exatamente esse fator de escala (o módulo do Jacobiano) que
+      aparece na fórmula de mudança de variável.
     }
   \end{frame}
 
@@ -348,20 +348,17 @@
     \]
     \vspace{0.3em}
     \begin{block}{Por que o módulo?}
-      Garante que:
-      \begin{itemize}
-        \item o resultado seja \textbf{positivo} (densidades são não
-        negativas);
-        \item não precisamos nos preocupar com \emph{direções} de
-        integração/derivação.
-      \end{itemize}
+      Se $f$ é decrescente, $dz/dx < 0$ e o intervalo $[x, x+dx]$ é levado
+      a $[z+dz, z]$, com a orientação invertida. O módulo absorve esse
+      sinal: a massa no intervalo é a mesma e a densidade resultante fica
+      não negativa.
     \end{block}
   \end{frame}
 
   %--- Slide: exemplo explícito (enunciado + figura) ---
   \begin{frame}{Mudança de Variável: exemplo log-normal}
-    \textbf{Setup:} $X \sim \mathcal{N}(0,1)$ e $Z = \exp(X)$. Qual é a
-    densidade $p_{Z}(z)$?
+    \textbf{Setup:} base $Z \sim \mathcal{N}(0,1)$ e dados $X = \exp(Z)$.
+    Qual é a densidade $p_{X}(x)$?
     \vspace{0.2em}
     \begin{center}
       \resizebox{!}{0.72\textheight}{%
@@ -372,7 +369,7 @@
           width=6.2cm, height=4.4cm,
           axis lines=left,
           xmin=0, xmax=12, ymin=-2.5, ymax=2.5,
-          xlabel={$z$},
+          xlabel={$x$},
           xlabel style={font=\scriptsize},
           xtick={2,4,6,8,10,12}, ytick={-2,-1,0,1,2},
           tick label style={font=\scriptsize},
@@ -381,7 +378,7 @@
           % Curva paramétrica: (z = exp(x), x) com x na vertical
           \addplot[domain=-2.5:2.5, samples=120, thick, EncRed]
             ({exp(x)}, x);
-          \node[EncRed, font=\scriptsize, anchor=south east] at (axis cs:11.5,-2.2) {$z = \exp(x)$};
+          \node[EncRed, font=\scriptsize, anchor=south east] at (axis cs:11.5,-2.2) {$x = \exp(z)$};
           % Linha de tracejado: x = 0 -> z = 1
           \draw[dashed, FlowGreen, thick] (axis cs:0,0) -- (axis cs:1,0);
           \draw[dashed, FlowGreen, thick] (axis cs:1,0) -- (axis cs:1,2.5);
@@ -393,7 +390,7 @@
           width=4.2cm, height=4.4cm,
           axis lines=left,
           xmin=0, xmax=0.5, ymin=-2.5, ymax=2.5,
-          xlabel={$p_X(x)$}, ylabel={$x$},
+          xlabel={$p_Z(z)$}, ylabel={$z$},
           xlabel style={font=\scriptsize}, ylabel style={font=\scriptsize},
           xtick={0.1,0.3,0.5}, ytick={-2,-1,0,1,2},
           tick label style={font=\scriptsize},
@@ -412,7 +409,7 @@
           width=6.2cm, height=3.6cm,
           axis lines=left,
           xmin=0, xmax=12, ymin=0, ymax=0.7,
-          xlabel={$z$},
+          xlabel={$x$},
           xlabel style={font=\scriptsize},
           xtick={2,4,6,8,10,12}, ytick={0.2,0.4,0.6},
           tick label style={font=\scriptsize},
@@ -420,7 +417,7 @@
         ]
           \addplot[domain=0.05:12, samples=240, thick, ReconGreen, fill=ReconGreen, fill opacity=0.25]
             {1/(x*sqrt(2*pi))*exp(-(ln(x))^2/2)} \closedcycle;
-          \node[ReconGreen, font=\scriptsize, anchor=north east] at (axis cs:11.5,0.65) {$p_Z(z)$: log-normal};
+          \node[ReconGreen, font=\scriptsize, anchor=north east] at (axis cs:11.5,0.65) {$p_X(x)$: log-normal};
           % Linha de tracejado: z = 1
           \draw[dashed, FlowGreen, thick] (axis cs:1,0) -- (axis cs:1,0.4);
         \end{axis}
@@ -432,25 +429,26 @@
   \begin{frame}{Mudança de Variável: Solução log-normal}
     \begin{block}{Passos}
       \begin{enumerate}
-        \item Densidade de $X$:
-        $p_{X}(x) = \frac{1}{\sqrt{2\pi}}\exp\!\left(-\tfrac{x^{2}}{2}\right)$.
-        \item Como $z = \exp(x)$, a inversa é $x = \ln(z)$.
-        \item $P(Z \leq z) = P(X \leq \ln z)$, logo
-        $\mathrm{CDF}_Z(z) = \mathrm{CDF}_X(\ln z)$.
-        \item Derivando:
-        $p_{Z}(z) = p_{X}(\ln z)\,\dfrac{\partial (\ln z)}{\partial z}$.
-        \item Substituindo $p_{X}(\ln z)$ e $\dfrac{\partial (\ln z)}{\partial z} = \dfrac{1}{z}$:
+        \item Densidade da base:
+        $p_{Z}(z) = \tfrac{1}{\sqrt{2\pi}}\exp\!\left(-\tfrac{z^{2}}{2}\right)$.
+        \item Como $x = \exp(z)$, o \textit{flow} que leva dados à base é
+        $z = f(x) = \ln x$.
+        \item $P(X \leq x) = P(Z \leq \ln x)$, logo
+        $\mathrm{CDF}_X(x) = \mathrm{CDF}_Z(\ln x)$; derivando,
+        $p_{X}(x) = p_{Z}(\ln x)\,\tfrac{\partial (\ln x)}{\partial x}$.
+        \item Substituindo $p_{Z}(\ln x)$ e $\tfrac{\partial (\ln x)}{\partial x} = \tfrac{1}{x}$:
         \vspace{-0.6em}
         {\small
         \begin{align*}
-          p_{Z}(z)
-            &= \underbrace{\tfrac{1}{\sqrt{2\pi}}\exp\!\left(-\tfrac{(\ln z)^{2}}{2}\right)}_{p_{X}(\ln z)}
+          p_{X}(x)
+            &= \underbrace{\tfrac{1}{\sqrt{2\pi}}\exp\!\left(-\tfrac{(\ln x)^{2}}{2}\right)}_{p_{Z}(\ln x)}
                \cdot
-               \underbrace{\tfrac{1}{z}}_{\partial (\ln z)/\partial z}
-             = \tfrac{1}{z\sqrt{2\pi}}\exp\!\left(-\tfrac{(\ln z)^{2}}{2}\right).
+               \underbrace{\tfrac{1}{x}}_{\partial (\ln x)/\partial x}
+             = \tfrac{1}{x\sqrt{2\pi}}\exp\!\left(-\tfrac{(\ln x)^{2}}{2}\right).
         \end{align*}}%
         \vspace{-0.8em}
-        \item Essa é a densidade \textbf{log-normal}.
+        \item Essa é a densidade \textbf{log-normal}, obtida pela fórmula
+        $p_X(x) = p_Z(f(x))\,|f'(x)|$ com $f = \ln$ e $|f'(x)| = 1/x$.
       \end{enumerate}
     \end{block}
   \end{frame}
@@ -491,7 +489,7 @@
     \vspace{0.3em}
     \[
       \hat{\thetav} = \argmax_{\thetav}
-      \left[\prod_{i=1}^{N} P\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]
+      \left[\prod_{i=1}^{N} p_X\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]
     \]
     \vspace{0.2em}
     \begin{itemize}
@@ -507,10 +505,10 @@
     \vspace{0.3em}
     \begin{align*}
       \hat{\thetav}
-      &= \argmax_{\thetav}\left[\prod_{i} P(\mathbf{x}^{(i)}\mid\thetav)\right]
+      &= \argmax_{\thetav}\left[\prod_{i} p_X(\mathbf{x}^{(i)}\mid\thetav)\right]
       \\[0.2em]
       &\visible<2->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N} -\log P\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]}
+        \left[\sum_{i=1}^{N} -\log p_X\!\left(\mathbf{x}^{(i)} \mid \thetav\right)\right]}
     \end{align*}
     \vspace{0.3em}
     \only<1>{\emph{Produtos de muitas probabilidades pequenas sofrem
@@ -524,7 +522,7 @@
           \quad \mathbf{z} = f(\mathbf{x},\thetav)
         \]
       \end{block}
-      \emph{Vamos substituir $P(\mathbf{x}^{(i)}\mid \thetav)$ na expressão
+      \emph{Vamos substituir $p_X(\mathbf{x}^{(i)}\mid \thetav)$ na expressão
       acima.}
     }
     \note{
@@ -536,14 +534,15 @@
 
   %--- Slide: derivação NLL - passo 2 ---
   \begin{frame}{Loss: NLL passo a passo (2/2)}
-    \textbf{Passo 2}: substituir $p_X$ pela mudança de variável:
+    \textbf{Passo 2}: substituir $p_X$ pela mudança de variável, com
+    $\mathbf{z}^{(i)} = f(\mathbf{x}^{(i)},\thetav)$:
     \vspace{0.3em}
     \begin{align*}
       \hat{\thetav}
       &\visible<1->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N} -\log\!\left(P(\mathbf{z}^{(i)})\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right|\right)\right]} \\[0.2em]
+        \left[\sum_{i=1}^{N} -\log\!\left(p_Z(\mathbf{z}^{(i)})\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right|\right)\right]} \\[0.2em]
       &\visible<2->{= \argmin_{\thetav}
-        \left[\sum_{i=1}^{N}\!\left[-\log\!\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right| - \log P(\mathbf{z}^{(i)})\right]\right]}
+        \left[\sum_{i=1}^{N}\!\left[-\log\!\left|\det \tfrac{\partial f(\mathbf{x}^{(i)},\thetav)}{\partial \mathbf{x}^{(i)}}\right| - \log p_Z(\mathbf{z}^{(i)})\right]\right]}
     \end{align*}
     \vspace{0.3em}
     \visible<2->{
@@ -552,7 +551,7 @@
           \item \textcolor{EncRed}{$-\log\left|\det \tfrac{\partial f}{\partial \mathbf{x}}\right|$}: depende de
           $\thetav$ via a rede. Mede a deformação local de volume
           induzida pelo \textit{flow}.
-          \item \textcolor{DecBlue}{$-\log P(\mathbf{z})$}: a distribuição base é
+          \item \textcolor{DecBlue}{$-\log p_Z(\mathbf{z})$}: a distribuição base é
           fixa (gaussiana), com densidade em forma fechada. $\thetav$
           entra apenas através de $\mathbf{z} = f(\mathbf{x},\thetav)$.
         \end{itemize}
@@ -589,7 +588,7 @@
     \end{itemize}
     \begin{alertblock}{Desafio de engenharia}
       Satisfazer os quatro requisitos simultaneamente é o que define
-      um \textit{flows}.
+      um \textit{flow}.
     \end{alertblock}
   \end{frame}
 
@@ -611,37 +610,37 @@
   \end{frame}
 
   %--- Slide: diagrama composição ---
-  \begin{frame}{\textit{Flows}: Caminho direto e inverso}
+  \begin{frame}{\textit{Flows}: Normalização e geração}
     \centering
     \resizebox{0.95\linewidth}{!}{%
       \begin{tikzpicture}[
-          fwd/.style={->, thick, black!55},
-          inv/.style={->, thick, FlowGreen},
+          fwd/.style={->, thick, FlowGreen},
+          inv/.style={->, thick, black!55},
         ]
-        % --- cinco densidades: base (esq.) -> dados (dir.) ---
+        % --- cinco densidades: dados (esq.) -> base (dir.) ---
+        \draw[domain=-1.3:1.3, samples=80, DecBlue, thick]
+          plot ({\x+0},{0.8*exp(-(\x+0.8)^2/0.12)+0.8*exp(-(\x)^2/0.12)+0.8*exp(-(\x-0.8)^2/0.12)});
         \draw[domain=-1.3:1.3, samples=60, DecBlue, thick]
-          plot ({\x+0},{exp(-(\x)^2/0.5)});
-        \draw[domain=-1.3:1.3, samples=60, DecBlue, thick]
-          plot ({\x+3},{0.9*exp(-(\x-0.1)^2/0.5)+0.18*exp(-(\x-0.7)^2/0.15)});
+          plot ({\x+3},{0.85*exp(-(\x+0.5)^2/0.18)+0.85*exp(-(\x-0.5)^2/0.18)});
         \draw[domain=-1.3:1.3, samples=60, DecBlue, thick]
           plot ({\x+6},{0.8*exp(-(\x+0.3)^2/0.3)+0.5*exp(-(\x-0.7)^2/0.18)});
         \draw[domain=-1.3:1.3, samples=60, DecBlue, thick]
-          plot ({\x+9},{0.85*exp(-(\x+0.5)^2/0.18)+0.85*exp(-(\x-0.5)^2/0.18)});
-        \draw[domain=-1.3:1.3, samples=80, DecBlue, thick]
-          plot ({\x+12},{0.8*exp(-(\x+0.8)^2/0.12)+0.8*exp(-(\x)^2/0.12)+0.8*exp(-(\x-0.8)^2/0.12)});
-        \node[font=\scriptsize] at (0,1.35)  {base $p(\mathbf{z})$};
-        \node[font=\scriptsize] at (12,1.35) {$p(\mathbf{x})$};
-        % --- caminho direto (cinza) e inverso (verde) ---
+          plot ({\x+9},{0.9*exp(-(\x-0.1)^2/0.5)+0.18*exp(-(\x-0.7)^2/0.15)});
+        \draw[domain=-1.3:1.3, samples=60, DecBlue, thick]
+          plot ({\x+12},{exp(-(\x)^2/0.5)});
+        \node[font=\scriptsize] at (0,1.35)  {dados $p(\mathbf{x})$};
+        \node[font=\scriptsize] at (12,1.35) {base $p(\mathbf{z})$};
+        % --- normalização (verde, esq. -> dir.) e geração (cinza, dir. -> esq.) ---
         \draw[fwd] (-1.0,2.6) -- (13.0,2.6)
-          node[midway, above, font=\small] {$f^{-1} = f_{1}^{-1}\circ f_{2}^{-1}\circ f_{3}^{-1}\circ f_{4}^{-1}$};
+          node[midway, above, font=\small, FlowGreen] {$f = f_{4}\circ f_{3}\circ f_{2}\circ f_{1}$};
         \draw[inv] (13.0,-1.4) -- (-1.0,-1.4)
-          node[midway, below, font=\small, FlowGreen]
-          {$f = f_{4}\circ f_{3}\circ f_{2}\circ f_{1}$};
-        \foreach \gx/\lab in {1.5/4, 4.5/3, 7.5/2, 10.5/1}{
+          node[midway, below, font=\small]
+          {$f^{-1} = f_{1}^{-1}\circ f_{2}^{-1}\circ f_{3}^{-1}\circ f_{4}^{-1}$};
+        \foreach \gx/\lab in {1.5/1, 4.5/2, 7.5/3, 10.5/4}{
           \draw[fwd] (\gx-0.8,1.75) -- (\gx+0.8,1.75)
-            node[midway, above, font=\scriptsize, black!55] {$f_{\lab}^{-1}$};
+            node[midway, above, font=\scriptsize, FlowGreen] {$f_{\lab}$};
           \draw[inv] (\gx+0.8,-0.4) -- (\gx-0.8,-0.4)
-            node[midway, below, font=\scriptsize, FlowGreen] {$f_{\lab}$};
+            node[midway, below, font=\scriptsize, black!55] {$f_{\lab}^{-1}$};
         }
       \end{tikzpicture}%
     }\\
@@ -660,12 +659,12 @@
     é o \textbf{produto dos determinantes}:
     \vspace{0.3em}
     \[
-      \left|\frac{\partial f[\mathbf{z},\thetav]}{\partial \mathbf{z}}\right|
+      \left|\frac{\partial f[\mathbf{x},\thetav]}{\partial \mathbf{x}}\right|
       = \left|\frac{\partial f_{k}[f_{k-1},\thetav_k]}{\partial f_{k-1}}\right|
       \cdot
       \left|\frac{\partial f_{k-1}[f_{k-2},\thetav_{k-1}]}{\partial f_{k-2}}\right|
       \cdots
-      \left|\frac{\partial f_{1}[\mathbf{z},\thetav_1]}{\partial \mathbf{z}}\right|
+      \left|\frac{\partial f_{1}[\mathbf{x},\thetav_1]}{\partial \mathbf{x}}\right|
     \]
     \vspace{0.3em}
     \begin{itemize}
@@ -689,8 +688,9 @@
     \vspace{0.3em}
     \begin{alertblock}{Problemas}
       \begin{itemize}
-        \item \textbf{Pouco expressiva}: composição de transformações
-        lineares continua linear.
+        \item \textbf{Pouco expressiva}: uma transformação linear de uma
+        gaussiana continua gaussiana, então o modelo nunca sai da família
+        da base (e compor lineares continua linear).
         \item Determinante e inversa de matriz densa: custo
         $\mathcal{O}(d^{3})$.
       \end{itemize}
@@ -702,8 +702,8 @@
     Impondo estrutura na matriz $\mathbf{\Theta}$, reduzimos drasticamente o custo
     de inverter e de calcular o determinante. \emph{Diagonal} é barata mas muito
     restritiva; \textcolor{EncRed}{\emph{LU factorized}} e
-    \textcolor{EncRed}{\emph{$1{\times}1$ convolution}} (Glow) são os melhores
-    compromissos na prática.
+    \textcolor{EncRed}{\emph{$1{\times}1$ convolution}} são os \textit{linear
+    flows} usados no Glow, alternados com \textit{coupling layers}.
     \vspace{0.4em}
     \begin{center}
       \footnotesize
@@ -744,14 +744,14 @@
     \emph{condicionando na outra}:
     \vspace{0.2em}
     \[
-      f(\mathbf{x}) = \begin{bmatrix}
+      \mathbf{z} = f(\mathbf{x}) = \begin{bmatrix}
         \mathbf{x}^{A} \\
         \hat{f}\!\left(\mathbf{x}^{B} \mid \thetav(\mathbf{x}^{A})\right)
       \end{bmatrix}
     \]
     \vspace{0.2em}
     \centering
-    \resizebox{0.84\linewidth}{!}{%
+    \resizebox{0.78\linewidth}{!}{%
       \begin{tikzpicture}[
           font=\small,
           cell/.style={draw=MediumBlue, thick, minimum width=0.7cm, minimum height=0.55cm, inner sep=1pt},
@@ -778,7 +778,14 @@
         % saida
         \node[acell] (f1) at (9.6,2.70) {}; \node[acell] (f2) at (9.6,2.10) {};
         \node[rcell] (f3) at (9.6,1.50) {}; \node[rcell] (f4) at (9.6,0.90) {};
-        \node at (9.6,3.30) {$f(\mathbf{x})$};
+        \node at (9.6,3.30) {$\mathbf{z} = f(\mathbf{x})$};
+        % legenda de cores
+        \node[acell, minimum width=0.45cm, minimum height=0.32cm] (l1) at (0.3,-0.65) {};
+        \node[right=2pt of l1, font=\scriptsize] {$\mathbf{x}^{A}$, copiado};
+        \node[bcell, minimum width=0.45cm, minimum height=0.32cm] (l2) at (3.6,-0.65) {};
+        \node[right=2pt of l2, font=\scriptsize] {$\mathbf{x}^{B}$, entrada da \textit{transform}};
+        \node[rcell, minimum width=0.45cm, minimum height=0.32cm] (l3) at (7.6,-0.65) {};
+        \node[right=2pt of l3, font=\scriptsize] {$\mathbf{z}^{B}$, transformado};
         % split arrows
         \draw[cpy] (x1.east) -- (a1.west); \draw[cpy] (x2.east) -- (a2.west);
         \draw[cpy] (x3.east) -- (b1.west); \draw[cpy] (x4.east) -- (b2.west);
@@ -792,7 +799,7 @@
         % B -> transform
         \draw[fwd] (b1.east) -- (ct.west); \draw[fwd] (b2.east) -- (ct.west);
         % network -> transform
-        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
+        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\thetav(\mathbf{x}^{A})$};
         % transform -> saida
         \draw[fwd] (ct.east) -- (f3.west); \draw[fwd] (ct.east) -- (f4.west);
         \node[font=\scriptsize, black!60] at (8.0,1.95) {Concat.};
@@ -827,39 +834,39 @@
           inv/.style={->, thick, MediumGreen},
           cpy/.style={->, thick, black!50},
         ]
-        % entrada z
-        \node[acell] (z1) at (0,2.70) {}; \node[acell] (z2) at (0,2.10) {};
-        \node[rcell] (z3) at (0,1.50) {}; \node[rcell] (z4) at (0,0.90) {};
-        \node at (0,3.30) {$\mathbf{z}$};
+        % entrada z (direita)
+        \node[acell] (z1) at (9.6,2.70) {}; \node[acell] (z2) at (9.6,2.10) {};
+        \node[rcell] (z3) at (9.6,1.50) {}; \node[rcell] (z4) at (9.6,0.90) {};
+        \node at (9.6,3.30) {$\mathbf{z}$};
         % split
-        \node[acell] (a1) at (3,3.00) {}; \node[acell] (a2) at (3,2.40) {};
-        \node[rcell] (b1) at (3,1.20) {}; \node[rcell] (b2) at (3,0.60) {};
-        \node[font=\scriptsize] at (3,3.55) {$\mathbf{z}^{A}$};
-        \node[font=\scriptsize] at (3,0.05) {$\mathbf{z}^{B}$};
+        \node[acell] (a1) at (6.6,3.00) {}; \node[acell] (a2) at (6.6,2.40) {};
+        \node[rcell] (b1) at (6.6,1.20) {}; \node[rcell] (b2) at (6.6,0.60) {};
+        \node[font=\scriptsize] at (6.6,3.55) {$\mathbf{z}^{A}$};
+        \node[font=\scriptsize] at (6.6,0.05) {$\mathbf{z}^{B}$};
         % caixas
-        \node[box] (cn) at (6,2.05) {Coupling\\Network $\thetav(\mathbf{z}^{A})$};
-        \node[box] (ct) at (6,0.50) {Inverse\\Transform};
-        % saida
-        \node[acell] (f1) at (9.6,2.70) {}; \node[acell] (f2) at (9.6,2.10) {};
-        \node[bcell] (f3) at (9.6,1.50) {}; \node[bcell] (f4) at (9.6,0.90) {};
-        \node at (9.6,3.30) {$f^{-1}(\mathbf{z})$};
-        % split arrows
-        \draw[cpy] (z1.east) -- (a1.west); \draw[cpy] (z2.east) -- (a2.west);
-        \draw[cpy] (z3.east) -- (b1.west); \draw[cpy] (z4.east) -- (b2.west);
-        \node[font=\scriptsize, black!60] at (1.5,3.20) {Split};
+        \node[box] (cn) at (3.6,2.05) {Coupling\\Network $\thetav(\mathbf{z}^{A})$};
+        \node[box] (ct) at (3.6,0.50) {Inverse\\Transform};
+        % saida (esquerda)
+        \node[acell] (f1) at (0,2.70) {}; \node[acell] (f2) at (0,2.10) {};
+        \node[bcell] (f3) at (0,1.50) {}; \node[bcell] (f4) at (0,0.90) {};
+        \node at (0,3.30) {$f^{-1}(\mathbf{z})$};
+        % split arrows (direita -> esquerda)
+        \draw[cpy] (z1.west) -- (a1.east); \draw[cpy] (z2.west) -- (a2.east);
+        \draw[cpy] (z3.west) -- (b1.east); \draw[cpy] (z4.west) -- (b2.east);
+        \node[font=\scriptsize, black!60] at (8.1,3.20) {Split};
         % A reavalia a network
-        \draw[inv] (3.5,2.20) -- (cn.west);
+        \draw[inv] (6.1,2.20) -- (cn.east);
         % A copiado (arco)
-        \draw[cpy] (a1.east) .. controls (6,3.55) .. (f1.west);
-        \node[font=\scriptsize, black!60] at (6,3.62) {cópia $\mathbf{z}^{A}$};
-        \draw[cpy] (a2.east) .. controls (6,3.10) .. (f2.west);
+        \draw[cpy] (a1.west) .. controls (3.6,3.55) .. (f1.east);
+        \node[font=\scriptsize, black!60] at (3.6,3.62) {cópia $\mathbf{z}^{A}$};
+        \draw[cpy] (a2.west) .. controls (3.6,3.10) .. (f2.east);
         % B -> inverse transform
-        \draw[inv] (b1.east) -- (ct.west); \draw[inv] (b2.east) -- (ct.west);
+        \draw[inv] (b1.west) -- (ct.east); \draw[inv] (b2.west) -- (ct.east);
         % network -> transform
-        \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
+        \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\thetav(\mathbf{z}^{A})$};
         % transform -> saida
-        \draw[inv] (ct.east) -- (f3.west); \draw[inv] (ct.east) -- (f4.west);
-        \node[font=\scriptsize, black!60] at (8.0,1.95) {Concat.};
+        \draw[inv] (ct.west) -- (f3.east); \draw[inv] (ct.west) -- (f4.east);
+        \node[font=\scriptsize, black!60] at (1.6,1.95) {Concat.};
       \end{tikzpicture}%
     }
   \end{frame}
@@ -869,9 +876,9 @@
     Um único \textit{coupling layer} só transforma metade das dimensões.
     \textbf{Alternando permutações} (ou \textit{linear flows}) entre as
     camadas, todas as dimensões são afetadas:
-    \vspace{0.3em}
+    \vspace{0.2em}
     \centering
-    \resizebox{0.92\linewidth}{!}{%
+    \resizebox{0.70\linewidth}{!}{%
       \begin{tikzpicture}[
           font=\small,
           cell/.style={draw=MediumBlue, thick, minimum width=0.62cm, minimum height=0.5cm, inner sep=1pt},
@@ -884,14 +891,14 @@
         \node[cell, fill=orange!35]   (x1) at (0,2.55) {};
         \node[cell, fill=PastelGreen] (x2) at (0,2.00) {};
         \node[cell, fill=PastelBlue]  (x3) at (0,1.45) {};
-        \node[cell, fill=PastelRed]   (x4) at (0,0.90) {};
+        \node[cell, fill=violet!30]   (x4) at (0,0.90) {};
         \node at (0,3.15) {$\mathbf{x}$};
         % permutação
         \node[box, minimum height=2.1cm, text width=1.3cm] (perm) at (2.2,1.72)
           {Permu-\\tation /\\Linear};
         % permutado e dividido
         \node[cell, fill=PastelBlue]  (p1) at (4.4,2.85) {};
-        \node[cell, fill=PastelRed]   (p2) at (4.4,2.30) {};
+        \node[cell, fill=violet!30]   (p2) at (4.4,2.30) {};
         \node[cell, fill=orange!35]   (p3) at (4.4,1.15) {};
         \node[cell, fill=PastelGreen] (p4) at (4.4,0.60) {};
         \node[font=\scriptsize] at (4.4,3.35) {$\mathbf{x}^{A}$};
@@ -902,10 +909,10 @@
         \node[box] (ct) at (6.9,0.55) {Coupling\\Transform};
         % saida
         \node[cell, fill=PastelBlue] (f1) at (9.6,2.55) {};
-        \node[cell, fill=PastelRed]  (f2) at (9.6,2.00) {};
-        \node[cell, fill=yellow!55]  (f3) at (9.6,1.45) {};
-        \node[cell, fill=yellow!55]  (f4) at (9.6,0.90) {};
-        \node at (9.6,3.15) {$f(\mathbf{x})$};
+        \node[cell, fill=violet!30]  (f2) at (9.6,2.00) {};
+        \node[cell, fill=PastelRed]  (f3) at (9.6,1.45) {};
+        \node[cell, fill=PastelRed]  (f4) at (9.6,0.90) {};
+        \node at (9.6,3.15) {$\mathbf{z}$};
         \node[font=\scriptsize, black!60] at (8.5,2.95) {Concat.};
         % fluxos
         \draw[fwd] (0.4,1.72) -- (perm.west);
@@ -915,13 +922,20 @@
         \draw[cpy] (p2.east) .. controls (6.9,3.00) .. (f2.west);
         \draw[fwd] (p3.east) -- (ct.west);
         \draw[fwd] (p4.east) -- (ct.west);
-        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
+        \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\thetav(\mathbf{x}^{A})$};
         \draw[fwd] (ct.east) -- (f3.west);
         \draw[fwd] (ct.east) -- (f4.west);
       \end{tikzpicture}%
     }\\
-    \vspace{0.3em}
-    \tiny Cada camada: permutação $\to$ split $\to$ coupling transform $\to$ concat.
+    \vspace{0.2em}
+    \begin{itemize}
+      \footnotesize
+      \item \textbf{Permutação}: reordena as dimensões. A inversa é a
+      permutação contrária e $|\det| = 1$, então ela não entra na \textit{loss}.
+      \item \textbf{\textit{Linear flow}} no lugar da permutação: a
+      $1{\times}1$ \textit{convolution} do Glow é uma permutação aprendida
+      (matriz inversível por canal).
+    \end{itemize}
   \end{frame}
 
   %--- Slide: coupling jacobian - block structure ---
@@ -968,7 +982,7 @@
     Seja $\mathbf{x} = (x_1, x_2, x_3, x_4)$ com $\mathbf{x}^{A}=(x_1,x_2)$ e
     $\hat{f}(\mathbf{x}^{B}) = (g_1(x_1,x_2)\cdot x_3,\; g_2(x_1,x_2)\cdot x_4)$. Rotulamos as
     colunas pela entrada $x_j$ e as linhas pela saída $f_i(\mathbf{x})$:
-    \vspace{0.3em}
+    \vspace{-0.2em}
     \[
       Df =
       \bordermatrix{
@@ -979,14 +993,15 @@
         f_4 & \tfrac{\partial g_2}{\partial x_1}\,x_4 & \tfrac{\partial g_2}{\partial x_2}\,x_4 & 0 & g_2 \cr
       }
     \]
-    \vspace{0.3em}
+    \vspace{-0.2em}
     \begin{block}{Determinante via triangularidade}
       \[
         \det Df = 1 \cdot 1 \cdot g_1 \cdot g_2 = g_1 \cdot g_2
       \]
       Basta o \textbf{produto dos elementos diagonais do bloco
-      inferior-direito}. Os termos da linha inferior à esquerda
-      \textbf{não importam} para o determinante.
+      inferior-direito}; os termos abaixo da diagonal \textbf{não importam}.
+      Na escolha afim (\textit{affine coupling}), $g_i = \exp(s_i)$ e
+      $\log\det Df = s_1 + s_2$.
     \end{block}
     \note{
       A mágica é dupla: (1) o bloco zero elimina metade do trabalho, e
@@ -1022,21 +1037,21 @@
     \vspace{0.4em}
     \begin{block}{\textit{Forward pass}}
       \[
-        \mathbf{y}^{B} =
+        \mathbf{z}^{B} =
         \mathbf{x}^{B} \odot \exp\!\left(\mathbf{s}(\mathbf{x}^{A})\right)
         + \mathbf{t}(\mathbf{x}^{A}),
         \qquad
-        \mathbf{y}^{A} = \mathbf{x}^{A}.
+        \mathbf{z}^{A} = \mathbf{x}^{A}.
       \]
     \end{block}
     \vspace{0.3em}
     \begin{itemize}
-      \item A \emph{coupling network} $\thetav(\mathbf{x}^{A})$ produz
-      \textbf{dois vetores}: $\mathbf{s}$ (log-escala) e $\mathbf{t}$
-      (translação).
+      \item A \emph{coupling network} produz \textbf{dois vetores},
+      $\thetav(\mathbf{x}^{A}) = (\mathbf{s}, \mathbf{t})$: $\mathbf{s}$ é a
+      log-escala e $\mathbf{t}$ a translação.
       \item $\exp(\cdot)$ garante escala positiva e permite expressar
       \emph{alongamento} ($s > 0$) e \emph{compressão} ($s < 0$).
-      \item Jacobiana \textbf{diagonal}:
+      \item Jacobiana \textbf{diagonal} (o $g_i$ do exemplo 4D é $\exp(s_i)$):
       $\det = \prod_i \exp(s_i)$, logo
       $\log|\det| = \sum_i s_i$ (barato).
     \end{itemize}
@@ -1045,15 +1060,15 @@
   %--- Slide: affine coupling inverse ---
   \begin{frame}{\textit{Affine Coupling Flows}: \textit{Inverse}}
     A inversa é \textbf{quase de graça}: note que a coupling network
-    usa apenas $\mathbf{x}^{A}$, que é copiado para $\mathbf{y}^{A}$.
+    usa apenas $\mathbf{x}^{A}$, que é copiado para $\mathbf{z}^{A}$.
     Então podemos \textbf{reaplicá-la} na direção inversa:
     \vspace{0.4em}
     \begin{block}{\textit{Inverse pass}}
       \begin{enumerate}
-        \item $\mathbf{x}^{A} = \mathbf{y}^{A}$ (cópia direta).
+        \item $\mathbf{x}^{A} = \mathbf{z}^{A}$ (cópia direta).
         \item Calcule $\mathbf{s} = \mathbf{s}(\mathbf{x}^{A})$,
         $\mathbf{t} = \mathbf{t}(\mathbf{x}^{A})$ usando a mesma rede.
-        \item $\mathbf{x}^{B} = (\mathbf{y}^{B} - \mathbf{t}) \odot
+        \item $\mathbf{x}^{B} = (\mathbf{z}^{B} - \mathbf{t}) \odot
         \exp(-\mathbf{s})$.
       \end{enumerate}
     \end{block}
@@ -1079,6 +1094,7 @@
             cell/.style={draw=MediumBlue, thick, minimum width=1.0cm, minimum height=0.62cm, inner sep=1pt},
             acell/.style={cell, fill=PastelBlue},
             bcell/.style={cell, fill=PastelGreen},
+            rcell/.style={cell, fill=PastelRed},
             box/.style={draw=MediumBlack, thick, rounded corners=2pt, fill=white,
                         align=center, font=\scriptsize, inner sep=4pt},
             fwd/.style={->, thick, MediumBlue},
@@ -1103,9 +1119,9 @@
           % --- saida f(x) ---
           \node[acell] (f1) at (9.7,2.70) {$1$};
           \node[acell] (f2) at (9.7,2.08) {$2$};
-          \node[bcell] (f3) at (9.7,1.46) {$3.55$};
-          \node[bcell] (f4) at (9.7,0.84) {$3.77$};
-          \node at (9.7,3.35) {$f(\mathbf{x})$};
+          \node[rcell] (f3) at (9.7,1.46) {$3.55$};
+          \node[rcell] (f4) at (9.7,0.84) {$3.77$};
+          \node at (9.7,3.35) {$\mathbf{z} = f(\mathbf{x})$};
           % --- split ---
           \draw[cpy] (x1.east) -- (a1.west);
           \draw[cpy] (x2.east) -- (a2.west);
@@ -1131,18 +1147,18 @@
     \end{center}
     \vspace{0.1em}
     \footnotesize \textit{Affine transform}, elemento a elemento (cada
-    $y^{B}_{i}=x^{B}_{i}\,e^{s_i}+t_i$):
+    $z^{B}_{i}=x^{B}_{i}\,e^{s_i}+t_i$):
     \[
-      y^{B}_{1}=3\,e^{0.3}-0.5\approx 3.55,\qquad
-      y^{B}_{2}=4\,e^{-0.2}+0.5\approx 3.77,\qquad
+      z^{B}_{1}=3\,e^{0.3}-0.5\approx 3.55,\qquad
+      z^{B}_{2}=4\,e^{-0.2}+0.5\approx 3.77,\qquad
       \log|\det J|=s_1+s_2=0.1.
     \]
   \end{frame}
 
   %--- Slide: Exemplo numérico coupling layer (inverse) ---
   \begin{frame}{Exemplo Numérico: \textit{Inverse} (2/2)}
-    \footnotesize A inversa parte de $f(\mathbf{x})=(1,2,3.55,3.77)$. Como
-    $\mathbf{x}^{A}=\mathbf{y}^{A}$ já está disponível, a coupling network é
+    \footnotesize A inversa parte de $\mathbf{z}=f(\mathbf{x})=(1,2,3.55,3.77)$. Como
+    $\mathbf{x}^{A}=\mathbf{z}^{A}$ já está disponível, a coupling network é
     \emph{reavaliada} (nunca invertida) para recuperar $\mathbf{s},\mathbf{t}$ e desfazer a
     transformação em $\mathbf{x}^{B}$.
     \vspace{0.2em}
@@ -1153,59 +1169,60 @@
             cell/.style={draw=MediumBlue, thick, minimum width=1.0cm, minimum height=0.62cm, inner sep=1pt},
             acell/.style={cell, fill=PastelBlue},
             bcell/.style={cell, fill=PastelGreen},
+            rcell/.style={cell, fill=PastelRed},
             box/.style={draw=MediumBlack, thick, rounded corners=2pt, fill=white,
                         align=center, font=\scriptsize, inner sep=4pt},
             inv/.style={->, thick, MediumGreen},
             cpy/.style={->, thick, black!50},
           ]
-          % --- entrada f(x) ---
-          \node[acell] (y1) at (0,2.70) {$1$};
-          \node[acell] (y2) at (0,2.08) {$2$};
-          \node[bcell] (y3) at (0,1.46) {$3.55$};
-          \node[bcell] (y4) at (0,0.84) {$3.77$};
-          \node at (0,3.35) {$f(\mathbf{x})$};
+          % --- entrada z (direita) ---
+          \node[acell] (y1) at (9.9,2.70) {$1$};
+          \node[acell] (y2) at (9.9,2.08) {$2$};
+          \node[rcell] (y3) at (9.9,1.46) {$3.55$};
+          \node[rcell] (y4) at (9.9,0.84) {$3.77$};
+          \node at (9.9,3.35) {$\mathbf{z}$};
           % --- grupos do split ---
-          \node[acell] (a1) at (3.2,3.00) {$1$};
-          \node[acell] (a2) at (3.2,2.38) {$2$};
-          \node[bcell] (b1) at (3.2,1.16) {$3.55$};
-          \node[bcell] (b2) at (3.2,0.54) {$3.77$};
-          \node[font=\scriptsize] at (3.2,3.55) {$\mathbf{y}^{A}$};
-          \node[font=\scriptsize] at (3.2,0.02) {$\mathbf{y}^{B}$};
+          \node[acell] (a1) at (6.7,3.00) {$1$};
+          \node[acell] (a2) at (6.7,2.38) {$2$};
+          \node[rcell] (b1) at (6.7,1.16) {$3.55$};
+          \node[rcell] (b2) at (6.7,0.54) {$3.77$};
+          \node[font=\scriptsize] at (6.7,3.55) {$\mathbf{z}^{A}$};
+          \node[font=\scriptsize] at (6.7,0.02) {$\mathbf{z}^{B}$};
           % --- caixas ---
-          \node[box] (cn) at (6.2,2.05) {Coupling\\Network $\thetav(\mathbf{y}^{A})$};
-          \node[box] (ct) at (6.2,0.50) {Inverse\\Transform};
-          % --- saida x ---
-          \node[acell] (f1) at (9.9,2.70) {$1$};
-          \node[acell] (f2) at (9.9,2.08) {$2$};
-          \node[bcell] (f3) at (9.9,1.46) {$3$};
-          \node[bcell] (f4) at (9.9,0.84) {$4$};
-          \node at (9.9,3.35) {$\mathbf{x}$};
-          % --- split ---
-          \draw[cpy] (y1.east) -- (a1.west);
-          \draw[cpy] (y2.east) -- (a2.west);
-          \draw[cpy] (y3.east) -- (b1.west);
-          \draw[cpy] (y4.east) -- (b2.west);
-          \node[font=\scriptsize, black!60] at (1.6,3.20) {Split};
+          \node[box] (cn) at (3.7,2.05) {Coupling\\Network $\thetav(\mathbf{z}^{A})$};
+          \node[box] (ct) at (3.7,0.50) {Inverse\\Transform};
+          % --- saida x (esquerda) ---
+          \node[acell] (f1) at (0,2.70) {$1$};
+          \node[acell] (f2) at (0,2.08) {$2$};
+          \node[bcell] (f3) at (0,1.46) {$3$};
+          \node[bcell] (f4) at (0,0.84) {$4$};
+          \node at (0,3.35) {$\mathbf{x}$};
+          % --- split (direita -> esquerda) ---
+          \draw[cpy] (y1.west) -- (a1.east);
+          \draw[cpy] (y2.west) -- (a2.east);
+          \draw[cpy] (y3.west) -- (b1.east);
+          \draw[cpy] (y4.west) -- (b2.east);
+          \node[font=\scriptsize, black!60] at (8.3,3.20) {Split};
           % --- A reavalia a coupling network ---
-          \draw[inv] (3.8,2.20) -- (cn.west);
+          \draw[inv] (6.1,2.20) -- (cn.east);
           % --- A copiado para a saida (arco por cima) ---
-          \draw[cpy] (a1.east) .. controls (6.2,3.55) .. (f1.west);
-          \node[font=\scriptsize, black!60] at (6.2,3.62) {cópia $\mathbf{x}^{A}$};
-          \draw[cpy] (a2.east) .. controls (6.2,3.10) .. (f2.west);
+          \draw[cpy] (a1.west) .. controls (3.7,3.55) .. (f1.east);
+          \node[font=\scriptsize, black!60] at (3.7,3.62) {cópia $\mathbf{z}^{A}$};
+          \draw[cpy] (a2.west) .. controls (3.7,3.10) .. (f2.east);
           % --- B alimenta a transform inversa ---
-          \draw[inv] (b1.east) -- (ct.west);
-          \draw[inv] (b2.east) -- (ct.west);
+          \draw[inv] (b1.west) -- (ct.east);
+          \draw[inv] (b2.west) -- (ct.east);
           % --- network -> transform ---
           \draw[inv] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$\mathbf{s},\,\mathbf{t}$};
           % --- transform -> saida B ---
-          \draw[inv] (ct.east) -- (f3.west);
-          \draw[inv] (ct.east) -- (f4.west);
+          \draw[inv] (ct.west) -- (f3.east);
+          \draw[inv] (ct.west) -- (f4.east);
         \end{tikzpicture}%
       }
     \end{center}
     \vspace{0.1em}
     \footnotesize Desfazendo a transform, elemento a elemento (cada
-    $x^{B}_{i}=(y^{B}_{i}-t_i)\,e^{-s_i}$):
+    $x^{B}_{i}=(z^{B}_{i}-t_i)\,e^{-s_i}$):
     \[
       x^{B}_{1}=(3.55+0.5)\,e^{-0.3}\approx 3.00,\qquad
       x^{B}_{2}=(3.77-0.5)\,e^{0.2}\approx 4.00. \quad\checkmark
@@ -1224,8 +1241,8 @@
       \lstinputlisting[style=vscode-light]{slides/code/05_affine_coupling.py}%
     }\\
     \vspace{0.3em}
-    \tiny \textbf{Ideias-chave:} split em $A/B$; rede prediz $(\mathbf{s},\mathbf{t})$ a partir
-    de $A$; $\tanh$ em $s$ estabiliza; \texttt{log\_det} acumulado é a soma dos $s$.
+    \tiny O split separa $A/B$; a rede prediz $(\mathbf{s},\mathbf{t})$ a partir
+    de $A$; o $\tanh$ em $s$ estabiliza o treino; \texttt{log\_det} acumula a soma dos $s$.
   \end{frame}
 
   %--- Slide: limitações ---
@@ -1245,8 +1262,7 @@
     \end{itemize}
     \begin{block}{Para onde isso aponta}
       Custo e escala são exatamente o que os \textit{flows} contínuos
-      (\textit{flow matching}) e as arquiteturas de 2024--2025 atacam, como
-      veremos a seguir.
+      (\textit{flow matching}) e as arquiteturas de 2024--2025 atacam.
     \end{block}
   \end{frame}
 
@@ -1260,13 +1276,16 @@
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         \begin{itemize}
-          \item Como \textbf{imagens são quantizadas} (pixels inteiros
-          0--255), podemos ter problemas de \emph{singularidades} ao
-          ajustar uma densidade contínua.
-          \item Solução: adicionar \textbf{ruído}, usualmente uniforme
-          em $[0,1)$, à distribuição modelada.
-          \item Isso transforma picos discretos em uma densidade
-          contínua passível de modelagem.
+          \item \textbf{Imagens são quantizadas} (pixels inteiros
+          0--255). Uma densidade contínua ajustada a esses pontos
+          concentra massa arbitrariamente alta em cada valor inteiro: a
+          verossimilhança vai a infinito sem que o modelo aprenda a
+          estrutura dos dados.
+          \item Solução: somar \textbf{ruído} uniforme em $[0,1)$ a cada
+          pixel antes de treinar.
+          \item Cada valor inteiro vira um intervalo de largura 1, e os
+          picos discretos viram uma densidade contínua passível de
+          modelagem.
         \end{itemize}
       \end{column}
       \begin{column}{0.44\textwidth}
@@ -1281,7 +1300,7 @@
             \node[below] at (0.5,0) {$0$};
             \node[below] at (1.5,0) {$1$};
             \node[below] at (2.5,0) {$2$};
-            \node[below, align=center] at (1.5,-0.55) {Discrete\\distribution};
+            \node[below, align=center] at (1.5,-0.55) {Distribuição\\discreta};
             % --- dequantized distribution: contiguous bars ---
             \begin{scope}[xshift=4.6cm]
               \draw[->, thick] (-0.2,0) -- (3.5,0);
@@ -1294,7 +1313,7 @@
               \node[below] at (0,0) {$0$};
               \node[below] at (1,0) {$1$};
               \node[below] at (2,0) {$2$};
-              \node[below, align=center] at (1.5,-0.55) {Dequantized\\distribution};
+              \node[below, align=center] at (1.5,-0.55) {Distribuição\\\textit{dequantized}};
             \end{scope}
           \end{tikzpicture}%
         }
@@ -1343,9 +1362,11 @@
       \qquad
       p_1 = p_{\text{dados}}.
     \]
-    \vspace{0.2em}
+    {\footnotesize Notação da literatura de \textit{flow matching}:
+    $\mathbf{x}_0$ faz o papel do $\mathbf{z}$ da base e $\mathbf{x}_1$ o
+    dos dados.\par}
     \centering
-    \resizebox{0.92\linewidth}{!}{%
+    \resizebox{0.82\linewidth}{!}{%
       \begin{tikzpicture}[font=\small]
         \draw[domain=-1.3:1.3, samples=80, DecBlue, thick]
           plot ({\x+0},{exp(-(\x)^2/0.5)});
@@ -1442,28 +1463,31 @@
     \[
       \mathbf{x}_t = (1-t)\,\mathbf{x}_0 + t\,\mathbf{x}_1.
     \]
-    \vspace{0.1em}
+    \vspace{-0.3em}
     \begin{itemize}
       \item Derivando no tempo,
       $\dfrac{d \mathbf{x}_t}{dt} = \mathbf{x}_1 - \mathbf{x}_0$,
       \textbf{constante} na trajetória.
       \item O alvo condicional é o próprio vetor de \emph{deslocamento}:
+      \vspace{-0.3em}
       \[
         u_t(\mathbf{x}_t \mid \mathbf{x}_0, \mathbf{x}_1) =
         \mathbf{x}_1 - \mathbf{x}_0.
       \]
       \item A \textit{loss} colapsa em uma \textbf{regressão}:
-      \vspace{-0.2em}
+      \vspace{-0.4em}
       \[
         \mathcal{L}_{\text{RF}}(\thetav) =
         \mathbb{E}_{t,\, \mathbf{x}_0,\, \mathbf{x}_1}
         \left\| v_{\thetav}(\mathbf{x}_t, t) - (\mathbf{x}_1 - \mathbf{x}_0) \right\|^{2}.
       \]
     \end{itemize}
-    \begin{block}{Por que retas importam}
-      Trajetórias retas são o transporte de menor comprimento, então a ODE
-      de amostragem precisa de \textbf{poucos passos} (Euler com $K$ pequeno
-      já gera boas amostras).
+    \vspace{-0.3em}
+    \begin{block}{Retas e \textit{reflow}}
+      Os caminhos \emph{condicionais} são retos, mas o campo marginal
+      aprendido curva onde caminhos de pares diferentes se cruzam. O
+      \textit{reflow} reamostra pares do próprio modelo e retreina; isso
+      endireita as trajetórias e permite amostrar com \textbf{poucos passos} de Euler.
     \end{block}
   \end{frame}
 
@@ -1584,28 +1608,6 @@
     \end{columns}
   \end{frame}
 
-  %--- Slide: TLDR ---
-  \begin{frame}{\textit{TL;DR}}
-    \begin{itemize}
-      \item \textit{Normalizing Flows} são modelos geradores capazes de
-      \textbf{amostragem} e \textbf{avaliação da probabilidade}.
-      \item São construídos com base em uma série de
-      \textbf{transformações invertíveis}, com Jacobianas
-      \emph{tratáveis}.
-      \item Em 2024--2025, NFs autônomos (\textit{TarFlow},
-      \textit{STARFlow}) passaram a igualar modelos difusores em vários
-      \textit{benchmarks} de imagem.
-      \item Sua versão contínua, o \textit{flow matching} /
-      \textit{rectified flow}, está no núcleo de geradores SOTA como SD3 e
-      Flux.
-    \end{itemize}
-    \begin{block}{Quando usar NF}
-      Quando precisar de \textbf{densidade tratável}: detecção de
-      anomalias, compressão, inferência variacional, física
-      computacional.
-    \end{block}
-  \end{frame}
-
   %======================================================================
   % RESUMO
   %======================================================================
@@ -1628,6 +1630,11 @@
       (\textit{TarFlow}, \textit{STARFlow}), e sua versão contínua
       (\textit{flow matching}) treina modelos SOTA como SD3 e Flux.
     \end{itemize}
+    \begin{block}{Quando usar NF}
+      Quando precisar de \textbf{densidade tratável}: detecção de
+      anomalias, compressão, inferência variacional, física
+      computacional.
+    \end{block}
   \end{frame}
 
   %======================================================================

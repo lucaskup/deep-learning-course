@@ -342,7 +342,7 @@
 \begin{itemize}
     \item A ideia é deixar a própria rede aprender, a cada passo, quanta informação anterior deve ser mantida e quanta informação nova deve entrar no estado.
     \item Essa é a motivação da arquitetura \textit{Long Short-Term Memory}\footfullcite{hochreiter1997lstm} (LSTM).
-    \item É a arquitetura com mais ``partes'' que veremos até agora, mas todas as partes se reduzem a operações já conhecidas:
+    \item A célula tem várias ``partes'', mas todas se reduzem a operações conhecidas:
     \begin{itemize}
         \item multiplicação de matrizes,
         \item funções de ativação (sigmoid, $\tanh$),
@@ -601,14 +601,12 @@
         \begin{itemize}\small
             \item Pesos das quatro camadas densas, cada $\theta_\bullet = [\theta_h, \theta_x]$ entra em $[h_{t-1}, x_t]\,\theta_\bullet^{T} + b_\bullet$:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             \theta_f &= [0.5,\,-0.5], & b_f &= 0.3 \\
             \theta_i &= [0.3,\,-0.4], & b_i &= 0.5 \\
             \theta_c &= [0.1,\,-0.3], & b_c &= 0.7 \\
             \theta_o &= [-0.5,\,0.4], & b_o &= 0.5
         \end{align*}
-        }
     \end{column}
     \begin{column}{.45\linewidth}
         \centering
@@ -626,12 +624,11 @@
         \begin{itemize}\small
             \item Usando $[h_0, x_0] = [-0.6,\,0.8]$:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             f_t &= \sigma\bigl([-0.6,\,0.8]\cdot[0.5,\,-0.5]^T + 0.3\bigr) \\
                 &= \sigma\bigl((-0.6)\cdot 0.5 + 0.8\cdot(-0.5) + 0.3\bigr) \\
                 &= \sigma(-0.4) \approx 0.4013
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\footnotesize
             \item Esse valor multiplicará $c_0 = 0.5$, mantendo cerca de $40\%$ da memória anterior.
         \end{itemize}
@@ -653,19 +650,17 @@
         \begin{itemize}\small
             \item \textit{Input gate}:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             i_t &= \sigma\bigl([-0.6,\,0.8]\cdot[0.3,\,-0.4]^T + 0.5\bigr) \\
                 &= \sigma(0) \approx 0.5000
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\small
             \item Candidato $\tilde{c}_t$:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             \tilde{c}_t &= \tanh\bigl([-0.6,\,0.8]\cdot[0.1,\,-0.3]^T + 0.7\bigr) \\
                 &= \tanh(0.4) \approx 0.3799
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\footnotesize
             \item $i_t$ filtra cerca da metade do candidato, e $\tilde{c}_t$ é a contribuição em si.
         \end{itemize}
@@ -684,12 +679,11 @@
 \begin{frame}{Exemplo: Atualização da Memória}
 \begin{columns}[T]
     \begin{column}{.58\linewidth}
-        {\footnotesize
         \begin{align*}
             c_t &= f_t \cdot c_{t-1} + i_t \cdot \tilde{c}_t \\
                 &= 0.4013 \cdot 0.5 + 0.5000 \cdot 0.3799 \\
                 &\approx 0.2007 + 0.1900 \approx 0.3907
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\footnotesize
             \item A nova memória $c_t$ combina parte da memória antiga (filtrada por $f_t$) com parte da nova proposta (filtrada por $i_t$).
             \item O caminho de $c_t$ contém apenas operações ponto a ponto, sem $\tanh$ nem multiplicação por matrizes.
@@ -712,20 +706,18 @@
         \begin{itemize}\small
             \item \textit{Output gate}:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             o_t &= \sigma\bigl([-0.6,\,0.8]\cdot[-0.5,\,0.4]^T + 0.5\bigr) \\
                 &= \sigma(1.12) \approx 0.7540
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\small
             \item Estado oculto:
         \end{itemize}
-        {\footnotesize
         \begin{align*}
             h_t &= o_t \cdot \tanh(c_t) \\
                 &= 0.7540 \cdot \tanh(0.3907) \\
                 &\approx 0.7540 \cdot 0.3719 \approx 0.2804
-        \end{align*}}
+        \end{align*}
         \begin{itemize}\footnotesize
             \item O sinal de $h_t$ inverteu em relação a $h_0 = -0.6$, refletindo a entrada positiva $x_0 = 0.8$ filtrada pelas \textit{gates}.
         \end{itemize}
@@ -753,15 +745,14 @@
         \mathbf{W} \in \mathbb{R}^{4hs \times is}, \quad \mathbf{U} \in \mathbb{R}^{4hs \times hs}, \quad \mathbf{b} \in \mathbb{R}^{4hs}
     \]
 \end{itemize}
-{\footnotesize
+{\small
 \begin{align*}
     \mathbf{A}_t &= \mathbf{x}_t \mathbf{W}^{T} + \mathbf{h}_{t-1} \mathbf{U}^{T} + \mathbf{b} \\
     \mathbf{i}_t &= \sigma(\mathbf{A}_t[:,\,0:hs]) \\
     \mathbf{f}_t &= \sigma(\mathbf{A}_t[:,\,hs:2hs]) \\
     \tilde{\mathbf{c}}_t &= \tanh(\mathbf{A}_t[:,\,2hs:3hs]) \\
     \mathbf{o}_t &= \sigma(\mathbf{A}_t[:,\,3hs:4hs])
-\end{align*}
-}
+\end{align*}}
 \begin{itemize}\footnotesize
     \item Essa é a convenção do PyTorch (\texttt{nn.LSTM}): \texttt{weight\_ih} ($\mathbf{W}$, \textit{shape} $4hs \times is$) e \texttt{weight\_hh} ($\mathbf{U}$, \textit{shape} $4hs \times hs$) concatenam as \textit{gates} na ordem $i, f, g, o$ (o candidato $\tilde{\mathbf{c}}_t$ é o $\mathbf{g}_t$), com dois \textit{bias} $\mathbf{b}_{ih} + \mathbf{b}_{hh}$. \textbf{Atenção}: essa ordem coloca a \textit{input gate} antes da \textit{forget gate}, invertendo a ordem das equações anteriores.
 \end{itemize}
@@ -985,10 +976,6 @@ def forward(self, x):
         \end{itemize}
     \end{column}
 \end{columns}
-\vspace{0.4em}
-\begin{itemize}\scriptsize
-    \item Ambas as variantes voltam a aparecer no contexto de \textit{encoder-decoder} no próximo deck.
-\end{itemize}
 \end{frame}
 
 %========================================================================

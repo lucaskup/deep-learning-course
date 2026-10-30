@@ -47,11 +47,11 @@
 
     \item A regressão logística $\hat{y} = \sigma(\theta_0 + \theta_1 x_1 + \theta_2 x_2)$, treinada com a \textit{Binary Cross Entropy} $L = -\bigl(y\ln\hat{y} + (1-y)\ln(1-\hat{y})\bigr)$, pode ser vista como um grafo computacional. Resolva os itens abaixo:
     \begin{enumerate}[a)]
-        \item Decomponha a computação de $L$ em nodos elementares, explicitando os nodos de produto, os nodos de soma, o nodo sigmoide (já agrupado em uma única operação, como visto em aula) e o nodo da \textit{loss}.
+        \item Decomponha a computação de $L$ em nodos elementares, explicitando os nodos de produto, os nodos de soma, o nodo sigmoide (agrupado em uma única operação) e o nodo da \textit{loss}.
         \item Derive $\partial L/\partial \theta_0$, $\partial L/\partial \theta_1$ e $\partial L/\partial \theta_2$ aplicando a regra da cadeia nodo a nodo, no sentido inverso do grafo, informando o gradiente que atravessa cada nodo. Simplifique as expressões finais.
     \end{enumerate}
 
-    \item \textit{Frameworks} como PyTorch representam a computação como um grafo construído automaticamente durante a execução do código \textit{forward}, e é esse grafo que permite calcular as derivadas automaticamente, como discutido em aula. Explique por que essa representação é necessária para o cálculo automático de gradientes e descreva o que precisa ser armazenado durante o \textit{forward pass} para que o \textit{backward pass} seja possível. Ilustre com pelo menos dois nodos concretos cujas derivadas locais dependem de valores calculados no \textit{forward}.
+    \item \textit{Frameworks} como PyTorch representam a computação como um grafo construído automaticamente durante a execução do código \textit{forward}, e é esse grafo que permite calcular as derivadas automaticamente. Explique por que essa representação é necessária para o cálculo automático de gradientes e descreva o que precisa ser armazenado durante o \textit{forward pass} para que o \textit{backward pass} seja possível. Ilustre com pelo menos dois nodos concretos cujas derivadas locais dependem de valores calculados no \textit{forward}.
 
     \item No nodo de produto de matrizes $\mathbf{Z} = \mathbf{A}\,\mathbf{\Theta}^{\top}$, visto na versão vetorizada do grafo computacional, temos $\mathbf{A} \in \mathbb{R}^{N\times d_e}$, $\mathbf{\Theta} \in \mathbb{R}^{d_s\times d_e}$, e o \textit{backward} recebe o gradiente \textit{upstream} $\mathbf{G} = \partial J/\partial \mathbf{Z} \in \mathbb{R}^{N\times d_s}$. Quais expressões computam os gradientes das duas entradas do nodo?
     \begin{enumerate}[(a)]
@@ -62,14 +62,14 @@
     \end{enumerate}
     %a
 
-    \item Considere o MLP vetorizado representado como grafo computacional com os nodos \textit{matmul}, sigmoide e \textit{loss}, como visto em aula: $\mathbf{Z}^{(1)} = \mathbf{X}{\mathbf{\Theta}^{(1)}}^{\top}$, $\mathbf{A}^{(1)} = \sigma(\mathbf{Z}^{(1)})$, $\mathbf{Z}^{(2)} = \mathbf{A}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top}$, $\hat{y} = \sigma(\mathbf{Z}^{(2)})$ e $J = \tfrac{1}{2}\sum\left(y - \hat{y}\right)^{2}$. Use uma única observação $\mathbf{X} = \begin{bmatrix} 1 & 2 \end{bmatrix}$ com alvo $y = 1$ e pesos
+    \item Considere o MLP vetorizado representado como grafo computacional com os nodos \textit{matmul}, sigmoide e \textit{loss}: $\mathbf{Z}^{(1)} = \mathbf{X}{\mathbf{\Theta}^{(1)}}^{\top}$, $\mathbf{A}^{(1)} = \sigma(\mathbf{Z}^{(1)})$, $\mathbf{Z}^{(2)} = \mathbf{A}^{(1)}{\mathbf{\Theta}^{(2)}}^{\top}$, $\hat{y} = \sigma(\mathbf{Z}^{(2)})$ e $J = \tfrac{1}{2}\sum\left(y - \hat{y}\right)^{2}$. Use uma única observação $\mathbf{X} = \begin{bmatrix} 1 & 2 \end{bmatrix}$ com alvo $y = 1$ e pesos
     $$\mathbf{\Theta}^{(1)} = \begin{bmatrix} 0.5 & -0.5 \\ 0.5 & 0.5 \end{bmatrix}, \qquad \mathbf{\Theta}^{(2)} = \begin{bmatrix} 0.5 & -0.5 \end{bmatrix}.$$
     \begin{enumerate}[a)]
         \item Execute o \textit{forward pass} nodo a nodo, informando $\mathbf{Z}^{(1)}$, $\mathbf{A}^{(1)}$, $\mathbf{Z}^{(2)}$, $\hat{y}$ e $J$.
         \item Execute o \textit{backward pass} nodo a nodo, iniciando com $\partial J/\partial J = 1$, informando o gradiente na saída de cada nodo e, ao final, $\partial J/\partial \mathbf{\Theta}^{(1)}$ e $\partial J/\partial \mathbf{\Theta}^{(2)}$. Em cada passo, indique qual regra de \textit{backward} foi aplicada (nodo \textit{loss}, nodo de ativação ou nodo \textit{matmul}).
     \end{enumerate}
 
-    \item Os dois nodos vetorizados abaixo foram vistos em aula. Em ambos, $\mathbf{G}$ é o gradiente \textit{upstream} que chega pela saída do nodo, e as expressões anotadas abaixo das arestas de entrada são os gradientes que o nodo envia para trás.
+    \item Considere os dois nodos vetorizados abaixo. Em ambos, $\mathbf{G}$ é o gradiente \textit{upstream} que chega pela saída do nodo, e as expressões anotadas abaixo das arestas de entrada são os gradientes que o nodo envia para trás.
 
     \begin{center}
     \begin{tikzpicture}[node distance=0.9cm and 1.3cm]

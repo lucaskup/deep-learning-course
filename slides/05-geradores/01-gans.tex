@@ -422,7 +422,7 @@
     \end{algorithmic}
     \vspace{0.3em}
     \begin{itemize}
-      \item No paper original $k=1$. Em \textit{WGAN} veremos $k=5$
+      \item No paper original $k=1$. O \textit{WGAN} usa $k=5$
       (queremos crítico próximo do ótimo).
       \item Otimizador típico: \textsc{Adam} com $\beta_1 = 0.5$
       ($\beta_1 = 0.9$ desestabiliza GANs).
@@ -781,7 +781,7 @@
   \end{frame}
 
   %--- Slide: Recap analítico ---
-  \begin{frame}{Análise da Loss: Recapitulando}
+  \begin{frame}{Análise da Loss: Cadeia de manipulações}
     A cadeia de manipulações que aplicamos:
     \begin{enumerate}
       \item Loss original = entropia cruzada binária do discriminador.
@@ -827,7 +827,6 @@
       Vale enfatizar: $P$ vem dos dados, $P^{*}$ vem do modelo. A
       simplificação apaga a qualidade das instâncias para que a loss
       dependa só das proporções e possa ser calculada em três linhas.
-      A mistura $M = \tfrac{1}{2}(P + P^{*})$ aparece no próximo slide.
     }
   \end{frame}
 
@@ -950,7 +949,7 @@
   %--- Slide: Vanishing gradient - teoria ---
   \begin{frame}{\textit{Vanishing Gradient}: Motivação}
     \begin{itemize}
-      \item Vimos que, no caso de discriminador ótimo, a loss minimiza
+      \item No caso de discriminador ótimo, a loss minimiza
       uma \textbf{distância} ($D_{JS}$) entre instâncias reais e
       geradas.
       \item Contudo, essa abordagem traz problemas:
@@ -961,7 +960,7 @@
         melhora a loss, os gradientes desaparecem.
       \end{itemize}
     \end{itemize}
-    \begin{block}{Relembrando KL}
+    \begin{block}{Divergência KL}
       \[
         D_{KL}[p(\mathbf{x})\|q(\mathbf{x})] = \int p(\mathbf{x})\ln\!\left[\frac{p(\mathbf{x})}{q(\mathbf{x})}\right] d\mathbf{x}
       \]
@@ -995,7 +994,7 @@
   %--- Slide: Pedindo outra distância ---
   \begin{frame}{Motivação para mudar a distância}
     \begin{itemize}
-      \item Vimos que a loss original de GANs pode ser interpretada
+      \item A loss original de GANs pode ser interpretada
       como uma \textbf{distância entre distribuições de probabilidade}.
       \item Porém, é uma distância com propriedades \textbf{inadequadas
       para otimização}:
@@ -1210,7 +1209,7 @@
       \end{scope}
     \end{tikzpicture}\\
     \vspace{0.3em}
-    \tiny O mesmo transporte do slide anterior, agora como matriz: as
+    \tiny O mesmo transporte, agora como matriz: as
     marginais do plano $T$ (barras à esquerda e abaixo) reproduzem $P$ e
     $Q$, e a célula destacada é $T_{54} = 0.2$, a seta mais grossa.
     $D_{w} = 0.8$.
@@ -1235,7 +1234,7 @@
   %--- Slide: De onde vem o f (LP duality) ---
   \begin{frame}{\textit{Wasserstein Distance}: De onde vem o $f$?}
     \begin{itemize}
-      \item O primal do slide anterior é um \textbf{LP}: minimizamos
+      \item O primal (minimizar o custo de transporte) é um \textbf{LP}: minimizamos
       $\sum_{i,j} T_{ij}\,|i-j|$ sobre o plano $T$, sujeito às marginais
       e a $T_{ij}\ge 0$.
       \item Todo LP tem um \textbf{dual}, com uma variável por restrição.
@@ -1248,12 +1247,12 @@
       \item \emph{Kantorovich--Rubinstein}: para o custo $|i-j|$, o ótimo
       ocorre com $g=-f$. A restrição vira $f_i - f_j \le |i-j|$, que é
       exatamente $f$ ser \textbf{1-Lipschitz}.
-      \item Sobra uma única função $f$ a maximizar (próximo slide). É daí
+      \item Sobra uma única função $f$ a maximizar. É daí
       que vem o $f$: a variável dual associada às marginais.
     \end{itemize}
     \note{
-      Não precisamos derivar o dual de cor; a mensagem é que $f$ não cai
-      do céu, é a variável dual das restrições de marginal, e a condição
+      Não precisamos derivar o dual de cor: $f$ é a variável dual das
+      restrições de marginal, e a condição
       $g=-f$ com $f_i-f_j\le|i-j|$ é o que chamamos de 1-Lipschitz.
     }
   \end{frame}
@@ -1318,8 +1317,7 @@
         \item $c$ pequeno demais: os gradientes somem; $c$ grande demais:
         o treino fica instável.
         \item Os pesos tendem a saturar em $\pm c$, desperdiçando a
-        capacidade do crítico (o que motiva o \emph{gradient penalty},
-        adiante).
+        capacidade do crítico (o que motiva o \emph{gradient penalty}).
         \item Não confundir com \emph{gradient clipping}, que limita os
         gradientes, não os pesos.
       \end{itemize}
@@ -1558,9 +1556,7 @@
       \end{column}
     \end{columns}
     \note{
-      Esse diagrama vai aparecer novamente nas aulas de
-      \emph{Normalizing Flows} e \emph{Diffusion Models}, servindo como
-      mapa geral da unidade.
+      Esse diagrama serve como mapa geral dos modelos geradores.
     }
   \end{frame}
 

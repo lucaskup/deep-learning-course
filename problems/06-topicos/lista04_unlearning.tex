@@ -6,7 +6,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Mantenha a notação utilizada em aula: $D = D_r \cup D_f$ para o corpus de treino dividido em \textit{retain set} $D_r$ e \textit{forget set} $D_f$, $\theta = \mathcal{A}(D)$ para o modelo original, $\theta^\star = \mathcal{A}(D_r)$ para o \textit{oracle} retreinado do zero, $\theta_u = U(\theta, D_f, D_r)$ para o modelo \textit{unlearned} e $\mathcal{L}_{\text{NLL}}$ para a perda de \textit{next-token prediction}. Use a vírgula como separador decimal.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Use a notação: $D = D_r \cup D_f$ para o corpus de treino dividido em \textit{retain set} $D_r$ e \textit{forget set} $D_f$, $\theta = \mathcal{A}(D)$ para o modelo original, $\theta^\star = \mathcal{A}(D_r)$ para o \textit{oracle} retreinado do zero, $\theta_u = U(\theta, D_f, D_r)$ para o modelo \textit{unlearned} e $\mathcal{L}_{\text{NLL}}$ para a perda de \textit{next-token prediction}. Use a vírgula como separador decimal.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -21,7 +21,7 @@
         %b
     \end{enumerate}
 
-    \item Uma colega afirma que o objetivo do \textit{unlearning} é fazer com que $\theta_u$ passe a \textbf{acertar} todas as perguntas sobre $D_f$ de forma diferente do modelo original. Considerando a definição de objetivo vista em aula, qual correção é adequada?
+    \item Uma colega afirma que o objetivo do \textit{unlearning} é fazer com que $\theta_u$ passe a \textbf{acertar} todas as perguntas sobre $D_f$ de forma diferente do modelo original. Considerando a definição do objetivo do \textit{unlearning}, qual correção é adequada?
     \begin{enumerate}[(a)]
         \item O objetivo é aproximar a distribuição de saída de $\theta_u$ da de $\theta^\star$ em consultas relacionadas a $D_f$.
         \item O objetivo é igualar $\theta_u$ a $\theta^\star$ em todos os parâmetros, garantindo respostas idênticas.
@@ -30,7 +30,7 @@
         %a
     \end{enumerate}
 
-    \item Considere a distinção entre \textit{unlearning} exato e aproximado discutida em aula. Onde se situa o retreino do zero apenas em $D_r$ e por que os métodos práticos para LLMs não o utilizam?
+    \item Considere a distinção entre \textit{unlearning} exato e aproximado. Onde se situa o retreino do zero apenas em $D_r$ e por que os métodos práticos para LLMs não o utilizam?
     \begin{enumerate}[(a)]
         \item É um método aproximado, pois nunca reproduz exatamente o comportamento desejado, e é evitado por ser numericamente instável.
         \item É um método aproximado de baixo custo, preferido em produção por rodar em uma única GPU-hora por pedido.
@@ -155,11 +155,11 @@
     \end{center}
 
     \begin{enumerate}[(a)]
-        \item Usando a coluna FQ $\times$ Utility, argumente se o método é escalável segundo o critério de \textit{scalability} visto em aula (queda sublinear no logaritmo de $|D_f|$) e traduza o resultado para a operação: o que é fácil e o que é difícil de apagar.
+        \item Usando a coluna FQ $\times$ Utility, argumente se o método é escalável segundo o critério de \textit{scalability} (queda sublinear no logaritmo de $|D_f|$) e traduza o resultado para a operação: o que é fácil e o que é difícil de apagar.
         \item Suponha agora cinco pedidos sequenciais de $|D_{f,i}| = 50$ em que a Utility cai de $0{,}90$ ($t=1$) para $0{,}41$ ($t=5$). Calcule a taxa média de degradação de Utility por pedido e relacione esse resultado à propriedade de \textit{sustainability} e à realidade de pedidos contínuos sob o GDPR.
     \end{enumerate}
 
-    \item (\textbf{Cenário: identificar a falha e remediar}) Para cada situação, identifique o modo de falha e proponha uma correção coerente com os métodos vistos em aula.
+    \item (\textbf{Cenário: identificar a falha e remediar}) Para cada situação, identifique o modo de falha e proponha uma correção coerente com os métodos de \textit{unlearning} para LLMs.
     \begin{enumerate}[(a)]
         \item Uma equipe aplica \textit{Gradient Ascent} puro sobre $D_f$ e, em poucas épocas, a Utility despenca para perto de zero enquanto o modelo gera texto incoerente em qualquer entrada. Nomeie a falha e indique a modificação na função de perda que a evita.
         \item Outra equipe usa o método IDK, treinando o modelo a responder ``\textit{I don't know}'' a perguntas sobre $D_f$. As perguntas diretas passam a ser recusadas, mas quando um atacante fornece um prefixo literal de um capítulo, o modelo completa o trecho memorizado. Explique por que isso ocorre e por que um método baseado em otimização sobre a \textit{log-prob} de $D_f$ ataca melhor a causa.
