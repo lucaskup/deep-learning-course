@@ -146,8 +146,10 @@
 % Q8 — Médio (inferência do WordPiece)
 % ------------------------------------------------------------------
 \item Na inferência, o WordPiece usa longest-match guloso da esquerda para a direita.
-      Com um vocabulário que contém, entre outros, os tokens \texttt{un},
-      \texttt{happy}, \texttt{\#\#happi}, \texttt{\#\#ness} e \texttt{\#\#ly},
+      Com um vocabulário em que os únicos tokens de mais de um caractere
+      aplicáveis a essa palavra são \texttt{un}, \texttt{happy},
+      \texttt{\#\#happi}, \texttt{\#\#ness} e \texttt{\#\#ly} (além dos
+      caracteres individuais, com e sem \texttt{\#\#}),
       qual é a codificação da palavra \texttt{unhappiness}?
 
 \begin{enumerate}[a)]
@@ -514,7 +516,9 @@ representável como sequência de bytes UTF-8, e o pior caso é uma decomposiç�
 tokens de 1 byte (sequência mais longa, mas sem perda de informação). O BPE padrão
 em nível de caractere e o Unigram também degradam graciosamente, decompondo até os
 símbolos individuais do vocabulário base, razão pela qual caracteres individuais
-nunca são podados no Unigram.
+nunca são podados no Unigram. Essa garantia vale apenas para caracteres presentes no
+alfabeto base: um caractere nunca visto no treinamento ainda vira \texttt{<unk>},
+a menos que o tokenizador use \textit{byte fallback}.
 % ---
 
 % --- Solução Q10 ---
@@ -562,7 +566,9 @@ idiomas como japonês, chinês ou tailandês, que não usam espaços para delimi
 O SentencePiece elimina essa dependência ao tratar o texto de entrada como um fluxo
 bruto de bytes ou pontos de código Unicode, sem nenhuma segmentação prévia. O espaço
 em branco é substituído pelo símbolo \texttt{\_} e tratado como qualquer outro caractere,
-tornando a tokenização completamente reversível e uniforme em todos os idiomas.
+tornando a tokenização reversível em relação ao texto normalizado e uniforme em todos
+os idiomas. A reversibilidade é exata apenas para o texto após a normalização
+(NFKC, por padrão); a normalização em si pode descartar distinções do texto original.
 O SentencePiece serve como \emph{framework}: internamente pode usar BPE ou o modelo
 Unigram como algoritmo de segmentação.
 % ---

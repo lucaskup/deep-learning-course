@@ -33,9 +33,10 @@
 % Q1 — Fácil (KV-Cache)
 % ------------------------------------------------------------------
 \item Durante a fase de \textbf{decode} de um decoder-only com KV-cache,
-      o modelo gera o quarto token de uma sequência iniciada com o
-      prompt de 3 tokens \textit{``O rato roeu''}. O diagrama abaixo
-      mostra o estado dos pares K,V nesse passo.
+      o modelo acabou de gerar o quarto token (\texttt{a}) de uma sequência
+      iniciada com o prompt de 3 tokens \textit{``O rato roeu''} e o
+      realimenta para prever o quinto. O diagrama abaixo mostra o estado
+      dos pares K,V nesse passo.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -48,7 +49,7 @@
   \node[tok, fill=CellBlue]   (t1) at (0.0, 2.5) {\texttt{O}};
   \node[tok, fill=CellBlue]   (t2) at (1.7, 2.5) {\texttt{rato}};
   \node[tok, fill=CellBlue]   (t3) at (3.4, 2.5) {\texttt{roeu}};
-  \node[tok, fill=CellRed]    (t4) at (5.1, 2.5) {\texttt{?}};
+  \node[tok, fill=CellRed]    (t4) at (5.1, 2.5) {\texttt{a}};
 
   \node[kv, fill=CellGreen]   (k1) at (0.0, 1.58) {$\mathbf{k}_1$};
   \node[kv, fill=CellGreen]   (k2) at (1.7, 1.58) {$\mathbf{k}_2$};
@@ -66,7 +67,7 @@
   \draw[arr] (t4.south) -- (k4.north);
 
   \node[font=\scriptsize, below=0.1cm] at (2.55, 0.6)
-    {\colorbox{CellGreen}{\,}~cache~~\colorbox{CellYellow}{\,}~computando agora};
+    {\colorbox{CellGreen}{\,}~cache~~\colorbox{CellYellow}{\,}~computando agora~~\colorbox{CellRed}{\,}~token recém-gerado};
 \end{tikzpicture}
 \end{center}
 
@@ -149,7 +150,7 @@ Qual afirmação descreve corretamente o efeito da temperatura?
           múltiplos passos.
     \item A perplexidade é barata e não exige dados rotulados, mas
           correlaciona-se imperfeitamente com tarefas específicas;
-          o MMLU mede capacidades concretas, mas é sensível à
+          o MMLU mede conhecimento por domínio, mas é sensível à
           contaminação do corpus.
     \item A perplexidade garante que modelos com valores menores
           terão melhor desempenho em qualquer tarefa downstream;
@@ -406,9 +407,11 @@ será amostrado?
 % ------------------------------------------------------------------
 % Q13 — Médio (Perplexidade)
 % ------------------------------------------------------------------
-\item Um modelo de linguagem com vocabulário de 6 tokens
-      $\mathcal{V} = \{\texttt{o},\;\texttt{gato},\;\texttt{correu},\;
-      \texttt{leite},\;\texttt{bebeu},\;\texttt{fim}\}$
+\item Um modelo de linguagem com vocabulário de 6 tokens,
+      \[
+        \mathcal{V} = \{\texttt{o},\;\texttt{gato},\;\texttt{correu},\;
+        \texttt{leite},\;\texttt{bebeu},\;\texttt{fim}\},
+      \]
       atribui as seguintes probabilidades condicionais para cada posição
       da sequência \textit{``o~gato~correu''}:
 
@@ -582,7 +585,7 @@ Com base na regra acima, qual afirmação descreve corretamente a verificação?
 % ------------------------------------------------------------------
 % Q20 — Difícil (decodificação especulativa: diagrama + verificação numérica)
 % ------------------------------------------------------------------
-\item Um LLM (\textit{target} $M_p$) é servido com decodificação especulativa: um modelo \textit{draft} $M_q$ menor propõe $\gamma = 3$ \textit{tokens}, verificados pelo \textit{target} em um único \textit{forward pass}. A partir do \textit{prompt} \textit{``O time venceu o''}, o \textit{draft} propõe o \textit{token} mais provável de $q$ em cada posição, conforme o diagrama abaixo, que também mostra os valores $u_t \sim \mathcal{U}(0,1)$ amostrados para a verificação:
+\item Um LLM (\textit{target} $M_p$) é servido com decodificação especulativa: um modelo \textit{draft} $M_q$ menor propõe $\gamma = 3$ \textit{tokens}, verificados pelo \textit{target} em um único \textit{forward pass}. A partir do \textit{prompt} \textit{``O time venceu o''}, o \textit{draft} amostra um \textit{token} de $q$ em cada posição (as amostras obtidas, que neste caso coincidem com o \textit{token} mais provável de $q$, aparecem no diagrama abaixo), que também mostra os valores $u_t \sim \mathcal{U}(0,1)$ amostrados para a verificação:
 
 \begin{center}
 \begin{tikzpicture}[
@@ -790,16 +793,17 @@ Qual sequência o \textit{beam search} com largura $B = 2$ retorna e o que a dec
 % --- Solução Q1 ---
 \subsection*{I — Resposta: (a)}
 Durante a fase de \emph{decode}, o KV-cache armazena os pares $\mathbf{k}_j, \mathbf{v}_j$ de todos
-os tokens já processados. Para gerar o token na posição~4, o modelo computa $\mathbf{k}_4$
-e $\mathbf{v}_4$ aplicando as projeções $\mathbf{W}^K$ e $\mathbf{W}^V$ ao embedding do novo token; os pares
-$\mathbf{k}_1,\mathbf{v}_1$, $\mathbf{k}_2,\mathbf{v}_2$ e $\mathbf{k}_3,\mathbf{v}_3$ são lidos diretamente do cache sem recálculo.
-Vale separar as duas contas. \emph{Por passo} de decodificação, sem cache é preciso
-reprojetar os $n$ tokens já vistos, o que custa $\mathcal{O}(n\,d^2)$, mais
-$\mathcal{O}(n\,d)$ da atenção propriamente dita; com cache resta apenas o
-$\mathcal{O}(n\,d)$ da atenção, porque as projeções antigas não são refeitas.
-Somando sobre os $n$ passos, o custo \emph{total} da geração cai de
-$\mathcal{O}(n^2 d^2)$ para $\mathcal{O}(n^2 d)$. É essa economia que torna viável a
-geração em sequências longas.
+os tokens já processados. Ao realimentar o token~4 para prever o token~5, o modelo
+computa $\mathbf{k}_4$ e $\mathbf{v}_4$ aplicando as projeções $\mathbf{W}^K$ e $\mathbf{W}^V$ ao embedding desse
+token; os pares $\mathbf{k}_1,\mathbf{v}_1$, $\mathbf{k}_2,\mathbf{v}_2$ e $\mathbf{k}_3,\mathbf{v}_3$ são lidos diretamente do
+cache sem recálculo.
+Para a conta de custo, assuma a implementação sem cache que reprocessa o prefixo
+inteiro a cada passo. Com $n$ tokens já vistos, esse passo custa $\mathcal{O}(n\,d^2)$
+de projeções e $\mathcal{O}(n^2 d)$ de atenção. Com cache, o passo custa
+$\mathcal{O}(d^2)$ para projetar o novo token e $\mathcal{O}(n\,d)$ para a atenção da
+nova query contra o prefixo. Com $d$ fixo, o custo por passo cai de $\mathcal{O}(n^2)$
+para $\mathcal{O}(n)$, e o custo total da geração de $\mathcal{O}(n^3)$ para
+$\mathcal{O}(n^2)$. É essa economia que torna viável a geração em sequências longas.
 % ---
 
 % --- Solução Q2 ---
@@ -1142,7 +1146,7 @@ language modeling}, não geração autorregressiva.
 $t$ prediz o \textit{token} $t{+}1$, e a perda de todas as posições é computada em um
 único passe \textit{forward}.
 
-\textbf{II é incorreta:} a máscara causal é essencial justamente \emph{no treinamento}
+\textbf{II é incorreta:} a máscara causal é necessária \emph{no treinamento}
 paralelo. Sem ela, a posição $t$ atenderia ao próprio alvo (o \textit{token} $t{+}1$,
 visível na sequência) e o modelo aprenderia a copiá-lo: a perda cairia artificialmente,
 mas a geração autorregressiva, em que o futuro não existe, seria incoerente (ver
@@ -1151,7 +1155,7 @@ questão XVII). Na inferência a máscara é redundante por construção, pois o
 
 \textbf{III é correta:} a recorrência é sequencial por definição; $h_t$ depende de
 $h_{t-1}$, impedindo o cômputo simultâneo das posições. Esse contraste de paralelismo,
-com o mesmo objetivo simples aplicável a texto bruto, é a razão
+com o mesmo objetivo de prever o próximo \textit{token} em texto bruto, é a razão
 de o \textit{decoder-only} ter vencido as RNNs.
 
 Logo, apenas I e III estão corretas.
@@ -1329,7 +1333,7 @@ Cada matriz tem $|V| \times d_\text{model} = 32\,000 \times 2\,048 = 65\,536\,00
 Com \textit{weight tying}, $\mathbf{W}_\text{LM} = \mathbf{W}_\text{emb}^\top$ reutiliza
 a mesma matriz nas duas pontas (os formatos $|V| \times d$ e $d \times |V|$ são
 compatíveis via transposição), eliminando uma das cópias: o total cai para $65{,}5$
-milhões, sem nenhuma perda de expressividade por construção.
+milhões, ao custo de acoplar a tabela de \textit{embedding} e a LM \textit{head}.
 A opção~(a) parte de um total que já ignora uma das matrizes e inventa um
 compartilhamento de metade das linhas.
 A opção~(b) é falsa: com \textit{weight tying} existe uma única matriz; não são duas

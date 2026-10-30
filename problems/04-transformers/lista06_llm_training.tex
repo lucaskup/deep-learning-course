@@ -320,7 +320,7 @@
 % ------------------------------------------------------------------
 \item Sobre as asserções abaixo a respeito do treinamento e alinhamento de LLMs:
 
-\textbf{I.} No \textit{SFT} (\textit{supervised fine-tuning}) com \textit{prompt masking}, a função de perda é computada apenas sobre os \textit{tokens} da resposta; os \textit{tokens} do \textit{prompt} são mascarados e não contribuem para o gradiente.
+\textbf{I.} No \textit{SFT} (\textit{supervised fine-tuning}) com \textit{prompt masking}, a função de perda é computada apenas sobre os \textit{tokens} da resposta; os termos de perda dos \textit{tokens} do \textit{prompt} são excluídos da soma.
 
 \textbf{II.} O DPO otimiza diretamente sobre pares de preferência $(y_w, y_l)$, dispensando o treinamento de um \textit{reward model} explícito e o loop de \textit{policy gradient} usado no RLHF com PPO.
 
@@ -365,7 +365,7 @@
     \item Trata-se de \textit{reward hacking}: o modelo explora falhas da métrica de avaliação; substituir o \textit{benchmark} geral por outro conjunto de tarefas resolve o problema observado.
     \item O \textit{tokenizer} não cobre o vocabulário jurídico e fragmenta os termos técnicos; retreinar o \textit{tokenizer} recupera simultaneamente as duas curvas de acurácia.
     \item A janela de contexto foi excedida pelos documentos jurídicos longos; truncar as entradas do \textit{fine-tuning} evita a degradação observada no \textit{benchmark} geral.
-    \item A taxa de aprendizado alta causou explosão de gradiente e \texttt{NaN} nos pesos; nesse caso ambas as curvas deveriam despencar, logo o gráfico é inconsistente com um treino real.
+    \item A taxa de aprendizado alta causou explosão de gradiente e \texttt{NaN} nos pesos; nesse caso ambas as curvas deveriam despencar, logo o gráfico não corresponde a esse cenário.
     \item O modelo está subtreinado no regime de Chinchilla ($D^{*} \approx 20N$); aumentar o volume de dados jurídicos melhora as duas curvas por leis de escala.
 \end{enumerate}
 % R: c
@@ -436,7 +436,7 @@ e incluir os tokens do prompt apenas aumentaria $|\mathcal{R}|$, não o zeraria.
 
 % --- Solução Q4 ---
 \subsection*{IV — Resposta: (a)}
-A diferença essencial entre \texttt{fp16} e \texttt{bf16} é o número de bits
+O \texttt{fp16} e o \texttt{bf16} diferem no número de bits
 de expoente: \texttt{fp16} usa $5$ (limite $\approx 65\,504$) e \texttt{bf16}
 usa $8$ (mesmo limite do \texttt{fp32}, $\approx 3.4\times 10^{38}$).
 Gradientes grandes provocam \textit{overflow} em \texttt{fp16}, gerando
@@ -476,8 +476,8 @@ A opção~(d) reduz incorretamente cada método a uma única cópia.
 \textbf{Observação.} O enunciado simplifica ao contabilizar estado de otimizador
 apenas para a política. Na prática o PPO também \emph{treina} a \textit{value
 function}, que tem estado AdamW próprio, enquanto a referência SFT e o
-\textit{reward model} ficam congelados. Com isso a memória real do PPO é
-consideravelmente maior que os $156$ \texttt{GB} calculados e a economia do DPO é
+\textit{reward model} ficam congelados. Com isso a memória de uma implementação
+completa do PPO é maior que os $156$ \texttt{GB} calculados e a economia do DPO é
 maior que os $28$ \texttt{GB}. A conta acima serve para ordenar os métodos, não
 para dimensionar um cluster.
 
@@ -499,15 +499,17 @@ A opção~(c) considera apenas uma das quatro projeções.
 O ponto de partida do LoRA é o modelo pré-treinado intacto: exige-se
 $\Delta\mathbf{W} = \tfrac{\alpha}{r}\mathbf{B}\mathbf{A} = \mathbf{0}$ na inicialização. Zerar $\mathbf{B}$ (com $\mathbf{A}$
 aleatório) satisfaz essa condição. Se \emph{ambos} fossem aleatórios,
-$\Delta\mathbf{W} \neq \mathbf{0}$ adicionaria ruído aos pesos congelados, destruindo o
-ponto de partida calibrado do pré-treinamento. O modelo teria de
-``reaprender'' antes mesmo de começar a se adaptar aos dados de ajuste.
+$\Delta\mathbf{W} \neq \mathbf{0}$ perturbaria os pesos congelados já no primeiro passo, e
+o primeiro \textit{forward} não reproduziria a função pré-treinada. Zerar um dos
+fatores é a forma mais simples de garantir esse ponto de partida.
 A opção~(b) não faz sentido dimensional: inicialização não altera contagem
 de parâmetros treináveis.
-A opção~(c) é falsa: o \textit{rank} de $\mathbf{B}\mathbf{A}$ é determinado pela forma das
-matrizes, não pelos valores iniciais.
-A opção~(d) confunde o papel de $\alpha/r$ (fator de escala constante, não
-amplificador de gradiente).
+A opção~(c) é falsa: a forma das matrizes impõe apenas $\mathrm{rank}(\mathbf{B}\mathbf{A}) \le r$;
+o \textit{rank} efetivo depende dos valores e, com $\mathbf{B} = \mathbf{0}$, é zero.
+Inicialização aleatória não quebra a restrição de baixo \textit{rank}.
+A opção~(d) atribui a $\alpha/r$ um papel que não justifica $\mathbf{B} = \mathbf{0}$:
+o fator é uma constante que multiplica $\mathbf{B}\mathbf{A}$ (e, por consequência, os
+gradientes de $\mathbf{A}$ e $\mathbf{B}$), independentemente de como $\mathbf{B}$ é inicializado.
 
 % --- Solução Q9 ---
 \subsection*{IX — Resposta: (c)}
@@ -614,8 +616,10 @@ A opção~(h) treina o $\Delta\mathbf{W}$ denso $1024 \times 1024$ em vez dos fa
 \subsection*{XIV — Resposta: (d)}
 \textbf{I é correta:} no SFT a perda
 $\mathcal{L}_{SFT} = -\sum_{t \in R} \log P_\theta(x_t \mid x_{<t})$ soma apenas sobre
-os \textit{tokens} da resposta $R$; o \textit{prompt} entra como contexto, mas não gera
-gradiente (ver questão III).
+os \textit{tokens} da resposta $R$; o \textit{prompt} entra como contexto e não tem
+termos próprios de perda (ver questão III). As representações do \textit{prompt} ainda
+recebem gradiente, porque a perda dos \textit{tokens} da resposta retropropaga pelos
+estados ocultos e \textit{embeddings} do \textit{prompt}.
 
 \textbf{II é correta:} o DPO deriva a recompensa implícita da própria política e otimiza
 uma perda de classificação sobre pares $(y_w, y_l)$, eliminando o \textit{reward model}

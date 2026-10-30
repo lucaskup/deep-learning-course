@@ -414,8 +414,8 @@
           primeiras dimensões do embedding de entrada.
     \item Compartilham o mesmo espectro, mas o PE senoidal soma posição
           \emph{absoluta} antes das projeções e o RoPE aplica rotação
-          \emph{relativa} depois delas; nenhuma configuração de pesos os
-          torna equivalentes.
+          \emph{relativa} depois delas; nenhuma configuração não trivial de
+          pesos os torna equivalentes.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -502,8 +502,9 @@
 \subsection*{I, Resposta:(a)}
 O score de atenção $\mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ é um produto interno
 que depende apenas dos \emph{valores} dos dois vetores, e não das posições $i$ ou $j$.
-Permutar os tokens em qualquer ordem produz os mesmos padrões de atenção, de modo que
-o modelo é invariante a permutações sem positional encoding.
+Permutar os tokens de entrada permuta as saídas da mesma forma, sem alterar nenhum
+valor: a self-attention sem máscara é equivariante a permutações, e o conjunto de saídas
+é invariante. Sem positional encoding, o modelo não tem como saber a ordem dos tokens.
 % ---
 
 % --- Solução Q2 ---
@@ -542,8 +543,12 @@ a focar em tokens próximos. Nenhum vetor é somado ao embedding.
 O positional encoding absoluto atribui um vetor distinto a cada índice de posição visto
 durante o treinamento. Posições $i \geq L_{\mathrm{train}}$ nunca aparecem no treinamento,
 portanto esses vetores ficam fora da distribuição no momento do teste, causando degradação.
-O NoPE não adiciona vetores posicionais, logo nada fica fora da distribuição; apenas a
-máscara causal muda, e ela o faz de forma previsível e suave.
+O NoPE não adiciona vetores posicionais, logo não há tabela de embeddings a esgotar; o
+sinal posicional vem apenas da máscara causal, que se estende a qualquer comprimento.
+Isso remove uma fonte de degradação, mas não garante desempenho além de
+$L_{\mathrm{train}}$: as ativações internas em posições nunca vistas ainda podem sair da
+distribuição de treinamento, e a extrapolação observada por Kazemnejad et al.\ (2023)
+é um resultado empírico, medido em tarefas e modelos específicos.
 % ---
 
 % --- Solução Q6 ---
@@ -630,35 +635,36 @@ retenção do contexto curto.
 Em um decoder causal (autorregressivo), o token $i$ só pode atender às posições
 $j \leq i$. A linha $i$ da máscara de atenção possui exatamente $i+1$ entradas não
 mascaradas, criando um padrão binário \emph{único} para cada posição. Conforme o
-comprimento da sequência cresce além de $L_{\mathrm{train}}$, novas linhas simplesmente
-estendem esse padrão suavemente, nada fica fora da distribuição, ao contrário dos
-vetores posicionais explícitos.
+comprimento da sequência cresce além de $L_{\mathrm{train}}$, novas linhas estendem esse
+padrão sem exigir nenhum vetor posicional novo, ao contrário de uma tabela de embeddings
+que simplesmente não tem entradas para essas posições. A extensão do padrão não implica
+que o modelo generalize: isso é uma questão empírica.
 % ---
 
 % --- Solução Q15 ---
 \subsection*{XV, Resposta:(d)}
 O ALiBi penaliza a atenção com $-m_h \cdot |i-j|$. Quando a sequência ultrapassa
-$L_{\mathrm{train}}$, a penalidade simplesmente fica maior para tokens distantes,
-comportamento \emph{inteiramente dentro da distribuição} de treinamento. Press et al.\
+$L_{\mathrm{train}}$, a penalidade simplesmente fica maior para tokens distantes; o
+modelo não precisa de nenhum parâmetro novo, embora os valores de penalidade além de
+$L_{\mathrm{train}}$ nunca tenham sido vistos no treinamento. Press et al.\
 (2022) reportam que um modelo com ALiBi treinado com contexto de 1024 tokens
 \emph{mantém perplexidade baixa} ao ser avaliado em sequências mais longas,
 igualando a perplexidade de um modelo com PE senoidal treinado diretamente com
-2048 tokens, sem nenhum fine-tuning. Vale notar que essa
-afirmação de extrapolação é medida apenas por \emph{perplexidade}: trabalhos
-posteriores mostraram que o desempenho em tarefas de recuperação de longo alcance
-(por exemplo, \textit{needle in a haystack}) degrada bem antes do que a perplexidade
-sugere.
+2048 tokens, sem nenhum fine-tuning. Essa extrapolação é medida apenas por
+\emph{perplexidade}: trabalhos posteriores mostraram que o desempenho em tarefas de
+recuperação de longo alcance (por exemplo, \textit{needle in a haystack}) degrada
+antes do que a perplexidade sugere.
 % ---
 
 % --- Solução Q16 ---
 \subsection*{XVI, Resposta:(b)}
 O NoPE depende inteiramente da máscara causal para gerar um sinal posicional
 implícito: é a estrutura triangular inferior, com cada linha vendo $i+1$ tokens, que
-quebra a invariância a permutações do self-attention. Modelos encoder-only como o
-BERT usam atenção \emph{bidirecional sem máscara}, de modo que sem nenhum positional
-encoding eles voltam a ser literalmente invariantes a permutações dos tokens, não
-conseguindo distinguir ``o gato comeu o rato'' de ``o rato comeu o gato''. Por isso
-o NoPE é uma técnica restrita a decoders.
+quebra a equivariância a permutações do self-attention. Modelos encoder-only como o
+BERT usam atenção \emph{bidirecional sem máscara causal}, de modo que sem nenhum
+positional encoding eles voltam a ser equivariantes a permutações dos tokens: permutar
+a entrada apenas permuta as saídas, e nada no modelo distingue ``o gato comeu o rato''
+de ``o rato comeu o gato''. Por isso o NoPE é uma técnica restrita a decoders.
 % ---
 
 % --- Solução Q18 ---
@@ -667,7 +673,7 @@ A curva de desempenho em U mostra que o modelo ignora informação no meio do co
 mesmo dentro da janela suportada. As estratégias eficazes na prática são:
 (i) \textbf{RAG} (\textit{Retrieval-Augmented Generation}), que recupera apenas o
 trecho relevante e o coloca em uma posição privilegiada do prompt; e
-(ii) \textbf{posicionamento deliberado}, colocando o conteúdo crítico no início ou no
+(ii) \textbf{posicionamento deliberado}, colocando a informação a ser recuperada no início ou no
 final do contexto, onde os efeitos de primazia/recência o favorecem. Apenas aumentar
 o contexto, trocar o PE ou alterar a temperatura de amostragem não corrige o vale
 central, que é uma propriedade aprendida da atenção e não do positional encoding.
@@ -826,10 +832,12 @@ composição $\mathbf{R}(-i)\,\mathbf{R}(j) = \mathbf{R}(j-i)$:
 As posições absolutas $i$ e $j$ aparecem apenas por meio do offset relativo $(j-i)$.
 Dois pares de tokens com o mesmo offset relativo $\delta = j - i$ recebem
 exatamente a mesma contribuição posicional, independentemente de onde estejam na
-sequência. Isso distingue o RoPE do PE senoidal e é a base teórica para sua
-generalização zero-shot a sequências mais longas que as do treinamento:
-o produto $\mathbf{q}^\top \mathbf{R}(\delta)\,\mathbf{k}$ é bem definido para qualquer
-$\delta$, não dependendo de uma tabela de embeddings pré-treinada.
+sequência. Isso distingue o RoPE do PE senoidal: o produto
+$\mathbf{q}^\top \mathbf{R}(\delta)\,\mathbf{k}$ é bem definido para qualquer $\delta$, sem
+depender de uma tabela de embeddings pré-treinada. Estar bem definido não garante
+desempenho: offsets $\delta$ maiores que os vistos no treinamento produzem rotações nunca
+observadas, e na prática o RoPE degrada rapidamente além de $L_{\mathrm{train}}$, o que
+motiva técnicas como Position Interpolation e YaRN.
 % ---
 
 % --- Solução Q28 ---
@@ -885,7 +893,7 @@ Esta seção apresenta derivações completas para as questões de nível \textb
 Para cada questão são fornecidos: o enunciado, a alternativa correta e todos os
 passos intermediários.
 
-Os temas centrais são:
+As derivações cobrem:
 \begin{itemize}
   \item Prova algébrica da propriedade de posição relativa do \textbf{RoPE}
         (questões XVIII, XIX e XXV);
@@ -900,7 +908,7 @@ Os temas centrais são:
 % ------------------------------------------------------------------
 % Q18: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XVIII \emoji{skull-and-crossbones}: Cálculo Numérico do Score RoPE}
+\subsection*{XVIII {\mdseries\emoji{skull-and-crossbones}}: Cálculo Numérico do Score RoPE}
 
 \paragraph{Enunciado.}
 Considere o RoPE com $d = 4$ e frequências $\theta_0 = 1.0$, $\theta_1 = 0.01$.
@@ -990,7 +998,7 @@ exatamente o conteúdo da propriedade que a questão quer testar.
 % ------------------------------------------------------------------
 % Q19: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XIX \emoji{skull-and-crossbones}: Expansão Algébrica do Score RoPE e Posição Relativa}
+\subsection*{XIX {\mdseries\emoji{skull-and-crossbones}}: Expansão Algébrica do Score RoPE e Posição Relativa}
 
 \paragraph{Enunciado.}
 No RoPE, o produto interno dos vetores de query e key rotacionados para um único
@@ -1069,7 +1077,7 @@ funções trigonométricas. Portanto:
 % ------------------------------------------------------------------
 % Q20: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XX \emoji{skull-and-crossbones}: Compressão Uniforme no Position Interpolation}
+\subsection*{XX {\mdseries\emoji{skull-and-crossbones}}: Compressão Uniforme no Position Interpolation}
 
 \paragraph{Enunciado.}
 O Position Interpolation reescala posições como
@@ -1135,7 +1143,7 @@ alcance global.
 % ------------------------------------------------------------------
 % Q22: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXI \emoji{skull-and-crossbones}: Cálculo dos Slopes e Penalidades ALiBi}
+\subsection*{XXI {\mdseries\emoji{skull-and-crossbones}}: Cálculo dos Slopes e Penalidades ALiBi}
 
 \paragraph{Enunciado.}
 No ALiBi com $n = 8$ cabeças de atenção, a fórmula dos slopes é
@@ -1216,7 +1224,7 @@ além dos já existentes em cada cabeça de atenção.
 % ------------------------------------------------------------------
 % Q23: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXII \emoji{skull-and-crossbones}: Injetividade do Positional Encoding Senoidal}
+\subsection*{XXII {\mdseries\emoji{skull-and-crossbones}}: Injetividade do Positional Encoding Senoidal}
 
 \paragraph{Enunciado.}
 Considere o positional encoding senoidal $\mathbf{PE}(i) \in \mathbb{R}^d$ com
@@ -1285,7 +1293,7 @@ não negativos.
         Dois vetores podem ter a mesma norma e ainda assim ser distintos.
 
   \item \textbf{(d) Errada.} A dimensão mais lenta ($k = d/2 - 1$) tem período
-        $2\pi\,\omega_{d/2-1} \approx 2\pi \cdot 10000 \approx 62\,832$ posições, mas
+        $2\pi/\omega_{d/2-1} \approx 2\pi \cdot 10000 \approx 62\,832$ posições, mas
         a injetividade do vetor completo não depende dela. A dimensão $k = 0$ já
         distingue todos os inteiros, então não existe faixa além da qual
         $\mathbf{PE}(i)$ se repita.
@@ -1294,7 +1302,7 @@ não negativos.
 % ------------------------------------------------------------------
 % Q24: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXIII \emoji{skull-and-crossbones}: PE Aprendido Além de $L_{\max}$}
+\subsection*{XXIII {\mdseries\emoji{skull-and-crossbones}}: PE Aprendido Além de $L_{\max}$}
 
 \paragraph{Enunciado.}
 Um modelo com positional encoding absoluto aprendido (estilo BERT), treinado com
@@ -1363,7 +1371,7 @@ realmente faz.
 % ------------------------------------------------------------------
 % Q25: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXIV \emoji{skull-and-crossbones}: Relação Matemática entre RoPE e PE Senoidal}
+\subsection*{XXIV {\mdseries\emoji{skull-and-crossbones}}: Relação Matemática entre RoPE e PE Senoidal}
 
 \paragraph{Enunciado.}
 Tanto o RoPE quanto o PE senoidal utilizam frequências da forma
@@ -1371,11 +1379,11 @@ $\theta_k = 10000^{-2k/d}$. Qual afirmação descreve com mais precisão a rela�
 matemática entre os dois métodos?
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: Compartilham o mesmo espectro de frequências, mas diferem
+Alternativa \textbf{(d)}: Compartilham o mesmo espectro de frequências, mas diferem
 fundamentalmente: o PE senoidal codifica posição \emph{absoluta} por adição ao
 embedding de entrada, enquanto o RoPE codifica posição \emph{relativa} via rotação
-dos vetores de query e key. Não existe configuração de pesos que torne os dois
-métodos equivalentes em geral.
+dos vetores de query e key. Não existe configuração não trivial de pesos que torne
+os dois métodos equivalentes em geral.
 \end{respostabox}
 
 \paragraph{Análise comparativa.}
@@ -1386,7 +1394,7 @@ $\{\theta_k\}_{k=0}^{d/2-1}$ com $\theta_k = 10000^{-2k/d}$. Isso não é
 coincidência: ambos precisam de um espectro que permita distinguir posições em um
 amplo intervalo (da resolução de token único até o comprimento máximo da sequência).
 
-\textbf{Diferenças fundamentais.}
+\textbf{Diferenças estruturais.}
 
 \begin{center}
 \begin{tabular}{lll}
@@ -1462,13 +1470,13 @@ anula. Uma invariância que vale sempre em um método e falha no outro não pode
 reconciliada por escolha de pesos: só haveria equivalência se $\mathbf{M}$ zerasse os
 termos cruzados \emph{e} o termo $\mathbf{PE}(i)^\top \mathbf{M}\, \mathbf{PE}(j)$ reproduzisse
 exatamente a rotação, o que exigiria $\mathbf{M} = \mathbf{0}$ e destruiria também o termo de
-conteúdo $\mathbf{x}_i^\top \mathbf{M}\, \mathbf{x}_j$. Logo não existe configuração de pesos que
-torne os dois métodos equivalentes em geral.
+conteúdo $\mathbf{x}_i^\top \mathbf{M}\, \mathbf{x}_j$. Logo não existe configuração não trivial de
+pesos que torne os dois métodos equivalentes em geral.
 
 % ------------------------------------------------------------------
 % Q26: Derivação Detalhada
 % ------------------------------------------------------------------
-\subsection*{XXV \emoji{skull-and-crossbones}: Prova da Propriedade de Posição Relativa do RoPE}
+\subsection*{XXV {\mdseries\emoji{skull-and-crossbones}}: Prova da Propriedade de Posição Relativa do RoPE}
 
 \paragraph{Enunciado.}
 Para o RoPE com $d = 2$ e parâmetro $\theta$, a matriz de rotação é
