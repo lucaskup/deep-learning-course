@@ -341,7 +341,7 @@
         for (let i = 0; i < NPART; i++) pts.push([particles[i * 2], particles[i * 2 + 1]]);
         P.scatter(ctx, fr, pts, col, { r: 2.5, alpha: 0.85 });
         P.label(ctx, fr.X(-3) + 8, 14,
-          partT >= 1 ? 'revertendo… t = ' + partT : 'amostras finais', th.fg);
+          partT >= 1 ? 'revertendo… t = ' + partT + '/' + T : 'amostras finais (' + T + ' passos)', th.fg);
       } else {
         P.label(ctx, fr.X(-3) + 8, 14, 'treine e clique em Amostrar', th.comment);
       }

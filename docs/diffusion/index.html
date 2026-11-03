@@ -222,11 +222,15 @@
       <h2 class="section-title">4 · Treine um mini diffusion model ao vivo</h2>
       <p class="demo-text">
         Uma MLP <span class="formula">g(z, t, c)</span> (13→64→64→2, ~5,6 mil parâmetros) é treinada
-        aqui no navegador com o algoritmo dos slides: sorteia
-        <span class="formula">t ∼ U{1..T}</span> e <span class="formula">ε ∼ 𝒩(0,I)</span>,
-        monta <span class="formula">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε</span>
-        pelo kernel e minimiza <span class="formula">‖g(z<sub>t</sub>, t) − ε‖²</span>.
-        Depois, a amostragem reversa transforma ruído puro nas duas luas.
+        aqui no navegador com o algoritmo dos slides. O processo de difusão tem
+        <span class="formula">T = 50</span> passos, com schedule linear
+        <span class="formula">β<sub>t</sub></span> de 10<sup>−4</sup> a 0,2. A cada iteração sorteia-se
+        <span class="formula">t ∼ U{1..50}</span> e <span class="formula">ε ∼ 𝒩(0,I)</span>,
+        monta-se <span class="formula">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε</span>
+        pelo kernel e minimiza-se <span class="formula">‖g(z<sub>t</sub>, t) − ε‖²</span>.
+        Depois, a amostragem reversa percorre os mesmos 50 passos, de
+        <span class="formula">t = 50</span> até <span class="formula">t = 1</span>, e transforma ruído
+        puro nas duas luas.
       </p>
       <div class="panel">
         <div class="controls">
@@ -253,14 +257,15 @@
             <canvas id="s4-loss"></canvas>
           </div>
           <div class="canvas-box square">
-            <p class="canvas-caption">Amostragem reversa: z<sub>T</sub> ∼ 𝒩(0,I) → dados</p>
+            <p class="canvas-caption">Amostragem reversa em 50 passos: z<sub>50</sub> ∼ 𝒩(0,I) → dados</p>
             <canvas id="s4-samples"></canvas>
           </div>
         </div>
         <p class="demo-text small">
           Amostragem (slides): <span class="formula">ẑ<sub>t−1</sub> = z<sub>t</sub>/√(1−β<sub>t</sub>) −
           (β<sub>t</sub>/(√(1−α<sub>t</sub>)·√(1−β<sub>t</sub>)))·g(z<sub>t</sub>, t)</span>,
-          depois <span class="formula">z<sub>t−1</sub> = ẑ<sub>t−1</sub> + σ<sub>t</sub>·ε</span>.
+          depois <span class="formula">z<sub>t−1</sub> = ẑ<sub>t−1</sub> + σ<sub>t</sub>·ε</span>,
+          com <span class="formula">σ<sub>t</sub> = √β<sub>t</sub></span> e sem ruído no último passo.
           Com condição de classe, usa-se classifier-free guidance:
           <span class="formula">g̃ = (1+w)·g(z, t, c) − w·g(z, t, ∅)</span>.
         </p>
