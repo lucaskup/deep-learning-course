@@ -75,7 +75,7 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
 % ------------------------------------------------------------------
 \item Avalie as cinco afirmações a seguir sobre redes recorrentes:
 
-\textbf{I.} Na RNN \textit{vanilla}, o gradiente retropropagado no tempo carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2(z_k)| \le 1$, esse produto tende a zero em sequências longas, caracterizando o desaparecimento do gradiente.
+\textbf{I.} Na RNN \textit{vanilla} escalar, o gradiente retropropagado no tempo carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; com $|\theta_{hh}| \le 1$, como $|1 - \tanh^2(z_k)| \le 1$, esse produto tende a zero em sequências longas, caracterizando o desaparecimento do gradiente.
 
 \textbf{II.} Na LSTM, com o \textit{forget gate} $f_t \to 1$ e o \textit{input gate} $i_t \to 0$, a atualização $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$ reduz-se a $c_t \approx c_{t-1}$, preservando a memória de longo prazo (\textit{constant error carousel}).
 
@@ -139,7 +139,7 @@ satisfaz $\mathbf{z}_t \to 0$, o que ocorre com o estado oculto?
     \item \textbf{b.} Com $\mathbf{z}_t \to 0$, $\mathbf{h}_t = 1 \cdot \mathbf{h}_{t-1} + 0 \cdot \tilde{\mathbf{h}}_t = \mathbf{h}_{t-1}$:
     o estado anterior é copiado. A alternativa (a) corresponde a $\mathbf{z}_t \to 1$; (c) e (d) não
     correspondem à equação de atualização.
-    \item \textbf{c.} I (V): o produto de Jacobianos $\theta_{hh}(1 - \tanh^2(z_k))$ tem fatores $\le 1$ e decai em sequências longas. II (V): $f_t \to 1$ e $i_t \to 0$ dão $c_t \approx c_{t-1}$ (\textit{constant error carousel}). III (F): na LSTM o candidato $\tilde{c}_t$ usa ativação $\tanh$, e apenas os três portões $f_t$, $i_t$ e $o_t$ usam sigmoide. IV (V): a LSTM faz circular dois estados no tempo, o estado oculto $h_t$ e o estado de célula $c_t$ (memória), ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$. V (F): a perplexidade satisfaz $\text{Perplexidade} \ge 1$; o modelo determinístico e sempre correto atinge exatamente $1$, nunca menos. Verdadeiras: I, II e IV. As alternativas (b) e (e) incluem V (falsa); (a) e (f) incluem III (falsa); (d) omite II; (h) omite I; (g) marca tudo.
+    \item \textbf{c.} I (V): com $|\theta_{hh}| \le 1$, cada fator $\theta_{hh}(1 - \tanh^2(z_k))$ tem módulo $\le 1$ e o produto decai em sequências longas (sem essa restrição sobre $\theta_{hh}$ o produto também pode explodir). II (V): $f_t \to 1$ e $i_t \to 0$ dão $c_t \approx c_{t-1}$ (\textit{constant error carousel}). III (F): na LSTM o candidato $\tilde{c}_t$ usa ativação $\tanh$, e apenas os três portões $f_t$, $i_t$ e $o_t$ usam sigmoide. IV (V): a LSTM faz circular dois estados no tempo, o estado oculto $h_t$ e o estado de célula $c_t$ (memória), ao contrário da RNN \textit{vanilla}, que mantém apenas $h_t$. V (F): a perplexidade satisfaz $\text{Perplexidade} \ge 1$; o modelo determinístico e sempre correto atinge exatamente $1$, nunca menos. Verdadeiras: I, II e IV. As alternativas (b) e (e) incluem V (falsa); (a) e (f) incluem III (falsa); (d) omite II; (h) omite I; (g) marca tudo.
     \item \textbf{e.} I é correta: $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ combina memória anterior (via \textit{forget gate}) e candidato (via \textit{input gate}); o caminho de $\mathbf{c}_{t-1}$ a $\mathbf{c}_t$ é aditivo, o que sustenta o gradiente ao longo do tempo (\textit{constant error carousel}). II é incorreta: na LSTM padrão, \textit{forget gate} e \textit{input gate} são independentes (cada um com seus próprios pesos e ativação sigmoide), sem a restrição $\mathbf{i}_t = 1 - \mathbf{f}_t$. Esse acoplamento existe apenas em uma variante específica (CIFG, \textit{coupled input-forget gate}); na LSTM padrão a célula pode, por exemplo, esquecer e escrever simultaneamente. III é correta: $\mathbf{h}_t = \mathbf{o}_t \odot \tanh(\mathbf{c}_t)$, e o \textit{output gate} controla qual parte da memória $\mathbf{c}_t$ é exposta como estado oculto no passo $t$. Logo, apenas I e III estão corretas. As alternativas (a), (b) e (c) excluem uma afirmação correta; (d), (f) e (g) incluem a afirmação II, que é falsa; (h) contradiz I e III.
 \end{enumerate}
 \color{black}
@@ -256,17 +256,19 @@ Pode arredondar para $4$ casas decimais.
 \item Por que o caminho da memória preserva o gradiente.
 \begin{enumerate}[(a)]
     \item Derivando $\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t$ em relação a $\mathbf{c}_{t-1}$,
-    o termo direto $\mathbf{f}_t \odot \mathbf{c}_{t-1}$ contribui com $\mathbf{f}_t$; os fatores $\mathbf{f}_t$, $\mathbf{i}_t$ e
-    $\tilde{\mathbf{c}}_t$ dependem de $\mathbf{c}_{t-1}$ apenas indiretamente, através de $\mathbf{h}_{t-1}$, formando
-    caminhos secundários menores. Logo, pelo caminho direto,
+    o termo direto $\mathbf{f}_t \odot \mathbf{c}_{t-1}$ contribui com $\mathbf{f}_t$ (no caso vetorial, a Jacobiana
+    $\mathrm{diag}(\mathbf{f}_t)$); os fatores $\mathbf{f}_t$, $\mathbf{i}_t$ e
+    $\tilde{\mathbf{c}}_t$ dependem de $\mathbf{c}_{t-1}$ apenas indiretamente, através de $\mathbf{h}_{t-1}$, e o enunciado
+    pede para isolar o caminho direto. Logo, por esse caminho,
     $\partial \mathbf{c}_t / \partial \mathbf{c}_{t-1} = \mathbf{f}_t$. Ao longo de $T$ passos esse caminho acumula
     $\prod_k \mathbf{f}_k$: são multiplicações por portas aprendidas e \textbf{somas}, sem $\tanh'$
     repetido. Quando o \textit{forget gate} aprende $\mathbf{f}_k \approx 1$, o produto permanece
     $\approx 1$ e o gradiente é preservado (\textit{constant error carousel}). Na RNN
     \textit{vanilla}, cada passo multiplica por $\theta_{hh}\,(1 - \tanh^2(z_k))$ no caso escalar; como
     $1 - \tanh^2 \le 1$, o produto tende a $0$ (\textit{vanishing}) ou, com $|\theta_{hh}|$
-    grande, explode. No caso vetorial o que importa é o raio espectral de $\mathbf{\Theta}_{hh}$: abaixo
-    de $1$ o produto se dissipa, acima de $1$ ele explode.
+    grande, explode. No caso vetorial o que importa é o maior valor singular de $\mathbf{\Theta}_{hh}$: abaixo
+    de $1$ o produto se dissipa; um raio espectral acima de $1$ é condição necessária para a explosão,
+    que depende também das derivadas da ativação.
     \item Na GRU, o fator $(1 - \mathbf{z}_t)$ multiplica $\mathbf{h}_{t-1}$ no caminho direto, então
     $\partial \mathbf{h}_t / \partial \mathbf{h}_{t-1} = (1 - \mathbf{z}_t)$ por esse caminho, papel análogo ao $\mathbf{f}_t$ da
     LSTM. Quando $\mathbf{z}_t \approx 0$ (\textit{update gate} ``fechado''), tem-se $(1 - \mathbf{z}_t) \approx 1$

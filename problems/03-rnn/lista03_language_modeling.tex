@@ -274,7 +274,7 @@ $n = 4$ \textit{tokens} e $\sum_{t} \log P(y_t \mid y_{<t}) = -1.2$. Com $\alpha
 \begin{tabular}{p{0.42\linewidth} p{0.5\linewidth}}
 \textbf{1.} \textit{Greedy search} & \textbf{(i)} mantém, a cada passo, as $b$ hipóteses de maior probabilidade conjunta e retorna a melhor ao final. \\
 \textbf{2.} \textit{Beam search} (largura $b$) & \textbf{(ii)} escolhe deterministicamente, a cada passo, o \textit{token} de maior probabilidade condicional. \\
-\textbf{3.} Amostragem com temperatura $\tau \to 0^{+}$ & \textbf{(iii)} torna-se equivalente à escolha determinística do \textit{token} mais provável a cada passo. \\
+\textbf{3.} Amostragem com temperatura $\tau \to 0^{+}$ & \textbf{(iii)} reescala os \textit{logits} antes da \textit{softmax}, concentrando toda a massa de probabilidade no \textit{token} de maior \textit{logit}. \\
 \textbf{4.} Amostragem Top-P (\textit{nucleus}) & \textbf{(iv)} amostra apenas do menor conjunto de \textit{tokens} cuja probabilidade acumulada atinge um limiar $p$. \\
 \end{tabular}}
 \end{center}
@@ -347,8 +347,8 @@ Qual o valor aproximado de $a_1^{(t)}$?
     \item \textbf{b.} $\log_2 p = [\,-1,\; -1,\; -3\,]$, então $L = -5$ e
     $-\frac{1}{m} L = \frac{5}{3} \approx 1.667$; logo
     $\text{Perplexidade} = 2^{1.667} \approx 3.17$. A alternativa (a) $5.00$ devolve
-    $|L|$ sem exponenciar; (c) $2.38$ é o resultado do exemplo dos slides ($m = 4$, expoente
-    $1.25$), com parâmetros diferentes; (d) $1.67$ devolve apenas o expoente $-\frac{1}{m}L$.
+    $|L|$ sem exponenciar; (c) $2.38 = 2^{1.25}$ divide $L$ por $4$ em vez de $m = 3$, errando a
+    contagem de \textit{tokens}; (d) $1.67$ devolve apenas o expoente $-\frac{1}{m}L$.
     \item \textbf{d.} $\exp(\text{scores}) = [\,20.09;\; 2.72;\; 1.00\,]$, com soma
     $\approx 23.80$; então $a_1^{(t)} = 20.09 / 23.80 \approx 0.844$. A alternativa (a)
     $0.750$ normaliza os \textit{scores} linearmente ($3/(3+1+0)$) em vez de aplicar
@@ -389,13 +389,13 @@ Qual o valor aproximado de $a_1^{(t)}$?
     comparar sequências de \emph{tamanhos diferentes}, e aqui ambas têm $2$ \textit{tokens}.
     \item \textbf{c.} Associação correta: 1-(ii), o \textit{greedy} escolhe o \textit{token} de
     maior probabilidade condicional a cada passo, de forma determinística; 2-(i), o \textit{beam
-    search} mantém as $b$ hipóteses de maior probabilidade conjunta; 3-(iii), com
-    $\tau \to 0^{+}$ a \textit{softmax} com temperatura concentra toda a massa no \textit{token}
-    de maior \textit{logit}, tornando a amostragem equivalente ao argmax; 4-(iv), o Top-P amostra
+    search} mantém as $b$ hipóteses de maior probabilidade conjunta; 3-(iii), a temperatura divide os \textit{logits} por $\tau$ antes da \textit{softmax} e, com
+    $\tau \to 0^{+}$, concentra toda a massa no \textit{token} de maior \textit{logit}, tornando a
+    amostragem equivalente ao argmax; 4-(iv), o Top-P amostra
     do menor conjunto de \textit{tokens} cuja probabilidade acumulada atinge $p$. Erros agrupados
     por troca: (a) troca temperatura com Top-P, confundindo os dois mecanismos de restrição da
     amostragem; (b) e (g) trocam \textit{greedy} com temperatura, sem perceber que (ii) descreve
-    o mecanismo do \textit{greedy} e (iii) descreve um comportamento-limite; (d) e (f) trocam
+    uma escolha sobre probabilidades já calculadas e (iii) descreve uma transformação dos \textit{logits}; (d) e (f) trocam
     \textit{greedy} com \textit{beam search}, ignorando que só o \textit{beam} raciocina sobre
     probabilidade \emph{conjunta}; (e) e (h) associam Top-P ao \textit{beam search} ou ao
     \textit{greedy}, confundindo manter hipóteses paralelas com restringir o suporte da
@@ -668,10 +668,14 @@ $F_1 = \frac{2\,P\,R}{P + R}$. Considere:
 % ----- D4 -----
 \item Temperatura e amostragem.
 \begin{enumerate}[(a)]
-    \item Com $\tau = 1$: $\exp(z) = [\,7.389;\; 2.718;\; 1.000\,]$, soma $11.107$, logo
-    $p \approx [\,0.665;\; 0.245;\; 0.090\,]$.
-    Com $\tau = 2$: $z/\tau = [\,1;\, 0.5;\, 0\,]$, $\exp = [\,2.718;\; 1.649;\; 1.000\,]$,
-    soma $5.367$, logo $p \approx [\,0.506;\; 0.307;\; 0.186\,]$. A probabilidade do
+    \item Para as duas temperaturas:
+    \begin{align*}
+        \tau = 1:&\quad \exp(z) = [\,7.389;\; 2.718;\; 1.000\,], \quad \text{soma } 11.107, \quad
+        p \approx [\,0.665;\; 0.245;\; 0.090\,]; \\
+        \tau = 2:&\quad z/\tau = [\,1;\, 0.5;\, 0\,], \quad \exp(z/\tau) = [\,2.718;\; 1.649;\; 1.000\,], \\
+        &\quad \text{soma } 5.367, \quad p \approx [\,0.506;\; 0.307;\; 0.186\,].
+    \end{align*}
+    A probabilidade do
     \textit{token} dominante caiu de $0.665$ para $0.506$ e a do menos provável subiu de
     $0.090$ para $0.186$: a distribuição ficou mais plana.
     \item Temperatura baixa concentra a massa nos \textit{tokens} de maior \textit{logit}: mais
