@@ -104,7 +104,7 @@
         \item Aproximam $P(y_t \mid y_{<t})$ por $P(y_t \mid y_{t-n+1}, \dots, y_{t-1})$.
         \item Sofrem com \textit{sparsity} e contexto curto.
     \end{itemize}
-    \item O que tem funcionado melhor nos últimos anos é usar \textbf{redes neurais} para estimar essas probabilidades.
+    \item \textbf{Redes neurais} são a abordagem que melhor tem funcionado nos últimos anos para estimar essas probabilidades.
 \end{itemize}
 \end{frame}
 
@@ -115,7 +115,7 @@
 \begin{frame}{Estrutura Geral}
 \begin{columns}
     \begin{column}{.5\linewidth}
-        \begin{itemize}\small
+        \begin{itemize}
             \item Modelos de linguagem com NNs costumam ter duas partes:
             \begin{itemize}
                 \item Uma rede que processa o \textbf{contexto} $y_{<t}$ produzindo um vetor $\mathbf{h}$.
@@ -131,7 +131,8 @@
     \end{column}
     \begin{column}{.5\linewidth}
         \centering
-        \begin{tikzpicture}[every node/.style={font=\tiny}]
+        \scalebox{1.2}{%
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             % input embeddings
             \foreach \i/\w in {0/I, 1/saw, 2/a, 3/cat, 4/on, 5/a}{
                 \node[inputnode] (e\i) at (0.7*\i, 0) {\w};
@@ -150,20 +151,20 @@
             % output
             \node[draw, rounded corners, fill=PastelYellow, minimum width=3.5cm, minimum height=0.5cm] (out) at (1.75, 3.1) {$P(y_t \mid y_{<t})$};
             \draw[->] (lin) -- (out);
-        \end{tikzpicture}
+        \end{tikzpicture}}
     \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{RNN como Modelo de Linguagem}
-\begin{itemize}\footnotesize
+\begin{itemize}
     \item Numa RNN, o estado oculto $\mathbf{h}_t$ resume todo o contexto $y_{<t}$ e é atualizado a cada \textit{token}.
     \item A cada passo a rede prevê o \textbf{próximo \textit{token}} a partir de $\mathbf{h}_t$.
 \end{itemize}
-\vspace{0.2em}
+\vspace{0.4em}
 \centering
-\begin{tikzpicture}[every node/.style={font=\tiny}]
-    \def\dx{2.0}
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \def\dx{2.4}
     % initial state
     \node[hcell, fill=PastelPurple] (hinit) at (-1.4, 0) {$h_0$};
     \foreach \i/\inp/\tgt in {0/I/saw, 1/saw/a, 2/a/cat, 3/cat/<eos>}{
@@ -175,7 +176,7 @@
         \onslide<\fpeval{\i+1}->{
             \node[outputnode] (out\i) at (\dx*\i, 1.05) {\tgt};
             \draw[->, thin] (h\i) -- (out\i);
-            \node[font=\tiny, ForestGreen] at (\dx*\i, 1.5) {$P(y_{\fpeval{\i+2}}\mid y_{\leq \fpeval{\i+1}})$};
+            \node[font=\scriptsize, ForestGreen] at (\dx*\i, 1.55) {$P(y_{\fpeval{\i+2}}\mid y_{\leq \fpeval{\i+1}})$};
         }
     }
     % hidden-state recurrence arrows
@@ -184,7 +185,8 @@
         \draw[->, thin] (h\i) -- (h\j);
     }
 \end{tikzpicture}
-\begin{itemize}\footnotesize
+\vspace{0.4em}
+\begin{itemize}
     \item<4-> O mesmo conjunto de pesos é reaplicado a cada passo (\textit{weight sharing}), por isso a sequência pode ter qualquer comprimento.
 \end{itemize}
 \end{frame}
@@ -206,15 +208,14 @@
     \end{column}
     \begin{column}{.40\linewidth}
         \centering
-        \scalebox{1.1}{%
-        \begin{tikzpicture}[every node/.style={font=\tiny}]
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             % h: vetor linha (1 x d)
             \foreach \c in {0,...,2}{
-                \draw[fill=PastelPurple] (\c*0.26, 0) rectangle ++(0.26, 0.26);
+                \draw[fill=PastelPurple] (-0.4+\c*0.26, 0) rectangle ++(0.26, 0.26);
             }
-            \node[font=\scriptsize] at (0.39, 0.55) {$\mathbf{h}$};
-            \node[font=\tiny] at (0.39, -0.2) {$d$};
-            \node[font=\scriptsize] at (1.05, 0.13) {$\times$};
+            \node[font=\scriptsize] at (-0.01, 0.55) {$\mathbf{h}$};
+            \node[font=\scriptsize] at (-0.01, -0.22) {$d$};
+            \node[font=\scriptsize] at (0.65, 0.13) {$\times$};
             % W^T: d x |V|
             \foreach \r in {0,...,2}{
                 \foreach \c in {0,...,4}{
@@ -222,20 +223,20 @@
                 }
             }
             \node[font=\scriptsize] at (2.1, 0.85) {$\mathbf{W}^{\top}$};
-            \node[anchor=east, font=\tiny] at (1.2, 0.13) {$d$};
-            \node[font=\tiny] at (2.1, -0.45) {$|V|$};
+            \node[anchor=east, font=\scriptsize] at (1.22, 0.13) {$d$};
+            \node[font=\scriptsize] at (2.1, -0.47) {$|V|$};
             % coluna i de W^T = linha i de W = um output embedding
             \draw[red!70!black, very thick] (1.3+2*0.32, -0.26) rectangle ++(0.32, 0.78);
-            \node[red!70!black, font=\tiny, align=center] at (2.1, -0.9) {coluna $i$ de $\mathbf{W}^{\top}$\\(linha $i$ de $\mathbf{W}$)};
+            \node[red!70!black, font=\scriptsize, align=center] at (2.1, -1.0) {coluna $i$ de $\mathbf{W}^{\top}$\\(linha $i$ de $\mathbf{W}$)};
             % = logits (1 x |V|)
             \node[font=\scriptsize] at (3.2, 0.13) {$=$};
             \foreach \c in {0,...,4}{
                 \draw[fill=PastelYellow] (3.45+\c*0.32, 0) rectangle ++(0.32, 0.26);
             }
             \draw[red!70!black, very thick] (3.45+2*0.32, 0) rectangle ++(0.32, 0.26);
-            \node[red!70!black, font=\tiny] at (3.45+2*0.32+0.16, -0.2) {$i$};
-            \node[font=\tiny, align=center] at (4.25, 0.65) {logits\\$|V|$};
-        \end{tikzpicture}}
+            \node[red!70!black, font=\scriptsize] at (3.45+2*0.32+0.16, -0.22) {$i$};
+            \node[font=\scriptsize, align=center] at (4.25, 0.7) {logits\\$|V|$};
+        \end{tikzpicture}
     \end{column}
 \end{columns}
 \end{frame}
@@ -253,12 +254,13 @@
 
 \begin{frame}{Exemplo de Treinamento}
 \centering
+\scalebox{1.4}{%
 \begin{tikzpicture}[every node/.style={font=\scriptsize}]
     \node at (0, 1.0) {\textit{Training example}: \texttt{I saw a} \textcolor{ForestGreen}{\textbf{cat}} \texttt{on a mat <eos>}};
     \node[font=\tiny, ForestGreen] at (0, 0.55) {alvo: prever \textbf{cat}};
 
     % prediction bars
-    \node at (-3.0, -0.6) {$p(\ast \mid \text{I saw a})$};
+    \node at (-3.0, -0.1) {$p(\ast \mid \text{I saw a})$};
     \foreach \i/\h in {0/0.10, 1/0.18, 2/0.05, 3/0.30, 4/0.12, 5/0.20}{
         \draw[fill=PastelBlue!60!white] (-4+\i*0.35, -1.4) rectangle ++(0.3, \h*2);
     }
@@ -280,15 +282,15 @@
         \node[font=\scriptsize, ForestGreen] at (4.0, -1.1) {aumenta $p(\text{cat})$};
         \node[font=\scriptsize, red!70!black] at (4.0, -1.5) {diminui os demais};
         % up arrow on cat bar
-        \draw[->, thick, ForestGreen] (-4+3*0.35+0.15, -0.7) -- ++(0, 0.45);
+        \draw[->, thick, ForestGreen] (-4+3*0.35+0.15, -0.75) -- ++(0, 0.4);
         % down arrows on the other bars
         \foreach \i in {0,1,2,4,5}{
             \draw[->, thick, red!70!black] (-4+\i*0.35+0.15, -1.5) -- ++(0, -0.3);
         }
     }
-\end{tikzpicture}
-\vspace{0.3em}
-\begin{itemize}\footnotesize
+\end{tikzpicture}}
+\vspace{0.6em}
+\begin{itemize}
     \item O \textit{backprop} ajusta os pesos para aumentar a probabilidade do \textit{token} correto e reduzir a dos demais.
 \end{itemize}
 \end{frame}
@@ -341,14 +343,14 @@
 \begin{itemize}\small
     \item $\tau \to 0$: tende ao \textit{argmax} (coerência alta, diversidade baixa).
     \item $\tau \to \infty$: tende a uma distribuição uniforme (diversidade alta, coerência baixa).
-    \item A temperatura só altera a geração quando \textbf{amostramos} da distribuição (ver \textit{Sampling}): sob \textit{argmax} ela não muda a escolha.
+    \item A temperatura só altera a geração quando \textbf{amostramos} da distribuição: sob \textit{argmax} ela não muda a escolha.
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Greedy Search}
 \begin{columns}
     \begin{column}{.55\linewidth}
-        \begin{itemize}\footnotesize
+        \begin{itemize}
             \item O método mais simples: a cada passo, pegar o \textit{token} mais provável.
             \begin{equation*}
                 y_t = \operatorname*{argmax}_{y} P(y \mid y_{<t})
@@ -359,6 +361,7 @@
     \end{column}
     \begin{column}{.45\linewidth}
         \centering
+        \scalebox{1.35}{%
         \begin{tikzpicture}[every node/.style={font=\tiny}]
             \node[treenode] (root) at (0, 0) {The};
             \node[treenode, fill=PastelGreen] (dog) at (1.6, 0.9) {dog 0.4};
@@ -381,17 +384,18 @@
                 \draw[->] (nice) -- (house);
                 \draw[->] (nice) -- (guy);
             }
-        \end{tikzpicture}
+        \end{tikzpicture}}
     \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Beam Search}
-\begin{itemize}\footnotesize
-    \item Mantém os $b$ \textit{beams} mais prováveis a cada passo (\textit{beam size} $b$). A pontuação de uma sequência é o \textbf{produto} das probabilidades condicionais ao longo do caminho (regra da cadeia).
+\begin{itemize}
+    \item O \textit{Beam Search} mantém os $b$ \textit{beams} mais prováveis a cada passo; a pontuação de uma sequência é o \textbf{produto} das condicionais ao longo do caminho.
     \item<2-> Com $b=2$, a partir de ``The'' guardamos as duas continuações mais prováveis: ``dog'' (0.4) e ``nice'' (0.5).
 \end{itemize}
 \centering
+\scalebox{1.1}{%
 \begin{tikzpicture}[every node/.style={font=\tiny}]
     \node[treenode] (root) at (0, 0) {The};
     % first level (all three appear, beams highlighted, pruned one dashed)
@@ -429,8 +433,8 @@
         \node[font=\scriptsize] at (8.6, 0.5) {The dog has \;\; $0.4\cdot 0.9=\mathbf{0.36}$};
         \node[font=\scriptsize] at (8.6, 0.0) {The nice woman \;\; $0.5\cdot 0.4=0.20$};
     }
-\end{tikzpicture}
-\begin{itemize}\footnotesize
+\end{tikzpicture}}
+\begin{itemize}
     \item<4-> Embora ``The dog'' fosse menos provável que ``The nice'', a expansão revela ``The dog has'' como melhor sequência.
     \item<4-> Continuamos até encontrar \texttt{<eos>} ou um limite de comprimento.
 \end{itemize}
@@ -463,31 +467,12 @@
 \end{frame}
 
 \begin{frame}{Beam Search vs Texto Humano}
-\begin{itemize}\footnotesize
-    \item \textit{Beam Search} funciona bem em tarefas onde o tamanho da sequência é relativamente conhecido (tradução, sumarização).
-    \item Em geração aberta, gera saídas \textbf{repetitivas} e pouco humanas, pois sempre escolhe \textit{tokens} de probabilidade alta.
+\begin{itemize}
+    \item \textit{Beam Search} funciona bem em tarefas em que o tamanho da saída é previsível (tradução, sumarização).
+    \item Em geração aberta, gera saídas \textbf{repetitivas} e pouco humanas, pois sempre escolhe \textit{tokens} de probabilidade alta\footfullcite{holtzman2020degeneration}.
 \end{itemize}
 \centering
-\begin{tikzpicture}[scale=0.85]
-    \begin{axis}[
-        width=10cm, height=4.0cm,
-        xlabel={\scriptsize \textit{timestep}},
-        ylabel={\scriptsize Probabilidade},
-        ymin=0, ymax=1.05, xmin=0, xmax=100,
-        legend style={font=\tiny, at={(1.0,1.0)}, anchor=north east},
-        tick label style={font=\tiny}
-    ]
-        \addplot[blue, thick, smooth, domain=0:100, samples=120]
-            {0.95 + 0.04*sin(deg(0.45*x))};
-        \addlegendentry{Beam Search}
-        \addplot[orange, thick, smooth, domain=0:100, samples=200]
-            {0.5 + 0.45*sin(deg(0.9*x))*sin(deg(0.3*x+1))};
-        \addlegendentry{Humano}
-    \end{axis}
-\end{tikzpicture}
-\begin{itemize}\footnotesize
-    \item Ilustração baseada em Holtzman et al., \textit{The Curious Case of Neural Text Degeneration} (2019).
-\end{itemize}
+\includegraphics[height=4.5cm]{slides/03-rnn/imagens/holtzman_beam_vs_human.png}
 \end{frame}
 
 \begin{frame}{Sampling}
@@ -496,7 +481,7 @@
     \begin{equation*}
         y_t \sim P(y \mid y_{<t})
     \end{equation*}
-    \item Geração deixa de ser determinística, mas ganha em diversidade.
+    \item A geração deixa de ser determinística e ganha diversidade.
     \item Continuamos até encontrar o \textit{token} especial \texttt{<eos>}.
 \end{itemize}
 \centering
@@ -530,30 +515,30 @@
     \item Heurística aplicada à amostragem:
     \begin{itemize}
         \item Sempre amostra apenas dos $K$ \textit{tokens} mais prováveis.
-        \item Evita \textit{tokens} pouco prováveis (que costumam ser ruídos).
+        \item Evita \textit{tokens} pouco prováveis (que costumam ser ruído).
     \end{itemize}
 \end{itemize}
 \vspace{0.4em}
 \centering
-\begin{tikzpicture}[every node/.style={font=\tiny}]
-    \node[font=\scriptsize] at (-3.5, 2.1) {Contexto: ``The dress color was \_\_''};
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node[font=\footnotesize] at (-3.5, 2.2) {Contexto: ``The dress color was \_\_''};
     \foreach \i/\w/\p in {0/red/0.03, 1/white/0.03, 2/black/0.02, 3/pink/0.02, 4/blue/0.02, 6/violet/0.002, 7/olive/0.001}{
-        \node[anchor=east] at (-4.5, 1.8 - 0.25*\i) {\w};
-        \draw[fill=PastelGreen!50!white] (-4.4, 1.7 - 0.25*\i) rectangle ++(\p*30, 0.18);
+        \node[anchor=east] at (-4.5, 1.8 - 0.3*\i) {\w};
+        \draw[fill=PastelGreen!50!white] (-4.4, 1.69 - 0.3*\i) rectangle ++(\p*30, 0.22);
     }
-    \node[anchor=east, font=\tiny] at (-4.5, 1.8 - 0.25*5) {$\cdots$};
-    \draw[thick, ForestGreen] (-3.55, 1.85) -- (-3.55, 0.85);
-    \node[anchor=west, font=\scriptsize, ForestGreen] at (-3.45, 1.35) {Top-4};
+    \node[anchor=east] at (-4.5, 1.8 - 0.3*5) {$\cdots$};
+    \draw[thick, ForestGreen] (-3.4, 1.95) -- (-3.4, 0.75);
+    \node[anchor=west, font=\footnotesize, ForestGreen] at (-3.3, 1.35) {Top-4};
 
-    \node[font=\scriptsize] at (3.5, 2.1) {Contexto: ``The light was \_\_''};
+    \node[font=\footnotesize] at (3.5, 2.2) {Contexto: ``The light was \_\_''};
     \foreach \i/\w/\p in {0/on/0.45, 1/off/0.44, 2/in/0.01, 3/at/0.01, 4/too/0.01}{
-        \node[anchor=east] at (2.5, 1.8 - 0.25*\i) {\w};
-        \draw[fill=PastelBlue!60!white] (2.6, 1.7 - 0.25*\i) rectangle ++(\p*4, 0.18);
+        \node[anchor=east] at (2.5, 1.8 - 0.3*\i) {\w};
+        \draw[fill=PastelBlue!60!white] (2.6, 1.69 - 0.3*\i) rectangle ++(\p*4, 0.22);
     }
-    \draw[thick, ForestGreen] (4.5, 1.85) -- (4.5, 0.85);
-    \node[anchor=west, font=\scriptsize, ForestGreen] at (4.6, 1.35) {Top-4};
+    \draw[thick, ForestGreen] (4.5, 1.95) -- (4.5, 0.75);
+    \node[anchor=west, font=\footnotesize, ForestGreen] at (4.6, 1.35) {Top-4};
 \end{tikzpicture}
-\begin{itemize}\footnotesize
+\begin{itemize}
     \item Limitação: o $K$ ideal depende da forma da distribuição.
 \end{itemize}
 \end{frame}
@@ -567,34 +552,34 @@
 \end{itemize}
 \vspace{0.3em}
 \centering
-\begin{tikzpicture}[every node/.style={font=\tiny}]
-    \node[font=\scriptsize] at (-3.5, 2.1) {Contexto: ``The dress color was \_\_''};
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
+    \node[font=\footnotesize] at (-3.5, 2.2) {Contexto: ``The dress color was \_\_''};
     \foreach \i/\w/\p/\s in {0/red/0.03/1, 1/white/0.03/1, 2/black/0.02/1, 3/pink/0.02/1, 4/blue/0.02/1, 6/violet/0.002/1, 7/olive/0.001/0}{
-        \node[anchor=east] at (-4.5, 1.8 - 0.25*\i) {\w};
+        \node[anchor=east] at (-4.5, 1.8 - 0.3*\i) {\w};
         \ifnum\s=1
-            \draw[fill=PastelGreen!50!white] (-4.4, 1.7 - 0.25*\i) rectangle ++(\p*30, 0.18);
+            \draw[fill=PastelGreen!50!white] (-4.4, 1.69 - 0.3*\i) rectangle ++(\p*30, 0.22);
         \else
-            \draw[fill=gray!30!white] (-4.4, 1.7 - 0.25*\i) rectangle ++(\p*30, 0.18);
+            \draw[fill=gray!30!white] (-4.4, 1.69 - 0.3*\i) rectangle ++(\p*30, 0.22);
         \fi
     }
-    \node[anchor=east, font=\tiny] at (-4.5, 1.8 - 0.25*5) {$\cdots$};
-    \draw[thick, ForestGreen] (-3.4, 1.88) -- (-3.4, 0.20);
-    \node[anchor=west, font=\scriptsize, ForestGreen] at (-3.3, 1.04) {Top-80\%};
+    \node[anchor=east] at (-4.5, 1.8 - 0.3*5) {$\cdots$};
+    \draw[thick, ForestGreen] (-3.4, 1.95) -- (-3.4, -0.15);
+    \node[anchor=west, font=\footnotesize, ForestGreen] at (-3.3, 0.9) {Top-80\%};
 
-    \node[font=\scriptsize] at (3.5, 2.1) {Contexto: ``The light was \_\_''};
+    \node[font=\footnotesize] at (3.5, 2.2) {Contexto: ``The light was \_\_''};
     \foreach \i/\w/\p/\s in {0/on/0.45/1, 1/off/0.44/1, 2/in/0.01/0, 3/at/0.01/0, 4/too/0.01/0}{
-        \node[anchor=east] at (2.5, 1.8 - 0.25*\i) {\w};
+        \node[anchor=east] at (2.5, 1.8 - 0.3*\i) {\w};
         \ifnum\s=1
-            \draw[fill=PastelBlue!60!white] (2.6, 1.7 - 0.25*\i) rectangle ++(\p*4, 0.18);
+            \draw[fill=PastelBlue!60!white] (2.6, 1.69 - 0.3*\i) rectangle ++(\p*4, 0.22);
         \else
-            \draw[fill=gray!30!white] (2.6, 1.7 - 0.25*\i) rectangle ++(\p*4, 0.18);
+            \draw[fill=gray!30!white] (2.6, 1.69 - 0.3*\i) rectangle ++(\p*4, 0.22);
         \fi
     }
-    \draw[thick, ForestGreen] (4.5, 1.88) -- (4.5, 1.45);
-    \node[anchor=west, font=\scriptsize, ForestGreen] at (4.6, 1.67) {Top-80\%};
+    \draw[thick, ForestGreen] (4.5, 1.95) -- (4.5, 1.35);
+    \node[anchor=west, font=\footnotesize, ForestGreen] at (4.6, 1.65) {Top-80\%};
 \end{tikzpicture}
 \begin{itemize}
-    \item O conjunto sorteado se adapta à distribuição.
+    \item O conjunto de candidatos se adapta à distribuição.
 \end{itemize}
 \end{frame}
 
@@ -637,7 +622,7 @@
         \item Perplexidade $= |V|$: o modelo é equivalente a uma distribuição uniforme sobre o vocabulário.
     \end{itemize}
     \item $|V|$ é a perplexidade de quem não aprendeu nada, e serve como \textbf{referencial}, não como teto. Passar de $|V|$ significa que o modelo é pior que o chute uniforme, sinal de tokenizador trocado, distribuição de avaliação errada ou erro no cálculo.
-    \item A leitura como ``número efetivo de \textit{tokens}'' vale nessa faixa: ela descreve a incerteza do modelo, enquanto a perplexidade mede o erro do modelo contra os dados observados.
+    \item A leitura como ``número efetivo de \textit{tokens}'' vale no intervalo $[1, |V|]$. Acima de $|V|$ a perplexidade continua medindo o erro contra os dados, mas deixa de corresponder a uma contagem de alternativas.
     \item A perplexidade só é \textbf{comparável} entre modelos com o \textbf{mesmo tamanho de vocabulário} (idealmente o mesmo tokenizador).
 \end{itemize}
 \end{frame}
@@ -684,7 +669,7 @@
         P(y_1, y_2, \dots, y_n \mid x) = \prod_{t=1}^{n} P(y_t \mid y_{<t}, x)
     \end{equation*}
     \item Na prática, $x$ entra no modelo por meio de um \textbf{vetor de contexto} produzido por um \textit{encoder}, que inicializa e alimenta o \textit{decoder}.
-    \item Mesma formulação serve para diversas tarefas:
+    \item A mesma formulação serve para diversas tarefas:
     \begin{itemize}
         \item Tradução automática ($x$ é a frase no idioma de origem).
         \item \textit{Image captioning} ($x$ é uma imagem).
@@ -696,7 +681,7 @@
 
 \begin{frame}{Tradução Automática}
 \begin{itemize}
-    \item Dada uma sequência em um idioma, queremos descobrir uma sequência em outro idioma.
+    \item A tradução automática recebe uma sequência em um idioma e produz uma sequência em outro.
     \item Em termos probabilísticos:
     \begin{equation*}
         y' = \operatorname*{argmax}_{y} \, p(y \mid x, \theta)
@@ -704,20 +689,20 @@
 \end{itemize}
 \vspace{0.3em}
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize}]
-    \node[font=\scriptsize, ForestGreen] at (0, 1.0) {Três perguntas a responder:};
-    \node[draw, rounded corners, fill=PastelGreen, minimum width=2.6cm, minimum height=0.7cm] (m) at (-3.5, 0) {\textit{modeling}};
-    \node[draw, rounded corners, fill=PastelBlue, minimum width=2.6cm, minimum height=0.7cm] (l) at (0, 0) {\textit{learning}};
-    \node[draw, rounded corners, fill=PastelPink, minimum width=2.6cm, minimum height=0.7cm] (s) at (3.5, 0) {\textit{search}};
-    \node[font=\tiny, text width=2.8cm, align=center] at (-3.5, -1.0) {Como é o modelo $p(y\mid x, \theta)$?};
-    \node[font=\tiny, text width=2.8cm, align=center] at (0, -1.0) {Como achar $\theta$?};
-    \node[font=\tiny, text width=2.8cm, align=center] at (3.5, -1.0) {Como achar o \textit{argmax}?};
+\begin{tikzpicture}[every node/.style={font=\small}]
+    \node[ForestGreen] at (0, 1.2) {Três perguntas a responder:};
+    \node[draw, rounded corners, fill=PastelGreen, minimum width=3.2cm, minimum height=0.8cm] (m) at (-4.0, 0) {\textit{modeling}};
+    \node[draw, rounded corners, fill=PastelBlue, minimum width=3.2cm, minimum height=0.8cm] (l) at (0, 0) {\textit{learning}};
+    \node[draw, rounded corners, fill=PastelPink, minimum width=3.2cm, minimum height=0.8cm] (s) at (4.0, 0) {\textit{search}};
+    \node[text width=3.6cm, align=center] at (-4.0, -1.1) {Como é $p(y\mid x, \theta)$?};
+    \node[text width=3.6cm, align=center] at (0, -1.1) {Como achar $\theta$?};
+    \node[text width=3.6cm, align=center] at (4.0, -1.1) {Como achar o \textit{argmax}?};
 \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Arquitetura Encoder-Decoder}
 \begin{itemize}
-    \item \textit{Encoder-Decoder} é a arquitetura clássica de \textit{seq2seq}.
+    \item \textit{Encoder-Decoder} é a arquitetura de referência para \textit{seq2seq}.
     \begin{itemize}
         \item O \textit{encoder} transforma a entrada de tamanho variável em um \textbf{estado oculto}.
         \item O \textit{decoder} transforma esse estado oculto em uma sequência de saída.
@@ -760,8 +745,8 @@
 
 \begin{frame}{Decoder em Treino vs Teste}
 \begin{itemize}
-    \item Entrar com os dados no \textit{encoder} é trivial (a sequência de origem).
-    \item Para o \textit{decoder}, há mais de uma forma de alimentar a entrada:
+    \item O \textit{encoder} recebe a sequência de origem.
+    \item O \textit{decoder} pode receber a entrada de duas formas:
     \begin{itemize}
         \item \textbf{Em treino} (\textit{teacher forcing}): condiciona no estado oculto do \textit{encoder} e nos \textit{tokens} precedentes do \textit{ground truth}.
         \item \textbf{Em teste}: condiciona no estado oculto do \textit{encoder} e nos \textit{tokens} já preditos pelo próprio modelo.
@@ -818,7 +803,7 @@
     \draw[->, thick, ForestGreen] (e7.east) -- (d0.west);
     \node[ForestGreen] at (5.75, 0.42) {estado oculto};
     \node[font=\scriptsize, red!70!black] at (8.97, 1.15) {\textbf{Decoder} (EN)};
-    \node[gray] at (8.97, -1.05) {entradas do \textit{ground truth} (\textit{teacher forcing})};
+    \node[font=\scriptsize, black!65] at (8.97, -1.05) {entradas do \textit{ground truth} (\textit{teacher forcing})};
     % ---- distribuição prevista e loss do passo destacado ----
     \ifnum#1<8
         \pgfmathtruncatemacro{\stepk}{#1+1}
@@ -832,7 +817,7 @@
     \fi
 \end{tikzpicture}}
 
-\begin{frame}{Treinando uma MT}
+\begin{frame}{\textit{Machine Translation}}
 \begin{itemize}
     \item O treino e a amostragem em tradução automática seguem os mesmos princípios da modelagem de linguagem\footfullcite{sutskever2014sequence}:
     \begin{itemize}
@@ -846,7 +831,7 @@
 \mttrainstep{8}{}{}{0}{0}{}
 \end{frame}
 
-\begin{frame}{Treinando uma MT: Passo a Passo}
+\begin{frame}{\textit{Machine Translation}: Passo a Passo}
 \begin{itemize}
     \item A cada passo, o \textit{decoder} condiciona no estado oculto do \textit{encoder} e no prefixo do \textit{ground truth} para prever o próximo \textit{token}.
 \end{itemize}
@@ -984,7 +969,7 @@
 
 \begin{frame}{Mecanismo de Atenção}
 \begin{itemize}
-    \item Para resolver o gargalo entre \textit{encoder} e \textit{decoder} foi introduzido o mecanismo de \textbf{atenção}\footfullcite{bahdanau2014neural}.
+    \item O mecanismo de \textbf{atenção}\footfullcite{bahdanau2014neural} resolve o gargalo entre \textit{encoder} e \textit{decoder}.
     \begin{itemize}
         \item Um bloco que conecta \textit{encoder} e \textit{decoder} e atribui \textit{scores} a cada estado do \textit{encoder}.
         \item Interpretação: a atenção decide \textbf{quais partes da entrada são mais importantes} para gerar o próximo \textit{token}.
@@ -1011,29 +996,29 @@
 
 \begin{frame}{Atenção: Diagrama}
 \centering
-\scalebox{0.86}{%
-\begin{tikzpicture}[every node/.style={font=\tiny}]
+\scalebox{1.05}{%
+\begin{tikzpicture}[every node/.style={font=\scriptsize}]
     % ---------------- (1) encoder + estados s_k ----------------
     \foreach \i/\w/\vec in {0/Je/{$(1;\,0)$}, 1/vois/{$(0;\,1)$}, 2/un/{$(0.5;\,{-}1)$}, 3/chat/{$({-}1;\,1)$}, 4/sur/{$({-}1;\,2)$}, 5/<eos>/{$(0;\,{-}1)$}}{
-        \node[enccell, minimum width=0.65cm, minimum height=0.8cm] (s\i) at (0.95*\i, 0) {};
-        \node[font=\tiny] at (0.95*\i, -0.55) {\w};
-        \node[font=\tiny, gray] at (0.95*\i, -1.0) {\vec};
+        \node[enccell, minimum width=0.65cm, minimum height=0.8cm] (s\i) at (1.15*\i, 0) {};
+        \node[font=\scriptsize] at (1.15*\i, -0.65) {\w};
+        \node[font=\scriptsize, black!55] at (1.15*\i, -1.05) {\vec};
     }
     % bidirectional recurrence: forward pass above, backward pass below
     \foreach \i/\j in {0/1, 1/2, 2/3, 3/4, 4/5}{
         \draw[->, thin] (s\i.north) to[bend left=26] (s\j.north);
         \draw[->, thin] (s\j.south) to[bend left=26] (s\i.south);
     }
-    \node[font=\scriptsize, ForestGreen] at (2.375, -1.45) {\textbf{Encoder} ($\mathbf{s}_k$, bidirecional)};
+    \node[font=\footnotesize, ForestGreen] at (2.875, -1.5) {\textbf{Encoder} ($\mathbf{s}_k$, bidirecional)};
 
     % ---------------- (2) decoder ----------------
     \onslide<2->{
-        \node[deccell, minimum width=0.65cm, minimum height=0.8cm] (dt) at (7.0, 0) {};
-        \node[font=\tiny] at (7.0, -0.55) {<bos>};
-        \node[font=\tiny, decInk] at (7.0, 1.0) {$\mathbf{h}_t$};
-        \node[font=\tiny, gray] at (7.0, 1.35) {$(2;\,1)$};
-        \draw[->, thin] (dt) -- (7.0, 0.85);
-        \node[font=\scriptsize, red!70!black] at (7.0, -1.1) {\textbf{Decoder}};
+        \node[deccell, minimum width=0.65cm, minimum height=0.8cm] (dt) at (8.0, 0) {};
+        \node[font=\scriptsize] at (8.0, -0.65) {<bos>};
+        \node[font=\scriptsize, decInk] at (8.0, 1.0) {$\mathbf{h}_t$};
+        \node[font=\scriptsize, black!55] at (8.0, 1.35) {$(2;\,1)$};
+        \draw[->, thin] (dt) -- (8.0, 0.85);
+        \node[font=\footnotesize, red!70!black] at (8.0, -1.1) {\textbf{Decoder}};
         % bridge from last encoder state into the decoder
         \draw[->, thin, ForestGreen] (s5.east) -- ++(0.25,0) |- (dt.west);
     }
@@ -1041,52 +1026,58 @@
     % ---------------- (3) scores = h_t s_k^T ----------------
     \onslide<3->{
         \foreach \i/\sval in {0/2, 1/1, 2/0, 3/{${-}1$}, 4/0, 5/{${-}1$}}{
-            \node[scorenode] (sc\i) at (0.95*\i, 1.1) {};
+            \node[scorenode] (sc\i) at (1.15*\i, 1.1) {};
             \draw[->, thin, gray] (s\i) -- (sc\i);
             \draw[->, thin, red!70!black] (dt) to[bend left=15] (sc\i);
-            \node[font=\tiny, red!70!black, anchor=south east] at (0.95*\i-0.12, 1.33) {\sval};
+            \node[font=\scriptsize, red!70!black, anchor=south east] at (1.15*\i-0.12, 1.33) {\sval};
         }
-        \node[font=\tiny, red!70!black] at (5.8, 1.95) {$\text{score}=\mathbf{h}_t\,\mathbf{s}_k^{\top}$};
+        \node[font=\scriptsize, red!70!black] at (6.9, 1.95) {$\text{score}=\mathbf{h}_t\,\mathbf{s}_k^{\top}$};
     }
 
     % ---------------- (4) softmax + pesos (alturas = pesos reais) ----------------
     \onslide<4->{
-        \node[draw, rounded corners, fill=PastelOrange, minimum width=5.0cm, minimum height=0.4cm] (sm) at (2.375, 2.0) {softmax};
+        \node[draw, rounded corners, fill=PastelOrange, minimum width=6.2cm, minimum height=0.4cm] (sm) at (2.875, 2.0) {softmax};
         \foreach \i in {0,...,5}{
             \draw[->, thin] (sc\i) -- (sc\i |- sm.south);
         }
         \foreach \i/\a/\h in {0/0.58/0.719, 1/0.21/0.265, 2/0.08/0.097, 3/0.03/0.036, 4/0.08/0.097, 5/0.03/0.036}{
-            \draw[weightbar] (0.95*\i-0.11, 2.25) rectangle ++(0.22, \h);
-            \node[font=\tiny, anchor=south] at (0.95*\i, 2.25+\h) {$\a$};
+            \draw[weightbar] (1.15*\i-0.11, 2.25) rectangle ++(0.22, \h);
+            \node[font=\scriptsize, anchor=south] at (1.15*\i, 2.25+\h) {$\a$};
         }
-        \node[font=\tiny, wInk] at (6.1, 2.65) {pesos $a_k^{(t)}$};
+        \node[font=\scriptsize, wInk] at (7.1, 2.65) {pesos $a_k^{(t)}$};
     }
 
     % ---------------- (5) context vector = soma ponderada ----------------
     \onslide<5->{
-        \node[draw, rounded corners, fill=PastelPurple, minimum width=0.5cm, minimum height=0.9cm] (cv) at (3.9, 3.4) {$\mathbf{c}^{(t)}$};
+        \node[draw, rounded corners, fill=PastelPurple, minimum width=0.5cm, minimum height=0.9cm] (cv) at (4.4, 3.4) {$\mathbf{c}^{(t)}$};
         \foreach \i/\h in {0/0.719, 1/0.265, 2/0.097, 3/0.036, 4/0.097, 5/0.036}{
-            \draw[->, thin, dashed, gray] (0.95*\i, 2.25+\h+0.2) to[bend left=10] (cv.south);
+            \draw[->, thin, dashed, gray] (1.15*\i, 2.25+\h+0.2) to[bend left=10] (cv.south);
         }
     }
 
     % ---------------- (6) output ----------------
     \onslide<6->{
-        \node[outputnode] (yhat) at (7.0, 3.4) {$\hat{y}_t = \text{I}$};
+        \node[outputnode] (yhat) at (8.0, 3.4) {$\hat{y}_t = \text{I}$};
         \draw[->] (cv) -- (yhat);
-        \draw[->] (7.0, 1.55) -- (yhat);
+        \draw[->] (8.0, 1.55) -- (yhat);
     }
 \end{tikzpicture}}
 
-\vspace{-0.2em}
-\centering\scriptsize
-\onslide<3->{\textcolor{decInk}{\textbf{Scores:}} empilhando os $\textcolor{encInk}{\mathbf{s}_k}$ como linhas de $\textcolor{encInk}{\mathbf{S}}$, um único produto $\textcolor{decInk}{\mathbf{h}_t}\,\textcolor{encInk}{\mathbf{S}^{\top}}$:\\[0.15em]
-$\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {-}1 & {-}1 & 0\\[-0.2em] 0 & 1 & {-}1 & 1 & 2 & {-}1\end{pmatrix}}=(\,2\;\;1\;\;0\;\;{-}1\;\;0\;\;{-}1\,)$}\\[0.2em]
-\onslide<4->{\textcolor{smInk}{\textbf{Pesos de Atenção:}} $\textcolor{wInk}{\mathbf{a}^{(t)}}=\operatorname{softmax}(\textcolor{decInk}{\text{scores}_t})=[\,0.58;\,0.21;\,0.08;\,0.03;\,0.08;\,0.03\,]$}\\[0.15em]
-\onslide<5->{\textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k} \approx (0.51;\,0.29)$}
-\par
-\begin{itemize}\footnotesize
-    \item<6-> A cada \textit{token} gerado o cálculo se repete e a distribuição de atenção se \textbf{redistribui} sobre a entrada (ver a matriz de alinhamento a seguir).
+\vspace{0.3em}
+\begin{itemize}\small
+    \item<6-> A cada \textit{token} gerado o cálculo se repete e a distribuição de atenção se \textbf{redistribui} sobre a entrada; a matriz de alinhamento mostra esse padrão.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Atenção: Cálculo}
+\begin{itemize}
+    \item Com os valores do diagrama, $\textcolor{decInk}{\mathbf{h}_t} = (2;\,1)$ e os seis estados $\textcolor{encInk}{\mathbf{s}_k}$ do \textit{encoder}:
+    \item<2-> \textcolor{decInk}{\textbf{Scores:}} empilhando os $\textcolor{encInk}{\mathbf{s}_k}$ como linhas de $\textcolor{encInk}{\mathbf{S}}$, um único produto $\textcolor{decInk}{\mathbf{h}_t}\,\textcolor{encInk}{\mathbf{S}^{\top}}$ dá todos os \textit{scores}:
+    \begin{equation*}
+        \textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {-}1 & {-}1 & 0\\ 0 & 1 & {-}1 & 1 & 2 & {-}1\end{pmatrix}}=(\,2\;\;1\;\;0\;\;{-}1\;\;0\;\;{-}1\,)
+    \end{equation*}
+    \item<3-> \textcolor{smInk}{\textbf{Pesos de atenção:}} $\textcolor{wInk}{\mathbf{a}^{(t)}}=\operatorname{softmax}(\textcolor{decInk}{\text{scores}_t})=[\,0.58;\,0.21;\,0.08;\,0.03;\,0.08;\,0.03\,]$.
+    \item<4-> \textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k} \approx (0.51;\,0.29)$, um vetor dominado por $\textcolor{encInk}{\mathbf{s}_1}$ (``Je'').
 \end{itemize}
 \end{frame}
 
@@ -1101,7 +1092,7 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
     \end{column}
     \begin{column}{.58\linewidth}
         \centering
-        \begin{tikzpicture}[every node/.style={font=\tiny}]
+        \begin{tikzpicture}[every node/.style={font=\scriptsize}]
             % alignment matrix: rows = target (EN), cols = source (FR)
             \foreach \r/\c/\v in {%
                 0/0/0.90, 0/1/0.05, 0/2/0.02, 0/3/0.00, 0/4/0.00, 0/5/0.00,
@@ -1110,30 +1101,30 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
                 3/0/0.00, 3/1/0.02, 3/2/0.08, 3/3/0.88, 3/4/0.00, 3/5/0.02,
                 4/0/0.00, 4/1/0.00, 4/2/0.00, 4/3/0.02, 4/4/0.90, 4/5/0.05,
                 5/0/0.00, 5/1/0.00, 5/2/0.00, 5/3/0.02, 5/4/0.10, 5/5/0.82}{
-                \fill[PastelBlue2!\fpeval{max(0,\v*100)}!white] (\c*0.62, {(5-\r)*0.62}) rectangle ++(0.62, 0.62);
-                \draw[gray!40] (\c*0.62, {(5-\r)*0.62}) rectangle ++(0.62, 0.62);
+                \fill[PastelBlue2!\fpeval{max(0,\v*100)}!white] (\c*0.8, {(5-\r)*0.8}) rectangle ++(0.8, 0.8);
+                \draw[gray!40] (\c*0.8, {(5-\r)*0.8}) rectangle ++(0.8, 0.8);
             }
             % column labels (source, FR)
             \foreach \c/\w in {0/Je, 1/vois, 2/un, 3/chat, 4/sur, 5/tapis}{
-                \node[anchor=north, rotate=35, font=\tiny] at (\c*0.62+0.31, -0.05) {\w};
+                \node[anchor=north, rotate=35] at (\c*0.8+0.4, -0.05) {\w};
             }
             % row labels (target, EN)
             \foreach \r/\w in {0/I, 1/saw, 2/a, 3/cat, 4/on, 5/mat}{
-                \node[anchor=east, font=\tiny] at (-0.05, {(5-\r)*0.62+0.31}) {\w};
+                \node[anchor=east] at (-0.08, {(5-\r)*0.8+0.4}) {\w};
             }
         \end{tikzpicture}
         \\[0.3em]
-        {\tiny \textcolor{PastelBlue2}{\textbf{escuro}} $=$ peso de atenção alto}
+        {\scriptsize \textcolor{PastelBlue2}{\textbf{escuro}} $=$ peso de atenção alto}
     \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Variantes do Score}
 \begin{itemize}
-    \item Existem várias formas de calcular $\text{score}(\mathbf{h}_t, \mathbf{s}_k)$. As três mais clássicas\footfullcite{luong2015effective}, vistas como produtos de matrizes:
+    \item Existem várias formas de calcular $\text{score}(\mathbf{h}_t, \mathbf{s}_k)$. As três mais usadas\footfullcite{luong2015effective}, vistas como produtos de matrizes:
 \end{itemize}
-\vspace{0.2em}
 \centering
+\scalebox{1.05}{%
 \begin{tikzpicture}[every node/.style={font=\scriptsize}, scalar/.style={fill=PastelYellow}]
 
     % ===================== DOT-PRODUCT =====================
@@ -1141,52 +1132,52 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
     \node[font=\scriptsize] at (-5.0, 1.15) {$\text{score} = \mathbf{h}_t\,\mathbf{s}_k^{\top}$};
     % h_t : vetor linha (1 x d)
     \foreach \c in {0,1,2}{\draw[fill=PastelPurple] (-5.75+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelPurple!60!black] at (-5.45,0.32) {$\mathbf{h}_t$};
+    \node[font=\scriptsize, text=PastelPurple!60!black] at (-5.45,0.32) {$\mathbf{h}_t$};
     % s_k^T : vetor coluna (d x 1)
     \foreach \r in {0,1,2}{\draw[fill=PastelGreen] (-5.05,0.1-\r*0.2) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelGreen!45!black] at (-4.95,0.45) {$\mathbf{s}_k^{\top}$};
+    \node[font=\scriptsize, text=PastelGreen!45!black] at (-4.95,0.45) {$\mathbf{s}_k^{\top}$};
     \node[font=\scriptsize] at (-4.65,0) {$=$};
     \draw[scalar] (-4.5,-0.1) rectangle ++(0.2,0.2);
-    \node[font=\tiny] at (-4.4,-0.4) {escalar};
-    \node[font=\tiny] at (-5.0,-0.95) {sem parâmetros};
+    \node[font=\scriptsize] at (-4.4,-0.4) {escalar};
+    \node[font=\scriptsize] at (-5.0,-0.95) {sem parâmetros};
 
     % ===================== BILINEAR =====================
     \node[font=\scriptsize] at (0,1.7) {\textbf{Bilinear} (Luong)};
     \node[font=\scriptsize] at (0,1.15) {$\text{score} = \mathbf{h}_t\,\mathbf{W}\,\mathbf{s}_k^{\top}$};
     \foreach \c in {0,1,2}{\draw[fill=PastelPurple] (-1.05+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelPurple!60!black] at (-0.75,0.32) {$\mathbf{h}_t$};
+    \node[font=\scriptsize, text=PastelPurple!60!black] at (-0.75,0.32) {$\mathbf{h}_t$};
     % W : matriz quadrada (d x d)
     \foreach \r in {0,1,2}{\foreach \c in {0,1,2}{\draw[fill=PastelBlue] (-0.35+\c*0.2,0.1-\r*0.2) rectangle ++(0.2,0.2);}}
-    \node[font=\tiny] at (-0.05,0.45) {$\mathbf{W}$};
+    \node[font=\scriptsize] at (-0.05,0.45) {$\mathbf{W}$};
     \foreach \r in {0,1,2}{\draw[fill=PastelGreen] (0.3,0.1-\r*0.2) rectangle ++(0.2,0.2);}
-    \node[font=\tiny, text=PastelGreen!45!black] at (0.4,0.45) {$\mathbf{s}_k^{\top}$};
+    \node[font=\scriptsize, text=PastelGreen!45!black] at (0.4,0.45) {$\mathbf{s}_k^{\top}$};
     \node[font=\scriptsize] at (0.75,0) {$=$};
     \draw[scalar] (0.95,-0.1) rectangle ++(0.2,0.2);
-    \node[font=\tiny] at (1.05,-0.4) {escalar};
-    \node[font=\tiny] at (0,-0.95) {matriz $\mathbf{W}$ aprendida};
+    \node[font=\scriptsize] at (1.05,-0.4) {escalar};
+    \node[font=\scriptsize] at (0,-0.95) {matriz $\mathbf{W}$ aprendida};
 
     % ===================== MLP =====================
     \node[font=\scriptsize] at (4.7,1.7) {\textbf{MLP} (Bahdanau)};
-    \node[font=\tiny] at (4.7,1.15) {$\text{score} = \tanh\!\bigl([\mathbf{h}_t, \mathbf{s}_k]\,\mathbf{W}_1^{\top}\bigr)\,\mathbf{w}_2^{\top}$};
+    \node[font=\scriptsize] at (4.7,1.15) {$\text{score} = \tanh\!\bigl([\mathbf{h}_t, \mathbf{s}_k]\,\mathbf{W}_1^{\top}\bigr)\,\mathbf{w}_2^{\top}$};
     \node[font=\scriptsize, anchor=east] at (3.1,0) {$\tanh\!\big($};
     % [h_t, s_k] : vetor linha concatenado (1 x 2d)
     \foreach \c in {0,1}{\draw[fill=PastelPurple] (3.15+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
     \foreach \c in {2,3}{\draw[fill=PastelGreen] (3.15+\c*0.2,-0.1) rectangle ++(0.2,0.2);}
-    \node[font=\tiny] at (3.55,0.4) {$[\mathbf{h}_t, \mathbf{s}_k]$};
+    \node[font=\scriptsize] at (3.55,0.4) {$[\mathbf{h}_t, \mathbf{s}_k]$};
     % W_1^T : matriz (2d x h)
     \foreach \r in {0,1,2,3}{\foreach \c in {0,1,2}{\draw[fill=PastelBlue] (4.1+\c*0.2,0.2-\r*0.2) rectangle ++(0.2,0.2);}}
-    \node[font=\tiny] at (4.4,0.62) {$\mathbf{W}_1^{\top}$};
+    \node[font=\scriptsize] at (4.4,0.62) {$\mathbf{W}_1^{\top}$};
     \node[font=\scriptsize, anchor=west] at (4.75,0) {$\big)$};
     % w_2^T : vetor coluna de pesos (h x 1)
     \foreach \r in {0,1,2}{\draw[fill=PastelBlue] (5.15,0.1-\r*0.2) rectangle ++(0.2,0.2);}
-    \node[font=\tiny] at (5.25,0.52) {$\mathbf{w}_2^{\top}$};
+    \node[font=\scriptsize] at (5.25,0.52) {$\mathbf{w}_2^{\top}$};
     \node[font=\scriptsize] at (5.6,0) {$=$};
     \draw[scalar] (5.8,-0.1) rectangle ++(0.2,0.2);
-    \node[font=\tiny] at (4.5,-0.95) {camada não linear};
-\end{tikzpicture}
-\vspace{0.4em}
+    \node[font=\scriptsize] at (4.5,-0.95) {camada não linear};
+\end{tikzpicture}}
+\vspace{0.2em}
 \begin{itemize}
-    \item  Em Transformers, usamos (\textit{scaled dot-product})\footfullcite{vaswani2017attention}.
+    \item Transformers usam o \textit{scaled dot-product}\footfullcite{vaswani2017attention}: o produto escalar dividido por $\sqrt{d}$.
 \end{itemize}
 \end{frame}
 
@@ -1200,7 +1191,7 @@ $\textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {
         \item Capítulo 10 de \fullcite{zhang2023dive}.
         \item \textit{Blog post} de Lena Voita: \url{https://lena-voita.github.io/nlp_course/language_modeling.html}.
         \item \textit{HuggingFace blog}: \url{https://huggingface.co/blog/how-to-generate}.
-        \item Holtzman et al., \textit{The Curious Case of Neural Text Degeneration} (2019).
+        \item \fullcite{holtzman2020degeneration}.
     \end{itemize}
 \end{frame}
 
