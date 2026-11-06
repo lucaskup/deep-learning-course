@@ -443,7 +443,7 @@ Gradientes grandes provocam \textit{overflow} em \texttt{fp16}, gerando
 \texttt{Inf}/\texttt{NaN}; a faixa larga do \texttt{bf16} elimina esse
 problema sem exigir \textit{loss scaling}.
 A opção~(b) inverte o trade-off: \texttt{bf16} tem \emph{menos} mantissa
-($7$ bits) que o \texttt{fp16} ($10$). O ganho não é precisão, é faixa.
+($7$ bits) que o \texttt{fp16} ($10$). O ganho é de faixa dinâmica, não de precisão.
 A opção~(c) é falsa: ambos são lossy.
 A opção~(d) é falsa: ambos ocupam $16$ bits.
 
@@ -535,7 +535,7 @@ A opção~(d) ignora o histórico $\ell^{(1)}$.
 
 % --- Solução Q10 ---
 \subsection*{X — Resposta: (b)}
-O padrão é clássico de \textit{catastrophic forgetting}: a perda SFT
+O padrão é o de \textit{catastrophic forgetting}: a perda SFT
 decresce porque o modelo aprende o \emph{formato} dos dados de ajuste,
 mas as muitas atualizações com LR alto modificam significativamente os
 pesos, apagando representações úteis para tarefas gerais. O remédio
@@ -570,11 +570,10 @@ Portanto,
 \]
 A magnitude maior para as respostas erradas (minoritárias) é esperada: o
 z-score pesa mais a cauda menos populosa.
-A opção~(a) usa os valores do slide, que valem apenas quando \emph{metade}
-do grupo acerta ($G = 4$, 2 corretos, 2 errados), situação em que
-$\sigma_r = 0.5$.
+A opção~(a) vale apenas quando \emph{metade} do grupo acerta (por exemplo
+$G = 4$, 2 corretos, 2 errados), situação em que $\sigma_r = 0.5$.
 A opção~(b) esquece a normalização por $\sigma_r$.
-A opção~(c) substitui a \textit{baseline} correta (média) por $\max(r) = 1$.
+A opção~(c) atribui vantagem nula às respostas erradas, mas a vantagem é centrada na média do grupo e toda resposta abaixo da média recebe vantagem negativa.
 
 % --- Solução Q12 ---
 \subsection*{XII — Resposta: (a)}
@@ -625,10 +624,10 @@ estados ocultos e \textit{embeddings} do \textit{prompt}.
 uma perda de classificação sobre pares $(y_w, y_l)$, eliminando o \textit{reward model}
 explícito e a amostragem \textit{online} do loop de PPO.
 
-\textbf{III é incorreta:} o termo $\mathrm{KL}(\pi_\theta \| \pi_{\text{ref}})$ não
-acelera a convergência; ele \emph{restringe} a política a permanecer próxima da
-referência, evitando que o modelo degenere ou explore falhas do \textit{reward model}
-(\textit{reward hacking}).
+\textbf{III é incorreta:} o termo $\mathrm{KL}(\pi_\theta \| \pi_{\text{ref}})$
+\emph{restringe} a política a permanecer próxima da referência, evitando que o modelo
+degenere ou explore falhas do \textit{reward model} (\textit{reward hacking});
+acelerar a convergência não é sua função.
 
 Logo, apenas I e II estão corretas.
 As opções~(a) e~(b) excluem uma asserção correta.

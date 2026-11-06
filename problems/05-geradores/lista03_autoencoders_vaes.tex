@@ -115,7 +115,7 @@
     \item Depois de treinar um VAE, deseja-se gerar uma nova amostra $\mathbf{x}^{*}$ que se assemelhe aos dados de treino. Qual procedimento corresponde à amostragem ancestral correta?
     \begin{enumerate}[(a)]
         \item Tomar um $\mathbf{x}$ qualquer do conjunto de treino, passar pelo \textit{encoder} para obter $\boldsymbol{\mu}, \boldsymbol{\Sigma}$ e produzir $\mathbf{x}^{*}$ via \textit{decoder} aplicado em $\boldsymbol{\mu}$.
-        \item Amostrar $\mathbf{z}^{*} \sim \mathcal{N}(0, \mathbf{I})$ e passar $\mathbf{z}^{*}$ pelo \textit{decoder} para obter os parâmetros de $p(\mathbf{x} \mid \mathbf{z}^{*}, \thetav)$.
+        \item Amostrar $\mathbf{z}^{*} \sim \mathcal{N}(0, \mathbf{I})$, passar $\mathbf{z}^{*}$ pelo \textit{decoder} para obter os parâmetros de $p(\mathbf{x} \mid \mathbf{z}^{*}, \thetav)$ e amostrar $\mathbf{x}^{*}$ dessa distribuição.
         \item Amostrar $\mathbf{z}^{*}$ uniformemente em um cubo de aresta $1$ centrado na origem e passar pelo \textit{decoder}.
         \item Amostrar $\mathbf{z}^{*}$ de $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ com $\mathbf{x}$ tirado do conjunto de treino e copiar a saída do \textit{decoder}.
     \end{enumerate}
@@ -138,10 +138,10 @@
     % ------------------------------------------------------------------
     \item \emoji{skull-and-crossbones} Considere dois \textit{encoders} A e B de um VAE com latente bidimensional, ambos produzindo $\boldsymbol{\mu} = (0,\, 0)$. O \textit{encoder} A devolve $\boldsymbol{\Sigma}_A = \mathrm{diag}(0.01,\, 0.01)$, enquanto o B devolve $\boldsymbol{\Sigma}_B = \mathrm{diag}(1,\, 1)$. Comparando $D_{KL}\!\left[q_A \,\|\, p(\mathbf{z})\right]$ e $D_{KL}\!\left[q_B \,\|\, p(\mathbf{z})\right]$ contra $p(\mathbf{z}) = \mathcal{N}(0, \mathbf{I})$, qual afirmação está correta?
     \begin{enumerate}[(a)]
-        \item $D_{KL}^{A} < D_{KL}^{B}$, pois variâncias menores aproximam $q$ de uma massa pontual e reduzem a divergência.
-        \item $D_{KL}^{A} = D_{KL}^{B} = 0$, pois ambas as médias coincidem com a média do \textit{prior}.
+        \item $D_{KL}^{A} < D_{KL}^{B}$, pois o termo $\mathrm{tr}\,\boldsymbol{\Sigma}$ diminui quando as variâncias se aproximam de zero.
+        \item $D_{KL}^{A} = D_{KL}^{B} = 0$, pois o termo $\boldsymbol{\mu}^{\top}\boldsymbol{\mu}$ se anula nos dois casos.
         \item $D_{KL}^{A} > D_{KL}^{B}$, pois o termo $-\log\det\boldsymbol{\Sigma}$ cresce quando as variâncias se aproximam de zero.
-        \item $D_{KL}^{A} \approx D_{KL}^{B}$, pois o termo dominante é $\boldsymbol{\mu}^{\top}\boldsymbol{\mu}$, que se anula em ambos os casos.
+        \item $D_{KL}^{A} \approx D_{KL}^{B}$, pois o termo $\mathrm{tr}\,\boldsymbol{\Sigma} - \log\det\boldsymbol{\Sigma}$ vale o mesmo para variâncias $0.01$ e $1$.
     \end{enumerate}
     % R: c
 
@@ -207,7 +207,7 @@
 
 \end{enumerate}
 
-\subsection*{Gabarito - Objetivas}
+\subsection*{Gabarito das Objetivas}
 \begin{enumerate}[I)]
 \item   c
 \item   d
@@ -225,7 +225,7 @@
 \item   h
 \end{enumerate}
 
-\subsection*{Resoluções - Objetivas}
+\subsection*{Resoluções das Objetivas}
 \color{blue}
 \begin{enumerate}[I)]
     \item \textbf{(c)} Com $D_z = 1024 > 784$ e ativações lineares em todas as camadas, não existe gargalo de informação: a rede pode implementar a identidade (ou um par de mapas lineares que se cancelam) e copiar a entrada, zerando o erro sem aprender estrutura. A (a) é irrelevante para o sintoma descrito. A (b) contradiz o erro de reconstrução próximo de zero. A (d) produziria erro de reconstrução alto, o oposto do observado.
@@ -244,11 +244,11 @@
 
     \item \textbf{(d)} KL próxima de zero com reconstrução ruim é sinal do \textit{posterior collapse}: $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi}) \approx p(\mathbf{z})$ para todo $\mathbf{x}$ e o latente deixa de informar o \textit{decoder}. A (a) descreveria instabilidade geral de otimização, não esse padrão específico. A (b) não produz esse sintoma. A (c) implicaria KL tipicamente alta, não nula.
 
-    \item \textbf{(b)} A amostragem ancestral segue o modelo gerador: $\mathbf{z}^{*} \sim p(\mathbf{z}) = \mathcal{N}(0, \mathbf{I})$ e, em seguida, o \textit{decoder} produz os parâmetros de $p(\mathbf{x} \mid \mathbf{z}^{*}, \thetav)$. A (a) descreve reconstrução de um dado existente, não geração. A (c) amostra da distribuição errada. A (d) condiciona em um exemplo do treino, tendendo a reproduzi-lo em vez de gerar algo novo.
+    \item \textbf{(b)} A amostragem ancestral segue o modelo gerador: $\mathbf{z}^{*} \sim p(\mathbf{z}) = \mathcal{N}(0, \mathbf{I})$ e, em seguida, o \textit{decoder} produz os parâmetros de $p(\mathbf{x} \mid \mathbf{z}^{*}, \thetav)$, da qual se amostra $\mathbf{x}^{*}$. Devolver a média $f[\mathbf{z}^{*},\thetav]$ no lugar de uma amostra é uma convenção de visualização, e a amostragem ancestral termina com a amostra de $\mathbf{x}^{*}$. A (a) descreve reconstrução de um dado existente, não geração. A (c) amostra da distribuição errada. A (d) condiciona em um exemplo do treino, tendendo a reproduzi-lo em vez de gerar algo novo.
 
     \item \textbf{(a)} Como $p(\mathbf{x} \mid \thetav)$ envolve uma integral intratável, a inferência variacional introduz $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ e otimiza o ELBO, um limite inferior tratável de $\log p(\mathbf{x} \mid \thetav)$, conjuntamente em $\boldsymbol{\phi}$ e $\thetav$. A (b) superestima o que uma única amostra de $\mathbf{z}$ fornece. A (c) descreve uma GAN. A (d) é falsa, $q$ apenas aproxima o posterior verdadeiro.
 
-    \item \textbf{(c)} $D_{KL}^{A} = \tfrac{1}{2}\left(0.02 + 0 - 2 - \ln(10^{-4})\right) = \tfrac{1}{2}(0.02 - 2 + 9.21) \approx 3.6$, enquanto $D_{KL}^{B} = \tfrac{1}{2}(2 + 0 - 2 - 0) = 0$. O termo $-\log\det\boldsymbol{\Sigma}$ explode quando as variâncias tendem a zero, logo $D_{KL}^{A} > D_{KL}^{B}$. A (a) inverte a intuição, uma massa quase pontual está longe de uma gaussiana de variância unitária. A (b) considera apenas as médias e ignora as covariâncias. A (d) ignora o termo de determinante, que é justamente o dominante aqui.
+    \item \textbf{(c)} $D_{KL}^{A} = \tfrac{1}{2}\left(0.02 + 0 - 2 - \ln(10^{-4})\right) = \tfrac{1}{2}(0.02 - 2 + 9.21) \approx 3.6$, enquanto $D_{KL}^{B} = \tfrac{1}{2}(2 + 0 - 2 - 0) = 0$. O termo $-\log\det\boldsymbol{\Sigma}$ explode quando as variâncias tendem a zero, logo $D_{KL}^{A} > D_{KL}^{B}$. Na (a), o termo $\mathrm{tr}\,\boldsymbol{\Sigma}$ de fato cai de $2$ para $0.02$, mas $-\log\det\boldsymbol{\Sigma}$ sobe de $0$ para $9.21$ e domina. A (b) considera apenas as médias e ignora as covariâncias. Na (d), $\mathrm{tr}\,\boldsymbol{\Sigma} - \log\det\boldsymbol{\Sigma}$ vale $2$ para variâncias $1$ e $9.23$ para variâncias $0.01$.
 
     \item \textbf{(a)} A penalidade de esparsidade força poucas unidades ativas por instância, criando um gargalo de capacidade efetiva mesmo com latente \textit{overcomplete}: a rede precisa selecionar o que representar. A (b) não impede a cópia pelo restante das conexões. A (c) e a (d) alteram a dinâmica de otimização e a função de perda, mas nenhuma das duas remove a solução de identidade.
 
@@ -355,7 +355,7 @@
 
     \item Diagnóstico do treino.
     \begin{enumerate}[(a)]
-        \item O fenômeno é o \emph{posterior collapse}: o \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} para qualquer $\mathbf{x}$, de modo que o latente $\mathbf{z}$ deixa de carregar informação sobre a entrada. A consequência é que amostras geradas a partir do \textit{prior} se concentram em torno de uma reconstrução média, com pouca diversidade.
+        \item O fenômeno é o \emph{posterior collapse}: o \textit{encoder} aprendeu a igualar $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ ao \textit{prior} para qualquer $\mathbf{x}$, de modo que o latente $\mathbf{z}$ deixa de carregar informação sobre a entrada. No cenário descrito, em que o \textit{decoder} devolve uma imagem por $\mathbf{z}$, as amostras geradas a partir do \textit{prior} se concentram em torno de uma reconstrução média, com pouca diversidade. Em geral, a consequência é a perda de informação sobre $\mathbf{x}$ no latente: um \textit{decoder} autoregressivo pode continuar gerando amostras diversas pela própria distribuição condicional, mesmo ignorando $\mathbf{z}$.
         \item Quando o \textit{decoder} consegue modelar $p(\mathbf{x} \mid \mathbf{z}, \thetav)$ ignorando $\mathbf{z}$ (por exemplo, modelos autoregressivos sobre os \textit{pixels}), o otimizador encontra um ótimo barato em zerar o termo KL: a contribuição de $\mathbf{z}$ para o ELBO fica marginal e o gradiente empurra $q$ na direção de $p(\mathbf{z})$.
         \item Estratégias comuns incluem \textit{KL annealing} (introduzir o termo KL gradualmente, começando com peso baixo) e \textit{free bits} (não penalizar a KL abaixo de um limiar por dimensão do latente). Ambas reduzem a pressão do termo de regularização nas fases iniciais, permitindo que o \textit{decoder} aprenda a usar $\mathbf{z}$ antes que o KL force o colapso.
     \end{enumerate}

@@ -24,7 +24,7 @@
 
     \item (Prince, 2024) Considerando que um mecanismo de \textit{self-attention} processa $N$ entradas de tamanho $D$ para produzir $N$ saídas de tamanho $D$.
     Quantos parâmetros treináveis são usados para computar \textit{queries}, \textit{keys} e \textit{values}?
-    Caso seja utilizada uma camada linear densa ao invés do mecanismo de atenção, o número de parâmetros treináveis seria maior ou menor?
+    Caso seja utilizada uma camada linear densa ao invés do mecanismo de atenção (uma única camada que recebe os $N \cdot D$ componentes da entrada concatenados e produz os $N \cdot D$ componentes da saída), o número de parâmetros treináveis seria maior ou menor?
 
     \item Qual é o limite teórico do tamanho de sequências que podemos processar com o mecanismo de \textit{self-attention}?
 
@@ -214,8 +214,9 @@ $S_2$: \texttt{"jantar comeu pastel no lucas"}
     \item BatchNorm depende de uma janela deslizante temporal que não está
           disponível em \textit{transformers} sem recorrência.
     \item BatchNorm computa estatísticas por coluna (\textit{feature}) sobre
-          o \textit{batch}, e o número de \textit{tokens} em cada posição
-          varia com o comprimento das sequências.
+          todos os \textit{tokens} do \textit{batch}, e a quantidade de
+          \textit{tokens} válidos e de \textit{padding} nessa agregação varia
+          com o comprimento das sequências.
 \end{enumerate}
 % R: d
 
@@ -512,7 +513,7 @@ Por que essas conexões residuais estão presentes na arquitetura?
 \end{tikzpicture}
 \end{center}
 
-Qual padrão é compatível com o pré-treinamento de um modelo \textit{decoder-only} autorregressivo (GPT, Llama)?
+Qual padrão é usado na \textit{self-attention} durante o pré-treinamento de um modelo \textit{decoder-only} autorregressivo (GPT, Llama)?
 \begin{enumerate}[a)]
     \item Padrão A: atenção causal, necessária para \textit{next-token prediction} sem ver tokens futuros.
     \item Padrão A: ele permite que cada posição $i$ veja apenas a si mesma, garantindo independência entre os tokens durante o treino.
@@ -741,15 +742,16 @@ de $H$ e $N$ ($H^2 \cdot N$).
 
 % --- Solução Q16 ---
 \subsubsection*{XVII — Resposta: (d)}
-\textit{BatchNorm} computa média e variância \emph{por feature}, agregando
-sobre o eixo do \textit{batch} em cada posição da sequência. Com sequências
-de comprimentos muito distintos, o número de \textit{tokens} que contribuem
-para cada posição varia: posições próximas ao início acumulam amostras de
-todas as sequências, enquanto posições próximas ao fim recebem apenas as
-poucas sequências longas (ou tokens de \textit{padding}). As estatísticas
-resultantes ficam ruidosas e dependentes da composição do \textit{batch}. \textit{LayerNorm}, por outro lado,
-normaliza \emph{por token} (linha), independendo do tamanho do
-\textit{batch} ou do comprimento das sequências.
+\textit{BatchNorm} computa média e variância \emph{por feature} (canal), agregando
+sobre o eixo do \textit{batch} e sobre todas as posições da sequência: em um tensor
+$(N, C, L)$, a estatística do canal $c$ usa os $N \cdot L$ \textit{tokens} do
+\textit{batch}. Com sequências de $5$ a $500$ \textit{tokens}, a quantidade de
+\textit{tokens} válidos que entra nessa média muda de um \textit{batch} para outro, e
+os \textit{tokens} de \textit{padding} entram na conta a menos que sejam mascarados
+explicitamente. As estatísticas resultantes ficam ruidosas e dependentes da composição
+do \textit{batch} (quantas sequências longas ele contém, quanto \textit{padding} ele
+carrega). \textit{LayerNorm}, por outro lado, normaliza \emph{por token} (linha),
+independendo do tamanho do \textit{batch} ou do comprimento das sequências.
 A opção~(a) inverte o eixo de normalização do BatchNorm. A opção~(b)
 inventa um requisito de reinicialização do otimizador que não existe.
 A opção~(c) atribui ao BatchNorm uma janela deslizante que não faz parte
@@ -819,8 +821,7 @@ $4\cdot 512\cdot 2\,048 = 4\,194\,304$.
 \textbf{(i)~Parâmetros das projeções.} Cada uma das matrizes $\mathbf{W}_Q$, $\mathbf{W}_K$,
 $\mathbf{W}_V$ e $\mathbf{W}_O$ tem formato $d \times d$, contribuindo $d^2$ parâmetros, em
 um total de $4d^2 = \Theta(d^2)$. Note que esse total \emph{não depende}
-de $N$, propriedade central da atenção em comparação a uma camada densa
-sobre toda a sequência.
+de $N$, ao contrário de uma camada densa sobre toda a sequência.
 
 \textbf{(ii)~FLOPs para $\mathbf{Q} \mathbf{K}^\top$.} Com $\mathbf{Q} \in \mathbb{R}^{N\times d}$ e
 $\mathbf{K}^\top \in \mathbb{R}^{d\times N}$, o resultado é uma matriz $N\times N$ na
@@ -875,8 +876,9 @@ a atenção ``crua'' é só \textit{softmax} e somas ponderadas, sem parâmetros
 questão XIV).
 \textbf{III (V):} \textit{self-attention} é permutação-equivariante; sem
 \textit{positional encoding} a ordem dos \textit{tokens} não seria distinguida.
-\textbf{IV (F):} dividir por $d$ levaria a variância a $d/d^2 = 1/d$ (\textit{softmax}
-``frio'' demais); o correto é $\sqrt{d}$.
+\textbf{IV (F):} dividir por $d$ levaria a variância a $d/d^2 = 1/d$: os \textit{scores}
+ficam próximos de zero e o \textit{softmax} tende à distribuição uniforme, o que na
+analogia de temperatura corresponde a uma temperatura alta demais; o correto é $\sqrt{d}$.
 \textbf{V (F):} a máscara causal soma $-\infty$ às posições futuras \emph{antes} do
 \textit{softmax}; o peso $0$ aparece \emph{depois} do \textit{softmax}.
 Verdadeiras: I, II e III.
@@ -949,11 +951,11 @@ $d_{ff}$, nunca do comprimento da sequência (ver questão XX).
 \textbf{II é correta:} é exatamente a divisão de trabalho do bloco; a atenção mistura
 informação entre posições e a FFN processa cada posição isoladamente.
 
-\textbf{III é incorreta:} a asserção inverte o ponto central do MoE. O \textit{router}
+\textbf{III é incorreta:} a asserção inverte o mecanismo de roteamento do MoE. O \textit{router}
 seleciona apenas os top-$k$ especialistas para cada \textit{token} ($k \ll N_E$; no
 Mixtral 8$\times$7B, $2$ de $8$), e somente esses processam a entrada. Por isso o
 número total de parâmetros cresce com $N_E$ enquanto o compute por \textit{token} fica
-próximo ao de $k$ FFNs pequenas: é exatamente o desacoplamento entre parâmetros e
+próximo ao de $k$ FFNs: é exatamente o desacoplamento entre parâmetros e
 compute que motiva a arquitetura.
 
 Logo, apenas I e II estão corretas. As opções~(a) e~(b) excluem uma asserção correta.
