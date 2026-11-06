@@ -27,7 +27,7 @@
 
     \item  Descreva a estrutura de uma RNN básica.
 
-    \item Em frameworks de desenvolvimento de redes neurais (como o PyTorch) é comum que o bloco de rede recorrente conte apenas com a camada densa que computa o estado oculto (\textit{hidden state}) e que não conte com a camada densa que computa a saída. Qual motivo disso? 
+    \item Em frameworks de desenvolvimento de redes neurais (como o PyTorch) é comum que o bloco de rede recorrente conte apenas com a camada densa que computa o estado oculto (\textit{hidden state}) e que não conte com a camada densa que computa a saída. Qual é o motivo disso?
 
     \item Uma rede recorrente tem um limite teórico para o tamanho de sequências que consegue processar? E do ponto de vista prático, existem limites?
 
@@ -43,7 +43,7 @@ f(z) =
      \end{cases}
 \]
     
-    Sua tarefa é descobrir valores para esses parâmetros que façam a rede recorrente ter como saída inicial o valor $0$ e, assim que ela receba um valor $1$ como entrada ela passe a ter como saída o valor $1$ para toda e qualquer entrada futura.
+    O estado inicial é $h_0 = 0$. Sua tarefa é descobrir valores para esses parâmetros que façam a rede recorrente ter como saída inicial o valor $0$ e, assim que ela receba um valor $1$ como entrada ela passe a ter como saída o valor $1$ para toda e qualquer entrada futura.
     Por exemplo: Se a entrada for 00110 a saída deve ser 00111.
     \begin{figure}[H]
         \centering
@@ -96,7 +96,7 @@ f(z) =
             
             \item A CNN (Encoder) processa a imagem uma única vez para gerar um vetor de contexto $\mathbf{v}$. Qual é a origem e o formato (shape) mais comum deste vetor $\mathbf{v}$? Ele é a saída da última camada convolucional (um tensor 3D), ou é a saída que foi ``achatada'' (\textit{flattened}), ou é a saída já processada de uma camada totalmente conectada (FC)?
 
-            \item Digamos que não queremos perder a informação espacial de cada frame ao passá-la para a RNN. Ou seja, queremos que o \textit{input} $\mathbf{x}_t$ e o \textit{estado oculto} $\mathbf{h}_t$ sejam eles mesmos mapas de características 3D (ex: [Altura, Largura, Canais]), e não vetores 1D. É possível utilizar operações de convolução \emph{dentro} da célula da RNN (para calcular $\mathbf{h}_t$ a partir de $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$) em vez das multiplicações de matrizes (camadas densas) tradicionais? Explique brevemente o conceito.
+            \item Considere agora uma variação da tarefa em que a entrada é um vídeo: cada \textit{frame} passa pela CNN e o mapa de características resultante é a entrada $\mathbf{x}_t$ da RNN no passo $t$. Digamos que não queremos perder a informação espacial de cada \textit{frame} ao passá-la para a RNN. Ou seja, queremos que o \textit{input} $\mathbf{x}_t$ e o \textit{estado oculto} $\mathbf{h}_t$ sejam eles mesmos mapas de características 3D (ex: [Altura, Largura, Canais]), e não vetores 1D. É possível utilizar operações de convolução \emph{dentro} da célula da RNN (para calcular $\mathbf{h}_t$ a partir de $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$) em vez das multiplicações de matrizes (camadas densas) tradicionais? Explique brevemente o conceito.
         \end{enumerate}
 
     \item Considere uma vanilla RNN escalar com pesos $\theta_{hh} = 0.3$, $\theta_{ih} = 0.8$, $\theta_{ho} = 1.0$, \textit{bias} $b_h = b_o = 0$, ativação $\tanh$ e estado inicial $h_0 = 0$. A célula é definida por
@@ -123,7 +123,7 @@ f(z) =
         \item A taxa de aprendizado está baixa demais para os passos iniciais; usar uma taxa por passo, maior no início da sequência, compensa o desequilíbrio observado entre os passos.
         \item A rede está em \textit{overfitting} nos passos finais; reduzir o comprimento das sequências para poucos passos elimina o problema sem necessidade de trocar a arquitetura.
         \item A ativação $\tanh$ é a causa direta; substituí-la por sigmoide nas conexões recorrentes aumenta as derivadas e resolve o desaparecimento do gradiente nos passos iniciais.
-        \item Os gradientes desaparecem: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1 - \tanh^2(z_k))$ ao longo de muitos passos e, como têm módulo $\le 1$, o sinal decai nos passos iniciais; a mitigação é usar arquitetura com portões (LSTM/GRU).
+        \item Os gradientes desaparecem: a retropropagação no tempo multiplica, ao longo de muitos passos, fatores de módulo menor que $1$, e o sinal decai nos passos iniciais; a mitigação é usar arquitetura com portões (LSTM/GRU).
         \item A camada de saída está mal escolhida; trocá-la por \textit{softmax} com entropia cruzada propaga gradiente igualmente para todos os passos, eliminando o decaimento.
         \item Há \textit{dropout} insuficiente nos primeiros passos; adicioná-lo aumenta a magnitude do gradiente que chega a eles e compensa o decaimento multiplicativo da retropropagação.
     \end{enumerate}
@@ -136,7 +136,7 @@ f(z) =
         \item O gradiente explode ocasionalmente; aplicar \textit{clipping} por valor em cada componente é preferível ao \textit{clipping} por norma, pois somente o primeiro preserva a direção do vetor gradiente.
         \item O modelo está em \textit{overfitting} nas sequências longas; adicionar \textit{dropout} nas conexões recorrentes reduz a variância do gradiente e impede que a norma atinja valores extremos.
         \item A saturação da $\tanh$ é a causa dos saltos; trocá-la por ReLU nas conexões recorrentes limita o crescimento das ativações e, portanto, o crescimento da norma do gradiente.
-        \item O gradiente explode: a retropropagação no tempo multiplica fatores $\theta_{hh}\,(1-\tanh^2(z_k))$ que podem ter módulo maior que $1$; aplicar \textit{clipping} por norma ($\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$) limita o passo preservando a direção.
+        \item O gradiente explode: a retropropagação no tempo multiplica, ao longo de muitos passos, fatores que podem ter módulo maior que $1$; aplicar \textit{clipping} por norma limita o tamanho do passo preservando a direção.
         \item O \texttt{NaN} indica erro numérico interno do \textit{framework} de autodiferenciação; reexecutar o treinamento com outra semente aleatória, sem alterar hiperparâmetros, é suficiente para eliminar o problema.
         \item O treinamento com \textit{teacher forcing} acumula erros de exposição; alimentar o modelo com as próprias predições durante o treino estabiliza a norma do gradiente e evita os saltos.
     \end{enumerate}
@@ -232,13 +232,13 @@ f(z) =
                     \item As outras duas opções do enunciado também aparecem na literatura, mas exigem cuidado. O \textit{feature map} 3-D não pode ser consumido diretamente por uma RNN densa, e a versão achatada ($7 \times 7 \times 512 = 25088$ dimensões na VGG-16) é grande demais para virar $\mathbf{h}_0$ diretamente: seria preciso uma camada linear para casar a dimensão, e nesse caso a projeção é justamente o que a abordagem clássica já faz a partir do vetor menor da camada densa. Manter o mapa 3-D sem achatar é o caminho de arquiteturas com atenção visual, em que o \textit{decoder} consulta as $49$ posições espaciais a cada passo em vez de receber um único vetor.
                 \end{enumerate}
 
-            \item Sim, é possível, e esta arquitetura é conhecida como \textbf{Convolutional RNN} (ou ConvLSTM/ConvGRU).
+            \item Sim, é possível. Esta arquitetura é conhecida como \textbf{Convolutional RNN} (ConvLSTM ou ConvGRU).
                 \begin{enumerate}[i.]
                     \item Conceito: Em uma RNN padrão, o cálculo do novo estado oculto envolve multiplicações de matrizes (camadas densas):
                     $$
-                    \mathbf{h}_t = \tanh(\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h)
+                    \mathbf{h}_t = \tanh(\mathbf{x}_t\,\mathbf{\Theta}_{ih}^{T} + \mathbf{h}_{t-1}\,\mathbf{\Theta}_{hh}^{T} + \mathbf{b}_h),
                     $$
-                    Exigindo que $\mathbf{h}_t$, $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$ sejam vetores 1D.
+                    o que exige que $\mathbf{h}_t$, $\mathbf{h}_{t-1}$ e $\mathbf{x}_t$ sejam vetores 1D.
 
                     \item Em uma ConvRNN: As multiplicações de matrizes por $\mathbf{\Theta}_{ih}$ e $\mathbf{\Theta}_{hh}$ são substituídas por operações de convolução. Neste caso, o \textit{input} $\mathbf{x}_t$ é o próprio mapa de características 3D da CNN (ex: $7 \times 7 \times 512$). É necessário que sejam preservadas as dimensões espaciais, permitindo que a RNN ``lembre'' não apenas o que viu nos frames anteriores, mas onde (espacialmente) viu.
                 \end{enumerate}
@@ -285,7 +285,7 @@ f(z) =
     \]
     Interpretação: em média, o modelo se comporta, em cada passo, como se estivesse em dúvida entre cerca de $3.4$ \textit{tokens} igualmente prováveis.
 
-    \item Alternativa (f). Os sintomas (gradiente normal nos passos finais, praticamente nulo nos iniciais) são sinais do \textbf{desaparecimento do gradiente}. Na BPTT, o gradiente que volta até um passo distante carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2| \le 1$, o produto de muitos fatores $\le 1$ decai para zero nos passos iniciais. A mitigação estrutural é trocar a célula recorrente por uma com portões (LSTM/GRU), cujo caminho aditivo da memória ($c_t = f_t\odot c_{t-1} + \dots$) preserva o gradiente ao longo do tempo. As demais alternativas: (a) Adam ajuda, mas sozinho não cura o problema estrutural do produto de Jacobianos; (b) \textit{clipping} trata \emph{explosão} (gradientes grandes), e não o desaparecimento; (c) ajustar a taxa por passo não recupera um sinal que já chega praticamente nulo; (d) encurtar a sequência mascara o sintoma e remove a dependência de longo prazo; (e) a sigmoide tem derivada máxima $0.25 < 1$, então a troca por sigmoide \emph{piora} o decaimento; (g) a escolha da saída não redistribui o gradiente uniformemente pelos passos; (h) \textit{dropout} desliga unidades e não aumenta a magnitude do gradiente propagado.
+    \item Alternativa (f). Os sintomas (gradiente normal nos passos finais, praticamente nulo nos iniciais) são sinais do \textbf{desaparecimento do gradiente}. Na BPTT, o gradiente que volta até um passo distante carrega o produto $\prod_k \theta_{hh}\,(1 - \tanh^2(z_k))$; como $|1 - \tanh^2| \le 1$ e, no regime observado, $|\theta_{hh}|$ não compensa esse fator, o produto de muitos fatores de módulo menor que $1$ decai para zero nos passos iniciais. A mitigação estrutural é trocar a célula recorrente por uma com portões (LSTM/GRU), cujo caminho aditivo da memória ($c_t = f_t\odot c_{t-1} + \dots$) preserva o gradiente ao longo do tempo. As demais alternativas: (a) Adam ajuda, mas sozinho não cura o problema estrutural do produto de Jacobianos; (b) \textit{clipping} trata \emph{explosão} (gradientes grandes), e não o desaparecimento; (c) ajustar a taxa por passo não recupera um sinal que já chega praticamente nulo; (d) encurtar a sequência mascara o sintoma e remove a dependência de longo prazo; (e) a sigmoide tem derivada máxima $0.25 < 1$, então a troca por sigmoide \emph{piora} o decaimento; (g) a escolha da saída não redistribui o gradiente uniformemente pelos passos; (h) \textit{dropout} desliga unidades e não aumenta a magnitude do gradiente propagado.
 
     \item Alternativa (f). Saltos abruptos no custo com norma de gradiente na ordem de $10^{6}$ e \texttt{NaN} são sintomas de \textbf{explosão de gradiente}: a retropropagação no tempo multiplica fatores $\theta_{hh}(1-\tanh^2(z_k))$ por passo e, quando esses fatores têm módulo maior que $1$, o produto cresce exponencialmente com o comprimento da sequência. A mitigação padrão é o \textit{clipping} por norma, $\mathbf{g} \leftarrow c\,\mathbf{g}/\|\mathbf{g}\|$ quando $\|\mathbf{g}\| > c$, que limita o tamanho do passo \textbf{preservando a direção} do gradiente. As demais alternativas: (a) diagnostica dissipação, mas norma $10^{6}$ indica o problema oposto, e a LSTM não impede explosão por si só; (b) \textit{batch} menor \emph{aumenta} a variância do gradiente, agravando os saltos; (c) inverte a propriedade: é o \textit{clipping} por \emph{norma} que preserva a direção, o por valor distorce o vetor componente a componente; (d) \textit{overfitting} não produz saltos de custo nem \texttt{NaN}, e \textit{dropout} não limita a norma do gradiente; (e) ReLU é ilimitada superiormente e nas conexões recorrentes tende a \emph{piorar} o crescimento das ativações e dos gradientes; (g) o \texttt{NaN} é consequência numérica do \textit{overflow} causado pela explosão, e trocar a semente não remove a causa; (h) \textit{teacher forcing} e viés de exposição dizem respeito à discrepância treino/inferência na geração, e não à norma do gradiente.
 
