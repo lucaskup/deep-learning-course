@@ -1090,22 +1090,21 @@
           \texttt{;}     & 0.3 & \cellcolor{CellRed}$\times$        & \textcolor{DarkRed}{$-\infty$} & \textcolor{gray}{0} \\
           \bottomrule
         \end{tabular}}
-        \vspace{0.3em}
 
         {\footnotesize $P(\texttt{*}) = \dfrac{e^{2.1}}{e^{2.1}+e^{1.8}+e^{0.9}} = \dfrac{8.2}{16.7} \approx 0.49$}
       \end{column}
       \begin{column}{0.44\textwidth}
         \begin{exampleblock}{Leitura}
-          \small Sem a máscara, \texttt{FROM} seria o token mais provável ($P \approx 0.36$) e produziria \texttt{SELECT FROM}, inválido. Com a máscara, o softmax renormaliza a probabilidade apenas entre os tokens válidos.
+          \small Sem a máscara, \texttt{FROM} seria o token mais provável ($P \approx 0.36$) e produziria \texttt{SELECT FROM}, inválido. Com a máscara, o softmax renormaliza só entre os tokens válidos.
         \end{exampleblock}
-        \vspace{0.2em}
-        {\footnotesize \textbf{Por que $\mathcal{O}(1)$ por token?} A tabela estado $\to$ máscara é pré-compilada a partir da gramática; a cada passo basta indexá-la pelo estado atual \cite{willard2023guided}.\\[0.3em]
-        \scriptsize Nomes de coluna fora do vocabulário são gerados em vários subtokens; o DFA é definido sobre o vocabulário de subtokens do modelo.}
+        {\scriptsize \textbf{Por que $\mathcal{O}(1)$ por token?} A tabela estado $\to$ máscara é pré-compilada a partir da gramática; a cada passo basta indexá-la pelo estado atual \cite{willard2023guided}.\\[0.1em]
+        Nomes de coluna fora do vocabulário são gerados em vários subtokens; o DFA é definido sobre o vocabulário de subtokens do modelo.\par}
       \end{column}
     \end{columns}
   \end{frame}
 
   \begin{frame}{Decodificação Especulativa: Ideia Geral \cite{leviathan2023speculative}}
+    \small
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         \textbf{Gargalo}: LLMs grandes são lentos, cada token exige um passe completo.\\[0.4em]
@@ -1134,7 +1133,7 @@
   \begin{frame}{Decodificação Especulativa: Critério de Aceitação}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        Draft model $M_q$, target model $M_p$:\\[0.4em]
+        Draft model $M_q$, target model $M_p$:\\[0.1em]
         Para cada token $\tilde{x}_t$ proposto pelo draft:
         \[
           \text{Aceitar com prob.} \min\!\left(1,\; \frac{p(\tilde{x}_t \mid x_{<t})}{q(\tilde{x}_t \mid x_{<t})}\right)
@@ -1143,7 +1142,7 @@
         \[
           p'(x) \propto \max\!\bigl(0,\, p(x)-q(x)\bigr)
         \]
-        Verifique todos os $\gamma$ tokens \textbf{em um único passe} do modelo alvo.\\[0.4em]
+        Verifique todos os $\gamma$ tokens \textbf{em um único passe} do modelo alvo.\\[0.1em]
         {\footnotesize O tamanho do rascunho $\gamma$ é um hiperparâmetro de inferência; valores típicos ficam entre 3 e 8, equilibrando taxa de aceitação e custo do draft.}
       \end{column}
       \begin{column}{0.44\textwidth}
@@ -1153,7 +1152,7 @@
           \item Tokens difíceis: target corrige
           \item Rejeição na posição $t$: as posições $t{+}1, \ldots, \gamma$ do rascunho são \textbf{descartadas}
         \end{itemize}
-        \vspace{0.3em}
+        \vspace{-0.2em}
         \begin{block}{Complexidade}
           $\gamma+1$ passos de $M_q$ + 1 passe de $M_p$\\
           $\to$ até $\gamma+1$ tokens gerados\\
@@ -1165,6 +1164,7 @@
   \end{frame}
 
   \begin{frame}{Decodificação Especulativa: Exemplo Passo a Passo}
+    \small
     \textbf{Contexto:} completar \enquote{O gato subiu na \_\_\_} com $\gamma=3$.\\[0.3em]
     Draft $M_q$ propõe: \texttt{árvore}, \texttt{e}, \texttt{dormiu}, verificados em \textbf{um único passe} do Target $M_p$.\\[0.4em]
     \begin{columns}[T]
@@ -1913,16 +1913,14 @@
   \end{frame}
 
   \begin{frame}{Problemas de MoE: Balanceamento de Carga}
+    \small
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
         \textbf{Perda auxiliar de balanceamento}:
         \[
           \mathcal{L}_\text{aux} = \alpha \cdot N_E \cdot \sum_{i=1}^{N_E} f_i \cdot P_i
         \]
-        onde: $N_E$ = número de especialistas,\\
-        $\alpha$ = hiperparâmetro que pondera a perda auxiliar na perda total,\\
-        $f_i$ = fração de tokens roteados ao especialista $i$,\\
-        $P_i$ = score médio do router para o especialista $i$.\\[0.3em]
+        onde $N_E$ é o número de especialistas, $\alpha$ pondera a perda auxiliar na perda total, $f_i$ é a fração de tokens roteados ao especialista $i$ e $P_i$ é o score médio do router para ele.\\[0.3em]
         Minimizar $\mathcal{L}_\text{aux}$ encoraja distribuição uniforme.
       \end{column}
       \begin{column}{0.46\textwidth}
@@ -1932,12 +1930,9 @@
           \item \textbf{Comunicação}: especialistas distribuídos em GPUs diferentes (\textit{model parallelism})
           \item \textbf{Capacidade máxima}: tokens descartados se um especialista ficar sobrecarregado
         \end{itemize}
-        \vspace{-0.1em}
+        \vspace{-0.3em}
         \begin{exampleblock}{Mixtral}
-          \begin{itemize}
-            \item Perda auxiliar de balanceamento (o valor $\alpha=0.01$ vem do Switch Transformer)
-            \item Roteamento token a token: top-$k$ escolhido por token e por camada
-          \end{itemize}
+          Usa a perda auxiliar de balanceamento (o valor $\alpha=0.01$ vem do Switch Transformer) e roteamento token a token: top-$k$ escolhido por token e por camada.
         \end{exampleblock}
       \end{column}
     \end{columns}

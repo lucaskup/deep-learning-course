@@ -2,6 +2,7 @@
 
 \input{slides/utils/preamble}
 \input{slides/utils/custom-commands}
+\usepackage{array}
 
 %----------------------------------------------------------------------------------------
 %    EXTRA COLORS / COMMANDS FOR THIS LECTURE
@@ -619,11 +620,11 @@
         O \textit{Reward Model} (RM) é treinado para \textbf{prever preferência humana}
         entre pares de respostas para o mesmo prompt.
 
-        \vspace{0.4em}
+        \vspace{0.2em}
         \textbf{Coleta de dados:} para cada prompt $x$, amostram-se duas respostas
         $(y_w, y_l)$ onde $y_w$ é a preferida pelos anotadores.
 
-        \vspace{0.4em}
+        \vspace{0.2em}
         \begin{block}{Função de perda do RM (Bradley-Terry)}
           \small
           \[
@@ -634,12 +635,11 @@
           onde $r_\phi(x,y)$ é o \textit{scalar reward} predito.
         \end{block}
 
-        \vspace{0.2em}
         {\small É a verossimilhança de um modelo de \textit{ranking}: equivale a \textbf{classificação binária} com \textit{logit} $= r_\phi(y_w){-}r_\phi(y_l)$.}
       \end{column}
       \begin{column}{0.45\textwidth}
         \textcolor{DarkBlue}{\textbf{Datasets de comparações humanas}}
-        \vspace{0.3em}
+        \vspace{0.1em}
 
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lcc}
@@ -653,7 +653,7 @@
           \bottomrule
         \end{tabular}}
 
-        \vspace{0.3em}
+        \vspace{0.1em}
         \textcolor{MidGray}{\small O RM geralmente parte do \textbf{mesmo modelo SFT}
         com uma cabeça de regressão escalar adicionada.}
       \end{column}
@@ -795,6 +795,7 @@
 
   %--- Slide: PPO objetivo ---
   \begin{frame}{Função Objetivo do PPO com Penalidade KL \cite{schulman2017ppo}}
+    \small
     \begin{columns}
       \begin{column}{0.52\textwidth}
         O PPO otimiza a política $\pi_\theta$ para maximizar recompensa
@@ -825,14 +826,13 @@
         \textcolor{DarkBlue}{\textbf{Papel do coeficiente KL} $\beta$}
         \vspace{0.1em}
 
-        \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lp{3.5cm}}
+        \begin{tabular}{@{}l>{\raggedright\arraybackslash}p{4.2cm}@{}}
           \toprule
-          $\beta$ pequeno & Liberdade para maximizar reward; risco de \textit{reward hacking} \\
+          $\beta$ pequeno & Liberdade para maximizar \textit{reward}; risco de \textit{reward hacking} \\
           \midrule
           $\beta$ grande  & Permanece próximo do SFT; pode não melhorar o alinhamento \\
           \bottomrule
-        \end{tabular}}
+        \end{tabular}
 
         \textcolor{DarkRed}{\textbf{Instabilidades típicas:}}
         \begin{itemize}
@@ -996,7 +996,6 @@
     \textbf{Problema:} ``Quanto é $12 \times 7$?'' \quad (resposta correta: $84$) \quad
     Grupo de $G = 4$ respostas amostradas.
 
-    \vspace{0.3em}
     \begin{columns}[T]
       \begin{column}{0.50\textwidth}
         \resizebox{\linewidth}{!}{%
@@ -1011,9 +1010,8 @@
           \bottomrule
         \end{tabular}}
 
-        \vspace{0.4em}
         \begin{align*}
-          \overline{r} &= \tfrac{1+0+1+0}{4} = 0.5, \qquad \sigma_r = 0.5 \\[4pt]
+          \overline{r} &= \tfrac{1+0+1+0}{4} = 0.5, \qquad \sigma_r = 0.5 \\
           \hat{A}_i &= \frac{r_i - 0.5}{0.5}
         \end{align*}
       \end{column}
@@ -1027,7 +1025,6 @@
           \end{itemize}
         \end{block}
 
-        \vspace{0.4em}
         \textcolor{MidGray}{\small Sem \textit{value function}: o baseline é
         a \textbf{média das recompensas do grupo}.
         Com recompensas binárias e metade do grupo acertando,
@@ -1057,22 +1054,21 @@
           \begin{enumerate}
             \item \textit{Cold start}: SFT curto com cadeias de raciocínio
             \item GRPO com \textit{reward} de acurácia + formato
-            \item \textit{Rejection sampling} das melhores gerações e novo SFT
-            \item Nova rodada de RL, agora com preferências humanas também
+            \item Novo SFT com \textit{rejection sampling}
+            \item Nova rodada de RL com preferências humanas
           \end{enumerate}
         \end{block}
       \end{column}
       \begin{column}{0.47\textwidth}
         \textcolor{DarkBlue}{\textbf{O que emerge durante o RL}}
         \begin{itemize}
-          \item Respostas ficam \textbf{mais longas}: o modelo aprende a ``pensar'' antes de responder
+          \item Respostas \textbf{mais longas}: o modelo ``pensa'' antes de responder
           \item Autoverificação e retrocesso (``espera, vou conferir\ldots'') sem supervisão direta
         \end{itemize}
-        \vspace{0.2em}
         \textcolor{DarkRed}{\textbf{Riscos e limites}}
         \begin{itemize}
           \item \textit{Reward hacking} no verificador (formato do gabarito, testes fracos)
-          \item Só funciona onde há verificador: escrita e diálogo seguem com RM ou pares
+          \item Sem verificador (escrita, diálogo), volta-se ao RM ou a pares
           \item Custo de inferência cresce com cadeias longas
         \end{itemize}
       \end{column}
@@ -1111,14 +1107,13 @@
       \end{column}
       \begin{column}{0.45\textwidth}
         \textcolor{DarkBlue}{\textbf{\textit{Reward} implícito de cada método}}
-        \vspace{0.2em}
 
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lcc}
           \toprule
           \textbf{Método} & $r_\theta(x,y)$ & $\pi_{\text{ref}}$? \\
           \midrule
-          DPO   & $\beta\log\dfrac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$ & sim \\[1.2em]
+          DPO   & $\beta\log\dfrac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)}$ & sim \\[0.6em]
           SimPO & $\dfrac{\beta}{|y|}\log\pi_\theta(y|x)$ & não \\
           \bottomrule
         \end{tabular}}
@@ -1515,7 +1510,7 @@
     \begin{columns}[T]
       \begin{column}{0.62\textwidth}
         \resizebox{\linewidth}{!}{%
-        \begin{tabular}{lp{4.6cm}p{3.6cm}}
+        \begin{tabular}{l>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.6cm}}
           \toprule
           \textbf{Eixo} & \textbf{O que se divide} & \textbf{Custo de comunicação} \\
           \midrule
@@ -1570,7 +1565,7 @@
           \item \textbf{Ativações}: dependem de \textit{batch} e comprimento
         \end{itemize}
 
-        \vspace{0.2em}
+        \vspace{-0.2em}
         \begin{alertblock}{Exemplo: modelo de 7B parâmetros}
           Pesos + gradientes + otimizador $\approx$ \textbf{112 GB}:
           fora do alcance de GPUs de consumo (RTX~4090: 24~GB).
@@ -1578,7 +1573,6 @@
       \end{column}
       \begin{column}{0.47\textwidth}
         \textcolor{DarkBlue}{\textbf{Memória por parâmetro}}
-        \vspace{0.3em}
 
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lcc}
@@ -1596,7 +1590,6 @@
           \multicolumn{3}{l}{\scriptsize Em precisão mista, a cópia mestre e os momentos do Adam ficam em fp32.}
         \end{tabular}}
 
-        \vspace{0.4em}
         \textcolor{DarkGreen}{\small \textbf{Solução PEFT:} treinar apenas uma
         fração pequena dos parâmetros, mantendo o modelo base congelado.}
       \end{column}
@@ -1614,6 +1607,7 @@
 
   %--- Slide: LoRA ---
   \begin{frame}{LoRA: \textit{Low-Rank Adaptation} \cite{hu2022lora}}
+    \small
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
         Hu et al.\ (2022) decompõem a atualização de pesos como um produto
@@ -1637,7 +1631,6 @@
       \end{column}
       \begin{column}{0.45\textwidth}
         \textcolor{DarkBlue}{\textbf{Configurações típicas}}
-        \vspace{0.3em}
 
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lcc}
@@ -1651,12 +1644,10 @@
           \bottomrule
         \end{tabular}}
 
-        \vspace{0.4em}
         \textcolor{DarkRed}{\small \textbf{Exemplo:} LLaMA-7B com $r{=}16$
         em Q e V: $\sim$8,4M parâmetros treináveis ($\sim$0,12\% do total);
         a memória de gradientes e otimizador praticamente desaparece.}
 
-        \vspace{0.3em}
         \textcolor{MidGray}{\small Adaptar todas as projeções lineares
         (Q, K, V, O, \textit{gate}, \textit{up}, \textit{down}) melhora o desempenho
         ao custo de mais parâmetros; é o padrão atual (QLoRA).}
@@ -1887,7 +1878,7 @@
   \begin{frame}{Comparação dos Métodos PEFT}
     \centering
     \resizebox{0.98\linewidth}{!}{%
-    \begin{tabular}{lccccp{3.5cm}}
+    \begin{tabular}{lcccc>{\raggedright\arraybackslash}p{3.5cm}}
       \toprule
       \textbf{Método} &
       \textbf{Params. treináveis} &
