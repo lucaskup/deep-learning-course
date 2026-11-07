@@ -20,7 +20,7 @@
     % --------------------------------------------------------------
     % Q1 (easy) -- propriedades essenciais de um flow
     % --------------------------------------------------------------
-    \item Quatro funções $f : \mathbb{R}^d \to \mathbb{R}^d$ são candidatas a compor uma camada de \textit{normalizing flow}. Para que a camada possa ser treinada por máxima verossimilhança e amostrada pela inversa, $f$ deve satisfazer simultaneamente um conjunto específico de propriedades. Qual conjunto abaixo é o mínimo necessário?
+    \item Quatro funções $f : \mathbb{R}^d \to \mathbb{R}^d$ são candidatas a compor uma camada de \textit{normalizing flow}. Para que a camada possa ser treinada por máxima verossimilhança e amostrada pela inversa, $f$ deve satisfazer simultaneamente um conjunto de propriedades. Qual conjunto abaixo é o mínimo necessário?
     \begin{enumerate}[(a)]
         \item Inversível, diferenciável, com Jacobiana cujo determinante seja eficiente de computar, e paramétrica.
         \item Linear por partes, contínua, com determinante igual a 1, e paramétrica.
@@ -78,10 +78,10 @@
     \]
     Qual conclusão sobre $\det(Df)$ segue dessa estrutura?
     \begin{enumerate}[(a)]
-        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{A})$, pois o bloco fora da diagonal domina.
-        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{B})$, pois o determinante de uma matriz triangular por blocos é o produto dos determinantes dos blocos diagonais e $\det(\mathbf{I}) = 1$.
+        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{A})$.
+        \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{B})$.
         \item $\det(Df) = \det(\partial \hat{f}/\partial \mathbf{x}^{A}) \cdot \det(\partial \hat{f}/\partial \mathbf{x}^{B})$.
-        \item $\det(Df) = 1$, pois o bloco superior é a identidade.
+        \item $\det(Df) = 1$.
         %b
     \end{enumerate}
 
@@ -207,7 +207,7 @@
 
 \end{enumerate}
 
-\subsection*{Gabarito - Objetivas}
+\subsection*{Gabarito das Objetivas}
 \begin{enumerate}[I)]
     \item a
     \item b
@@ -292,17 +292,17 @@
 
     \item \textbf{(a)} $y^A = x^A = 2$. $y^B = 3 \cdot e^{-0.5} + 1 \approx 3 \cdot 0.607 + 1 = 1.82 + 1 = 2.82$. A (b) esquece o termo $+t$ ($3 \cdot 0.607 \approx 1.82$). A (c) usa $\exp(+0.5) \approx 1.649$ no lugar de $\exp(-0.5)$, dando $3 \cdot 1.649 + 1 \approx 5.95$. A (d) aplica $x^B + s + t = 3 - 0.5 + 1 = 3.5$, somando em vez de escalar por $\exp(s)$.
 
-    \item \textbf{(b)} Para uma matriz triangular inferior por blocos $\begin{bmatrix}A & 0 \\ C & D\end{bmatrix}$, o determinante é $\det(A)\det(D)$. Como o bloco superior é $\mathbf{I}$ (com $\det = 1$), sobra $\det(\partial \hat{f}/\partial \mathbf{x}^{B})$. O bloco fora da diagonal $\partial \hat{f}/\partial \mathbf{x}^{A}$ é exatamente o que \emph{não importa} para o determinante. As alternativas (a) e (c) trocam essa propriedade.
+    \item \textbf{(b)} Para uma matriz triangular inferior por blocos $\begin{bmatrix}A & 0 \\ C & D\end{bmatrix}$, o determinante é $\det(A)\det(D)$. Como o bloco superior é $\mathbf{I}$ (com $\det = 1$), sobra $\det(\partial \hat{f}/\partial \mathbf{x}^{B})$. O bloco fora da diagonal $\partial \hat{f}/\partial \mathbf{x}^{A}$ é exatamente o que \emph{não importa} para o determinante. As alternativas (a) e (c) trocam essa propriedade; a (d) ignora o bloco $\partial \hat{f}/\partial \mathbf{x}^{B}$, cujo determinante em geral é diferente de $1$.
 
-    \item \textbf{(b)} Ambos os termos recebem gradiente. O $\log|\det J|$ depende de $\thetav$ diretamente, pela Jacobiana da rede, e penaliza camadas que contraem volume de forma exagerada para ``trapacear'' empurrando toda a massa para uma região pequena. O termo $-\log p_Z(\mathbf{z})$ tem forma fechada fixa (gaussiana padrão), mas o ponto de avaliação $\mathbf{z}^{(i)} = f^{-1}(\mathbf{x}^{(i)}, \thetav)$ se move quando $\thetav$ muda; é esse termo que puxa os latentes para a região de alta densidade da base. A (a) é o erro clássico: se o termo da base fosse omitido do gradiente, a rede minimizaria a perda apenas contraindo volume, sem ajustar a distribuição aos dados. A (c) inverte os papéis, a base é fixa e a Jacobiana não é constante. A (d) é falsa, $\mathbf{z}^{(i)}$ é recalculado a cada passo de treino.
+    \item \textbf{(b)} Ambos os termos recebem gradiente. O $\log|\det J|$ depende de $\thetav$ diretamente, pela Jacobiana da rede, e penaliza expansão de volume na direção $\mathbf{z} \to \mathbf{x}$ (determinante grande); é ele que impede a ``trapaça'' de a inversa $f^{-1}$ comprimir todos os dados em uma região pequena do espaço latente, onde $-\log p_Z$ seria mínimo. O termo $-\log p_Z(\mathbf{z})$ tem forma fechada fixa (gaussiana padrão), mas o ponto de avaliação $\mathbf{z}^{(i)} = f^{-1}(\mathbf{x}^{(i)}, \thetav)$ se move quando $\thetav$ muda; é esse termo que puxa os latentes para a região de alta densidade da base. A (a) está errada: se o termo da base fosse omitido do gradiente, a rede minimizaria a perda apenas contraindo volume, sem ajustar a distribuição aos dados. A (c) inverte os papéis, a base é fixa e a Jacobiana não é constante. A (d) é falsa, $\mathbf{z}^{(i)}$ é recalculado a cada passo de treino.
 
     \item \textbf{(a)} $x^B = (y^B - t) \cdot e^{-s} = (2.20 - (-0.5)) \cdot e^{-0.3} = 2.70 \cdot 0.741 \approx 2.00$. A (b) usa $(y^B - 0.5) \cdot 0.741 = 1.70 \cdot 0.741 \approx 1.26$, esquecendo que $t = -0.5$ e portanto $y^B - t = y^B + 0.5$. A (c) aplica $e^{+s}$ em vez de $e^{-s}$, dando $2.70 \cdot 1.350 \approx 3.64$. A (d) usa $y^B \cdot e^{-s} = 2.20 \cdot 0.741 \approx 1.63$, omitindo $t$ por completo.
 
-    \item \textbf{(b)} $Y = aX + b$ com $a = 2$, $b = 3$ é a transformação afim padrão. Pela mudança de variável, $p_Y(y) = p_X((y - b)/a) \cdot |1/a|$. Em $y = 3$, $(y - b)/a = 0$, então $p_X(0) = 1/\sqrt{2\pi} \approx 0.399$. Multiplicando por $|1/a| = 1/2$, $p_Y(3) \approx 0.200$. A (a) esquece o fator Jacobiano $1/|a|$ e devolve $p_X(0)$ direto. A (c) multiplica por $|a| = 2$ no lugar de dividir, obtendo $\approx 0.798$. A (d) divide por $|a + b| = 3$ no lugar de $|a|$, confundindo a estrutura da fórmula.
+    \item \textbf{(b)} $Y = aX + b$ com $a = 2$, $b = 3$ é a transformação afim padrão. Pela mudança de variável, $p_Y(y) = p_X((y - b)/a) \cdot |1/a|$. Em $y = 3$, $(y - b)/a = 0$, então $p_X(0) = 1/\sqrt{2\pi} \approx 0.399$. Multiplicando por $|1/a| = 1/2$, $p_Y(3) \approx 0.200$. A (a) esquece o fator Jacobiano $1/|a|$ e devolve $p_X(0)$ direto. A (c) multiplica por $|a| = 2$ no lugar de dividir, obtendo $\approx 0.798$. A (d) divide por $|b| = 3$ no lugar de $|a| = 2$, confundindo o papel dos dois coeficientes na fórmula.
 
     \item \textbf{(d)} Uma única camada \textit{coupling} mantém $\mathbf{x}^A$ idêntico, então nada acontece com essas dimensões. Alternar permutações entre camadas faz com que diferentes subconjuntos de coordenadas alternem entre o papel de ``$A$'' (copiadas) e ``$B$'' (transformadas), garantindo que toda dimensão seja eventualmente afetada. As demais alternativas descrevem efeitos que não correspondem ao papel da permutação.
 
-    \item \textbf{(c)} A inversibilidade é uma exigência da família \textit{flow}, então estruturas como LU ou convoluções $1{\times}1$ não a comprometem. O ganho é puramente computacional: matrizes estruturadas têm determinante e inversa em tempo subcúbico (LU custa $\mathcal{O}(d)$ no determinante depois de fatorada; $1{\times}1$ convolução tem custo proporcional ao número de canais). A (a) é falsa, transformações lineares continuam lineares mesmo estruturadas. A (b) zera o termo da NLL e perde expressividade. A (d) confunde com mapas isométricos.
+    \item \textbf{(c)} A inversibilidade é uma exigência da família \textit{flow}, então estruturas como LU ou convoluções $1{\times}1$ não a comprometem. O ganho é computacional: na forma LU, o determinante é o produto da diagonal, $\mathcal{O}(d)$, e a inversa se aplica resolvendo dois sistemas triangulares, $\mathcal{O}(d^2)$, sem formar $\mathbf{\Theta}^{-1}$. A convolução $1{\times}1$ do Glow age apenas sobre os $c$ canais, com $c \ll d$: o log-determinante da camada vale $h \cdot w \cdot \log|\det \mathbf{W}|$ para uma matriz $\mathbf{W}$ de $c \times c$, custo $\mathcal{O}(c^3)$, que o Glow reduz a $\mathcal{O}(c)$ parametrizando $\mathbf{W}$ na forma LU. A (a) é falsa, transformações lineares continuam lineares mesmo estruturadas. A (b) zera o termo da NLL e perde expressividade. A (d) confunde com mapas isométricos.
 
     \item \textbf{(e)} Com $\exp(\mathbf{s}) = (e^{\ln 2}, e^{0}) = (2, 1)$:
     \[
@@ -329,7 +329,7 @@
         \[
             \mathcal{L}(\thetav) = \sum_{i=1}^{N}\left[\log\left|\tfrac{\partial f(\mathbf{z}^{(i)},\thetav)}{\partial \mathbf{z}^{(i)}}\right| - \log p_Z(\mathbf{z}^{(i)})\right].
         \]
-        O termo $\log|\det J|$ depende de $\thetav$ diretamente (via a Jacobiana da rede $f$) e penaliza configurações que comprimem volume excessivamente, que de outra forma deixariam a verossimilhança artificialmente alta. O termo $-\log p_Z(\mathbf{z})$ tem densidade em forma fechada e fixa (gaussiana padrão, em geral), mas também depende de $\thetav$, através do ponto de avaliação $\mathbf{z} = f^{-1}(\mathbf{x}, \thetav)$; é ele que puxa os latentes para a região de alta densidade da base.
+        O termo $\log|\det J|$ depende de $\thetav$ diretamente (via a Jacobiana da rede $f$) e penaliza expansão de volume na direção $\mathbf{z} \to \mathbf{x}$ (determinante grande): sem ele, a inversa $f^{-1}$ poderia comprimir todos os dados em uma região pequena do espaço latente e deixar a verossimilhança artificialmente alta. O termo $-\log p_Z(\mathbf{z})$ tem densidade em forma fechada e fixa (gaussiana padrão, em geral), mas também depende de $\thetav$, através do ponto de avaliação $\mathbf{z} = f^{-1}(\mathbf{x}, \thetav)$; é ele que puxa os latentes para a região de alta densidade da base.
     \end{enumerate}
 
     \item

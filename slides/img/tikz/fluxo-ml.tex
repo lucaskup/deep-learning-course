@@ -1,0 +1,28 @@
+\begin{tikzpicture}[
+    font=\footnotesize,
+    box/.style={draw, fill=PastelGreen, minimum height=0.9cm, text width=2cm, align=center, inner sep=2pt},
+    arr/.style={-{Latex[length=2mm]}, thick},
+    node distance=0.45cm
+  ]
+  \node[box] (ed) {Experimental Design};
+  \node[box, right=of ed] (dc) {Data Collection};
+  \node[box, right=0.9cm of dc, text width=2.2cm] (dr) {Dimensionality\\Reduction};
+  \node[box, right=of dr] (pd) {Predictor Design};
+  \node[box, right=of pd] (ee) {Error Estimation};
+  \node[right=0.6cm of ee, align=center, font=\footnotesize\bfseries] (out) {Sistema\\projetado};
+
+  \draw[arr] (ed) -- (dc);
+  \draw[arr] (dc) -- (dr);
+  \draw[arr] (dr) -- (pd);
+  \draw[arr] (pd) -- (ee);
+  \draw[arr] (ee) -- (out);
+
+  % feedback loops from error estimation
+  \draw[arr] ([xshift=0.25cm]ee.south) -- ++(0,-0.3) -| (dr.south);
+  \draw[arr] (ee.south) -- ++(0,-0.65) -| (dc.south);
+  \draw[arr] ([xshift=-0.25cm]ee.south) -- ++(0,-1.0) -| (ed.south);
+
+  % dashed frame around the iterative stages
+  \draw[dashed, thick, PastelOrange!60!black]
+    ($(dr.north west)+(-0.2,0.2)$) rectangle ($(ee.south east)+(0.2,-0.45)$);
+\end{tikzpicture}

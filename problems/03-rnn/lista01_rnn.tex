@@ -179,7 +179,7 @@ f(z) =
 
     \item Uma RNN consiste em uma camada de entrada, uma camada oculta com conexões recorrentes e uma camada de saída. A camada oculta mantém um estado oculto que é atualizado a cada passo temporal, e é usado como entrada para os passos subsequentes, permitindo que a rede memorize informações de entradas anteriores.
 
-    \item As tarefas que envolvem dados sequenciais são muito variadas. Podemos fazer análise de sentimentos (classificar uma sequência), \textit{image captioning} no qual temos uma entrada e uma sequência como saída ou ainda sequence-to-sequence onde temos sequências na entrada e na saída. Dada essa grande variedade de problemas, seria um desperdício manter parâmetros de saída para cada unidade recorrente. Mantendo a unidade recorrente sem saída por padrão, os \textit{frameworks} transferem a responsabilidade de definir quando a saída deve ser computada (e onde os parâmetros devem ser aprendidos) para o desenvolvedor.
+    \item As tarefas que envolvem dados sequenciais são muito variadas. Podemos fazer análise de sentimentos (classificar uma sequência), \textit{image captioning} no qual temos uma entrada e uma sequência como saída ou ainda sequence-to-sequence onde temos sequências na entrada e na saída. Dada essa variedade de problemas, seria um desperdício manter parâmetros de saída para cada unidade recorrente. Mantendo a unidade recorrente sem saída por padrão, os \textit{frameworks} transferem a responsabilidade de definir quando a saída deve ser computada (e onde os parâmetros devem ser aprendidos) para o desenvolvedor.
 
     \item Do ponto de vista teórico uma RNN consegue processar entradas de qualquer tamanho, um item por vez. Contudo, na prática vemos que RNNs não trabalham bem com dependências muito longas. Isso ocorre pois em RNN estamos sempre atualizando o estado oculto em cada uma das iterações ao longo do tempo.
 
@@ -252,20 +252,20 @@ f(z) =
             z_1 &= x_1\,\theta_{ih} + h_0\,\theta_{hh} = 1.0\cdot 0.8 + 0\cdot 0.3 = 0.8 \\
             h_1 &= \tanh(0.8) \approx 0.6640 \\
             z_2 &= x_2\,\theta_{ih} + h_1\,\theta_{hh} = (-0.5)\cdot 0.8 + 0.6640\cdot 0.3 \approx -0.2008 \\
-            h_2 &= \tanh(-0.2008) \approx -0.1982 \\
-            \hat{y}_2 &= h_2\,\theta_{ho} \approx -0.1982 \\
-            J &= \tfrac{1}{2}(\hat{y}_2 - y)^2 \approx \tfrac{1}{2}(-1.1982)^2 \approx 0.7178
+            h_2 &= \tanh(-0.2008) \approx -0.1981 \\
+            \hat{y}_2 &= h_2\,\theta_{ho} \approx -0.1981 \\
+            J &= \tfrac{1}{2}(\hat{y}_2 - y)^2 \approx \tfrac{1}{2}(-1.1981)^2 \approx 0.7178
         \end{align*}
 
         \item Derivada em $\theta_{ho}$:
         \[
-            \frac{\partial J}{\partial \theta_{ho}} = (\hat{y}_2 - y)\,h_2 \approx -1.1982 \cdot (-0.1982) \approx 0.2374.
+            \frac{\partial J}{\partial \theta_{ho}} = (\hat{y}_2 - y)\,h_2 \approx -1.1981 \cdot (-0.1981) \approx 0.2374.
         \]
 
         \item BPTT para $\theta_{hh}$. Gradientes intermediários:
         \begin{align*}
-            \frac{\partial J}{\partial h_2} &= (\hat{y}_2 - y)\,\theta_{ho} \approx -1.1982 \\
-            \frac{\partial J}{\partial z_2} &= \frac{\partial J}{\partial h_2}\,(1 - h_2^2) \approx -1.1982 \cdot (1 - 0.0393) \approx -1.1511 \\
+            \frac{\partial J}{\partial h_2} &= (\hat{y}_2 - y)\,\theta_{ho} \approx -1.1981 \\
+            \frac{\partial J}{\partial z_2} &= \frac{\partial J}{\partial h_2}\,(1 - h_2^2) \approx -1.1981 \cdot (1 - 0.0393) \approx -1.1511 \\
             \frac{\partial J}{\partial h_1} &= \frac{\partial J}{\partial z_2}\,\theta_{hh} \approx -1.1511 \cdot 0.3 \approx -0.3453 \\
             \frac{\partial J}{\partial z_1} &= \frac{\partial J}{\partial h_1}\,(1 - h_1^2) \approx -0.3453 \cdot (1 - 0.4410) \approx -0.1931
         \end{align*}

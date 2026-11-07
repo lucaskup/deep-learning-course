@@ -28,7 +28,7 @@
 
 \item A detecção de objetos não pode ser resolvida com a mesma cabeça de saída de tamanho fixo (uma \textit{softmax} mais 4 unidades sigmoide) usada na tarefa de classificação com localização.
 \begin{enumerate}[a)]
-    \item Qual é a dificuldade central da detecção que torna uma saída de tamanho fixo inadequada?
+    \item Qual é a dificuldade da detecção que torna uma saída de tamanho fixo inadequada?
     \item Contraste detectores de dois estágios (como o Faster R-CNN) com detectores de estágio único (como o YOLO) quanto à forma de propor regiões e ao compromisso entre velocidade e precisão.
 \end{enumerate}
 
@@ -61,22 +61,22 @@
 
 \item Teríamos duas alternativas se não fôssemos usar uma arquitetura \textit{encoder-decoder}:
 \begin{enumerate}[1.]
-    \item Usar convoluções sem fazer \textit{downsampling}, o que seria inviável devido ao número de parâmetros necessários e à quantidade de processamento gasto.
+    \item Usar convoluções sem fazer \textit{downsampling}, o que seria inviável pelo custo de processamento e pela memória das ativações em resolução plena, além de exigir muitas camadas (ou \textit{kernels} grandes) para alcançar um campo receptivo amplo.
     \item Usar uma rede convolucional com \textit{downsampling} e executá-la várias vezes em diferentes \textit{patches} da imagem, o que também seria proibitivo em termos de custo computacional.
 \end{enumerate}
-A arquitetura \textit{encoder-decoder} realiza toda a segmentação da imagem em uma única passada e mantém o número de parâmetros baixo.
+A arquitetura \textit{encoder-decoder} realiza toda a segmentação da imagem em uma única passada e mantém o custo de processamento baixo, pois a maior parte das camadas opera em resolução reduzida.
 
-\item Nas duas tarefas o modelo produz classe e \textit{bounding box}: a localização é classificação $+$ localização de um objeto, e a detecção faz o mesmo para cada objeto encontrado. A diferença está no \textbf{número de objetos}. Na localização supomos um único objeto de interesse, então a saída tem tamanho fixo e uma cabeça densa com 4 unidades para a caixa resolve o problema. Na detecção a imagem pode conter vários objetos e não sabemos de antemão quantos, então a saída tem tamanho variável, o que é o desafio central da tarefa e o motivo de precisarmos de mecanismos como propostas de região, âncoras ou consultas aprendidas, além de supressão de detecções redundantes.
+\item Nas duas tarefas o modelo produz classe e \textit{bounding box}: a localização é classificação $+$ localização de um objeto, e a detecção faz o mesmo para cada objeto encontrado. A diferença está no \textbf{número de objetos}. Na localização supomos um único objeto de interesse, então a saída tem tamanho fixo e uma cabeça densa com 4 unidades para a caixa resolve o problema. Na detecção a imagem pode conter vários objetos e não sabemos de antemão quantos, então a saída tem tamanho variável, o que exige mecanismos como propostas de região, âncoras ou consultas aprendidas, além de supressão de detecções redundantes.
 
-\item As camadas convolucionais da VGG-16 extraem uma hierarquia de características: as primeiras capturam padrões de baixo nível, como bordas e texturas, e as mais profundas combinam esses padrões em partes de objetos. Como foram treinadas em um conjunto grande e variado, essas características são genéricas o suficiente para servir ao novo problema, e com apenas 250 instâncias por classe retreiná-las levaria a \textit{overfitting}. Por outro lado, as camadas densas finais estão intimamente relacionadas ao conjunto de dados original (ImageNet). Uma abordagem usual é manter as camadas convolucionais e treinar novamente as camadas densas na extremidade da rede. Isso é um exemplo de \textit{transfer learning} pois estamos aproveitando um aprendizado realizado em um vasto conjunto de dados para ajustar para o nosso problema específico.
+\item As camadas convolucionais da VGG-16 extraem uma hierarquia de características: as primeiras capturam padrões de baixo nível, como bordas e texturas, e as mais profundas combinam esses padrões em partes de objetos. Como foram treinadas em um conjunto grande e variado, essas características são genéricas o suficiente para servir ao novo problema, e com apenas 250 instâncias por classe retreiná-las levaria a \textit{overfitting}. Por outro lado, as camadas densas finais estão intimamente relacionadas ao conjunto de dados original (ImageNet). Uma abordagem usual é manter as camadas convolucionais e treinar novamente as camadas densas na extremidade da rede. Isso é um exemplo de \textit{transfer learning} pois estamos aproveitando um aprendizado realizado em um vasto conjunto de dados para ajustar ao nosso problema.
 
 \item Áreas e sobreposição: $Area(A) = 4 \times 3 = 12$ e $Area(B) = 4 \times 3 = 12$. A interseção ocorre em $x \in [3, 5]$ (largura 2) e $y \in [2, 4]$ (altura 2), logo $A \cap B = 2 \times 2 = 4$. A união é $A \cup B = Area(A) + Area(B) - A \cap B = 12 + 12 - 4 = 20$.
 $$IoU = \frac{A \cap B}{A \cup B} = \frac{4}{20} = 0{,}2 \qquad Dice = \frac{2 \cdot (A \cap B)}{Area(A) + Area(B)} = \frac{2 \cdot 4}{12 + 12} = \frac{8}{24} \approx 0{,}333$$
 
 \item
 \begin{enumerate}[a.]
-    \item Porque a \textit{bounding box} é um problema de regressão multivariada de 4 valores contínuos e independentes, não uma escolha entre classes mutuamente exclusivas. A sigmoide mantém cada saída em $[0,1]$, compatível com coordenadas normalizadas, e o MSE mede o erro de regressão. Uma \textit{softmax} forçaria as 4 saídas a competir e somar 1, o que não faz sentido para coordenadas.
-    \item Assume que a caixa cabe inteiramente dentro da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$.
+    \item Porque a \textit{bounding box} é um problema de regressão multivariada de 4 componentes contínuos, não uma escolha entre classes mutuamente exclusivas. A sigmoide mantém cada saída em $[0,1]$, compatível com coordenadas normalizadas, e o MSE mede o erro de regressão. Uma \textit{softmax} forçaria as 4 saídas a competir e somar 1, o que não faz sentido para coordenadas.
+    \item Assume que o canto de referência $(x, y)$ está dentro da imagem e que a altura e a largura não excedem as da imagem, com $(x, y) \in [0,1]^2$ e $h, w \in [0,1]$. Essas restrições limitam cada componente individualmente e não garantem que a caixa caiba inteira na imagem: com $x = 0{,}9$ e $w = 0{,}4$, a caixa ultrapassa a borda direita.
     \item Usando outra parametrização, por exemplo \textit{logits} sem ativação (permitindo valores fora de $[0,1]$) ou regredindo \textit{offsets} em relação a uma \textit{anchor}.
 \end{enumerate}
 

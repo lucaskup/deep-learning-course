@@ -535,7 +535,7 @@ qual é a \textbf{perplexidade} do modelo nessa sequência?
 % ------------------------------------------------------------------
 \item Sobre as asserções abaixo a respeito do pré-treinamento de modelos \textit{decoder-only}:
 
-\textbf{I.} Uma sequência de $n$ \textit{tokens} fornece $n$ exemplos de treino simultâneos: a perda é computada para todas as posições em um único passe, com alvo igual à entrada deslocada uma posição (\textit{shift-by-one}).
+\textbf{I.} Uma sequência de $n{+}1$ \textit{tokens} fornece $n$ exemplos de treino simultâneos: a perda é computada para todas as posições em um único passe, com alvo igual à entrada deslocada uma posição (\textit{shift-by-one}).
 
 \textbf{II.} A máscara causal é necessária apenas na inferência; durante o treinamento ela pode ser omitida sem prejuízo, pois os alvos de cada posição já são conhecidos.
 
@@ -555,7 +555,7 @@ qual é a \textbf{perplexidade} do modelo nessa sequência?
 % ------------------------------------------------------------------
 % Q19 — Difícil (decodificação especulativa: aceitação estocástica em várias posições)
 % ------------------------------------------------------------------
-\item Na \textbf{decodificação especulativa}, o modelo de rascunho $M_q$ propõe $\gamma$ \textit{tokens} (probabilidades $q$) e o modelo alvo $M_p$ os verifica em um único passe (probabilidades $p$). Cada \textit{token} proposto $\tilde{x}$ é \textbf{aceito} com probabilidade $\min\!\left(1,\; p(\tilde{x})/q(\tilde{x})\right)$; se \textbf{rejeitado}, reamostra-se da distribuição normalizada $(p - q)_+ = \max(0,\, p - q)$ e \textbf{descartam-se todas as posições seguintes} do rascunho (se todos forem aceitos, amostra-se ainda $1$ \textit{token} extra de $M_p$). A tabela mostra os três \textit{tokens} mais prováveis de $M_q$ e de $M_p$ em cada uma das $\gamma = 5$ posições; o \textit{token} proposto é o primeiro da coluna $M_q$. Considere apenas os \textit{tokens} listados.
+\item Na \textbf{decodificação especulativa}, o modelo de rascunho $M_q$ propõe $\gamma$ \textit{tokens} (probabilidades $q$) e o modelo alvo $M_p$ os verifica em um único passe (probabilidades $p$). Cada \textit{token} proposto $\tilde{x}$ é \textbf{aceito} com probabilidade $\min\!\left(1,\; p(\tilde{x})/q(\tilde{x})\right)$; se \textbf{rejeitado}, reamostra-se da distribuição normalizada $(p - q)_+ = \max(0,\, p - q)$ e \textbf{descartam-se todas as posições seguintes} do rascunho (se todos forem aceitos, amostra-se ainda $1$ \textit{token} extra de $M_p$). A tabela mostra os três \textit{tokens} mais prováveis de $M_q$ e de $M_p$ em cada uma das $\gamma = 5$ posições; o \textit{token} proposto é o primeiro da coluna $M_q$. Considere apenas os \textit{tokens} listados: a massa restante de cada coluna pertence a um \textit{token} ``outros'', que deve ser ignorado na reamostragem.
 
 \begin{center}
 \small
@@ -572,14 +572,14 @@ qual é a \textbf{perplexidade} do modelo nessa sequência?
 Com base na regra acima, qual afirmação descreve corretamente a verificação?
 
 \begin{enumerate}[a)]
-    \item Todo \textit{token} proposto que aparece entre os três mais prováveis do alvo é aceito; logo apenas a posição $5$ pode ser rejeitada na verificação.
-    \item A posição $3$ é \emph{sempre} rejeitada (pois $p < q$): reamostra-se ``janela'' e descartam-se as posições $4$ e $5$ do rascunho.
-    \item A posição $3$ é aceita com probabilidade $p/q = 0.8/0.2 = 1$ (sempre), bastando o \textit{token} estar entre os mais prováveis do alvo.
-    \item As posições $1$ e $2$ são sempre aceitas ($p \ge q$); a posição $3$ ($p < q$) é aceita com probabilidade $p/q = 0.2/0.8 = 0.25$ e, se rejeitada, reamostrada de $(p-q)_+$ para ``janela'', descartando-se as posições $4$ e $5$.
-    \item As posições $1$ e $2$ podem ser rejeitadas com probabilidade $p/q$; a posição $3$, por ter $p < q$, é a única sempre aceita do conjunto.
-    \item Se rejeitada, a posição $3$ é reamostrada para ``porta'' (o \textit{token} do rascunho), e as posições $4$ e $5$ são reamostradas logo em seguida.
-    \item Como $p < q$ nas posições $3$ e $5$, ambas são reamostradas de forma independente, gerando ``janela'' e ``nova'', respectivamente.
-    \item Nenhuma posição pode ser aceita sem reamostragem, pois a regra de verificação exige que $p = q$ exatamente em cada posição.
+    \item As posições $1$ a $4$ são sempre aceitas; só a posição $5$ pode ser rejeitada.
+    \item A posição $3$ é sempre rejeitada; nesse caso, sorteia-se ``janela'' e as posições $4$ e $5$ são descartadas.
+    \item A posição $3$ é sempre aceita, pois ``porta'' está entre os três mais prováveis do alvo.
+    \item A posição $3$ é aceita com probabilidade $0.25$; se rejeitada, sorteia-se ``janela'' e as posições $4$ e $5$ são descartadas.
+    \item As posições $1$ e $2$ são aceitas com probabilidade $0.67$ e $0.71$, respectivamente.
+    \item Se a posição $3$ é rejeitada, sorteia-se ``porta'' e as posições $4$ e $5$ são reamostradas.
+    \item As posições $3$ e $5$ são reamostradas de forma independente, para ``janela'' e ``nova''.
+    \item Nenhuma posição é aceita sem reamostragem, pois $p \neq q$ em todas elas.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -814,8 +814,8 @@ $\arg\max$ (greedy decoding). Com $T > 1$, os logits são reduzidos em magnitude
 tornando a distribuição mais uniforme e aumentando a diversidade das amostras.
 O gráfico confirma: $T{=}0.5$ (azul) concentra ${\approx}97.9\%$ em $v_1$;
 $T{=}2$ (verde) distribui $57.9\%$ em $v_1$ e o restante nos demais tokens.
-A opção~(a) inverte os efeitos. A opção~(b) confunde $T{=}0$ com distribuição
-uniforme. A opção~(d) é incorreta pois a temperatura altera as probabilidades
+A opção~(a) inverte os efeitos. A opção~(b) atribui a $T{=}1$ uma distribuição
+uniforme, que só ocorre no limite $T \to \infty$. A opção~(d) é incorreta pois a temperatura altera as probabilidades
 relativas: a razão $P_T(v_i)/P_T(v_j) = e^{(z_i-z_j)/T}$ depende de $T$.
 % ---
 
@@ -940,9 +940,11 @@ O treinamento parou em $D = 80$B $< 160$B, portanto o modelo está
 \textbf{sub-treinado em dados}.
 
 Continuar até $D = 800$B ainda melhorará o modelo:
-a perda segue uma \textbf{lei de potência} $L(D) \propto D^{-\alpha_D}$
-($\alpha_D \approx 0.095$), de modo que ganhos existem além de $D^*$,
-mas são cada vez menores. Essa é a motivação por trás de modelos como o Llama~3 8B,
+a perda segue o ajuste paramétrico de Hoffmann et al.,
+$L(N, D) = E + A/N^{\alpha} + B/D^{\beta}$ com $\beta \approx 0.28$: para $N$ fixo,
+o termo $B/D^{\beta}$ decai como uma \textbf{lei de potência} em $D$ (o expoente
+$0.095$ é o $\alpha_D$ da lei $L(D) \propto D^{-\alpha_D}$ de Kaplan et al., 2020),
+de modo que ganhos existem além de $D^*$, mas são cada vez menores. Essa é a motivação por trás de modelos como o Llama~3 8B,
 treinado em ${\approx}15$T tokens, ou seja ${\approx}1875$ tokens por parâmetro e
 ${\approx}94 \times D^*$: do ponto de
 vista de \emph{inferência}, vale gastar mais no treinamento para obter
@@ -1002,7 +1004,7 @@ Com $p = 0.90$:
 O núcleo é $\{\texttt{o},\,\texttt{um},\,\texttt{este}\}$; suas probabilidades são
 re-normalizadas e o próximo token é amostrado desse conjunto. A opção~(d) inclui
 \texttt{seu} desnecessariamente, pois o limiar já foi satisfeito. A opção~(c) é o
-top-p com $p{=}0.75$. A diferença-chave entre top-$k$ e top-$p$ é que o nucleus
+top-p com $p{=}0.75$. A diferença entre top-$k$ e top-$p$ é que o nucleus
 adapta o tamanho do conjunto ao \emph{formato} da distribuição: se a distribuição
 for concentrada (e.g., $p_1 = 0.95$), o núcleo terá poucos tokens; se for difusa,
 terá muitos, comportamento mais robusto que um $k$ fixo.
@@ -1051,7 +1053,7 @@ $\#\text{cabeças}_{KV} \times d_k$ entradas. Multiplicando por $L$ camadas:
 \end{itemize}
 Note que o número de cabeças de \emph{query} ($H$) não afeta o cache: apenas K e V são
 cacheados (compare com as questões IV e XI).
-A opção~(a) aplica $G = H/2$ apenas a uma das matrizes (K ou V), não a ambas.
+A opção~(a) usa $G = H/2 = 4$ grupos em vez de $G = 2$.
 A opção~(c) omite um fator $2$ (apenas uma matriz, K ou V).
 A opção~(d) usa $G = 1$ (MQA), não $G = 2$.
 A opção~(e) mistura GQA com $G = 1$ e desconta indevidamente.
@@ -1090,8 +1092,8 @@ $n \times n$ na HBM.
 
 Cada alternativa incorreta troca um par de mecanismos confundíveis: a opção~(a) troca
 MQA e GQA (compartilhamento total vs.\ por grupos); a opção~(b) troca MHA e MQA; a
-opção~(c) troca Sliding Window e FlashAttention, o erro mais tentador, pois ambos visam
-eficiência, mas só o primeiro altera o resultado da atenção; a opção~(d) troca MHA e
+opção~(c) troca Sliding Window e FlashAttention, que visam ambos eficiência, mas só o
+primeiro altera o resultado da atenção; a opção~(d) troca MHA e
 GQA; a opção~(e) troca MQA e Sliding Window; a opção~(f) troca MHA e FlashAttention; a
 opção~(h) contém múltiplas trocas.
 % ---
@@ -1143,8 +1145,9 @@ language modeling}, não geração autorregressiva.
 % --- Solução Q18 ---
 \subsection*{XVIII — Resposta: (f)}
 \textbf{I é correta:} é o esquema \textit{shift-by-one} do pré-treinamento; cada posição
-$t$ prediz o \textit{token} $t{+}1$, e a perda de todas as posições é computada em um
-único passe \textit{forward}.
+$t$ prediz o \textit{token} $t{+}1$ (as $n$ primeiras posições servem de entrada e os
+\textit{tokens} $2$ a $n{+}1$ servem de alvo), e a perda de todas as posições é computada
+em um único passe \textit{forward}.
 
 \textbf{II é incorreta:} a máscara causal é necessária \emph{no treinamento}
 paralelo. Sem ela, a posição $t$ atenderia ao próprio alvo (o \textit{token} $t{+}1$,
@@ -1180,19 +1183,21 @@ A primeira posição que \emph{pode} ser rejeitada é a $3$. Se rejeitada, reamo
 $(p-q)_+$: entre os \textit{tokens} listados, apenas ``janela'' tem $p > q$
 ($0.70 - 0.12 = 0.58 > 0$; ``porta'' tem $p < q$ e ``parede'' tem $p = q$), de modo que
 a massa concentra-se em ``janela''. Em seguida, as posições $4$ e $5$ são
-\textbf{descartadas} (a verificação para na primeira rejeição). Por construção, a saída
-tem a mesma distribuição do modelo alvo.
+\textbf{descartadas} (a verificação para na primeira rejeição). Com as distribuições completas, a reamostragem de $(p-q)_+$ garante que a saída tem
+exatamente a distribuição do modelo alvo. Na tabela, a massa não listada da posição $3$
+($0.05$ em $p$ e $0.03$ em $q$) daria ao \textit{token} ``outros'' no máximo $0.02$ de
+excesso, de modo que ``janela'' receberia ${\approx}\,0.58/0.60 \approx 97\%$ da
+reamostragem; o enunciado descarta essa parcela.
 
-Pontos-chave: a razão correta é $p/q$ (não $q/p$); estar entre os três mais prováveis
+A razão correta é $p/q$ (não $q/p$); estar entre os três mais prováveis
 do alvo \emph{não} garante aceitação (``porta'' está no \textit{top-3} do alvo, mas
 $p < q$); após uma rejeição, as posições seguintes são \emph{descartadas}, não
 reamostradas.
-A opção~(a) confunde estar no \textit{top-3} do alvo com ser aceito (a posição $3$
-também pode ser rejeitada).
+A opção~(a) ignora que a posição $3$ também tem $p < q$ e pode ser rejeitada antes da $5$.
 A opção~(b) é falsa: $p < q$ não implica rejeição certa; há aceitação com prob.\ $0.25$.
-A opção~(c) inverte a razão ($p/q = 0.25$, não $0.8/0.2$).
-A opção~(e) é falsa: $p \ge q$ implica aceitação \emph{garantida} (prob.\ $1$), não
-rejeição com prob.\ $p/q$.
+A opção~(c) confunde estar no \textit{top-3} do alvo com ser aceito; a razão é $p/q = 0.25$.
+A opção~(e) é falsa: $p \ge q$ implica aceitação \emph{garantida} (prob.\ $1$); os valores
+$0.67$ e $0.71$ são as razões invertidas $q/p$.
 A opção~(f) é falsa: a reamostragem usa $(p-q)_+$, que exclui ``porta'' ($p < q$); e as
 posições $4$/$5$ são descartadas, não reamostradas.
 A opção~(g) é falsa: se a posição $3$ é rejeitada, a $5$ é descartada; elas não são

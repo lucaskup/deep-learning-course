@@ -389,7 +389,7 @@
           entre $\mathbf{PE}(511)$ e $\mathbf{PE}(0)$, sem perda de desempenho.
     \item Essas posições não possuem embeddings treinados; a implementação típica
           lança um erro de índice (\textit{index out of bounds}) ou reutiliza
-          vetores de posições iniciais.
+          vetores de posições já existentes.
     \item A camada posicional gera os embeddings faltantes pela fórmula senoidal,
           usada como \textit{fallback} padrão para índices fora da tabela.
     \item Os embeddings posicionais para $i > 512$ serão automaticamente inicializados
@@ -801,7 +801,7 @@ naturalmente sem consultar tabelas.
 \subsection*{XXIV, Resposta:(d)}
 O PE senoidal e o RoPE compartilham o espectro $\theta_k = 10000^{-2k/d}$ por
 design: ambos precisam de frequências variadas para distinguir um amplo intervalo
-de posições. Contudo as operações realizadas são fundamentalmente distintas:
+de posições. As operações realizadas, porém, são distintas, adição em um caso e rotação no outro:
 \begin{itemize}
   \item \textbf{PE senoidal}: adiciona $\mathbf{PE}(i)$ ao token embedding
         \emph{antes} das projeções $\mathbf{W}_Q$, $\mathbf{W}_K$. O score de atenção contém termos
@@ -1011,7 +1011,7 @@ bloco de frequência 2D com parâmetro $\theta$ se expande como:
 Qual é a principal implicação teórica dessa expressão?
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: O score depende apenas do offset relativo $(j-i)$, e não das
+Alternativa \textbf{(a)}: O score depende apenas do offset relativo $(j-i)$, e não das
 posições absolutas $i$ ou $j$ separadamente, confirmando que o RoPE é um positional
 encoding relativo.
 \end{respostabox}
@@ -1070,8 +1070,8 @@ funções trigonométricas. Portanto:
   \item Dois pares de tokens com o mesmo \emph{offset relativo} $\delta = j - i$
         recebem exatamente a mesma contribuição posicional, onde quer que estejam na sequência.
   \item Isso confirma que o RoPE é um \emph{positional encoding relativo}: a informação
-        posicional codificada não é ``estou na posição absoluta $i$'', mas sim
-        ``a distância relativa entre mim e o outro token é $\delta$''.
+        posicional codificada é ``a distância relativa entre mim e o outro token é
+        $\delta$'', e não ``estou na posição absoluta $i$''.
 \end{enumerate}
 
 % ------------------------------------------------------------------
@@ -1086,7 +1086,7 @@ Supondo $L_{\mathrm{train}} = 2048$ e $L_{\mathrm{test}} = 8192$ (fator $= 0.25$
 quais dimensões de frequência do RoPE são \emph{mais prejudicadas} por essa compressão?
 
 \begin{respostabox}
-Alternativa \textbf{(b)}: Dimensões de $k$ \textbf{baixo} (alta frequência), pois já
+Alternativa \textbf{(d)}: Dimensões de $k$ \textbf{baixo} (alta frequência), pois já
 completam muitas rotações em $L_{\mathrm{train}}$; a compressão super-comprime essas
 dimensões e destrói a resolução posicional fina.
 \end{respostabox}
@@ -1312,7 +1312,7 @@ O que ocorre com os tokens nas posições $512$ a $599$ (indexação a partir de
 \begin{respostabox}
 Alternativa \textbf{(b)}: Essas posições não possuem embeddings treinados; a
 implementação típica lançará um erro de índice ou, se o índice for truncado,
-reutilizará vetores de posições iniciais, gerando representações fora da
+reutilizará vetores de posições já existentes, gerando representações fora da
 distribuição de treinamento.
 \end{respostabox}
 
@@ -1379,8 +1379,8 @@ $\theta_k = 10000^{-2k/d}$. Qual afirmação descreve com mais precisão a rela�
 matemática entre os dois métodos?
 
 \begin{respostabox}
-Alternativa \textbf{(d)}: Compartilham o mesmo espectro de frequências, mas diferem
-fundamentalmente: o PE senoidal codifica posição \emph{absoluta} por adição ao
+Alternativa \textbf{(d)}: Compartilham o mesmo espectro de frequências, mas diferem na
+operação: o PE senoidal codifica posição \emph{absoluta} por adição ao
 embedding de entrada, enquanto o RoPE codifica posição \emph{relativa} via rotação
 dos vetores de query e key. Não existe configuração não trivial de pesos que torne
 os dois métodos equivalentes em geral.
@@ -1390,8 +1390,8 @@ os dois métodos equivalentes em geral.
 
 \textbf{Espectro de frequências compartilhado.}
 Ambos os métodos utilizam o conjunto de frequências
-$\{\theta_k\}_{k=0}^{d/2-1}$ com $\theta_k = 10000^{-2k/d}$. Isso não é
-coincidência: ambos precisam de um espectro que permita distinguir posições em um
+$\{\theta_k\}_{k=0}^{d/2-1}$ com $\theta_k = 10000^{-2k/d}$, pela mesma
+motivação: ambos precisam de um espectro que permita distinguir posições em um
 amplo intervalo (da resolução de token único até o comprimento máximo da sequência).
 
 \textbf{Diferenças estruturais.}
@@ -1437,8 +1437,8 @@ Com RoPE:
   = (\mathbf{R}(i)\mathbf{x}_i)^\top (\mathbf{R}(j)\mathbf{x}_j)
   = \mathbf{x}_i^\top \mathbf{R}(j-i)\,\mathbf{x}_j.
 \]
-Não há termos cruzados conteúdo-posição absoluta: a posição entra exclusivamente
-como offset relativo $\mathbf{R}(j-i)$.
+A posição entra exclusivamente como offset relativo $\mathbf{R}(j-i)$, sem termos
+cruzados conteúdo-posição absoluta.
 
 Portanto, mesmo no caso mais favorável $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{I}$, os dois logits
 contêm termos estruturalmente distintos.

@@ -207,7 +207,7 @@
             \item Nodos de produto (comutadores): multiplicam o gradiente \textit{upstream} pelo valor da outra entrada, logo
             $$\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1 \quad \text{e} \quad \frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2.$$
         \end{itemize}
-        Resumo: $\frac{\partial L}{\partial \theta_0} = \hat{y} - y$, $\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1$ e $\frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2$. A simplificação ocorre porque o denominador $\hat{y}(1-\hat{y})$ da derivada da BCE cancela exatamente com a derivada da sigmoide, deixando o gradiente na pré-ativação igual ao erro $\hat{y} - y$.
+        Logo, $\frac{\partial L}{\partial \theta_0} = \hat{y} - y$, $\frac{\partial L}{\partial \theta_1} = (\hat{y} - y)\,x_1$ e $\frac{\partial L}{\partial \theta_2} = (\hat{y} - y)\,x_2$. A simplificação ocorre porque o denominador $\hat{y}(1-\hat{y})$ da derivada da BCE cancela exatamente com a derivada da sigmoide, deixando o gradiente na pré-ativação igual ao erro $\hat{y} - y$.
     \end{enumerate}
 
     \item O \textit{backward pass} é a aplicação repetida da regra da cadeia sobre uma composição de operações elementares. Para automatizar esse processo, o \textit{framework} precisa saber quais operações foram executadas e em que ordem de dependência, e é exatamente isso que o grafo (um DAG) registra: cada operação executada no \textit{forward} vira um nodo, e as arestas indicam de quais valores cada nodo depende. Com o grafo montado, basta percorrê-lo na ordem topológica inversa multiplicando o gradiente \textit{upstream} pela derivada local de cada nodo, o que é eficiente no caso típico de redes neurais, com uma \textit{loss} escalar e muitos parâmetros.
