@@ -118,7 +118,8 @@
       const t = DL.plot.theme();
       DL.plot.clear(ctx, w, h);
       const ymax = state.dists[0] * 1.15;
-      const fr = DL.plot.frame(ctx, w, h, 0, KMAX, 0, ymax);
+      /* Margem esquerda maior: os ticks têm duas casas e o rótulo do eixo é girado. */
+      const fr = DL.plot.frame(ctx, w, h, 0, KMAX, 0, ymax, { l: 50, r: 10, t: 10, b: 24 });
       DL.plot.axes(ctx, fr, {
         xlabel: 'camadas k', ylabel: 'dist. média',
         xticks: [0, 2, 4, 6, 8, 10],
@@ -148,7 +149,8 @@
       redraw();
     });
     document.getElementById('s2-reseed').addEventListener('click', () => {
-      state.seed = (state.seed * 1103515245 + 12345) % 2147483647;
+      /* LCG de 32 bits: Math.imul evita estourar os 2^53 do double. */
+      state.seed = (Math.imul(state.seed, 1103515245) + 12345) >>> 0;
       recompute();
       redraw();
     });

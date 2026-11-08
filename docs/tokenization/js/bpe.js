@@ -1,4 +1,4 @@
-/* Helpers da demo de tokenização: corpus recorrente da aula, treinamento
+/* Helpers da demo de tokenização (strings são tratadas por code point, via Array.from): corpus recorrente da aula, treinamento
    de BPE (critério de frequência) e de WordPiece (critério de likelihood),
    além da codificação de palavras novas com a tabela de merges aprendida. */
 (function () {
@@ -19,7 +19,7 @@
     return CORPUS.map((e) => ({
       word: e.word + EOW,
       freq: e.freq,
-      sym: (e.word + EOW).split(''),
+      sym: Array.from(e.word + EOW),
     }));
   }
 
@@ -119,7 +119,7 @@
   /* Codifica uma palavra nova aplicando os k primeiros merges do BPE em ordem,
      registrando a derivação passo a passo (como o exemplo "lowest" da aula). */
   function encodeWord(word, k) {
-    let sym = (word + EOW).split('');
+    let sym = Array.from(word + EOW);
     const steps = [{ label: 'início', sym: sym.slice() }];
     const n = Math.min(k, BPE.merges.length);
     for (let m = 0; m < n; m++) {
@@ -144,5 +144,8 @@
     return { sym, steps };
   }
 
-  DL.bpe = { EOW, CORPUS, BASE: baseVocab(), BPE, WP, encodeWord, initialSegs };
+  /* Tamanho em code points (um emoji conta 1, não 2 unidades UTF-16). */
+  function cpLen(s) { return Array.from(s).length; }
+
+  DL.bpe = { EOW, CORPUS, BASE: baseVocab(), BPE, WP, encodeWord, initialSegs, cpLen };
 })();

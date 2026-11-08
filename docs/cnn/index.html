@@ -43,6 +43,9 @@
       overflow-wrap: anywhere;
     }
     #s6-calc .formula { font-size: .98em; }
+    /* Em telas estreitas as etapas rolam na horizontal em vez de encolher as células. */
+    .s6-scroll { overflow-x: auto; }
+    .s6-scroll canvas { min-width: 720px; }
     @media (max-width: 900px) {
       #s6-row1 { height: 380px; }
       #s6-row2 { height: 280px; }
@@ -165,7 +168,7 @@
     <div class="container">
       <h2 class="section-title">2 · Padding, stride, dilation e o tamanho da saída</h2>
       <p class="demo-text">
-        Três hiperparâmetros vistos em aula controlam a geometria da convolução:
+        Três hiperparâmetros controlam a geometria da convolução:
         o <em>zero padding</em> <span class="formula">P</span> completa a borda com zeros
         (com <span class="formula">P = 0</span> temos o <em>valid padding</em>),
         o <em>stride</em> <span class="formula">S</span> é o deslocamento do kernel a cada passo
@@ -175,7 +178,9 @@
         número de parâmetros (convenção do PyTorch: <span class="formula">D = 1</span> é o kernel
         denso). Para entrada <span class="formula">N×N</span> e kernel
         <span class="formula">K×K</span>, o tamanho da saída é
-        <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span>.
+        <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span>. Essa é a fórmula do
+        PyTorch, com dilatação; para <span class="formula">D = 1</span> ela se reduz à dos slides,
+        <span class="formula">⌊(N + 2P − K)/S⌋ + 1</span>.
         Use ⏭ ou ▶ para percorrer as posições do kernel.
       </p>
       <div class="panel">
@@ -233,7 +238,7 @@
       <p class="demo-text">
         O <em>downsampling</em> por pooling agrega cada janela <span class="formula">2×2</span>
         (stride 2) em um único valor: o <em>max pooling</em> mantém o maior valor da janela e o
-        <em>average pooling</em> usa a média. Como visto em aula, queremos que a semântica seja
+        <em>average pooling</em> usa a média. Queremos que a semântica seja
         estável frente a translações: <span class="formula">f[t[x]] = f[x]</span> define
         invariância e <span class="formula">f[t[x]] = t[f[x]]</span> define equivariância.
         Arraste o padrão na entrada (ou use os sliders de
@@ -286,7 +291,7 @@
       <p class="demo-text">
         O campo receptivo de uma unidade oculta é a região da entrada que ela enxerga.
         Empilhando convoluções (sem padding, visão 1D de um corte da imagem), ele cresce pela
-        recursão vista em aula:
+        recursão dos slides:
         <span class="formula">RF<sub>l</sub> = RF<sub>l−1</sub> + (K<sub>l</sub> − 1)·∏<sub>i&lt;l</sub> S<sub>i</sub></span>,
         com <span class="formula">RF<sub>0</sub> = 1</span>. Cada camada acrescenta
         <span class="formula">K<sub>l</sub> − 1</span> posições do espaço original, multiplicadas
@@ -348,10 +353,10 @@
     <div class="container">
       <h2 class="section-title">5 · Convolução em imagens reais</h2>
       <p class="demo-text">
-        A mesma operação da seção 1, agora em uma imagem de verdade convertida para tons de
+        A mesma operação da seção 1, agora em uma imagem convertida para tons de
         cinza: cada pixel da saída é a soma da janela da entrada ponderada pelos pesos do
         kernel. Escolha um kernel clássico no menu (cada um foi desenhado à mão para extrair
-        uma característica específica, exatamente o que uma CNN aprende sozinha durante o
+        uma característica específica, o que uma CNN aprende sozinha durante o
         treino) e ajuste <em>stride</em> <span class="formula">S</span>,
         <em>padding</em> <span class="formula">P</span> e <em>dilation</em>
         <span class="formula">D</span> para ver o efeito na geometria:
@@ -429,7 +434,7 @@
       <h2 class="section-title">6 · Uma CNN completa em miniatura</h2>
       <p class="demo-text">
         Tudo o que as seções anteriores mostraram separadamente, agora encadeado em uma rede
-        de verdade, pequena o bastante para exibir cada número. Uma imagem
+        completa, pequena o bastante para exibir cada número. Uma imagem
         <span class="formula">6×6</span> com dois canais (pense em duas cores) passa por uma
         convolução <span class="formula">3×3</span> com dois filtros (padding 1, ReLU), por um
         max pooling <span class="formula">2×2</span>, por uma segunda convolução
@@ -466,19 +471,19 @@
         <div class="canvas-row">
           <div class="canvas-box" style="flex-basis:100%;">
             <p class="canvas-caption">Etapa 1: entrada x (2 canais) ∗ filtros w<sup>(1)</sup> + b<sup>(1)</sup>, ReLU, max pooling 2×2. Laranja: janela lida pela célula sob o mouse; linhas fortes em a<sup>(1)</sup>: janelas do pooling</p>
-            <canvas id="s6-row1"></canvas>
+            <div class="s6-scroll"><canvas id="s6-row1"></canvas></div>
           </div>
         </div>
         <div class="canvas-row">
           <div class="canvas-box" style="flex-basis:100%;">
             <p class="canvas-caption">Etapa 2: p<sup>(1)</sup> ∗ filtros w<sup>(2)</sup> + b<sup>(2)</sup>, ReLU. Cada filtro tem um kernel por mapa de entrada e os dois resultados são somados</p>
-            <canvas id="s6-row2"></canvas>
+            <div class="s6-scroll"><canvas id="s6-row2"></canvas></div>
           </div>
         </div>
         <div class="canvas-row">
           <div class="canvas-box" style="flex-basis:100%;">
             <p class="canvas-caption">Etapa 3: flatten de a<sup>(2)</sup> no vetor v ∈ ℝ<sup>18</sup>, produto escalar com os pesos w do classificador, logit = Σ w<sub>k</sub>·v<sub>k</sub> + b e p = σ(logit)</p>
-            <canvas id="s6-row3"></canvas>
+            <div class="s6-scroll"><canvas id="s6-row3"></canvas></div>
           </div>
         </div>
         <div id="s6-calc"></div>

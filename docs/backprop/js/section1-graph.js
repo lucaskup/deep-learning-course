@@ -1,11 +1,12 @@
 /* Seção 1: forward e backward passo a passo no grafo computacional.
-   Replica o exemplo da aula: θ⁽¹⁾ = −0.5, θ⁽²⁾ = 0.5, X₁ = 1, y = 1, sigmoide. */
+   Replica o exemplo da aula: θ⁽¹⁾ = −0.5, θ⁽²⁾ = 0.5, x₁ = 1, y = 1, sigmoide. */
 (function () {
   'use strict';
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
-  const BOX_W = 96, BOX_H = 42;
+  /* Tamanho da caixa de cada nó; encolhe com a largura do canvas (ver redraw). */
+  let BOX_W = 96, BOX_H = 42;
   const LAST = 11;                               // passos: 0 (inicial), 1–5 forward, 6–11 backward
   const FWD = ['z1', 'a1', 'z2', 'a2', 'J'];     // ordem de preenchimento do forward
   const DEFAULTS = { x: 1, th1: -0.5, th2: 0.5, y: 1 };
@@ -34,7 +35,7 @@
 
     /* Posições fracionárias dos nós no canvas. */
     const nodes = {
-      x:   { fx: 0.07,  fy: 0.26, name: 'X_1' },
+      x:   { fx: 0.07,  fy: 0.26, name: 'x_1' },
       th1: { fx: 0.07,  fy: 0.74, name: 'θ⁽¹⁾' },
       z1:  { fx: 0.24,  fy: 0.50, name: 'z⁽¹⁾' },
       a1:  { fx: 0.405, fy: 0.50, name: 'a⁽¹⁾' },
@@ -101,16 +102,16 @@
         'th2-z2': { sym: 'a⁽¹⁾',           val: V.a1 },
         'a1-z2':  { sym: 'θ⁽²⁾',           val: V.th2 },
         'z1-a1':  { sym: 'a⁽¹⁾(1−a⁽¹⁾)',   val: V.da1_dz1 },
-        'th1-z1': { sym: 'X_1',            val: V.x },
+        'th1-z1': { sym: 'x_1',            val: V.x },
       }[key];
     }
 
     function descFor(s) {
       const f = fnum;
       switch (s) {
-        case 0: return 'Estado inicial. As folhas do grafo (X₁, θ⁽¹⁾, θ⁽²⁾ e y) já têm valores. ' +
+        case 0: return 'Estado inicial. As folhas do grafo (x₁, θ⁽¹⁾, θ⁽²⁾ e y) já têm valores. ' +
           'Avance os passos para executar o forward pass e depois o backward pass.';
-        case 1: return 'Forward: pré-ativação da camada 1, z⁽¹⁾ = X₁·θ⁽¹⁾ = ' + f(V.z1) + '.';
+        case 1: return 'Forward: pré-ativação da camada 1, z⁽¹⁾ = x₁·θ⁽¹⁾ = ' + f(V.z1) + '.';
         case 2: return 'Forward: ativação da camada 1, a⁽¹⁾ = σ(z⁽¹⁾) = ' + f(V.a1) + '.';
         case 3: return 'Forward: pré-ativação da camada 2, z⁽²⁾ = a⁽¹⁾·θ⁽²⁾ = ' + f(V.z2) + '.';
         case 4: return 'Forward: saída da rede, ŷ = a⁽²⁾ = σ(z⁽²⁾) = ' + f(V.a2) + '.';
@@ -126,7 +127,7 @@
           '∂z⁽²⁾/∂a⁽¹⁾ = θ⁽²⁾. É assim que o erro se propaga para as camadas anteriores.';
         case 10: return 'Backward: atravessamos a sigmoide da camada 1. O acumulado em z⁽¹⁾ é δ⁽¹⁾, ' +
           'obtido a partir de δ⁽²⁾, sem recomputar a cadeia desde o início.';
-        case 11: return 'Backward: chegamos em θ⁽¹⁾ com ∂z⁽¹⁾/∂θ⁽¹⁾ = X₁. Os dois gradientes estão ' +
+        case 11: return 'Backward: chegamos em θ⁽¹⁾ com ∂z⁽¹⁾/∂θ⁽¹⁾ = x₁. Os dois gradientes estão ' +
           'prontos: o otimizador pode atualizar os pesos com θ ← θ − η·∇J.';
       }
       return '';
@@ -136,7 +137,7 @@
       const f = fnum;
       const s1 = '<sup>(1)</sup>', s2 = '<sup>(2)</sup>';
       switch (s) {
-        case 1: return 'z' + s1 + ' = X<sub>1</sub>·θ' + s1 + ' = (' + f(V.x, 2) + ')·(' + f(V.th1, 2) + ') = ' + f(V.z1);
+        case 1: return 'z' + s1 + ' = x<sub>1</sub>·θ' + s1 + ' = (' + f(V.x, 2) + ')·(' + f(V.th1, 2) + ') = ' + f(V.z1);
         case 2: return 'a' + s1 + ' = σ(z' + s1 + ') = σ(' + f(V.z1) + ') = ' + f(V.a1);
         case 3: return 'z' + s2 + ' = a' + s1 + '·θ' + s2 + ' = (' + f(V.a1) + ')·(' + f(V.th2, 2) + ') = ' + f(V.z2);
         case 4: return 'ŷ = a' + s2 + ' = σ(z' + s2 + ') = σ(' + f(V.z2) + ') = ' + f(V.a2);
@@ -181,7 +182,21 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cv);
       P.clear(ctx, w, h);
+      /* Em canvas estreito (celular) as caixas de 96px se sobrepõem: escala
+         caixa e fontes pela largura disponível. */
+      BOX_W = Math.min(96, w / 8);
+      const sc = BOX_W / 96;
+      BOX_H = Math.max(32, Math.round(42 * sc));
+      const fsz = (base) => Math.max(8.5, base * sc);
       const pos = (id) => ({ x: nodes[id].fx * w, y: nodes[id].fy * h });
+      /* Canvas estreito: os rótulos de gradiente e de derivada local são mais
+         largos que o espaço entre nós; viram duas linhas e alternam a altura. */
+      const narrow = w < 560;
+      let hEdgeIdx = 0;
+      /* mais altura no celular: os rótulos em duas linhas precisam de espaço
+         entre a linha do meio e as folhas de baixo (sem oscilar: só depende de w) */
+      const wantH = narrow ? '400px' : '';
+      if (cv.style.height !== wantH) { cv.style.height = wantH; return; }
 
       const activeEdge = step >= 6 ? bwd[step - 6].edge : null;
       const activeNode = step >= 6 ? bwd[step - 6].node : (step >= 1 ? FWD[step - 1] : null);
@@ -219,8 +234,16 @@
             const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
             let ox = -uy, oy = ux;
             if (oy > 0) { ox = -ox; oy = -oy; }   // rótulo sempre acima da aresta
-            P.mathText(ctx, loc.sym, mx + ox * 14, my + oy * 14 - 6, th.orange, 'center', 10);
-            P.mathText(ctx, fnum(loc.val), mx + ox * 14, my + oy * 14 + 7, th.orange, 'center', 10);
+            /* no canvas estreito a aresta θ⁽²⁾→z⁽²⁾ leva o rótulo para baixo e à
+               direita, longe do gradiente escrito embaixo de a⁽¹⁾ */
+            if (narrow && key === 'th2-z2') { ox = -ox; oy = -oy; }
+            const horiz = Math.abs(uy) < 1e-6;
+            /* no canvas estreito as arestas horizontais são curtas: o rótulo sobe
+               acima das caixas, e arestas vizinhas alternam a altura */
+            const off = narrow ? (horiz ? BOX_H / 2 + 14 : 22) : 14;
+            const lift = narrow && horiz && (hEdgeIdx++ % 2 === 1) ? 24 : 0;
+            P.mathText(ctx, loc.sym, mx + ox * off, my + oy * off - 6 - lift, th.orange, 'center', fsz(10));
+            P.mathText(ctx, fnum(loc.val), mx + ox * off, my + oy * off + 7 - lift, th.orange, 'center', fsz(10));
           }
         }
       }
@@ -242,17 +265,31 @@
           ctx.fill();
           ctx.globalAlpha = 1;
         }
-        P.mathText(ctx, nodes[id].name, c.x, c.y - 5, th.fg, 'center', 12);
+        P.mathText(ctx, nodes[id].name, c.x, c.y - 5, th.fg, 'center', fsz(12));
         if (fwdVisible(id)) {
-          P.mathText(ctx, fnum(nodeValue(id)), c.x, c.y + 12, isLeaf(id) ? th.cyan : th.green, 'center', 11);
+          P.mathText(ctx, fnum(nodeValue(id)), c.x, c.y + 11, isLeaf(id) ? th.cyan : th.green, 'center', fsz(11));
         } else {
-          P.mathText(ctx, '?', c.x, c.y + 12, th.comment, 'center', 11);
+          P.mathText(ctx, '?', c.x, c.y + 11, th.comment, 'center', fsz(11));
         }
         /* gradiente acumulado embaixo do nó */
         const gIdx = bwd.findIndex((b) => b.node === id);
         if (gIdx !== -1 && gIdx < bwdCount) {
           const g = nodeGrad(id);
-          P.mathText(ctx, g.label + ' = ' + fnum(g.val), c.x, c.y + BOX_H / 2 + 14, th.pink, 'center', 10.5);
+          if (narrow) {
+            /* duas linhas; nós da linha do meio alternam a altura para não
+               colidir com o vizinho (ficam a ~w/6 de distância) */
+            const mid = FWD.indexOf(id);
+            const drop = mid !== -1 && mid % 2 === 0 ? 22 : 0;
+            const y0 = c.y + BOX_H / 2 + 11 + drop;
+            /* a folha θ⁽¹⁾ encosta na borda esquerda: alinha à esquerda da caixa;
+               z⁽²⁾ recebe a aresta de θ⁽²⁾ por baixo à esquerda: rótulo à direita */
+            const ax = id === 'th1' ? c.x - BOX_W / 2 : id === 'z2' ? c.x - 4 : c.x;
+            const al = id === 'th1' || id === 'z2' ? 'left' : 'center';
+            P.mathText(ctx, g.label, ax, y0, th.pink, al, fsz(10));
+            P.mathText(ctx, fnum(g.val), ax, y0 + 11, th.pink, al, fsz(10));
+          } else {
+            P.mathText(ctx, g.label + ' = ' + fnum(g.val), c.x, c.y + BOX_H / 2 + 14, th.pink, 'center', fsz(10.5));
+          }
         }
       }
 

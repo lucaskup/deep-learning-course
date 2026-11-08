@@ -10,7 +10,7 @@
 
   /* Estado compartilhado entre as seções 1 e 2. */
   const S = DL.winit = {
-    cfg: { init: 'normal', sigma: 1.0, act: 'tanh', L: 10, seed: 42, input: 'mnist' },
+    cfg: { init: 'normal', sigma: 1.0, act: 'tanh', L: 4, seed: 42, input: 'mnist' },   /* = tentativa 2 dos slides */
     data: null,
     listeners: [],
   };
@@ -76,8 +76,11 @@
       }
       P.histogram(ctx, fr, vals, NBINS, color, { alpha: 0.6, range: [lo, hi] });
       P.mathText(ctx, 'camada ' + l, i * cw + cw / 2, 13, th.fg, 'center');
-      P.mathText(ctx, sciUni(lo), i * cw + 10, h - 19, th.comment, 'left', 9);
-      P.mathText(ctx, sciUni(hi), (i + 1) * cw - 10, h - 19, th.comment, 'right', 9);
+      /* Em células estreitas os extremos colidiriam entre si; some com eles. */
+      if (cw >= 90) {
+        P.mathText(ctx, sciUni(lo), i * cw + 10, h - 19, th.comment, 'left', 9);
+        P.mathText(ctx, sciUni(hi), (i + 1) * cw - 10, h - 19, th.comment, 'right', 9);
+      }
       P.mathText(ctx, 'σ = ' + sciUni(getStd(l)), i * cw + cw / 2, h - 6, th.comment, 'center', 10);
     });
   };
@@ -230,7 +233,12 @@
       S.cfg.act = selAct.value;
       update();
     });
+    /* A profundidade só recomputa ao soltar o slider (L = 20 custa alguns
+       segundos); durante o arrasto apenas o valor exibido acompanha. */
     sliderDepth.addEventListener('input', () => {
+      $('s1-depth-val').textContent = sliderDepth.value;
+    });
+    sliderDepth.addEventListener('change', () => {
       S.cfg.L = +sliderDepth.value;
       $('s1-depth-val').textContent = S.cfg.L;
       update();

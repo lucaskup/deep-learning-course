@@ -23,6 +23,19 @@
     let imgX = null, imgW = 0, imgH = 0, eps = null;
     const off = document.createElement('canvas');
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     /* Slider de T em escala log: [4, 1000] */
     const T_LO = 4, T_HI = 1000;
     const sliderToT = (v) => Math.round(T_LO * Math.pow(T_HI / T_LO, v / 100));
@@ -64,7 +77,7 @@
       // β_t
       let { ctx, w, h } = P.setup(cvBeta);
       P.clear(ctx, w, h);
-      let fr = P.frame(ctx, w, h, 0, T, 0, Math.max(0.5, betaMax * 1.1));
+      let fr = P.frame(ctx, w, h, 0, T, 0, Math.round(Math.max(0.5, betaMax * 1.1) * 100) / 100);
       P.axes(ctx, fr, { xlabel: 't', xticks: ticksFor(T), yticks: [0, fr.ymax] });
       P.line(ctx, fr, xt, beta, th.orange, { width: 2 });
       if (T <= 8) P.scatter(ctx, fr, xt.map((v, i) => [v, beta[i]]), th.orange, { r: 3, alpha: 1 });
@@ -90,10 +103,14 @@
       if (cross >= 0) {
         const y = Math.sqrt(sched.alpha[cross]);
         P.scatter(ctx, fr, [[cross, y]], th.fg, { r: 4, alpha: 1 });
-        P.label(ctx, fr.X(cross) + 6, fr.Y(y) - 8, 'cruzamento t = ' + cross, th.fg);
+        /* Rótulo do lado em que cabe (com T pequeno o cruzamento cai perto da borda). */
+        const cRight = fr.X(cross) + 6 + 100 < fr.X(T);
+        tag(ctx, th, fr.X(cross) + (cRight ? 6 : -6), fr.Y(y) - 8, 'cruzamento t = ' + cross, th.fg, cRight ? 'left' : 'right');
       }
-      P.label(ctx, fr.X(0) + 8, fr.Y(1.0) + 12, '√α_t (sinal)', th.green);
-      P.label(ctx, fr.X(0) + 8, fr.Y(1.0) + 26, '√(1−α_t) (ruído)', th.pink);
+      /* Legenda à direita, a meia altura: as curvas começam nos cantos da esquerda
+         e terminam nos cantos da direita, então o meio da borda direita fica livre. */
+      tag(ctx, th, fr.X(T) - 6, fr.Y(0.5) - 4, '√α_t (sinal)', th.green, 'right');
+      tag(ctx, th, fr.X(T) - 6, fr.Y(0.5) + 10, '√(1−α_t) (ruído)', th.pink, 'right');
       // marca o t atual
       P.line(ctx, fr, [t, t], [0, 1.05], th.comment, { dash: [3, 3], width: 1 });
     }
@@ -156,7 +173,14 @@
     tabLinear.addEventListener('click', () => setMode('linear'));
     tabCosine.addEventListener('click', () => setMode('cosine'));
     /* Mover os sliders sai do preset da aula: β_min volta ao padrão DDPM */
-    sliderT.addEventListener('input', () => { betaMin = 1e-4; T = sliderToT(+sliderT.value); recompute(); });
+    /* β_max acompanha T: min(0.2, 20/T) mantém o ruído total comparável (DDPM: 0.02 em T = 1000). */
+    sliderT.addEventListener('input', () => {
+      betaMin = 1e-4;
+      T = sliderToT(+sliderT.value);
+      betaMax = Math.min(0.2, Math.round(2000 / T) / 100);
+      sliderBmax.value = betaMax;
+      recompute();
+    });
     sliderBmax.addEventListener('input', () => { betaMin = 1e-4; betaMax = +sliderBmax.value; recompute(); });
     slidert.addEventListener('input', () => { t = +slidert.value; redraw(); });
     btnResample.addEventListener('click', () => { seed = (seed * 1664525 + 1013904223) >>> 0; if (imgX) { regenEps(); drawImage(); } });

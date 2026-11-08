@@ -94,6 +94,19 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo sobre fundo opaco, para não se confundir com as curvas. */
+    function pill(ctx, x, y, text, color, align) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - 10, tw + 6, 14);
+      ctx.globalAlpha = 1;
+      P.label(ctx, x, y, text, color, align);
+    }
+
     const cvCurve = $('s1-curve'), cvDeriv = $('s1-deriv');
     const sel = $('s1-act');
     const paramWrap = $('s1-param-wrap'), paramSlider = $('s1-param');
@@ -105,7 +118,7 @@
     }
     sel.value = 'sigmoid';
 
-    let x0 = 1.5;
+    let z0 = 1.5;
     let frCurve = null, frDeriv = null;
 
     function act() { return DL.actById(sel.value); }
@@ -149,7 +162,7 @@
         zs.push(z); ys.push(a.f(z, p)); dys.push(a.df(z, p));
       }
       const zones = satZones(a, p);
-      const fx = a.f(x0, p), dfx = a.df(x0, p);
+      const fx = a.f(z0, p), dfx = a.df(z0, p);
 
       /* ── φ(z) com tangente ── */
       let { ctx, w, h } = P.setup(cvCurve);
@@ -160,16 +173,18 @@
       P.axes(ctx, frCurve, { xlabel: 'z', xticks: [-6, -4, -2, 0, 2, 4, 6], yticks: [Math.ceil(ylo * 10) / 10, 0, Math.floor(yhi * 10) / 10] });
       P.line(ctx, frCurve, [ZMIN, ZMAX], [0, 0], th.line, { width: 1, dash: [3, 3] });
       P.line(ctx, frCurve, zs, ys, th.purple, { width: 2.2 });
-      /* tangente em x0, recortada à área do gráfico */
+      /* tangente em z0, recortada à área do gráfico */
       ctx.save();
       ctx.beginPath();
       ctx.rect(frCurve.X(ZMIN), frCurve.Y(yhi), frCurve.iw, frCurve.ih);
       ctx.clip();
-      const tx = [x0 - 2.2, x0 + 2.2];
-      P.line(ctx, frCurve, tx, tx.map((z) => fx + dfx * (z - x0)), th.green, { width: 1.6, dash: [5, 4] });
+      const tx = [z0 - 2.2, z0 + 2.2];
+      P.line(ctx, frCurve, tx, tx.map((z) => fx + dfx * (z - z0)), th.green, { width: 1.6, dash: [5, 4] });
       ctx.restore();
-      P.scatter(ctx, frCurve, [[x0, fx]], th.pink, { r: 5, alpha: 1 });
-      P.label(ctx, frCurve.X(x0) + 8, frCurve.Y(fx) - 8, 'x_0', th.pink);
+      P.scatter(ctx, frCurve, [[z0, fx]], th.pink, { r: 5, alpha: 1 });
+      /* do lado oposto à borda quando o marcador está perto da direita */
+      const zl = z0 > ZMAX - 0.8 ? frCurve.X(z0) - 22 : frCurve.X(z0) + 8;
+      pill(ctx, zl, frCurve.Y(fx) - 8, 'z_0', th.pink);
 
       /* ── φ′(z) ── */
       ({ ctx, w, h } = P.setup(cvDeriv));
@@ -179,14 +194,14 @@
       shade(ctx, frDeriv, zones, th.orange);
       P.axes(ctx, frDeriv, { xlabel: 'z', xticks: [-6, -3, 0, 3, 6], yticks: [0, Math.floor(dhi * 10) / 10] });
       P.line(ctx, frDeriv, zs, dys, th.cyan, { width: 2 });
-      P.line(ctx, frDeriv, [x0, x0], [dlo, dhi], th.comment, { width: 1, dash: [3, 3] });
-      P.scatter(ctx, frDeriv, [[x0, dfx]], th.pink, { r: 4, alpha: 1 });
+      P.line(ctx, frDeriv, [z0, z0], [dlo, dhi], th.comment, { width: 1, dash: [3, 3] });
+      P.scatter(ctx, frDeriv, [[z0, dfx]], th.pink, { r: 4, alpha: 1 });
 
       $('s1-formula').innerHTML = a.formula(p);
       $('s1-readout').innerHTML =
-        'x<sub>0</sub> = ' + x0.toFixed(2) +
-        ' · φ(x<sub>0</sub>) = ' + fx.toFixed(3) +
-        ' · φ′(x<sub>0</sub>) = ' + dfx.toFixed(3);
+        'z<sub>0</sub> = ' + z0.toFixed(2) +
+        ' · φ(z<sub>0</sub>) = ' + fx.toFixed(3) +
+        ' · φ′(z<sub>0</sub>) = ' + dfx.toFixed(3);
     }
 
     function syncParamUI() {
@@ -212,14 +227,14 @@
       redraw();
     });
 
-    /* Arrasto do marcador x0 (em qualquer um dos dois canvases). */
+    /* Arrasto do marcador z0 (em qualquer um dos dois canvases). */
     function attachDrag(canvas, getFrame) {
       let dragging = false;
       const move = (e) => {
         const fr = getFrame();
         if (!fr) return;
         const r = canvas.getBoundingClientRect();
-        x0 = Math.max(ZMIN, Math.min(ZMAX, fr.invX(e.clientX - r.left)));
+        z0 = Math.max(ZMIN, Math.min(ZMAX, fr.invX(e.clientX - r.left)));
         redraw();
       };
       canvas.addEventListener('pointerdown', (e) => {

@@ -34,7 +34,7 @@
 
     function genInputs() {
       const rng = DL.utils.mulberry32(seed);
-      xs = [0, X1]; /* x_1 = 0.8 fixo, para casar com os slides */
+      xs = [0, X1]; /* primeira entrada 0.8 fixa (o x_0 dos slides), aplicada em t = 1 */
       for (let k = 2; k <= T; k++) {
         let v = 0;
         if (rng() < 0.25) v = (rng() < 0.5 ? -1 : 1) * (0.5 + 0.7 * rng());
@@ -67,6 +67,21 @@
         G.r.push(r); G.z.push(z);
         G.h.push((1 - z) * hg + z * hh);
       }
+    }
+
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
     }
 
     function bars(ctx, fr, th) {
@@ -113,11 +128,8 @@
         P.line(ctx, fr, ks, L.c.slice(0, t + 1), th.orange, { width: 2.4 });
         P.line(ctx, fr, ks, L.h.slice(0, t + 1), th.green, { width: 2.4 });
         P.scatter(ctx, fr, [[t, L.c[t]], [t, L.h[t]]], th.fg, { r: 3, alpha: 1 });
-        P.label(ctx, fr.X(0) + 8, fr.Y(1.1) + 14, 'c_t', th.orange);
-        P.label(ctx, fr.X(0) + 8, fr.Y(1.1) + 28, 'h_t', th.green);
-        P.label(ctx, fr.X(T) - 60, fr.Y(1.1) + 14, 'f', th.cyan);
-        P.label(ctx, fr.X(T) - 44, fr.Y(1.1) + 14, 'i', th.purple);
-        P.label(ctx, fr.X(T) - 28, fr.Y(1.1) + 14, 'o', th.pink);
+        legendBox(ctx, th, fr.X(0) + 8, fr.Y(1.1), [['c_t', th.orange], ['h_t', th.green]]);
+        legendBox(ctx, th, fr.X(T) - 8, fr.Y(1.1), [['f', th.cyan], ['i', th.purple], ['o', th.pink]], 'right');
       } else {
         if (t >= 1) {
           P.line(ctx, fr, ksg, G.r.slice(1, t + 1), th.cyan, { width: 1.1, dash: [3, 3] });
@@ -125,9 +137,8 @@
         }
         P.line(ctx, fr, ks, G.h.slice(0, t + 1), th.green, { width: 2.4 });
         P.scatter(ctx, fr, [[t, G.h[t]]], th.fg, { r: 3, alpha: 1 });
-        P.label(ctx, fr.X(0) + 8, fr.Y(1.1) + 14, 'h_t', th.green);
-        P.label(ctx, fr.X(T) - 44, fr.Y(1.1) + 14, 'r', th.cyan);
-        P.label(ctx, fr.X(T) - 28, fr.Y(1.1) + 14, 'z', th.purple);
+        legendBox(ctx, th, fr.X(0) + 8, fr.Y(1.1), [['h_t', th.green]]);
+        legendBox(ctx, th, fr.X(T) - 8, fr.Y(1.1), [['r', th.cyan], ['z', th.purple]], 'right');
       }
     }
 

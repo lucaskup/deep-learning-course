@@ -61,7 +61,13 @@
       const { ctx, w, h } = P.setup(cv);
       P.clear(ctx, w, h);
 
-      const padX = 70, padTop = 26, padBot = 34;
+      /* Em canvas estreito as colunas se aproximam: margens, raio das
+         unidades e fonte dos rótulos encolhem junto; o título fica acima
+         da primeira linha de unidades (padTop) em qualquer largura. */
+      const narrow = w < 480;
+      const padX = narrow ? Math.max(34, w * 0.11) : 70, padTop = 40, padBot = 34;
+      const R = narrow ? 8 : 11;
+      const labelSize = narrow ? 9 : 11;
       const names = ['entrada', 'oculta 1', 'oculta 2', 'saída'];
       const pos = [];   /* pos[l][j] = [px, py] */
       for (let l = 0; l < LAYERS.length; l++) {
@@ -98,7 +104,6 @@
 
       /* Unidades. */
       const fill = [th.cyan, th.purple, th.purple, th.orange];
-      const R = 11;
       for (let l = 0; l < LAYERS.length; l++) {
         const act = activeOf(l);
         for (let j = 0; j < LAYERS[l]; j++) {
@@ -131,9 +136,9 @@
 
       /* Rótulos das camadas. */
       for (let l = 0; l < LAYERS.length; l++) {
-        P.label(ctx, pos[l][0][0], h - 10, names[l], th.comment, 'center');
+        P.mathText(ctx, names[l], pos[l][0][0], h - 10, th.comment, 'center', labelSize);
       }
-      P.label(ctx, 10, 16, 'm ∼ Bernoulli(1−p), unidades ocultas', th.comment);
+      P.mathText(ctx, narrow ? 'm ∼ Bernoulli(1−p)' : 'm ∼ Bernoulli(1−p), unidades ocultas', 10, 16, th.comment, 'left', 11);
     }
 
     function refresh() { updateReadouts(); draw(); }

@@ -1,6 +1,6 @@
 /* Seção 4: classificação zero-shot.
-   Uma imagem û (unitária, arrastável) e K prompts de classe v̂_k (unitários).
-   s_k = û·v̂_k; probabilidades = softmax(s_k/τ); barra do argmax destacada.
+   Uma imagem ũ (unitária, arrastável) e K prompts de classe ṽ_k (unitários).
+   s_k = ũ·ṽ_k; probabilidades = softmax(s_k/τ); barra do argmax destacada.
    O classificador é construído na inferência a partir dos prompts. */
 (function () {
   'use strict';
@@ -29,9 +29,32 @@
     const promptColors = (th) => [th.purple, th.orange, th.pink, th.green];
 
     function makeGeom(w, h) {
+      /* Margem de 54 px para os rótulos das classes caberem fora da circunferência. */
       const pad = 26;
-      const r = Math.min(w - 2 * pad, h - 2 * pad) / 2 - 18;
+      const r = Math.min(w - 2 * pad, h - 2 * pad) / 2 - 28;
       return { cx: w / 2, cy: h / 2, r };
+    }
+
+    /* Rótulo fora da circunferência, alinhado para o lado oposto ao centro
+       e mantido dentro do canvas. */
+    function placeLabel(ctx, w, h, ang, text, color, size) {
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text).width;
+      const c = Math.cos(ang), s = Math.sin(ang);
+      const base = tip(ang, 1 + 14 / geom.r);
+      let align = 'center', x = base[0], y = base[1] + 4;
+      if (c > 0.35) align = 'left';
+      else if (c < -0.35) align = 'right';
+      if (s > 0.35) y = base[1] + 12;
+      else if (s < -0.35) y = base[1] - 2;
+      const left = align === 'left' ? x : (align === 'right' ? x - tw : x - tw / 2);
+      const shift = Math.max(4 - left, 0) - Math.max(left + tw - (w - 4), 0);
+      x += shift;
+      /* Se foi preciso puxar o rótulo para dentro, ele cairia sobre o ponto:
+         desloca-o na vertical, para o lado oposto ao centro. */
+      if (shift !== 0) y += s >= 0 ? 14 : -14;
+      y = Math.max(size, Math.min(h - 4, y));
+      P.mathText(ctx, text, x, y, color, align, size);
     }
     const tip = (ang, scale) => [geom.cx + geom.r * (scale || 1) * Math.cos(ang), geom.cy + geom.r * (scale || 1) * Math.sin(ang)];
 
@@ -70,20 +93,18 @@
       for (let k = 0; k < K; k++) {
         const t = tip(prompts[k]);
         arrow(ctx, geom.cx, geom.cy, t[0], t[1], pc[k], k === arg ? 3 : 2);
-        const lp = tip(prompts[k], 1.14);
-        P.mathText(ctx, LABELS[k], lp[0], lp[1] + 4, pc[k], 'center', 12);
+        placeLabel(ctx, w, h, prompts[k], LABELS[k], pc[k], 12);
         const dp = tip(prompts[k]);
         ctx.fillStyle = pc[k];
         ctx.beginPath(); ctx.arc(dp[0], dp[1], 5, 0, 2 * Math.PI); ctx.fill();
       }
-      /* Imagem û. */
+      /* Imagem ũ. */
       const it = tip(imgAng);
       arrow(ctx, geom.cx, geom.cy, it[0], it[1], th.cyan, 3);
       ctx.fillStyle = th.cyan;
       ctx.beginPath(); ctx.arc(it[0], it[1], 7, 0, 2 * Math.PI); ctx.fill();
       ctx.strokeStyle = th.bg; ctx.lineWidth = 1.5; ctx.stroke();
-      const il = tip(imgAng, 1.16);
-      P.mathText(ctx, 'û (imagem)', il[0], il[1] + 4, th.cyan, 'center', 12);
+      placeLabel(ctx, w, h, imgAng, 'ũ (imagem)', th.cyan, 12);
     }
 
     function drawBars() {
@@ -173,7 +194,10 @@
       redraw();
     });
     $('s4-reset').addEventListener('click', () => {
-      imgAng = IMG0; prompts = PROMPT0.slice(); redraw();
+      imgAng = IMG0; prompts = PROMPT0.slice();
+      slTau.value = '50'; tau = tauOf(50);
+      $('s4-tau-val').textContent = tau.toFixed(2);
+      redraw();
     });
 
     $('s4-tau-val').textContent = tau.toFixed(2);

@@ -6,6 +6,7 @@
   DL.sections = DL.sections || [];
 
   const N = 8, POOL = 2, M = N / POOL, DMAX = 5;
+  const PAD = 26;   /* margem da grade: deixa espaço para o rótulo acima dela */
 
   /* Padrão assimétrico 3×3 (um "L" com um detalhe fraco) */
   const PAT = [
@@ -80,7 +81,7 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvIn);
       P.clear(ctx, w, h);
-      const L = G.layout(w, h, N, N, 12);
+      const L = G.layout(w, h, N, N, PAD);
       const g = makeInput(dx, dy);
 
       for (let i = 0; i < N; i++) {
@@ -109,14 +110,14 @@
           }
         }
       }
-      P.label(ctx, L.x(0), L.y(0) - 5, 'entrada (arraste o padrão)', th.comment);
+      P.label(ctx, L.x(0), L.y(0) - 7, 'entrada (arraste o padrão)', th.comment);
     }
 
     function drawOutput() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvOut);
       P.clear(ctx, w, h);
-      const L = G.layout(w, h, M, M, 12);
+      const L = G.layout(w, h, M, M, PAD);
       const out = pool(makeInput(dx, dy));
       const ref = shiftedRef();
 
@@ -139,7 +140,7 @@
           }
         }
       }
-      P.label(ctx, L.x(0), L.y(0) - 5, (mode === 'max' ? 'max' : 'average') + ' pooling 2×2', th.comment);
+      P.label(ctx, L.x(0), L.y(0) - 7, (mode === 'max' ? 'max' : 'average') + ' pooling 2×2', th.comment);
 
       $('s3-readout').textContent =
         'Δ = (' + dx + ', ' + dy + ') · ' + ndiff + ' de ' + (M * M) + ' células diferem da referência deslocada';
@@ -190,7 +191,7 @@
     function cellFromEvent(e) {
       const r = cvIn.getBoundingClientRect();
       const { w, h } = P.setup(cvIn);
-      const L = G.layout(w, h, N, N, 12);
+      const L = G.layout(w, h, N, N, PAD);
       return L.cellAt(e.clientX - r.left, e.clientY - r.top);
     }
 

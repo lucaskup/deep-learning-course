@@ -64,6 +64,19 @@
       ctx.clip();
     }
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     function drawData() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvData);
@@ -116,12 +129,15 @@
       ctx.strokeStyle = th.purple;
       ctx.lineWidth = 2.2;
       ctx.stroke();
-      P.label(ctx, fr.X(probe[0]) + 9, fr.Y(probe[1]) - 8, 'x (sonda)', th.purple);
+      /* Rótulo da sonda do lado em que cabe no quadro e preso dentro dele. */
+      const sideR = fr.X(probe[0]) + 9 + 58 < fr.X(XR);
+      const lyP = Math.max(fr.Y(YR) + 12, fr.Y(probe[1]) - 8);
+      tag(ctx, th, fr.X(probe[0]) + (sideR ? 9 : -9), lyP, 'x (sonda)', th.purple, sideR ? 'left' : 'right');
 
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 14, 'dados', th.comment);
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 28, 'x̂ = f(g(x,φ),θ)', th.cyan);
-      if (mode === '1d') P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 42, 'variedade f(z,θ)', th.orange);
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + (mode === '1d' ? 56 : 42), 'x̂ da sonda', th.green);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 14, 'dados', th.comment);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 28, 'x̂ = f(g(x,φ),θ)', th.cyan);
+      if (mode === '1d') tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 42, 'variedade f(z,θ)', th.orange);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + (mode === '1d' ? 56 : 42), 'x̂ da sonda', th.green);
     }
 
     function drawLoss() {
@@ -142,8 +158,8 @@
         P.line(ctx, fr, hist2.map((p) => p[0]), hist2.map((p) => p[1]), th.pink, { width: 1.7 });
       }
       ctx.restore();
-      P.label(ctx, fr.X(0) + 8, fr.Y(0.8) + 14, 'latente 1D', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(0.8) + 28, 'latente 2D', th.pink);
+      tag(ctx, th, fr.X(0) + 8, fr.Y(0.8) + 14, 'latente 1D', th.cyan);
+      tag(ctx, th, fr.X(0) + 8, fr.Y(0.8) + 28, 'latente 2D', th.pink);
     }
 
     function updateReadout() {

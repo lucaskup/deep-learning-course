@@ -22,6 +22,20 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvPre = $('s3-pre'), cvPost = $('s3-post');
     const slConf = $('s3-conf'), slIou = $('s3-iou');
     const btnRand = $('s3-rand'), btnReset = $('s3-reset');
@@ -140,7 +154,7 @@
       ctx.strokeRect(x0, y0, bw, bh);
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      if (opts.text) P.mathText(ctx, opts.text, x0 + 3, y0 + 12, color, 'left', 10);
+      if (opts.text) pill(ctx, P.theme(), x0 + 3, y0 + 12, opts.text, color, 'left', 10);
     }
 
     function drawPre(cand) {
@@ -150,11 +164,16 @@
       P.clear(ctx, w, h);
       const fr = makeFrame(ctx, w, h);
       const Yi = drawScene(ctx, fr, th);
+      /* A confiança só é escrita na caixa mais confiante de cada aglomerado
+         (cand já vem ordenado por confiança), senão os números se sobrepõem. */
+      const labelled = [];
       for (const d of cand) {
+        const top = labelled.every(function (l) { return iou(d, l) < 0.3; });
+        if (top) labelled.push(d);
         drawBoxRect(ctx, fr, Yi, d, classColor(th, d.cls), {
           width: 1.2 + 1.6 * d.conf,
           alpha: 0.35 + 0.65 * d.conf,
-          text: fm(d.conf),
+          text: top ? fm(d.conf) : null,
         });
       }
     }

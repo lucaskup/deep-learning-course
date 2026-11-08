@@ -1,6 +1,6 @@
 /* Seção 3: InfoNCE e temperatura.
-   N pares imagem/texto (com semente). S = ûV̂ᵀ; softmax por linha e por coluna
-   sobre S/τ. Perdas L_img→txt, L_txt→img e L_CLIP = ½(soma). Barras mostram a
+   N pares imagem/texto (com semente). S = ũṼᵀ; softmax por linha e por coluna
+   sobre S/τ. Perdas L_{i→t}, L_{t→i} e L_CLIP = ½(soma). Barras mostram a
    probabilidade da diagonal afiando conforme τ cai. */
 (function () {
   'use strict';
@@ -135,10 +135,10 @@
       drawProbHeat(cvCol, colM);
       drawBars(rowM);
       const L = losses(rowM, colM);
-      $('s3-readout').textContent =
-        'L_img→txt = ' + L.li.toFixed(3) +
-        ' · L_txt→img = ' + L.lt.toFixed(3) +
-        ' · L_CLIP = ' + L.clip.toFixed(3);
+      $('s3-readout').innerHTML =
+        'L<sub>i→t</sub> = ' + L.li.toFixed(3) +
+        ' · L<sub>t→i</sub> = ' + L.lt.toFixed(3) +
+        ' · L<sub>CLIP</sub> = ' + L.clip.toFixed(3);
     }
 
     slTau.addEventListener('input', () => {
@@ -148,6 +148,13 @@
     });
     slAlign.addEventListener('input', () => {
       align = +slAlign.value / 100;
+      $('s3-align-val').textContent = align.toFixed(2);
+      redraw();
+    });
+    $('s3-reset').addEventListener('click', () => {
+      slTau.value = '50'; tau = tauOf(50);
+      slAlign.value = '30'; align = 0.30;
+      $('s3-tau-val').textContent = tau.toFixed(2);
       $('s3-align-val').textContent = align.toFixed(2);
       redraw();
     });

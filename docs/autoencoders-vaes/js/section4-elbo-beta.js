@@ -51,6 +51,19 @@
       ctx.clip();
     }
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     function drawLatent(post) {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvLat);
@@ -103,10 +116,10 @@
       P.line(ctx, fr, pxs, pys, th.green, { width: 1.6, dash: [4, 3] });
       ctx.restore();
 
-      P.label(ctx, fr.X(-zlim) + 8, fr.Y(ymax) + 14, 'posterior agregado', th.orange);
-      P.label(ctx, fr.X(-zlim) + 8, fr.Y(ymax) + 28, 'q(z|x,φ)', th.red);
-      P.label(ctx, fr.X(-zlim) + 8, fr.Y(ymax) + 42, 'prior N(0,1)', th.green);
-      P.label(ctx, fr.X(-zlim) + 8, fr.Y(ymax) + 56, 'marcas: μ(x)', th.cyan);
+      tag(ctx, th, fr.X(-zlim) + 8, fr.Y(ymax) + 14, 'posterior agregado', th.orange);
+      tag(ctx, th, fr.X(-zlim) + 8, fr.Y(ymax) + 28, 'q(z|x,φ)', th.red);
+      tag(ctx, th, fr.X(-zlim) + 8, fr.Y(ymax) + 42, 'prior N(0,1)', th.green);
+      tag(ctx, th, fr.X(-zlim) + 8, fr.Y(ymax) + 56, 'marcas: μ(x)', th.cyan);
     }
 
     function drawData(post) {
@@ -135,8 +148,8 @@
       P.line(ctx, fr, xs, ys, th.orange, { width: 2, alpha: 0.85 });
       ctx.restore();
 
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 14, 'x̂ = f(μ(x),θ)', th.cyan);
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 28, 'f(z,θ), z ∈ [−2.5, 2.5]', th.orange);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 14, 'x̂ = f(μ(x),θ)', th.cyan);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 28, 'f(z,θ), z ∈ [−2.5, 2.5]', th.orange);
     }
 
     function drawCurves() {
@@ -162,18 +175,24 @@
       for (const ev of events) {
         if (ev.k === 0) continue;
         P.line(ctx, fr, [ev.k, ev.k], [0, ymax], th.purple, { width: 1, dash: [3, 3], alpha: 0.8 });
-        P.label(ctx, fr.X(ev.k) + 4, fr.Y(ymax) + 12, 'β=' + ev.beta, th.purple);
+        /* Rótulo do lado em que cabe; abaixo da legenda quando a marca cai perto
+           da borda esquerda. */
+        const bx = fr.X(ev.k);
+        const right = bx + 4 + 40 < fr.X(n);
+        const by = bx < fr.X(0) + 110 ? fr.Y(ymax) + 42 : fr.Y(ymax) + 12;
+        tag(ctx, th, bx + (right ? 4 : -4), by, 'β=' + ev.beta, th.purple, right ? 'left' : 'right');
       }
       ctx.restore();
-      P.label(ctx, fr.X(0) + 8, fr.Y(ymax) + 14, 'reconstrução', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ymax) + 28, 'KL', th.red);
+      tag(ctx, th, fr.X(0) + 8, fr.Y(ymax) + 14, 'reconstrução', th.cyan);
+      tag(ctx, th, fr.X(0) + 8, fr.Y(ymax) + 28, 'KL', th.red);
     }
 
     function updateReadout() {
       const last = hist[hist.length - 1];
       $('s4-beta-val').textContent = beta.toFixed(2);
       $('s4-readout').textContent = last
-        ? 'passo ' + k + ' · recon = ' + last.recon.toFixed(2) + ' · KL = ' + last.kl.toFixed(2) +
+        ? 'passo ' + k + ' · recon = 6·‖x−x̂‖² = ' + last.recon.toFixed(2) +
+          ' (MSE = ' + (last.recon / RECON_W).toFixed(3) + ') · KL = ' + last.kl.toFixed(2) +
           ' · perda = recon + β·KL = ' + (last.recon + beta * last.kl).toFixed(2)
         : 'passo 0 · treine para ver as curvas';
     }

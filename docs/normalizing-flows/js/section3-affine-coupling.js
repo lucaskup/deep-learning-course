@@ -6,6 +6,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const LIM = 3.5, NSAMP = 900;
 
   function init() {
@@ -22,7 +35,7 @@
     let act = 1;            /* dimensão transformada (1 = x2); passiva = 1 − act */
     let seed = 3;
     let zsamp = [];
-    let animating = false, dir = -1;
+    let animating = false;
 
     const sFn = (a) => ws * Math.tanh(a);
     const tFn = (a) => wt * 0.5 * (a * a - 1);
@@ -63,7 +76,7 @@
         const col = P.viridis(0.25 + 0.75 * u);
         return [col[0], col[1], col[2], Math.round(225 * u)];
       });
-      P.axes(ctx, fr, { xlabel: 'x_1', ylabel: 'x_2', xticks: [-3, 0, 3], yticks: [-3, 0, 3] });
+      P.axes(ctx, fr, { ylabel: 'x_2', xticks: [-3, 0, 3], yticks: [-3, 0, 3] });
 
       /* Grade deformada: linhas constantes na coordenada passiva são retas,
          linhas constantes na coordenada ativa viram curvas. */
@@ -94,8 +107,10 @@
       P.scatter(ctx, fr, zsamp, th.cyan, { r: 1.5, alpha: 0.18 });
       P.scatter(ctx, fr, zsamp.map(fwd), th.orange, { r: 2, alpha: 0.65 });
       ctx.restore();
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(LIM) + 14, 'z ~ N(0, I)', th.cyan);
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(LIM) + 28, 'f(z) com α = ' + alpha.toFixed(2), th.orange);
+      /* Legenda e rótulo do eixo com fundo: o mapa de cores cobre o quadro inteiro. */
+      pillText(ctx, th, 'z ~ N(0, I)', fr.X(-LIM) + 8, fr.Y(LIM) + 14, th.cyan);
+      pillText(ctx, th, 'y = g(z) com α = ' + alpha.toFixed(2), fr.X(-LIM) + 8, fr.Y(LIM) + 28, th.orange);
+      pillText(ctx, th, 'x_1', fr.X(LIM) - 4, fr.Y(-LIM) - 8, th.comment, 'right');
     }
 
     function drawSt() {
@@ -114,8 +129,16 @@
       }
       P.line(ctx, fr, xs, ss, th.orange, { width: 2.2 });
       P.line(ctx, fr, xs, ts, th.green, { width: 2.2 });
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(2.6) + 14, 'α·s(x^A)  (log-escala)', th.orange);
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(2.6) + 28, 'α·t(x^A)  (translação)', th.green);
+      /* Rótulos centrados no topo: nas bordas a parábola t(x^A) sai do quadro. */
+      const lblS = 'α·s(x^A)  (log-escala)', lblT = 'α·t(x^A)  (translação)';
+      ctx.font = '11px sans-serif';
+      const lw = Math.max(ctx.measureText(lblS).width, ctx.measureText(lblT).width);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(fr.X(0) - lw / 2 - 4, fr.Y(2.6) + 3, lw + 8, 30);
+      ctx.globalAlpha = 1;
+      P.label(ctx, fr.X(0), fr.Y(2.6) + 14, lblS, th.orange, 'center');
+      P.label(ctx, fr.X(0), fr.Y(2.6) + 28, lblT, th.green, 'center');
     }
 
     function updateReadout() {
@@ -151,18 +174,20 @@
       DL.stopTicker(tick);
     }
 
+    /* Uma varredura de α = 0 até α = 1; para ao chegar em 1. */
     function tick(dt) {
-      let v = alpha + dir * dt * 0.55;
-      if (v >= 1) { v = 1; dir = -1; }
-      if (v <= 0) { v = 0; dir = 1; }
+      let v = alpha + dt * 0.55;
+      const end = v >= 1;
+      if (end) v = 1;
       setAlpha(v, true);
       redraw();
+      if (end) stopAnim();
     }
 
     btnAnim.addEventListener('click', () => {
       if (animating) { stopAnim(); return; }
+      if (alpha >= 1) setAlpha(0, true);
       animating = true;
-      dir = alpha >= 1 ? -1 : 1;
       btnAnim.textContent = '⏸ Pausar';
       DL.startTicker(tick);
     });

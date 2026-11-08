@@ -183,10 +183,24 @@
     const { pts: data, lab: labels } = U.twoMoons(NDATA, 0.08, dataRng);
 
     let model = null, steps = 0, lossEma = null, lossHist = [];
+    let sampleCount = 0; /* entra na semente: cada ▶ Amostrar sorteia uma nuvem nova */
     let training = false;
     let trainRng = null;
 
     let particles = null, partT = 0, sampling = false, sampleCls = -1, guidW = 0;
+
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
 
     function resetModel() {
       model = createModel(1234, U);
@@ -242,7 +256,8 @@
     function startSampling() {
       sampleCls = +selClass.value;
       guidW = +sliderW.value;
-      const rng = U.mulberry32((Math.max(1, steps) * 2654435761) >>> 0);
+      sampleCount++;
+      const rng = U.mulberry32((Math.max(1, steps) * 2654435761 + sampleCount * 40503) >>> 0);
       particles = new Float32Array(NPART * 2);
       for (let i = 0; i < particles.length; i++) particles[i] = U.randn(rng);
       particles._rng = rng;
@@ -340,7 +355,7 @@
         const pts = [];
         for (let i = 0; i < NPART; i++) pts.push([particles[i * 2], particles[i * 2 + 1]]);
         P.scatter(ctx, fr, pts, col, { r: 2.5, alpha: 0.85 });
-        P.label(ctx, fr.X(-3) + 8, 14,
+        tag(ctx, th, fr.X(-3) + 8, 14,
           partT >= 1 ? 'revertendo… t = ' + partT + '/' + T : 'amostras finais (' + T + ' passos)', th.fg);
       } else {
         P.label(ctx, fr.X(-3) + 8, 14, 'treine e clique em Amostrar', th.comment);

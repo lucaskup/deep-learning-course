@@ -71,10 +71,24 @@
       prodGRU = accum(facGRU);
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function legend(ctx, fr, th) {
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 14, 'RNN vanilla', th.cyan);
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 28, 'LSTM (f_k)', th.orange);
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 42, 'GRU (1−z_k)', th.green);
+      legendBox(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax), [
+        ['RNN vanilla', th.cyan], ['LSTM (f_k)', th.orange], ['GRU (1−z_k)', th.green]]);
     }
 
     function drawGrad() {

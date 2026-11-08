@@ -54,9 +54,12 @@
         <span class="formula">d</span> baixo subajusta (viés alto), <span class="formula">d</span> alto
         sem regularização sobreajusta (variância alta), exatamente o trade-off da aula.
         A penalidade L2 entra na solução fechada de ridge,
-        <span class="formula">w = (XᵀX + λI)⁻¹Xᵀy</span>, sem penalizar o termo de viés.
+        <span class="formula">θ = (XᵀX + λI)⁻¹Xᵀy</span>, sem penalizar o termo de viés.
+        O ajuste usa a base de polinômios de Chebyshev (mesmo espaço de funções dos monômios
+        <span class="formula">x<sup>k</sup></span>, mas numericamente estável em grau alto), então
+        <span class="formula">‖θ‖²</span> é a norma dos coeficientes de Chebyshev.
         Aumente <span class="formula">λ</span> com <span class="formula">d</span> alto e observe a curva
-        suavizar e <span class="formula">‖w‖²</span> despencar.
+        suavizar e <span class="formula">‖θ‖²</span> despencar.
       </p>
       <div class="panel">
         <div class="controls">
@@ -81,7 +84,7 @@
         </div>
         <p class="demo-text small">
           💡 Com <span class="formula">λ = 0</span>, arraste <span class="formula">d</span> até 15
-          e veja o U clássico no gráfico da direita: o MSE de treino sempre cai, o de validação
+          e veja o U no gráfico da direita: o MSE de treino sempre cai, o de validação
           volta a subir. Depois fixe <span class="formula">d = 15</span> e aumente
           <span class="formula">λ</span>: o melhor MSE de validação reaparece sem reduzir a
           capacidade, é o ponto do slide sobre o efeito de aumentar <span class="formula">λ</span>.
@@ -97,7 +100,7 @@
       <p class="demo-text">
         Um MLP superparametrizado (1 entrada → 24 unidades tanh → 1 saída) é treinado aqui no
         navegador com gradiente descendente sobre 14 pontos ruidosos. Como nos slides,
-        monitoramos a loss em um conjunto de validação: a loss de treino cai monotonicamente,
+        monitoramos a loss em um conjunto de validação: a loss de treino tende a cair,
         mas a de validação atinge um mínimo e volta a subir quando o modelo começa a se ajustar
         ao ruído. Parar cedo tem efeito análogo a L2, pois impede que os pesos cresçam
         indiscriminadamente. O botão de restaurar volta aos pesos da melhor época, que é o que o
@@ -126,9 +129,9 @@
         <p class="demo-text small">
           💡 Deixe treinar bastante até a curva roxa interpolar o ruído, depois clique em
           ⏮ e compare o ajuste restaurado com o sobreajustado. O patamar da loss de validação
-          fica perto de <span class="formula">σ²</span>, o componente irredutível de ruído da
-          decomposição viés-variância da aula. A loss de treino cai abaixo dele justamente
-          porque o modelo memoriza o ruído.
+          fica acima de <span class="formula">σ²</span>, o componente irredutível de ruído da
+          decomposição viés-variância e um limite inferior para a loss de validação. A loss de
+          treino cai abaixo desse limite justamente porque o modelo memoriza o ruído.
         </p>
       </div>
     </div>

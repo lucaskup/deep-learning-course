@@ -33,13 +33,18 @@
       return hs;
     }
 
-    /* Ponto fixo positivo de tanh(θ·h) quando θ > 1 (iteração converge a h*). */
+    /* Ponto fixo positivo h* de tanh(|θ|·h) quando |θ| > 1. Para θ > 1 a
+       iteração converge a ±h*; para θ < −1 ela alterna entre h* e −h*
+       (ciclo de período 2), já que tanh(θ·h*) = −tanh(|θ|·h*) = −h*. */
     function fixedPoint() {
-      if (mode !== 'tanh' || thhh <= 1) return 0;
+      if (mode !== 'tanh' || Math.abs(thhh) <= 1) return 0;
       let h = 1.5;
-      for (let i = 0; i < 80; i++) h = Math.tanh(thhh * h);
+      for (let i = 0; i < 80; i++) h = Math.tanh(Math.abs(thhh) * h);
       return h;
     }
+
+    /* A origem é instável quando |θ| > 1 (a inclinação do mapa em 0 é θ). */
+    const originUnstable = () => Math.abs(thhh) > 1;
 
     function clipPlot(ctx, fr) {
       ctx.save();
@@ -80,12 +85,15 @@
       P.line(ctx, fr, px.map(clampPlot), py.map(clampPlot), th.orange, { width: 1.6, alpha: 0.9 });
       ctx.restore();
 
-      /* Pontos fixos */
+      /* Pontos fixos (θ > 1) ou ciclo de período 2 (θ < −1) */
       const hstar = fixedPoint();
-      P.scatter(ctx, fr, [[0, 0]], hstar > 0 ? th.red : th.green, { r: 3.5, alpha: 1 });
-      if (hstar > 0) {
+      P.scatter(ctx, fr, [[0, 0]], originUnstable() ? th.red : th.green, { r: 3.5, alpha: 1 });
+      if (hstar > 0 && thhh > 0) {
         P.scatter(ctx, fr, [[hstar, hstar], [-hstar, -hstar]], th.green, { r: 3.5, alpha: 1 });
         P.label(ctx, fr.X(hstar) + 7, fr.Y(hstar) - 6, 'h*', th.green);
+      } else if (hstar > 0) {
+        P.scatter(ctx, fr, [[hstar, -hstar], [-hstar, hstar]], th.green, { r: 3.5, alpha: 1 });
+        P.label(ctx, fr.X(-hstar) + 7, fr.Y(hstar) - 6, 'ciclo ±h*', th.green);
       }
 
       /* Marcador de h_0 (arrastável) */
@@ -103,7 +111,7 @@
       P.clear(ctx, w, h);
       const hs = trajectory();
       const shown = hs.slice(0, cur + 1).map(clampPlot);
-      const ymax = Math.max(1.4, Math.min(8, ...[1.4].concat(shown.map(Math.abs))));
+      const ymax = Math.min(8, Math.max(1.4, ...shown.map(Math.abs)));
       const fr = P.frame(ctx, w, h, 0, NMAX, -ymax, ymax);
       P.axes(ctx, fr, {
         xlabel: 't',
@@ -127,11 +135,14 @@
       const a = Math.abs(thhh);
       if (mode === 'linear') {
         if (a < 1) return 'estado decai a zero, a memória evapora';
-        if (a === 1) return 'estado persiste sem decair';
-        return 'estado explode exponencialmente';
+        if (thhh === 1) return 'estado persiste sem decair';
+        if (thhh === -1) return 'estado alterna de sinal sem decair';
+        if (thhh > 1) return 'estado explode exponencialmente';
+        return 'estado explode alternando de sinal';
       }
       if (a <= 1) return 'estado decai a zero, a memória evapora';
-      return 'estado satura no ponto fixo ±h*';
+      if (thhh > 1) return 'estado satura no ponto fixo ±h*';
+      return 'estado oscila entre h* e −h* (ciclo de período 2)';
     }
 
     function updateReadout() {

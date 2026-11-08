@@ -92,19 +92,22 @@
         }
       }
 
-      /* Legenda. */
+      /* Legenda, com quebra de linha quando não cabe na largura do canvas. */
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'left';
-      let lx = fr.X(-0.2), ly = fr.Y(6.3);
+      const lx0 = fr.X(-0.2);
+      let lx = lx0, ly = fr.Y(6.3);
       for (let d = 0; d <= 4; d++) {
+        const txt = d === 0 ? 'centro' : d + (d === 1 ? ' salto' : ' saltos');
+        const itemW = 14 + ctx.measureText(txt).width;
+        if (lx > lx0 && lx + itemW > w - 8) { lx = lx0; ly += 16; }
         ctx.fillStyle = hopColor[d];
         ctx.beginPath();
         ctx.arc(lx + 5, ly - 4, 5, 0, 2 * Math.PI);
         ctx.fill();
         ctx.fillStyle = t.comment;
-        const txt = d === 0 ? 'centro' : d + (d === 1 ? ' salto' : ' saltos');
         ctx.fillText(txt, lx + 14, ly);
-        lx += 24 + ctx.measureText(txt).width;
+        lx += itemW + 10;
       }
 
       readout.textContent = 'receptive field de v: ' + reached + ' de ' + N +

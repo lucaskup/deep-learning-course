@@ -75,13 +75,13 @@
 .btn-ctl.primary { border-color: var(--purple); }
 
 .slider-label {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
+  display: inline-block;
+  line-height: 1.9;
   color: var(--comment);
   font-size: .85rem;
 }
 .slider-label input[type="range"] { accent-color: var(--purple); width: 160px; }
+.slider-label input, .slider-label select { vertical-align: middle; margin: 0 .35rem; }
 .slider-label select {
   background: var(--card);
   color: var(--fg);
@@ -115,7 +115,7 @@
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 6px;
-  touch-action: none;
+  touch-action: pan-y; /* canvases com arraste recebem none via plot.js */
 }
 .canvas-box.square canvas { height: 380px; }
 .canvas-box.tall canvas { height: 320px; }
@@ -130,4 +130,18 @@
 
 @media (max-width: 700px) {
   .canvas-box.wide, .canvas-box.square { flex-basis: 100%; }
+}
+
+/* Telas estreitas: fórmulas podem quebrar, canvases quadrados mantêm a proporção
+   (o frame −R..R deixa de ficar anisotrópico) e os sliders cabem no painel. */
+@media (max-width: 480px) {
+  .formula { white-space: normal; overflow-wrap: anywhere; }
+  .canvas-box.square canvas { height: auto; aspect-ratio: 1 / 1; }
+  .slider-label input[type="range"] { width: 110px; }
+}
+
+/* Em linhas com mais de um painel, legendas de 1 e 2 linhas deixariam os
+   canvases com topos desalinhados: reserva-se a altura de duas linhas. */
+@media (min-width: 701px) {
+  .canvas-row .canvas-box:not(:only-child) .canvas-caption { min-height: 2.6em; }
 }

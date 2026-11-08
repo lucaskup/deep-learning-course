@@ -13,17 +13,39 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvBoxes = $('s2-boxes'), cvCurve = $('s2-curve');
-    const btnReset = $('s2-reset'), btnRand = $('s2-rand');
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
 
-    /* Exemplo dos slides: A com (x, y) = (0.2, 0.1), h = 0.5, w = 0.7. */
+    const cvBoxes = $('s2-boxes'), cvCurve = $('s2-curve');
+    const btnReset = $('s2-reset'), btnRand = $('s2-rand'), btnHalf = $('s2-half');
+
+    /* Exemplo dos slides: alvo y = (x, y, h, w) = (0.21, 0.10, 0.83, 0.76) como caixa A;
+       B é uma predição deslocada para a comparação. */
     let A, B;
     let seed = 7;
     let fr = null, drag = null;
 
     function resetBoxes() {
-      A = { x: 0.2, y: 0.1, w: 0.7, h: 0.5 };
-      B = { x: 0.32, y: 0.32, w: 0.55, h: 0.45 };
+      A = { x: 0.21, y: 0.10, w: 0.76, h: 0.83 };
+      B = { x: 0.30, y: 0.22, w: 0.62, h: 0.70 };
+    }
+
+    /* Exemplo numérico dos slides: áreas iguais e interseção igual à metade de cada uma,
+       logo IoU = 1/3 e Dice = 1/2. */
+    function halfBoxes() {
+      A = { x: 0.15, y: 0.25, w: 0.40, h: 0.40 };
+      B = { x: 0.35, y: 0.25, w: 0.40, h: 0.40 };
     }
 
     function randBoxes() {
@@ -61,7 +83,7 @@
     const Yi = (v) => fr.Y(1 - v);
     const invYi = (py) => 1 - fr.invY(py);
 
-    function drawBox(ctx, b, color, name) {
+    function drawBox(ctx, b, color) {
       const x0 = fr.X(b.x), y0 = Yi(b.y);
       const bw = fr.X(b.x + b.w) - x0, bh = Yi(b.y + b.h) - y0;
       ctx.fillStyle = color;
@@ -74,10 +96,28 @@
       /* Alça de redimensionamento no canto inferior direito */
       ctx.fillStyle = color;
       ctx.fillRect(x0 + bw - 5, y0 + bh - 5, 10, 10);
-      /* Nome e vetor y = (x, y, h, w) */
-      P.mathText(ctx, name, x0 + 4, y0 + 13, color, 'left', 12);
+    }
+
+    /* Rótulos desenhados depois das duas caixas, para nenhuma borda cobrir
+       o texto da outra. */
+    function drawBoxLabels(ctx, th, b, color, name, vecAlign, avoid) {
+      const x0 = fr.X(b.x), y0 = Yi(b.y);
+      const bw = fr.X(b.x + b.w) - x0, bh = Yi(b.y + b.h) - y0;
+      /* Nome no canto superior esquerdo; vetor y = (x, y, h, w) no canto
+         inferior esquerdo (A) ou direito (B), para os dois vetores não se
+         sobreporem quando as bases das caixas se alinham. Em canvas estreito
+         os dois ainda podem se cruzar: o segundo sobe uma linha. */
+      pill(ctx, th, x0 + 4, y0 + 13, name, color, 'left', 12);
       const vec = '(' + fm(b.x) + ', ' + fm(b.y) + ', ' + fm(b.h) + ', ' + fm(b.w) + ')';
-      P.mathText(ctx, vec, x0 + 4, y0 + bh - 6, color, 'left', 10);
+      ctx.font = '10px sans-serif';
+      const tw = ctx.measureText(vec).width;
+      const right = vecAlign === 'right';
+      const vx = right ? x0 + bw - 9 : x0 + 4;
+      let vy = right ? y0 + bh - 9 : y0 + bh - 6;
+      const left = right ? vx - tw : vx;
+      if (avoid && Math.abs(vy - avoid.y) < 12 && left < avoid.x1 && left + tw > avoid.x0) vy -= 13;
+      pill(ctx, th, vx, vy, vec, color, right ? 'right' : 'left', 10);
+      return { x0: left, x1: left + tw, y: vy };
     }
 
     function drawBoxes() {
@@ -94,8 +134,8 @@
       P.mathText(ctx, '(0, 0)', fr.X(0), Yi(0) - 5, th.comment, 'left', 10);
       P.mathText(ctx, '(1, 1)', fr.X(1), Yi(1) + 13, th.comment, 'right', 10);
 
-      drawBox(ctx, A, th.red, 'ground truth A');
-      drawBox(ctx, B, th.cyan, 'predição B');
+      drawBox(ctx, A, th.red);
+      drawBox(ctx, B, th.cyan);
 
       /* Interseção A ∩ B */
       const ix0 = Math.max(A.x, B.x), iy0 = Math.max(A.y, B.y);
@@ -108,6 +148,8 @@
         ctx.setLineDash([]);
         P.mathText(ctx, 'A ∩ B', (fr.X(ix0) + fr.X(ix1)) / 2, (Yi(iy0) + Yi(iy1)) / 2 + 4, th.fg, 'center', 11);
       }
+      const vecA = drawBoxLabels(ctx, th, A, th.red, 'ground truth A', 'left');
+      drawBoxLabels(ctx, th, B, th.cyan, 'predição B', 'right', vecA);
     }
 
     function drawCurve() {
@@ -133,8 +175,8 @@
       P.line(ctx, fc, [m.iou, m.iou], [0, m.dice], th.comment, { width: 1, dash: [2, 3] });
       P.scatter(ctx, fc, [[m.iou, m.dice]], th.orange, { r: 5, alpha: 1 });
       P.scatter(ctx, fc, [[m.iou, m.iou]], th.cyan, { r: 5, alpha: 1 });
-      P.mathText(ctx, 'Dice = 2·IoU/(1 + IoU)', fc.X(0.45), fc.Y(0.88), th.orange, 'left', 11);
-      P.mathText(ctx, 'IoU', fc.X(0.75), fc.Y(0.6), th.cyan, 'left', 11);
+      pill(ctx, th, fc.X(0.45), fc.Y(0.88), 'Dice = 2·IoU/(1 + IoU)', th.orange, 'left', 11);
+      pill(ctx, th, fc.X(0.75), fc.Y(0.6), 'IoU', th.cyan, 'left', 11);
     }
 
     function updateReadout() {
@@ -192,6 +234,7 @@
 
     btnReset.addEventListener('click', function () { resetBoxes(); redraw(); });
     btnRand.addEventListener('click', function () { randBoxes(); redraw(); });
+    btnHalf.addEventListener('click', function () { halfBoxes(); redraw(); });
 
     resetBoxes();
     redraw();

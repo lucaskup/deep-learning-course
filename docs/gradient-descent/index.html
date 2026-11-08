@@ -14,6 +14,21 @@
   </script>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../shared/demo.css" />
+  <style>
+    .table-scroll { overflow-x: auto; max-width: 100%; }
+    .s8-table { border-collapse: collapse; font-size: .84rem; width: 100%; }
+    .s8-table th, .s8-table td { border-bottom: 1px solid var(--line); padding: .3rem .5rem; text-align: left; vertical-align: top; }
+    .s8-table th { color: var(--comment); font-weight: 600; }
+    .s8-table td.formula { white-space: nowrap; }
+    /* Linhas com dois painéis lado a lado: legendas com alturas diferentes
+       desalinhavam o topo dos canvases; reserva duas linhas para todas. */
+    @media (min-width: 701px) {
+      .canvas-row:has(> .canvas-box + .canvas-box) > .canvas-box > .canvas-caption { min-height: 3.4em; } /* duas linhas com line-height 1.7 */
+    }
+    .s9-steps > div { margin: .2rem 0; }
+    .s9-mat { font-family: "STIX Two Math", "Cambria Math", Georgia, serif; color: var(--cyan); white-space: nowrap; }
+    .slider-label input[type="number"] { background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: .15rem .3rem; font-size: .85rem; }
+  </style>
 </head>
 <body>
 
@@ -27,8 +42,10 @@
       <li><a href="#s3">Taxa η</a></li>
       <li><a href="#s4">Gabor</a></li>
       <li><a href="#s5">Paisagem</a></li>
-      <li><a href="#s6">Momentum</a></li>
+      <li><a href="#s6">Otimizadores</a></li>
       <li><a href="#s7">Mini-batch</a></li>
+      <li><a href="#s8">Um passo</a></li>
+      <li><a href="#s9">Muon</a></li>
       <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
     </ul>
   </nav>
@@ -38,13 +55,17 @@
       <h1 class="course-title">Descida de <span>Gradiente</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de descida de gradiente</p>
       <p class="course-desc">
-        Sete visualizações que acompanham os slides: por que a varredura por força
+        Nove visualizações que acompanham os slides: por que a varredura por força
         bruta não escala, a aproximação local da série de Taylor, o efeito da taxa de aprendizado
         <span class="formula">η</span> na regra
-        <span class="formula">θ<sub>t+1</sub> = θ<sub>t</sub> − η·∇ℒ(θ<sub>t</sub>)</span>,
+        <span class="formula">θ<sub>t+1</sub> = θ<sub>t</sub> − η·∇ℒ(θ<sub>t</sub>)</span>
+        em uma função convexa e em uma não convexa,
         o modelo de Gabor ajustado aos dados e sua paisagem de loss não convexa,
-        o zigue-zague em vales alongados e como o momentum o amortece,
-        e a diferença entre batch completo, mini-batch e SGD numa regressão linear.
+        o zigue-zague em vales alongados e os otimizadores dos slides lado a lado
+        (momentum, Nesterov, normalização, AdaGrad, RMSProp e Adam),
+        a diferença entre batch completo, mini-batch e SGD numa regressão linear,
+        a calculadora de um passo com o cenário numérico dos slides e o Muon,
+        que ortogonaliza a atualização de uma matriz de pesos.
         Notação dos slides: <span class="formula">η</span>,
         <span class="formula">∇<sub>θ</sub>ℒ(θ)</span>,
         <span class="formula">v<sub>t+1</sub> = β·v<sub>t</sub> + (1−β)·∇ℒ</span>.
@@ -152,16 +173,30 @@
     <div class="container">
       <h2 class="section-title">3 · Taxa de aprendizado em 1D</h2>
       <p class="demo-text">
-        A regra vista em aula é
+        A regra dos slides é
         <span class="formula">θ<sub>k+1</sub> = θ<sub>k</sub> − η·f′(θ<sub>k</sub>)</span>:
         cada passo anda na direção oposta à derivada (a tangente laranja mostra essa inclinação)
         e <span class="formula">η</span> controla o tamanho do passo.
-        A função abaixo não é convexa: tem um mínimo local e um mínimo global,
-        como o modelo de Gabor dos slides (explorado de verdade nas seções 4 e 5). Arraste a bola para escolher o ponto inicial
+        Há duas paisagens: a convexa <span class="formula">ℒ(θ) = θ²</span> dos slides,
+        com <span class="formula">θ<sub>0</sub> = 2</span> e atualização
+        <span class="formula">θ<sub>t+1</sub> = (1 − 2η)·θ<sub>t</sub></span>, e uma não convexa,
+        com um mínimo local e um global, como o modelo de Gabor das seções 4 e 5.
+        Arraste a bola para escolher o ponto inicial
         <span class="formula">θ<sub>0</sub></span> e experimente diferentes valores de
-        <span class="formula">η</span>.
+        <span class="formula">η</span>; os três botões carregam os
+        <span class="formula">η</span> dos três painéis dos slides.
       </p>
       <div class="panel">
+        <div class="controls">
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s3-tab-convex" type="button">Convexa ℒ = θ²</button>
+            <button class="tab active" id="s3-tab-nonconvex" type="button">Não convexa</button>
+          </div>
+          <span class="readout">η dos slides:</span>
+          <button class="btn-ctl" type="button" data-s3-eta="0.02">0.02</button>
+          <button class="btn-ctl" type="button" data-s3-eta="0.3">0.3</button>
+          <button class="btn-ctl" type="button" data-s3-eta="1.1">1.1</button>
+        </div>
         <div class="controls">
           <label class="slider-label">η = <span id="s3-eta-val">0.100</span>
             <input type="range" id="s3-eta" min="0" max="100" value="65" step="1" />
@@ -182,7 +217,12 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">η ≈ 0.01</span> a descida converge devagar e com
+          💡 Na aba convexa, com <span class="formula">θ<sub>0</sub> = 2</span>:
+          <span class="formula">η = 0.02</span> quase não sai do lugar,
+          <span class="formula">η = 0.3</span> converge em poucos passos e
+          <span class="formula">η = 1.1</span> salta o mínimo e diverge, porque
+          <span class="formula">|1 − 2η| &gt; 1</span>. Na não convexa, com
+          <span class="formula">η ≈ 0.01</span> a descida converge devagar e com
           <span class="formula">η ≈ 0.1</span> converge rápido. Partindo da direita a
           trajetória cai no mínimo local: a descida de gradiente só encontra o fundo do vale
           onde começa. Perto de <span class="formula">η ≈ 0.5</span> o passo fica grande o
@@ -291,17 +331,30 @@
   <!-- ════════ Seção 6: Superfície 2D e momentum ════════ -->
   <section id="s6" class="demo-section">
     <div class="container">
-      <h2 class="section-title">6 · Superfície 2D e momentum</h2>
+      <h2 class="section-title">6 · Superfície 2D e os otimizadores lado a lado</h2>
       <p class="demo-text">
         Em paisagens anisotrópicas (vales alongados) o gradiente aponta quase perpendicular
         ao fundo do vale: com <span class="formula">η</span> fixo, o GD zigzagueia na direção
-        íngreme e avança devagar na direção rasa. O momentum visto em aula,
+        íngreme e avança devagar na direção rasa. O momentum dos slides,
         <span class="formula">v<sub>t+1</sub> = β·v<sub>t</sub> + (1−β)·∇ℒ(θ<sub>t</sub>)</span>
         com <span class="formula">θ<sub>t+1</sub> = θ<sub>t</sub> − η·v<sub>t+1</sub></span>,
         é uma média móvel exponencial dos gradientes: oscilações se cancelam e direções
-        consistentes se acumulam. Aqui
+        consistentes se acumulam. Os demais otimizadores dos slides seguem as mesmas regras
+        da aula: Nesterov avalia o gradiente no ponto adiantado
+        <span class="formula">θ − ηβv</span>; a normalização divide cada coordenada por
+        <span class="formula">√(∇ℒ)²</span>; AdaGrad divide por
+        <span class="formula">√G</span>, a soma acumulada dos quadrados; RMSProp por
+        <span class="formula">√E[g²]</span>, uma média móvel com
+        <span class="formula">ρ = 0.9</span>; Adam combina momentum
+        (<span class="formula">β<sub>1</sub> = β</span>) com a normalização
+        (<span class="formula">β<sub>2</sub> = 0.999</span>) e corrige o viés inicial. Aqui
         <span class="formula">ℒ(θ<sub>1</sub>, θ<sub>2</sub>) = ½(θ<sub>1</sub>² + c·θ<sub>2</sub>²)</span>,
-        onde <span class="formula">c</span> faz o papel do número de condição do vale.
+        onde <span class="formula">c</span> faz o papel do número de condição do vale, e todos
+        partem do mesmo <span class="formula">θ<sub>0</sub></span> com o mesmo
+        <span class="formula">η</span>.
+        Mudar <span class="formula">η</span> ou <span class="formula">β</span> vale a partir
+        do próximo passo (a trajetória continua do ponto atual); mudar
+        <span class="formula">c</span> ou os otimizadores selecionados reinicia.
       </p>
       <div class="panel">
         <div class="controls">
@@ -316,6 +369,15 @@
           </label>
         </div>
         <div class="controls">
+          <label class="slider-label"><input type="checkbox" id="s6-opt-gd" checked /> <span style="color: var(--cyan)">■</span> GD</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-mom" checked /> <span style="color: var(--orange)">■</span> momentum</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-nag" /> <span style="color: var(--green)">■</span> Nesterov</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-norm" /> <span style="color: var(--comment)">■</span> normalizado</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-adagrad" /> <span style="color: var(--purple)">■</span> AdaGrad</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-rmsprop" /> <span style="color: var(--pink)">■</span> RMSProp</label>
+          <label class="slider-label"><input type="checkbox" id="s6-opt-adam" checked /> <span style="color: var(--red)">■</span> Adam</label>
+        </div>
+        <div class="controls">
           <button class="btn-ctl" id="s6-step" type="button">⏭ Passo</button>
           <button class="btn-ctl primary" id="s6-run" type="button">▶ Rodar</button>
           <button class="btn-ctl" id="s6-reset" type="button">↺ Reiniciar</button>
@@ -327,16 +389,24 @@
             <canvas id="s6-surface"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">ℒ por iteração, escala log: GD (ciano) vs momentum (laranja)</p>
+            <p class="canvas-caption">ℒ por iteração, escala log, uma curva por otimizador selecionado</p>
             <canvas id="s6-loss"></canvas>
           </div>
         </div>
         <p class="demo-text small">
           💡 O GD puro só converge se <span class="formula">η &lt; 2/c</span>: teste
           <span class="formula">c = 50</span> com <span class="formula">η = 0.09</span> e veja
-          a trajetória ciano divergir. Com <span class="formula">β = 0</span> o momentum
-          recupera o GD padrão; com <span class="formula">β ≈ 0.9</span> as oscilações na
-          direção íngreme se cancelam e a trajetória desliza pelo vale, como na figura dos slides.
+          a trajetória ciano divergir enquanto Adam e o gradiente normalizado seguem
+          firmes, porque o passo deles por coordenada vale cerca de
+          <span class="formula">η</span>, independente da escala do gradiente. Esse mesmo
+          passo fixo tem um custo: perto do mínimo o normalizado e o RMSProp ficam
+          pulando de um lado para o outro em vez de assentar (a curva de loss em escala log
+          para de cair), enquanto o Adam assenta porque o momentum em
+          <span class="formula">m</span> amortece essas trocas de sinal, e o AdaGrad vai freando até quase parar, porque
+          <span class="formula">G</span> só cresce. Com <span class="formula">β = 0</span> o
+          momentum recupera o GD padrão; com <span class="formula">β ≈ 0.9</span> as
+          oscilações na direção íngreme se cancelam e a trajetória desliza pelo vale, como
+          na figura dos slides; Nesterov corrige o momentum nas curvas e chega um pouco antes.
         </p>
       </div>
     </div>
@@ -380,20 +450,156 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Superfície L(w, b); o × verde é o mínimo de batch completo (clique para mudar o início)</p>
+            <p class="canvas-caption">Loss completa L(w, b); o × verde é o mínimo de batch completo (clique para mudar o início)</p>
             <canvas id="s7-surface"></canvas>
           </div>
-          <div class="canvas-box">
-            <p class="canvas-caption">Dados e a reta ajustada ŷ = wx + b (tracejado: ajuste de batch completo)</p>
+          <div class="canvas-box square">
+            <p class="canvas-caption">Loss do último mini-batch, a paisagem que o passo enxerga: × laranja é o mínimo dela, seta é −∇L<sub>batch</sub></p>
+            <canvas id="s7-batch-surface"></canvas>
+          </div>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Dados e a reta ajustada ŷ = wx + b (tracejado: ajuste de batch completo; laranja: instâncias do último batch)</p>
             <canvas id="s7-data"></canvas>
           </div>
         </div>
         <p class="demo-text small">
           💡 Compare as trajetórias: o batch completo desce em linha suave e para no mínimo;
           o mini-batch flutua pouco; o SGD flutua muito e não converge a um ponto fixo,
-          ele orbita o mínimo, exatamente como visto em aula. Aumente
-          <span class="formula">η</span> no modo estocástico e veja os passos ficarem
-          erráticos enquanto o batch completo continua estável.
+          ele orbita o mínimo, como nos slides. O painel do meio explica o ruído: cada
+          mini-batch tem a própria paisagem, com mínimo (× laranja) em outro lugar, e o passo
+          segue o gradiente dela, não o da loss completa; com
+          <span class="formula">m = 3</span> as paisagens mudam muito de um passo para o outro,
+          como nos quatro painéis dos slides, e com uma instância só o mínimo vira um vale
+          reto. Aumente <span class="formula">η</span> no modo estocástico e veja os passos
+          ficarem erráticos enquanto o batch completo continua estável.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 8: um passo de cada otimizador ════════ -->
+  <section id="s8" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">8 · Um passo de cada otimizador</h2>
+      <p class="demo-text">
+        Os exemplos numéricos dos slides usam todos o mesmo cenário:
+        <span class="formula">η = 0.1</span>, <span class="formula">θ<sub>t</sub> = (3, 5)</span>,
+        <span class="formula">∇ℒ(θ<sub>t</sub>) = (1, 2)</span>, memória do momentum
+        <span class="formula">v<sub>t</sub> = (2, 1)</span>, acumulador do AdaGrad
+        <span class="formula">G<sub>t</sub> = (24, 12)</span> e média móvel do RMSProp
+        <span class="formula">E[g²]<sub>t</sub> = (1, 4)</span>. O Nesterov precisa do gradiente
+        no ponto adiantado <span class="formula">θ<sub>t</sub> − ηβv<sub>t</sub></span>, que os
+        slides fixam em <span class="formula">(0.8, 1.6)</span>; o Adam é mostrado no primeiro
+        passo (<span class="formula">m<sub>0</sub> = v<sub>0</sub> = 0</span>), em que a correção
+        de viés desfaz os fatores <span class="formula">1 − β<sub>1</sub></span> e
+        <span class="formula">1 − β<sub>2</sub></span>. Edite qualquer campo: a tabela e as setas
+        são recalculadas.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">η <input type="number" id="s8-eta" value="0.1" step="0.01" style="width: 5em" /></label>
+          <label class="slider-label">β <input type="number" id="s8-beta" value="0.9" step="0.05" style="width: 5em" /></label>
+          <label class="slider-label">ρ <input type="number" id="s8-rho" value="0.9" step="0.05" style="width: 5em" /></label>
+          <label class="slider-label">θ<sub>t</sub> = (<input type="number" id="s8-t1" value="3" step="0.1" style="width: 4.5em" />, <input type="number" id="s8-t2" value="5" step="0.1" style="width: 4.5em" />)</label>
+          <label class="slider-label">∇ℒ = (<input type="number" id="s8-g1" value="1" step="0.1" style="width: 4.5em" />, <input type="number" id="s8-g2" value="2" step="0.1" style="width: 4.5em" />)</label>
+        </div>
+        <div class="controls">
+          <label class="slider-label">v<sub>t</sub> = (<input type="number" id="s8-v1" value="2" step="0.1" style="width: 4.5em" />, <input type="number" id="s8-v2" value="1" step="0.1" style="width: 4.5em" />)</label>
+          <label class="slider-label">∇ℒ no ponto adiantado = (<input type="number" id="s8-gl1" value="0.8" step="0.1" style="width: 4.5em" />, <input type="number" id="s8-gl2" value="1.6" step="0.1" style="width: 4.5em" />)</label>
+          <label class="slider-label">G<sub>t</sub> = (<input type="number" id="s8-G1" value="24" step="1" style="width: 4.5em" />, <input type="number" id="s8-G2" value="12" step="1" style="width: 4.5em" />)</label>
+          <label class="slider-label">E[g²]<sub>t</sub> = (<input type="number" id="s8-E1" value="1" step="0.5" style="width: 4.5em" />, <input type="number" id="s8-E2" value="4" step="0.5" style="width: 4.5em" />)</label>
+          <button class="btn-ctl" id="s8-reset" type="button">↺ Cenário dos slides</button>
+        </div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Tabela: termo que multiplica η em cada regra e o θ<sub>t+1</sub> resultante</p>
+            <div id="s8-table" class="table-scroll"></div>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Os passos como setas a partir de θ<sub>t</sub> (janela ampliada; tracejado: direção de ∇ℒ)</p>
+            <canvas id="s8-arrows"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Com o cenário dos slides, GD anda <span class="formula">(0.1, 0.2)</span>, o dobro
+          na segunda coordenada, porque o passo é proporcional ao gradiente; momentum anda
+          <span class="formula">0.19</span> na primeira porque a memória
+          <span class="formula">v<sub>t</sub></span> empurra além do gradiente atual; os
+          métodos normalizados (normalização, RMSProp, Adam no primeiro passo) andam
+          <span class="formula">(0.1, 0.1)</span>, o mesmo tanto nas duas coordenadas; o AdaGrad
+          anda menos <span class="formula">(0.02, 0.05)</span> porque
+          <span class="formula">G</span> já acumulou muito. Troque
+          <span class="formula">∇ℒ</span> por <span class="formula">(10, 20)</span>: o GD dá um
+          passo dez vezes maior e os normalizados não mudam.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 9: Muon ════════ -->
+  <section id="s9" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">9 · Muon: ortogonalizar a atualização</h2>
+      <p class="demo-text">
+        O Muon atua sobre a <em>matriz</em> de pesos de uma camada, não sobre o vetor de todos
+        os parâmetros. Em cada passo: momentum
+        <span class="formula">M<sub>t+1</sub> = β·M<sub>t</sub> + G<sub>t</sub></span>,
+        normalização pela norma de Frobenius, substituição de
+        <span class="formula">M<sub>t+1</sub></span> pela matriz ortogonal mais próxima
+        <span class="formula">O<sub>t+1</sub> = U·V<sup>⊤</sup></span> (mesmas direções
+        singulares, todos os <span class="formula">σ</span> iguais a 1) e
+        <span class="formula">W<sub>t+1</sub> = W<sub>t</sub> − η·O<sub>t+1</sub></span>. É o
+        passo mais íngreme sob a norma espectral; o gradiente é o passo mais íngreme sob a
+        norma de Frobenius. Para uma matriz <span class="formula">2×2</span> com
+        <span class="formula">det &gt; 0</span> a ortogonal mais próxima é a rotação
+        <span class="formula">O = [p −q; q p]/√(p² + q²)</span>, com
+        <span class="formula">p = a + d</span> e <span class="formula">q = c − b</span>; em
+        dimensões maiores entra a iteração de Newton-Schulz, que aproxima
+        <span class="formula">U·V<sup>⊤</sup></span> com polinômios matriciais. Os campos
+        começam no exemplo dos slides.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">η <input type="number" id="s9-eta" value="0.1" step="0.01" style="width: 5em" /></label>
+          <label class="slider-label">β <input type="number" id="s9-beta" value="0.9" step="0.05" style="width: 5em" /></label>
+          <label class="slider-label">W<sub>t</sub> = [<input type="number" id="s9-W11" value="3" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-W12" value="5" step="0.1" style="width: 4.2em" />; <input type="number" id="s9-W21" value="2" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-W22" value="4" step="0.1" style="width: 4.2em" />]</label>
+        </div>
+        <div class="controls">
+          <label class="slider-label">M<sub>t</sub> = [<input type="number" id="s9-M11" value="-1" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-M12" value="-2" step="0.1" style="width: 4.2em" />; <input type="number" id="s9-M21" value="3" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-M22" value="-4" step="0.1" style="width: 4.2em" />]</label>
+          <label class="slider-label">G<sub>t</sub> = [<input type="number" id="s9-G11" value="1.9" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-G12" value="-2.2" step="0.1" style="width: 4.2em" />; <input type="number" id="s9-G21" value="1.3" step="0.1" style="width: 4.2em" /> <input type="number" id="s9-G22" value="-3.4" step="0.1" style="width: 4.2em" />]</label>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s9-reset" type="button">↺ Exemplo dos slides</button>
+          <button class="btn-ctl" id="s9-balanced" type="button">σ₁ ≈ σ₂</button>
+          <button class="btn-ctl" id="s9-reflect" type="button">det &lt; 0 (reflexão)</button>
+        </div>
+        <div id="s9-steps" class="demo-text small s9-steps"></div>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Imagem do círculo unitário por M<sub>t+1</sub> (escala própria), por D<sub>Adam</sub> e por D<sub>Muon</sub>, com as direções singulares σ<sub>i</sub>u<sub>i</sub> (tracejado: círculo unitário)</p>
+            <canvas id="s9-geometry"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Newton-Schulz a partir de M̂<sub>t+1</sub>: valores singulares a cada iteração (faixa verde: onde o polinômio do Muon assenta)</p>
+            <canvas id="s9-ns"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 No exemplo dos slides, <span class="formula">M<sub>t+1</sub> = [1 −4; 4 −7]</span>
+          tem <span class="formula">σ = (9, 1)</span>: quase toda a magnitude do momentum vive
+          em uma direção. O Adam com histórico estável vira o sinal do momentum,
+          <span class="formula">[1 −1; 1 −1]</span>, gira <span class="formula">u<sub>1</sub></span>
+          de 63.4° para 45° e apaga a segunda direção (<span class="formula">σ<sub>2</sub> = 0</span>,
+          rank 1); o Muon mantém <span class="formula">u<sub>1</sub></span> e
+          <span class="formula">u<sub>2</sub></span> e iguala
+          <span class="formula">σ<sub>1</sub> = σ<sub>2</sub> = 1</span>; as duas atualizações
+          formam 56°. Clique em "σ₁ ≈ σ₂" para ver que, quando o momentum já é quase
+          ortogonal, o Muon quase não muda a direção. Na iteração de Newton-Schulz, os
+          coeficientes do Muon (3.4445, −4.7750, 2.0315) privilegiam velocidade: os
+          <span class="formula">σ</span> entram em poucas iterações na faixa 0.7 a 1.2, sem
+          chegar exatamente a 1, o que basta para o treino.
         </p>
       </div>
     </div>
@@ -412,6 +618,8 @@
   <script defer src="js/section5-gabor-landscape.js"></script>
   <script defer src="js/section6-momentum.js"></script>
   <script defer src="js/section7-batches.js"></script>
+  <script defer src="js/section8-one-step.js"></script>
+  <script defer src="js/section9-muon.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

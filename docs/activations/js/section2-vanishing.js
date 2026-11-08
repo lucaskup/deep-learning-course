@@ -29,7 +29,9 @@
     /* Entrada fixa com semente (determinística, reamostrável). */
     function resample() {
       const rng = U.mulberry32(seed);
-      z0 = Math.max(-3, Math.min(3, 1.5 * U.randn(rng)));
+      /* Rejeita amostras fora de [−2.5, 2.5] em vez de saturar no limite
+         (um clamp deixaria a₀ = 3.00 exato com frequência visível). */
+      do { z0 = 1.5 * U.randn(rng); } while (Math.abs(z0) > 2.5);
     }
 
     /* Propaga a cadeia: devolve ativações a_0..a_L e gradiente acumulado g_1..g_L. */
@@ -93,9 +95,23 @@
       });
       P.line(ctx, fr, [0, L], [0, 0], th.line, { width: 1, dash: [3, 3] });
       P.line(ctx, fr, xs, ref, th.comment, { width: 1.2, dash: [5, 4] });
-      P.label(ctx, fr.X(L) - 4, fr.Y(ref[ref.length - 1]) - 6, '(0.25·w)^l', th.comment, 'right');
       P.line(ctx, fr, xs, lg, th.purple, { width: 2 });
       P.scatter(ctx, fr, xs.map((l, i) => [l, lg[i]]), th.purple, { r: 2.5, alpha: 1 });
+      /* Rótulo da referência a 60% da linha tracejada, do lado oposto ao da
+         curva roxa (acima se a curva está abaixo da referência, e vice-versa),
+         sobre fundo opaco e desenhado por cima. */
+      {
+        const mi = Math.max(0, Math.round(0.6 * L) - 1);
+        const above = lg[mi] <= ref[mi];
+        const lx = fr.X(xs[mi]), ly = fr.Y(ref[mi]) + (above ? -8 : 18);
+        ctx.font = '11px sans-serif';
+        const tw = ctx.measureText('(0.25·w)^l').width;
+        ctx.fillStyle = th.card;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(lx - tw / 2 - 3, ly - 10, tw + 6, 14);
+        ctx.globalAlpha = 1;
+        P.label(ctx, lx, ly, '(0.25·w)^l', th.comment, 'center');
+      }
 
       const gFinal = Math.abs(gs[gs.length - 1]);
       if (gFinal === 0) {
@@ -122,7 +138,7 @@
       P.scatter(ctx, fr, axs.map((l) => [l, as[l]]), th.cyan, { r: 2.5, alpha: 1 });
 
       $('s2-readout').innerHTML =
-        'a<sub>0</sub> = ' + z0.toFixed(2) +
+        'a<sub>0</sub> = ' + z0.toFixed(2).replace('-', '−') +
         ' · |∂a<sub>L</sub>/∂a<sub>0</sub>| = ' + sci(gFinal) +
         (gFinal === 0 ? ' (unidade morta)' : '');
     }

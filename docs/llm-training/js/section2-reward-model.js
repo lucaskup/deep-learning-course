@@ -5,6 +5,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const NPAIRS = 10, MAX_ITERS = 300;
   const sigmoid = (z) => 1 / (1 + Math.exp(-z));
 
@@ -54,7 +67,7 @@
       const YMAX = 3.4;
       const fr = P.frame(ctx, w, h, -6, 6, 0, YMAX);
       P.axes(ctx, fr, {
-        xlabel: 'Δr = r(y_w) − r(y_l)', ylabel: '',
+        ylabel: '',
         xticks: [-6, -3, 0, 3, 6],
         yticks: [0, 1, 2, 3],
       });
@@ -78,8 +91,11 @@
       P.scatter(ctx, fr, [[dC, sigD]], th.green, { r: 5, alpha: 1 });
       P.scatter(ctx, fr, [[dC, lossD]], th.orange, { r: 5, alpha: 1 });
       P.label(ctx, fr.X(-5.7), fr.Y(0.93) - 6, 'σ(Δr): P(y_w ≻ y_l)', th.green);
-      P.label(ctx, fr.X(-5.7), fr.Y(2.8), 'ℒ_RM = −log σ(Δr)', th.orange);
-      P.label(ctx, fr.X(dC) + 6, fr.Y(YMAX) + 14, 'Δr = ' + d.toFixed(1), th.fg);
+      P.label(ctx, fr.X(-5.7), fr.Y(2.8), 'ℒ_{RM} = −log σ(Δr)', th.orange);
+      /* Rótulo do par atual: à direita da linha, ou à esquerda quando ela encosta na borda. */
+      if (dC > 3.5) pillText(ctx, th, 'Δr = ' + d.toFixed(1), fr.X(dC) - 6, fr.Y(YMAX) + 14, th.fg, 'right');
+      else pillText(ctx, th, 'Δr = ' + d.toFixed(1), fr.X(dC) + 6, fr.Y(YMAX) + 14, th.fg);
+      pillText(ctx, th, 'Δr = r(y_w) − r(y_l)', fr.X(6) - 4, fr.Y(0) - 8, th.comment, 'right');
     }
 
     function drawTrain() {
@@ -101,8 +117,8 @@
         P.scatter(ctx, fr, [[x, yw]], th.green, { r: 4, alpha: 1 });
         P.scatter(ctx, fr, [[x, yl]], th.red, { r: 4, alpha: 1 });
       }
-      P.label(ctx, fr.X(0.7), fr.Y(5) + 14, 'r(y_w)', th.green);
-      P.label(ctx, fr.X(0.7), fr.Y(5) + 28, 'r(y_l)', th.red);
+      pillText(ctx, th, 'r(y_w)', fr.X(0.7), fr.Y(5) + 14, th.green);
+      pillText(ctx, th, 'r(y_l)', fr.X(0.7), fr.Y(5) + 28, th.red);
     }
 
     function updateReadout() {

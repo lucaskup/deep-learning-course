@@ -14,6 +14,13 @@
   </script>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../shared/demo.css" />
+  <style>
+    /* Linhas com dois painéis lado a lado: legendas com alturas diferentes
+       desalinhavam o topo dos canvases; reserva duas linhas para todas. */
+    @media (min-width: 701px) {
+      .canvas-row:has(> .canvas-box + .canvas-box) > .canvas-box > .canvas-caption { min-height: 3.4em; } /* duas linhas com line-height 1.7 */
+    }
+  </style>
 </head>
 <body>
 
@@ -38,7 +45,7 @@
         com suas derivadas, o efeito da saturação sobre o gradiente em uma rede profunda
         (o <em>vanishing gradient problem</em>) e a comparação entre entropia cruzada binária
         e MSE aplicado após a sigmoide na camada de saída.
-        Notação dos slides: <span class="formula">z = θ<sup>⊤</sup>x</span>,
+        Notação dos slides: <span class="formula">z = xθ<sup>⊤</sup></span>,
         <span class="formula">a = φ(z)</span>,
         <span class="formula">σ(z) = 1/(1+e<sup>−z</sup>)</span>.
       </p>
@@ -50,12 +57,12 @@
     <div class="container">
       <h2 class="section-title">1 · Galeria de ativações</h2>
       <p class="demo-text">
-        Cada unidade computa a pré-ativação <span class="formula">z = θ<sup>⊤</sup>x</span>
+        Cada unidade computa a pré-ativação <span class="formula">z = xθ<sup>⊤</sup></span>
         e aplica uma função <span class="formula">φ</span> para obter a ativação
         <span class="formula">a = φ(z)</span>. A descida de gradiente depende de
         <span class="formula">φ′(z)</span>, então a forma da derivada importa tanto quanto a
         da própria função. Escolha a ativação, arraste o marcador
-        <span class="formula">x<sub>0</sub></span> sobre a curva e observe a tangente:
+        <span class="formula">z<sub>0</sub></span> sobre a curva e observe a tangente:
         nas zonas sombreadas (<span class="formula">|φ′(z)| &lt; 0.05</span>) a função satura
         e quase não passa gradiente.
       </p>
@@ -73,7 +80,7 @@
         <p class="demo-text formula formula-lines" id="s1-formula"></p>
         <div class="canvas-row">
           <div class="canvas-box wide">
-            <p class="canvas-caption">φ(z) (roxo) com tangente em x<sub>0</sub> (verde); sombreado = zona de saturação</p>
+            <p class="canvas-caption">φ(z) (roxo) com tangente em z<sub>0</sub> (verde); sombreado = zona de saturação</p>
             <canvas id="s1-curve"></canvas>
           </div>
           <div class="canvas-box">
@@ -138,7 +145,8 @@
           <span class="formula">10<sup>−12</sup></span>, e as camadas iniciais quase não
           aprendem. Troque para ReLU e o gradiente fica constante enquanto a unidade está
           ativa. Depois suba <span class="formula">w</span> para 1.5 e veja o problema oposto,
-          a explosão de gradiente: a saturação não é o único vilão, a escala dos pesos também.
+          a explosão de gradiente. A escala dos pesos também controla o gradiente; a saturação
+          é uma das causas.
         </p>
       </div>
     </div>

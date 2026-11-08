@@ -52,6 +52,24 @@
       ctx.restore();
     }
 
+    /* Rótulo sobre fundo opaco, limitado ao retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      if (fr) {
+        const half = align === 'center' ? tw / 2 : 0;
+        x = Math.max(fr.X(fr.xmin) + half + 4, Math.min(fr.X(fr.xmax) - (align === 'center' ? half : tw) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + 14, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      const x0 = align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - 10, tw + 6, 14);
+      ctx.globalAlpha = 1;
+      P.label(ctx, x, y, text, color, align);
+    }
+
     function drawPlane() {
       const th = P.theme();
       const t = theta();
@@ -78,8 +96,8 @@
         const L = 3 * R;
         P.line(ctx, fr, [fx - L * vx, fx + L * vx], [fy - L * vy, fy + L * vy], th.fg, { width: 1.8 });
         arrow(ctx, fr, fx, fy, fx + 0.7 * ux, fy + 0.7 * uy, th.green, 2.2);
-        P.label(ctx, fr.X(fx + 0.9 * ux), fr.Y(fy + 0.9 * uy) + 4, '(θ₁, θ₂)', th.green, 'center');
         ctx.restore();
+        pill(ctx, fr.X(fx + 0.95 * ux), fr.Y(fy + 0.95 * uy) + 4, '(θ₁, θ₂)', th.green, 'center', fr);
       }
 
       /* Quatro entradas: preenchimento pela saída desejada, contorno vermelho se errada */
@@ -100,8 +118,16 @@
           ctx.setLineDash([]);
         }
       }
-      P.label(ctx, fr.X(-R) + 8, 16, 'y = +1', th.cyan);
-      P.label(ctx, fr.X(-R) + 8, 30, 'y = −1', th.orange);
+      /* Legenda no canto superior direito, sobre fundo opaco: com θ₁ = θ₂ e
+         θ₀ = 0 a reta passa pelo canto superior esquerdo. */
+      ctx.font = '11px sans-serif';
+      const lw = ctx.measureText('y = −1').width;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(fr.X(R) - lw - 12, 4, lw + 8, 30);
+      ctx.globalAlpha = 1;
+      P.label(ctx, fr.X(R) - 8, 16, 'y = +1', th.cyan, 'right');
+      P.label(ctx, fr.X(R) - 8, 30, 'y = −1', th.orange, 'right');
     }
 
     function updateTable() {
@@ -170,8 +196,9 @@
     tabs.and.addEventListener('click', () => setGate('and'));
     tabs.or.addEventListener('click', () => setGate('or'));
     tabs.xor.addEventListener('click', () => setGate('xor'));
-    $('s2-preset-and').addEventListener('click', () => animateTo(PRESETS.and));
-    $('s2-preset-or').addEventListener('click', () => animateTo(PRESETS.or));
+    /* Os presets também mudam para a porta correspondente. */
+    $('s2-preset-and').addEventListener('click', () => { setGate('and'); animateTo(PRESETS.and); });
+    $('s2-preset-or').addEventListener('click', () => { setGate('or'); animateTo(PRESETS.or); });
     for (const k of ['t0', 't1', 't2']) sl[k].addEventListener('input', redraw);
 
     redraw();

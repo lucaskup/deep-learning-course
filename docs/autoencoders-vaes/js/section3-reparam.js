@@ -28,6 +28,17 @@
 
     const klOf = (m, s) => 0.5 * (m * m + s * s - 1 - 2 * Math.log(s));
 
+    /* Fundo semitransparente atrás de um rótulo curto. */
+    function pill(ctx, th, x, y, text, align) {
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(x0 - 3, y - 11, tw + 6, 15);
+      ctx.globalAlpha = 1;
+    }
+
     function fillBuf(n) {
       const rng = U.mulberry32(seed);
       buf = [];
@@ -104,7 +115,12 @@
       }
       ctx.restore();
 
-      P.label(ctx, fr.X(ER) - 4, fr.Y(mu + sig * ER * 0.92) + (sig > 0 ? 14 : -8), 'z = μ + σ·ε', th.orange, 'right');
+      /* Rótulo acima da ponta direita da reta (o ponto mais alto dela, logo a
+         área acima está livre), preso dentro do quadro e sobre uma pílula. */
+      const yRaw = fr.Y(mu + sig * ER) - 8;
+      const yLbl = Math.max(fr.Y(ZRMAX) + 14, Math.min(fr.Y(-ZRMAX) - 6, yRaw));
+      pill(ctx, th, fr.X(ER) - 4, yLbl, 'z = μ + σ·ε', 'right');
+      P.label(ctx, fr.X(ER) - 4, yLbl, 'z = μ + σ·ε', th.orange, 'right');
       P.label(ctx, fr.X(-ER) + 8, fr.Y(ZRMAX) + 14, 'q(z|x,φ) = N(μ, σ²)', th.green);
       P.label(ctx, fr.X(-ER) + 8, fr.Y(-ZRMAX) - 8, 'ε ~ N(0,1)', th.comment);
     }
@@ -125,7 +141,12 @@
 
       /* mínimo: q = prior, KL = 0 */
       P.scatter(ctx, fr, [[0, 1]], th.green, { r: 4.5, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(1) - 6, 'KL = 0 em (μ=0, σ=1)', th.green);
+      const klTxt = 'KL = 0 em (μ=0, σ=1)';
+      ctx.font = '11px sans-serif';
+      const klRight = fr.X(0) + 8 + ctx.measureText(klTxt).width < fr.X(MU_R) - 2;
+      const klX = fr.X(0) + (klRight ? 8 : -8), klAl = klRight ? 'left' : 'right';
+      pill(ctx, th, klX, fr.Y(1) - 6, klTxt, klAl);
+      P.label(ctx, klX, fr.Y(1) - 6, klTxt, th.green, klAl);
 
       /* ponto atual (arrastável) */
       ctx.beginPath();
@@ -133,7 +154,10 @@
       ctx.strokeStyle = th.fg;
       ctx.lineWidth = 2.2;
       ctx.stroke();
-      P.label(ctx, fr.X(mu) + 10, fr.Y(sig) + 4, '(μ, σ)', th.fg);
+      const msRight = fr.X(mu) + 10 + 38 < fr.X(MU_R);
+      const msX = fr.X(mu) + (msRight ? 10 : -10), msAl = msRight ? 'left' : 'right';
+      pill(ctx, th, msX, fr.Y(sig) + 4, '(μ, σ)', msAl);
+      P.label(ctx, msX, fr.Y(sig) + 4, '(μ, σ)', th.fg, msAl);
     }
 
     function updateReadout() {

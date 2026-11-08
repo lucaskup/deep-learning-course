@@ -1,6 +1,6 @@
 /* Seção 2: Forget Quality via teste de duas amostras de Kolmogorov-Smirnov.
    Compara as CDFs empíricas dos Truth Ratios do modelo desaprendido (θ_u) e do
-   oráculo (θ*). D = sup|F_u − F*| e o p-valor assintótico do teste KS. */
+   oráculo (θ*). D = sup|F_u − F*| e o p-valor exato do teste KS. */
 (function () {
   'use strict';
   window.DL = window.DL || {};
@@ -75,17 +75,41 @@
       return { D, xStar, fuStar, fsStar };
     }
 
-    /* p-valor assintótico do teste KS de duas amostras. */
-    function ksPValue(D) {
-      const n1 = U.length, n2 = S.length;
-      const ne = (n1 * n2) / (n1 + n2);
+    /* p-valor assintótico (Kolmogorov), usado só para amostras grandes. */
+    function ksPValueAsymptotic(D, n, m) {
+      const ne = (n * m) / (n + m);
       const sne = Math.sqrt(ne);
       const lambda = (sne + 0.12 + 0.11 / sne) * D;
       let sum = 0;
       for (let k = 1; k <= 100; k++) {
         sum += (k % 2 === 1 ? 1 : -1) * Math.exp(-2 * k * k * lambda * lambda);
       }
-      let p = 2 * sum;
+      return Math.max(0, Math.min(1, 2 * sum));
+    }
+
+    /* p-valor exato do teste KS de duas amostras: P(D_{n,m} ≥ D_obs).
+       Sob H0 todas as C(n+m, n) ordenações das duas amostras são
+       equiprováveis; cada uma é um caminho de (0,0) a (n,m) na grade, e
+       D < D_obs equivale ao caminho ficar estritamente dentro da faixa
+       |i/n − j/m| < D_obs. Contamos esses caminhos por programação dinâmica. */
+    function ksPValue(D) {
+      const n = U.length, m = S.length;
+      if (D <= 1e-12) return 1;
+      if (n * m > 10000) return ksPValueAsymptotic(D, n, m);
+      const EPS = 1e-12;
+      const W = m + 1;
+      const paths = new Float64Array((n + 1) * W);
+      for (let i = 0; i <= n; i++) {
+        for (let j = 0; j <= m; j++) {
+          const inside = Math.abs(i / n - j / m) < D - EPS;
+          if (!inside) { paths[i * W + j] = 0; continue; }
+          if (i === 0 && j === 0) { paths[0] = 1; continue; }
+          paths[i * W + j] = (i > 0 ? paths[(i - 1) * W + j] : 0) + (j > 0 ? paths[i * W + j - 1] : 0);
+        }
+      }
+      let total = 1;                       /* C(n+m, n) em double */
+      for (let k = 1; k <= n; k++) total = total * (m + k) / k;
+      const p = 1 - paths[n * W + m] / total;
       return Math.max(0, Math.min(1, p));
     }
 
@@ -112,8 +136,10 @@
       ctx.moveTo(fr.X(k.xStar), fr.Y(k.fuStar));
       ctx.lineTo(fr.X(k.xStar), fr.Y(k.fsStar));
       ctx.stroke();
-      P.mathText(ctx, 'D = ' + fm(k.D), fr.X(k.xStar) + 6,
-        fr.Y((k.fuStar + k.fsStar) / 2), th.red, 'left', 11);
+      /* Rótulo do lado em que cabe no quadro. */
+      const dRight = fr.X(k.xStar) + 6 + 52 < fr.X(XMAX);
+      P.mathText(ctx, 'D = ' + fm(k.D), fr.X(k.xStar) + (dRight ? 6 : -6),
+        fr.Y((k.fuStar + k.fsStar) / 2) + 4, th.red, dRight ? 'left' : 'right', 11);
 
       P.mathText(ctx, 'F_u', fr.X(0.08), fr.Y(0.95), th.cyan, 'left', 12);
       P.mathText(ctx, 'F_*', fr.X(0.08), fr.Y(0.82), th.orange, 'left', 12);
@@ -158,7 +184,7 @@
       const ok = p >= 0.05;
       $('s2-readout').textContent =
         'D = ' + fm(k.D, 3) + ' · p = ' + fm(p, 3) + ' · ' +
-        (ok ? 'p alto ⇒ distribuições indistinguíveis ⇒ bom esquecimento'
+        (ok ? 'p alto ⇒ o teste não distingue as distribuições ⇒ esquecimento compatível com o oráculo'
             : 'p baixo ⇒ distribuições distintas ⇒ esquecimento insuficiente');
     }
 
@@ -192,6 +218,7 @@
       redraw();
     });
     cvDots.addEventListener('pointerup', () => { drag = null; });
+    cvDots.addEventListener('pointercancel', () => { drag = null; });
 
     const apply = (key) => { U = PRESETS[key].u.slice(); S = PRESETS[key].s.slice(); redraw(); };
     $('s2-good').addEventListener('click', () => apply('good'));

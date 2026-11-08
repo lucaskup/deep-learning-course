@@ -9,7 +9,6 @@
   const DS = [2, 4, 8, 16, 32, 64, 128, 256, 512];
   const NPAIRS = 1500;     /* pares (q, k) amostrados por configuração */
   const M = 10;            /* scores que entram na softmax */
-  const RANGE = 80;        /* janela do histograma */
   const NBINS = 80;
 
   function init() {
@@ -18,7 +17,7 @@
 
     const cvHist = $('s3-hist'), cvSoft = $('s3-softmax');
     const slD = $('s3-d');
-    const fmt = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',');
+    const fmt = (v, d) => v.toFixed(d == null ? 2 : d);
 
     let seed = 3;
     let d = DS[+slD.value];
@@ -48,7 +47,11 @@
       empVar = s2 / NPAIRS;
     }
 
+    /* Janela do histograma: ±3.4·√d (par), para que d = 2 não vire três barras. */
+    function range() { return Math.max(6, 2 * Math.ceil(1.7 * Math.sqrt(d))); }
+
     function bins(values, scale) {
+      const RANGE = range();
       const b = new Float64Array(NBINS);
       const bw = (2 * RANGE) / NBINS;
       for (const v of values) {
@@ -60,12 +63,28 @@
       return b;
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawHist() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvHist);
       P.clear(ctx, w, h);
+      const RANGE = range();
       const fr = P.frame(ctx, w, h, -RANGE, RANGE, 0, 1.12);
-      P.axes(ctx, fr, { xlabel: 'q·k', xticks: [-80, -40, 0, 40, 80] });
+      P.axes(ctx, fr, { xlabel: 'q·k', xticks: [-RANGE, -RANGE / 2, 0, RANGE / 2, RANGE] });
 
       const bw = (2 * RANGE) / NBINS;
       const drawBins = (b, color, alpha) => {
@@ -93,10 +112,18 @@
         ctx.stroke();
       }
       ctx.setLineDash([]);
-      P.mathText(ctx, '±√d = ±' + sd.toFixed(1), fr.X(sd) + 6, fr.Y(1.0), th.cyan, 'left', 11);
-
-      P.label(ctx, fr.X(-RANGE) + 10, fr.Y(1.05) + 10, 'sem escala: q·k, var = d', th.cyan);
-      P.label(ctx, fr.X(-RANGE) + 10, fr.Y(1.05) + 24, 'com escala: q·k/√d, var = 1', th.orange);
+      const sdText = '±√d = ±' + sd.toFixed(1);
+      const legend = [['sem escala: q·k, var = d', th.cyan], ['com escala: q·k/√d, var = 1', th.orange]];
+      /* Em canvas estreito o rótulo da linha tracejada cairia sobre a legenda:
+         vira uma terceira linha dela. */
+      ctx.font = '11px sans-serif';
+      const legendRight = fr.X(-RANGE) + 10 + ctx.measureText(legend[1][0]).width;
+      if (fr.X(sd) + 6 > legendRight + 12) {
+        P.mathText(ctx, sdText, fr.X(sd) + 6, fr.Y(1.0), th.cyan, 'left', 11);
+      } else {
+        legend.push([sdText + ' (tracejado)', th.cyan]);
+      }
+      legendBox(ctx, th, fr.X(-RANGE) + 10, fr.Y(1.05) - 4, legend);
     }
 
     function drawSoftmax() {
@@ -121,8 +148,8 @@
         ctx.textAlign = 'center';
         ctx.fillText(String(i + 1), fr.X(i) + cw / 2, fr.Y(0) + 13);
       });
-      P.label(ctx, fr.X(0) + 6, fr.Y(1.05) + 4, 'sem escala', th.cyan);
-      P.label(ctx, fr.X(0) + 86, fr.Y(1.05) + 4, 'com escala', th.orange);
+      legendBox(ctx, th, fr.X(0) + 6, fr.Y(1.05) - 10, [['sem escala', th.cyan]]);
+      legendBox(ctx, th, fr.X(0) + 86, fr.Y(1.05) - 10, [['com escala', th.orange]]);
     }
 
     function updateReadout() {

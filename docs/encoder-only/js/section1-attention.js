@@ -100,7 +100,7 @@
     /* Geometria da grade dentro de um canvas (compartilhada com o hit-test). */
     function grid(w, h) {
       const L = toks.length;
-      const ml = 52, mt = 8, mb = 46, mr = 8;
+      const ml = 52, mt = 8, mb = 58, mr = 8;
       const cell = Math.max(8, Math.min((w - ml - mr) / L, (h - mt - mb) / L));
       const x0 = ml + (w - ml - mr - cell * L) / 2;
       return { L, cell, x0, y0: mt };

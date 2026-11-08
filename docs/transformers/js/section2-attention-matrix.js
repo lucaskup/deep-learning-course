@@ -43,7 +43,7 @@
 
     const cvMat = $('s2-matrix'), cvRow = $('s2-row');
     const tabTrained = $('s2-tab-trained'), tabRandom = $('s2-tab-random');
-    const fmt = (v) => v.toFixed(2).replace('.', ',');
+    const fmt = (v) => v.toFixed(2);
 
     let mode = 'trained';
     let seed = 7;
@@ -87,7 +87,7 @@
       const { ctx, w, h } = P.setup(cvMat);
       P.clear(ctx, w, h);
       const x0 = 66, y0 = 14;
-      const cs = Math.max(8, Math.min((w - x0 - 10) / N, (h - y0 - 62) / N));
+      const cs = Math.max(8, Math.min((w - x0 - 34) / N, (h - y0 - 62) / N));
       geo = { x0, y0, cs };
       const gc = P.rgb(th.green);
 
@@ -115,7 +115,7 @@
         ctx.fillText(TOKENS[j], 0, 0);
         ctx.restore();
       }
-      P.mathText(ctx, 'queries (t)', 12, y0 + 10, th.comment, 'left', 10);
+      P.mathText(ctx, 'queries (t)', x0 - 6, y0 - 3, th.comment, 'right', 10);
 
       /* linha selecionada e célula sob o cursor */
       ctx.strokeStyle = th.pink;
@@ -134,9 +134,9 @@
       P.clear(ctx, w, h);
       const a = A[selRow];
       const left = 34, base = h - 56, top = 34;
-      const cw = (w - left - 10) / N;
+      const cw = (w - left - 34) / N;
 
-      P.mathText(ctx, 'a^{(t)} para t = "' + TOKENS[selRow] + '"', left, 18, th.pink, 'left', 12);
+      P.mathText(ctx, 'a⁽ᵗ⁾ para t = "' + TOKENS[selRow] + '"', left, 18, th.pink, 'left', 12);
       ctx.strokeStyle = th.line;
       ctx.lineWidth = 1;
       ctx.beginPath();

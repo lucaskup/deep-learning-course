@@ -1,4 +1,4 @@
-/* Seção 2: self-attention multi-head sobre a frase dos slides, com a matriz
+/* Seção 5: self-attention multi-head sobre a frase dos slides, com a matriz
    softmax(QK^T/√d) de cada cabeça em heatmap, máscara causal opcional,
    concatenação das cabeças e projeção final W_O. */
 (function () {
@@ -14,9 +14,9 @@
     const U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
-    const cvGrid = $('s6-grid'), cvDetail = $('s6-detail');
-    const slH = $('s6-heads');
-    const tabEnc = $('s6-tab-enc'), tabDec = $('s6-tab-dec');
+    const cvGrid = $('s5-grid'), cvDetail = $('s5-detail');
+    const slH = $('s5-heads');
+    const tabEnc = $('s5-tab-enc'), tabDec = $('s5-tab-dec');
 
     let H = Math.pow(2, +slH.value);
     let wseed = 11;
@@ -90,10 +90,13 @@
       const dh = D / H;
       const rng = U.mulberry32(wseed + H * 97);
       const scale = 1 / Math.sqrt(D);
+      /* Wq e Wk com escala √3 maior que Wv: os scores q·k/√d_h ficam ~3× mais
+         espalhados e os padrões aparecem no heatmap sem alterar a fórmula. */
+      const scaleQK = Math.sqrt(3) / Math.sqrt(D);
       heads = [];
       for (let h = 0; h < H; h++) {
-        const Wq = randMat(rng, D, dh, scale);
-        const Wk = randMat(rng, D, dh, scale);
+        const Wq = randMat(rng, D, dh, scaleQK);
+        const Wk = randMat(rng, D, dh, scaleQK);
         const Wv = randMat(rng, D, dh, scale);
         const Q = X.map((x) => matVec(x, Wq));
         const K = X.map((x) => matVec(x, Wk));
@@ -104,8 +107,7 @@
           for (let i = 0; i < M; i++) {
             let s = 0;
             for (let j = 0; j < dh; j++) s += Q[t][j] * K[i][j];
-            /* scores grandes: amplifica para padrões mais nítidos no heatmap */
-            s = (s / Math.sqrt(dh)) * 3;
+            s = s / Math.sqrt(dh);
             sc[i] = causal && i > t ? -Infinity : s;
           }
           A.push(softmaxRow(sc));
@@ -256,7 +258,7 @@
       const A = heads[selHead].A[selTok];
       let best = 0;
       for (let i = 1; i < M; i++) if (A[i] > A[best]) best = i;
-      $('s6-readout').textContent =
+      $('s5-readout').textContent =
         'cabeça ' + (selHead + 1) + ' · query "' + TOKENS[selTok] + '" · maior peso: "' +
         TOKENS[best] + '" (' + A[best].toFixed(2) + ')';
     }
@@ -283,7 +285,7 @@
 
     slH.addEventListener('input', () => {
       H = Math.pow(2, +slH.value);
-      $('s6-heads-val').textContent = H;
+      $('s5-heads-val').textContent = H;
       if (selHead >= H) selHead = H - 1;
       recompute();
       redraw();
@@ -297,7 +299,7 @@
     }
     tabEnc.addEventListener('click', () => setCausal(false));
     tabDec.addEventListener('click', () => setCausal(true));
-    $('s6-resample').addEventListener('click', () => {
+    $('s5-resample').addEventListener('click', () => {
       wseed = (wseed * 1664525 + 1013904223) >>> 0;
       recompute();
       redraw();
@@ -311,5 +313,5 @@
     P.observeResize(cvDetail, redraw);
   }
 
-  DL.sections.push({ name: 's6-multihead', init });
+  DL.sections.push({ name: 's5-multihead', init });
 })();

@@ -18,6 +18,20 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvFlow = $('s4-flow'), cvNorm = $('s4-norm');
     const slHh = $('s4-thhh'), slT = $('s4-T'), slClip = $('s4-clip');
     const btnRand = $('s4-rand');
@@ -118,8 +132,8 @@
       P.scatter(ctx, fr, ts.map((t, i) => [t, yr[i]]), th.cyan, { r: 2.2, alpha: 0.9 });
       ctx.restore();
 
-      P.label(ctx, fr.X(1) + 6, fr.Y(hi) + 12, 'RNN tanh', th.cyan);
-      P.label(ctx, fr.X(1) + 6, fr.Y(hi) + 26, 'fatores θ_{hh} (sem saturação)', th.comment);
+      pill(ctx, th, fr.X(1) + 6, fr.Y(hi) + 12, 'RNN tanh', th.cyan);
+      pill(ctx, th, fr.X(1) + 6, fr.Y(hi) + 26, 'fatores θ_{hh} (sem saturação)', th.comment);
     }
 
     function drawNorm() {
@@ -158,11 +172,11 @@
       P.line(ctx, fr, Ls, yr, th.cyan, { width: 2 });
       ctx.restore();
 
-      P.label(ctx, fr.X(LMAX) - 4, fr.Y(lc) - 6, 'limiar c', th.green, 'right');
-      P.label(ctx, fr.X(T) + 4, fr.Y(lo) - 6, 'T', th.orange);
-      P.label(ctx, fr.X(1) + 6, fr.Y(hi) + 12, 'RNN tanh', th.cyan);
-      P.label(ctx, fr.X(1) + 6, fr.Y(hi) + 26, 'sem saturação', th.comment);
-      P.label(ctx, fr.X(1) + 6, fr.Y(hi) + 40, 'após clipping', th.green);
+      pill(ctx, th, fr.X(LMAX) - 4, fr.Y(lc) - 6, 'limiar c', th.green, 'right');
+      pill(ctx, th, fr.X(T) + 4, fr.Y(lo) - 6, 'T', th.orange);
+      pill(ctx, th, fr.X(1) + 6, fr.Y(hi) + 12, 'RNN tanh', th.cyan);
+      pill(ctx, th, fr.X(1) + 6, fr.Y(hi) + 26, 'sem saturação', th.comment);
+      pill(ctx, th, fr.X(1) + 6, fr.Y(hi) + 40, 'após clipping', th.green);
     }
 
     function updateReadout() {

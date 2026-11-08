@@ -60,8 +60,10 @@
         <span class="formula">h<sub>l</sub> = h<sub>l−1</sub> + f<sub>l</sub>[h<sub>l−1</sub>, θ<sub>l</sub>]</span>.
         Como nos slides, cada bloco <span class="formula">f<sub>l</sub></span> é ReLU seguida de Linear,
         com uma transformação Linear inicial antes dos blocos. Na rede residual a soma da junção é
-        dividida por <span class="formula">√2</span> para manter a variância das ativações, o papel
-        que o <em>batch norm</em> cumpre nas ResNets reais (seção 4). As duas redes partem
+        dividida por <span class="formula">√2</span>: é uma normalização fixa que faz as vezes do
+        <em>batch norm</em> das ResNets reais (seção 4) e mantém a variância das ativações; os
+        slides e a análise dos caminhos de identidade das seções 2 e 3 usam a soma simples
+        <span class="formula">h<sub>l−1</sub> + f<sub>l</sub>[h<sub>l−1</sub>]</span>. As duas redes partem
         <strong>exatamente dos mesmos pesos</strong> (inicialização He) e recebem os mesmos passos
         de otimização (Adam, <span class="formula">η = 0.01</span>) numa regressão 1D com 80 pontos.
         A única diferença é a presença do skip. Aumente a profundidade e observe a degradação
@@ -120,7 +122,7 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <label class="slider-label">profundidade = <span id="s2-depth-val">24</span> camadas
+          <label class="slider-label"><span>profundidade = <span id="s2-depth-val">24</span> camadas</span>
             <input type="range" id="s2-depth" min="1" max="40" value="24" step="1" />
           </label>
           <label class="slider-label">g = <span id="s2-gain-val">1.00</span>
@@ -154,7 +156,7 @@
   <!-- ════════ Seção 3: 2^n caminhos ════════ -->
   <section id="s3" class="demo-section">
     <div class="container">
-      <h2 class="section-title">3 · Um bloco por vez: 2<sup>n</sup> caminhos</h2>
+      <h2 class="section-title"><span>3 · Um bloco por vez: 2<sup>n</sup> caminhos</span></h2>
       <p class="demo-text">
         Abrindo a expressão da rede residual, a saída vira uma soma de contribuições:
         <span class="formula">y = x + f<sub>1</sub>[x] + f<sub>2</sub>[x + f<sub>1</sub>[x]] + …</span>
@@ -240,7 +242,7 @@
           dobra a variância: com 10 blocos ela passa de 2¹⁰ ≈ 1000. A curva com batch norm (laranja)
           segue log₂(k+1), crescimento linear. No histograma, as ativações sem batch norm se espalham
           tanto que as com batch norm viram um pico estreito no centro. Use 🎲 para confirmar que o
-          comportamento não depende dos pesos sorteados, é estrutural.
+          comportamento é estrutural: vale para qualquer sorteio dos pesos.
         </p>
       </div>
     </div>

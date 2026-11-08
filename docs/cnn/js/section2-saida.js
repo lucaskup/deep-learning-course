@@ -28,7 +28,7 @@
       const { ctx, w, h } = P.setup(cvIn);
       P.clear(ctx, w, h);
       const T = n + 2 * p;
-      const L = G.layout(w, h, T, T, 14);
+      const L = G.layout(w, h, T, T, 26);
       const o = outSize();
 
       /* Células internas (entrada) preenchidas; anel de padding vazio */
@@ -67,7 +67,7 @@
         const ext = d * (k - 1) + 1;
         G.outline(ctx, L, r * s, c * s, ext, ext, th.orange, 2.5);
       }
-      P.label(ctx, L.x(0), L.y(0) - 5, 'entrada ' + n + '×' + n + (p > 0 ? ' + padding' : ''), th.comment);
+      P.label(ctx, L.x(0), L.y(0) - 7, 'entrada ' + n + '×' + n + (p > 0 ? ' + padding' : ''), th.comment);
     }
 
     function drawOutput() {
@@ -82,7 +82,7 @@
         ctx.fillText('kernel não cabe na entrada: O ≤ 0', w / 2, h / 2);
         return;
       }
-      const L = G.layout(w, h, o, o, 14);
+      const L = G.layout(w, h, o, o, 26);
       for (let i = 0; i < o; i++) {
         for (let j = 0; j < o; j++) {
           const idx = i * o + j;
@@ -101,7 +101,7 @@
         }
       }
       G.lines(ctx, L, th.line);
-      P.label(ctx, L.x(0), L.y(0) - 5, 'saída ' + o + '×' + o, th.comment);
+      P.label(ctx, L.x(0), L.y(0) - 7, 'saída ' + o + '×' + o, th.comment);
     }
 
     function updateReadout() {

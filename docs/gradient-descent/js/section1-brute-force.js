@@ -15,6 +15,36 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo sobre fundo opaco (legível sobre heatmap, curvas e pontos);
+       com fr, fica dentro do retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr, size) {
+      const th = P.theme();
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      if (fr) {
+        x = Math.max(fr.X(fr.xmin) + lead + 4, Math.min(fr.X(fr.xmax) - (tw - lead) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + size + 3, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - size + 1, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+    /* Fundo opaco atrás do rótulo do eixo x que P.axes desenha dentro do
+       gráfico (sobre o amarelo do viridis o texto some). */
+    function xlabelPill(ctx, fr, text) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(fr.X(fr.xmax) - 7 - tw, fr.Y(fr.ymin) - 18, tw + 6, 14);
+      ctx.globalAlpha = 1;
+    }
+
     const cvSurf = $('s1-surface'), cvData = $('s1-data');
     const slK = $('s1-k');
 
@@ -90,6 +120,7 @@
         const c = P.viridis(1 - Math.sqrt(u));
         return [c[0], c[1], c[2], 235];
       });
+      xlabelPill(ctx, fr, 'w');
       P.axes(ctx, fr, { xlabel: 'w', ylabel: 'b', xticks: [-6, -3, 0, 3, 6], yticks: [-6, -3, 0, 3, 6] });
 
       /* Grade avaliada */
@@ -131,8 +162,8 @@
         ctx.stroke();
       }
 
-      P.label(ctx, fr.X(WMIN) + 8, fr.Y(BMAX) + 14, 'melhor da grade', th.pink);
-      P.label(ctx, fr.X(WMIN) + 8, fr.Y(BMAX) + 28, 'mínimo real ×', th.green);
+      pill(ctx, fr.X(WMIN) + 8, fr.Y(BMAX) + 14, 'melhor da grade', th.pink);
+      pill(ctx, fr.X(WMIN) + 8, fr.Y(BMAX) + 28, 'mínimo real ×', th.green);
     }
 
     function drawData() {
@@ -163,9 +194,9 @@
         P.line(ctx, fr, c[0], c[1], th.orange, { width: 1.8 });
       }
 
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 14, 'melhor da grade', th.cyan);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 28, 'mínimo real', th.green);
-      if (selected) P.label(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 42, 'ponto clicado', th.orange);
+      pill(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 14, 'melhor da grade', th.cyan);
+      pill(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 28, 'mínimo real', th.green);
+      if (selected) pill(ctx, fr.X(XMIN) + 8, fr.Y(1.12) + 42, 'ponto clicado', th.orange);
     }
 
     function updateReadout() {

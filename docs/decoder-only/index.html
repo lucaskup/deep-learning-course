@@ -60,9 +60,10 @@
         <span class="formula">softmax(QK<sup>⊤</sup>/√d<sub>k</sub> + M)</span> de uma cabeça com
         scores sorteados: linha <span class="formula">i</span> é quem consulta, coluna
         <span class="formula">j</span> é quem é consultado. A aba sliding window restringe ainda
-        mais, cada posição atende só às <span class="formula">W</span> posições anteriores
-        (Mistral), com custo <span class="formula">O(n·W)</span> em vez de
-        <span class="formula">O(n²)</span>.
+        mais: cada posição <span class="formula">i</span> atende só ao intervalo
+        <span class="formula">[i − w, i]</span>, as <span class="formula">w</span> posições
+        anteriores mais o próprio token (Mistral), com custo <span class="formula">O(n·w)</span>
+        em vez de <span class="formula">O(n²)</span>.
       </p>
       <div class="panel">
         <div class="controls">
@@ -74,7 +75,7 @@
           <label class="slider-label">n = <span id="s1-n-val">6</span>
             <input type="range" id="s1-n" min="4" max="12" value="6" step="1" />
           </label>
-          <label class="slider-label disabled" id="s1-w-wrap">W = <span id="s1-w-val">2</span>
+          <label class="slider-label disabled" id="s1-w-wrap">w = <span id="s1-w-val">2</span>
             <input type="range" id="s1-w" min="1" max="6" value="2" step="1" disabled />
           </label>
           <button class="btn-ctl" id="s1-reseed" type="button">🎲 Novos scores</button>
@@ -95,9 +96,9 @@
           token só pode atender a si mesmo, então o peso é 1 por definição. Troque entre
           bidirecional e causal observando a mesma linha: os scores são idênticos, mas a softmax
           renormaliza só sobre <span class="formula">j ≤ i</span>. Na sliding window com
-          <span class="formula">n = 12</span> e <span class="formula">W = 2</span>, conte as
-          células ativas por linha: no máximo <span class="formula">W + 1</span>, e é daí que vem
-          o custo <span class="formula">O(n·W)</span>.
+          <span class="formula">n = 12</span> e <span class="formula">w = 2</span>, conte as
+          células ativas por linha: no máximo <span class="formula">w + 1</span>, e é daí que vem
+          o custo <span class="formula">O(n·w)</span>.
         </p>
       </div>
     </div>
@@ -110,12 +111,15 @@
       <p class="demo-text">
         Um decoder-only gera um token por vez amostrando de
         <span class="formula">P(x<sub>t</sub> | x<sub>1</sub>, …, x<sub>t−1</sub>)</span>.
-        A inferência tem duas fases vistas em aula: o <strong>prefill</strong> processa o prompt
+        A inferência tem duas fases: o <strong>prefill</strong> processa o prompt
         inteiro em paralelo e armazena K e V de cada token; cada passo de <strong>decode</strong>
         computa K e V apenas do token novo e reutiliza o cache. Sem cache, todo K e V é
-        recomputado a cada passo e o custo total cresce como
-        <span class="formula">O(n²·d)</span>; com cache, cai para
-        <span class="formula">O(n·d)</span> por token. O modelo aqui é um trigrama por contagem
+        recomputado a cada passo: o custo é <span class="formula">O(n·d²)</span> por token e
+        <span class="formula">O(n²·d²)</span> no total; com cache, cai para
+        <span class="formula">O(n·d)</span> por token e <span class="formula">O(n²·d)</span>
+        no total. O gráfico de custo abaixo conta apenas os pares K, V computados (o fator
+        <span class="formula">d</span> das projeções fica implícito), por isso cresce como
+        <span class="formula">n²</span> sem cache e como <span class="formula">n</span> com cache. O modelo aqui é um trigrama por contagem
         treinado num pequeno corpus (o do "rato que roeu a rolha" dos slides), o suficiente para
         ver o laço autoregressivo funcionando.
       </p>
@@ -238,8 +242,11 @@
         dados: modelos pequenos demais ou grandes demais (subtreinados) perdem para o ponto
         compute-ótimo, em que <span class="formula">N* ∝ C<sup>0.5</sup></span> e
         <span class="formula">D* ∝ C<sup>0.5</sup></span>, a razão
-        <span class="formula">D*/N* ≈ 20</span> tokens por parâmetro. Arraste o ponto branco
-        sobre a curva e mova o orçamento <span class="formula">C</span>.
+        <span class="formula">D*/N* ≈ 20</span> tokens por parâmetro. As constantes
+        <span class="formula">A, B, α, β</span> foram recalibradas em relação às publicadas por
+        Hoffmann et al. para que o ótimo da curva coincida com a regra dos 20 tokens por
+        parâmetro. Arraste o ponto branco sobre a curva e mova o orçamento
+        <span class="formula">C</span>.
       </p>
       <div class="panel">
         <div class="controls">
@@ -251,7 +258,7 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide">
-            <p class="canvas-caption">Curva isoFLOP: perda L(N, C/6N) em função de N (arraste o ponto branco; verde = ótimo, laranja = regra 20N)</p>
+            <p class="canvas-caption">Curva isoFLOP: perda L(N, C/6N) em função de N (arraste o ponto branco; verde = ótimo, que coincide com a regra 20N)</p>
             <canvas id="s4-iso"></canvas>
           </div>
           <div class="canvas-box">

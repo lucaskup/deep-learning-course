@@ -81,7 +81,10 @@
         ctx.beginPath();
         ctx.arc(fr.X(q.x), fr.Y(q.y), 4, 0, 2 * Math.PI);
         ctx.fill();
-        DL.plot.label(ctx, fr.X(q.x), fr.Y(q.y) - 8, p.w, t.fg, 'center');
+        /* Rótulo ao lado do ponto, para o lado do viés original: assim as
+           palavras não se sobrepõem quando todas caem sobre o eixo neutro. */
+        const side = p.x >= 0 ? 1 : -1;
+        DL.plot.label(ctx, fr.X(q.x) + 8 * side, fr.Y(q.y) + 4, p.w, t.fg, side > 0 ? 'left' : 'right');
       }
 
       /* Palavras definicionais como losangos (não são projetadas). */

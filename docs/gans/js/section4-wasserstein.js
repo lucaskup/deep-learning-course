@@ -7,6 +7,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const XMIN = -6, XMAX = 18, NGRID = 600;
   const D_MAX = 12, LN2 = Math.LN2, MAX_STEPS = 600;
 
@@ -85,7 +98,7 @@
       const YMAX = 0.5;
       const fr = P.frame(ctx, w, h, XMIN, XMAX, 0, YMAX);
       frDist = fr;
-      P.axes(ctx, fr, { xlabel: 'x', ylabel: 'densidade', xticks: [-4, 0, 4, 8, 12, 16], yticks: [0, 0.2, 0.4] });
+      P.axes(ctx, fr, { ylabel: 'densidade', xticks: [-4, 0, 4, 8, 12, 16], yticks: [0, 0.2, 0.4] });
 
       const n = 280, gx = [], gp = [], gq = [], gd = [], gf = [];
       for (let i = 0; i <= n; i++) {
@@ -113,10 +126,12 @@
       ctx.stroke();
       P.label(ctx, fr.X(d) + 8, fr.Y(0) - 8, 'd', th.orange);
 
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, 'P(x) real', th.cyan);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'P*(x) gerada', th.orange);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 42, 'D*(x) saturado', th.purple);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 56, 'crítico f(x), |∂f/∂x| = 1', th.green);
+      /* Legenda à direita: à esquerda D*(x) = 1 passaria por cima dela. */
+      pillText(ctx, th, 'P(x) real', fr.X(XMAX) - 8, fr.Y(YMAX) + 14, th.cyan, 'right');
+      pillText(ctx, th, 'P*(x) gerada', fr.X(XMAX) - 8, fr.Y(YMAX) + 28, th.orange, 'right');
+      pillText(ctx, th, 'D*(x) saturado', fr.X(XMAX) - 8, fr.Y(YMAX) + 42, th.purple, 'right');
+      pillText(ctx, th, 'crítico f(x), |∂f/∂x| = 1', fr.X(XMAX) - 8, fr.Y(YMAX) + 56, th.green, 'right');
+      pillText(ctx, th, 'x', fr.X(XMAX) - 4, fr.Y(0) - 8, th.comment, 'right');
     }
 
     function drawCurves() {
@@ -125,15 +140,17 @@
       P.clear(ctx, w, h);
       const YMAX = 0.8;
       const fr = P.frame(ctx, w, h, 0, D_MAX, 0, YMAX);
-      P.axes(ctx, fr, { xlabel: 'd', ylabel: 'D_{JS} (nats)', xticks: [0, 4, 8, 12], yticks: [0, 0.35, 0.69] });
+      P.axes(ctx, fr, { ylabel: 'D_{JS} (nats)', xticks: [0, 4, 8, 12], yticks: [0, 0.35, 0.69] });
       P.line(ctx, fr, [0, D_MAX], [LN2, LN2], th.comment, { width: 1.2, dash: [5, 4] });
-      P.label(ctx, fr.X(D_MAX) - 4, fr.Y(LN2) - 6, 'ln 2', th.comment, 'right');
+      P.label(ctx, fr.X(0) + 6, fr.Y(LN2) - 6, 'ln 2', th.comment);
       P.line(ctx, fr, dsAxis, jsVals, th.purple, { width: 2 });
       /* W(d) = d, escala própria à direita (0 a 12) */
       const wScaled = dsAxis.map((v) => v / D_MAX * YMAX);
       P.line(ctx, fr, dsAxis, wScaled, th.green, { width: 2 });
-      P.label(ctx, fr.X(D_MAX) - 4, fr.Y(YMAX) + 12, '12', th.green, 'right');
-      P.label(ctx, fr.X(D_MAX) - 4, fr.Y(0) - 16, '0', th.green, 'right');
+      /* Eixo da direita de W(d), com fundo: a reta W(d) = d passa pelo canto superior. */
+      pillText(ctx, th, '12', fr.X(D_MAX) - 4, fr.Y(YMAX) + 12, th.green, 'right');
+      pillText(ctx, th, '0', fr.X(D_MAX) - 4, fr.Y(0) - 22, th.green, 'right');
+      pillText(ctx, th, 'd', fr.X(D_MAX) - 4, fr.Y(0) - 8, th.comment, 'right');
       P.label(ctx, fr.X(0.4), fr.Y(LN2) + 26, 'D_{JS}(d)', th.purple);
       P.label(ctx, fr.X(D_MAX / 2) + 6, fr.Y(YMAX / 2) + 12, 'W(d) = d', th.green);
       P.scatter(ctx, fr, [[d, jsAt(d)]], th.purple, { r: 4.5, alpha: 1 });
@@ -220,7 +237,6 @@
       if (running) { stopRun(); return; }
       running = true;
       accT = 0;
-      steps = 0;
       btnRun.textContent = '⏸ Pausar';
       DL.startTicker(tick);
     });

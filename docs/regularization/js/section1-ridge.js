@@ -93,6 +93,20 @@
     const U = DL.utils, P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvFit = $('s1-fit'), cvMse = $('s1-mse');
     const sliderD = $('s1-d'), sliderLam = $('s1-lam');
     const btnResample = $('s1-resample');
@@ -149,7 +163,7 @@
       $('s1-readout').textContent =
         'MSE treino: ' + fmtMse(mseTrainByD[d - 1]) +
         ' · MSE validação: ' + fmtMse(mseValByD[d - 1]) +
-        ' · ‖w‖²: ' + fmtMse(weightNorm2(w));
+        ' · ‖θ‖²: ' + fmtMse(weightNorm2(w));
     }
 
     function drawFit() {
@@ -185,21 +199,31 @@
         ctx.stroke();
       }
 
-      P.label(ctx, fr.X(-1.08) + 8, 14, 'ajuste (grau ' + sliderD.value + ')', th.purple);
-      P.label(ctx, fr.X(-1.08) + 8, 28, 'sin(2πx)', th.comment);
+      pill(ctx, th, fr.X(-1.08) + 8, 14, 'ajuste (grau ' + sliderD.value + ')', th.purple);
+      pill(ctx, th, fr.X(-1.08) + 8, 28, 'sin(2πx)', th.comment);
     }
 
     function drawMse() {
       const th = P.theme();
       const { ctx, w: cw, h: ch } = P.setup(cvMse);
       P.clear(ctx, cw, ch);
-      const ymin = -3, ymax = 1.4;   /* log10 do MSE */
+      /* Eixo y em log10 do MSE. O topo acompanha o maior MSE de validação
+         (sem regularização, d ≥ 11 chega a 10⁵), com teto em 10⁶; valores
+         acima do teto são desenhados no topo com um marcador de corte. */
+      const ymin = -3, YCAP = 6;
+      const maxVal = Math.max(...mseValByD, ...mseTrainByD, 1e-12);
+      const ymax = Math.max(1.4, Math.min(YCAP, Math.ceil(Math.log10(maxVal)) + 0.3));
       const fr = P.frame(ctx, cw, ch, 0.5, DMAX + 0.5, ymin, ymax);
       P.axes(ctx, fr, { xlabel: 'd', xticks: [1, 5, 10, 15] });
 
-      for (const v of [0.01, 0.1, 1, 10]) {
+      const grid = [0.01, 0.1, 1, 10];
+      for (let e = 2; e <= Math.floor(ymax); e++) grid.push(Math.pow(10, e));
+      const SUPS = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶'];
+      for (const v of grid) {
+        const e = Math.round(Math.log10(v));
+        const txt = v >= 100 ? '10' + SUPS[e] : String(v);
         P.line(ctx, fr, [0.5, DMAX + 0.5], [Math.log10(v), Math.log10(v)], th.line, { dash: [3, 4], width: 1 });
-        P.label(ctx, fr.X(0.5) - 4, fr.Y(Math.log10(v)) + 4, String(v), th.comment, 'right');
+        P.label(ctx, fr.X(0.5) - 4, fr.Y(Math.log10(v)) + 4, txt, th.comment, 'right');
       }
 
       const clamp = (v) => Math.min(ymax, Math.max(ymin, Math.log10(Math.max(v, 1e-12))));
@@ -207,14 +231,21 @@
       for (let dd = 1; dd <= DMAX; dd++) ds.push(dd);
       P.line(ctx, fr, ds, mseTrainByD.map(clamp), th.cyan, { width: 2 });
       P.line(ctx, fr, ds, mseValByD.map(clamp), th.orange, { width: 2 });
+      /* Marcador para pontos cortados pelo teto do eixo. */
+      ctx.fillStyle = th.orange;
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      for (let dd = 1; dd <= DMAX; dd++) {
+        if (Math.log10(mseValByD[dd - 1]) > ymax) ctx.fillText('▲', fr.X(dd), fr.Y(ymax) + 9);
+      }
 
       const d = +sliderD.value;
       P.line(ctx, fr, [d, d], [ymin, ymax], th.comment, { dash: [3, 3], width: 1 });
       P.scatter(ctx, fr, [[d, clamp(mseTrainByD[d - 1])]], th.cyan, { r: 4, alpha: 1 });
       P.scatter(ctx, fr, [[d, clamp(mseValByD[d - 1])]], th.orange, { r: 4, alpha: 1 });
 
-      P.label(ctx, fr.X(0.5) + 8, 14, 'validação', th.orange);
-      P.label(ctx, fr.X(0.5) + 8, 28, 'treino', th.cyan);
+      pill(ctx, th, fr.X(0.5) + 8, 14, 'validação', th.orange);
+      pill(ctx, th, fr.X(0.5) + 8, 28, 'treino', th.cyan);
     }
 
     function redraw() { drawFit(); drawMse(); }

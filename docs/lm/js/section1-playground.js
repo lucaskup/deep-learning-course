@@ -54,17 +54,39 @@
       const { ctx, w, h } = P.setup(canvas);
       P.clear(ctx, w, h);
       if (finished) {
-        P.label(ctx, w / 2, h / 2, 'frase encerrada em <eos>, recomece para gerar outra', th.comment, 'center');
+        const gotEos = generated.length > 0 && generated[generated.length - 1].token === M.EOS;
+        const msg = gotEos
+          ? 'frase encerrada em <eos>, recomece para gerar outra'
+          : 'limite de ' + MAX_TOKENS + ' tokens atingido sem <eos>, recomece para gerar outra';
+        P.label(ctx, w / 2, h / 2, msg, th.comment, 'center');
         return;
       }
       const filtered = currentFiltered().slice(0, SHOW_BARS);
       const ymax = Math.max(0.3, Math.max(...filtered.map((d) => d.pTau)) * 1.2);
-      const fr = P.frame(ctx, w, h, 0, 1, 0, ymax, { l: 34, r: 8, t: 8, b: 30 });
+      /* Em canvas estreito (celular) as barras ficam com menos de 40 px: os
+         nomes dos tokens são desenhados inclinados e só as barras com massa
+         visível recebem o valor em cima. */
+      const slot0 = (w - 34 - 8) / Math.max(1, filtered.length);
+      const narrow = slot0 < 40;
+      const fr = P.frame(ctx, w, h, 0, 1, 0, ymax, { l: 34, r: 8, t: 8, b: narrow ? 46 : 30 });
       P.axes(ctx, fr, { yticks: [0, Math.round(ymax * 50) / 100] });
       const labels = filtered.map((d) => d.token.length > 9 ? d.token.slice(0, 8) + '…' : d.token);
       const colors = filtered.map((d) => d.excluded ? th.comment : th.purple);
-      const values = filtered.map((d) => f(d.pTau, 2));
-      P.bars(ctx, fr, labels, filtered.map((d) => d.pTau), colors, { values, labelSize: 9 });
+      const values = filtered.map((d) => (narrow && d.pTau < 0.05) ? '' : f(d.pTau, 2));
+      P.bars(ctx, fr, narrow ? null : labels, filtered.map((d) => d.pTau), colors, { values, labelSize: 9 });
+      if (narrow) {
+        const slot = fr.iw / filtered.length;
+        ctx.fillStyle = th.comment;
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'right';
+        labels.forEach((lab, i) => {
+          ctx.save();
+          ctx.translate(fr.pad.l + slot * (i + 0.5) + 3, fr.Y(0) + 8);
+          ctx.rotate(-Math.PI / 3);
+          ctx.fillText(lab, 0, 4);
+          ctx.restore();
+        });
+      }
     }
 
     function drawReadout() {

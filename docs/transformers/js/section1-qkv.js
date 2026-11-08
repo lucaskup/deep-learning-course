@@ -24,7 +24,7 @@
 
     const cvPipe = $('s1-pipeline'), cvAttn = $('s1-attn');
     const tokBtns = TOKENS.map((_, i) => $('s1-tok-' + i));
-    const fmt = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',').replace('-', '−');
+    const fmt = (v, d) => v.toFixed(d == null ? 2 : d).replace('-', '−');
 
     let seed = 11;
     let t = 1;          /* token de consulta */

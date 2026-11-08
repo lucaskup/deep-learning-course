@@ -90,6 +90,20 @@
     const U = DL.utils, P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvFit = $('s2-fit'), cvLoss = $('s2-loss');
     const btnTrain = $('s2-train'), btnReset = $('s2-reset');
     const btnRestore = $('s2-restore'), btnResample = $('s2-resample');
@@ -167,6 +181,14 @@
       if (!bestSnap) return;
       stopTraining();
       net.restore(bestSnap);
+      /* Volta também o contador e o histórico para a melhor época, para que
+         o status mostre as losses do modelo restaurado e, se o treino
+         continuar, a curva prossiga de onde esse modelo estava. */
+      epochCount = bestEpoch;
+      trainHist.length = bestEpoch;
+      valHist.length = bestEpoch;
+      trainHist[bestEpoch - 1] = net.loss(train.xs, train.ys);
+      valHist[bestEpoch - 1] = net.loss(val.xs, val.ys);
       updateStatus();
       redraw();
     });
@@ -200,7 +222,7 @@
 
       P.scatter(ctx, fr, val.xs.map((x, i) => [x, val.ys[i]]), th.orange, { r: 2, alpha: 0.3 });
       P.scatter(ctx, fr, train.xs.map((x, i) => [x, train.ys[i]]), th.cyan, { r: 3.5, alpha: 0.95 });
-      P.label(ctx, fr.X(-1.08) + 8, 14, 'MLP (época ' + epochCount + ')', th.purple);
+      pill(ctx, th, fr.X(-1.08) + 8, 14, 'MLP (época ' + epochCount + ')', th.purple);
     }
 
     function drawLoss() {
@@ -209,7 +231,8 @@
       P.clear(ctx, cw, ch);
       const ymin = -2.6, ymax = 0.6;   /* log10 da loss */
       const xmax = Math.max(2000, epochCount);
-      const fr = P.frame(ctx, cw, ch, 0, xmax, ymin, ymax);
+      /* Margem direita maior para o último tick ("2000") não ser cortado. */
+      const fr = P.frame(ctx, cw, ch, 0, xmax, ymin, ymax, { l: 38, r: 22, t: 10, b: 24 });
       P.axes(ctx, fr, { xlabel: 'época', xticks: [0, Math.round(xmax / 2), xmax] });
 
       for (const v of [0.01, 0.1, 1]) {
@@ -231,10 +254,13 @@
       }
       if (bestEpoch > 0) {
         P.line(ctx, fr, [bestEpoch, bestEpoch], [ymin, ymax], th.purple, { dash: [4, 3], width: 1.4 });
-        P.label(ctx, fr.X(bestEpoch) + 4, fr.Y(ymax) + 12, 'melhor', th.purple);
+        /* O rótulo fica do lado da linha que ainda cabe no gráfico. */
+        ctx.font = '11px sans-serif';
+        const fits = fr.X(bestEpoch) + 4 + ctx.measureText('melhor').width <= fr.X(xmax);
+        pill(ctx, th, fr.X(bestEpoch) + (fits ? 4 : -4), fr.Y(ymax) + 12, 'melhor', th.purple, fits ? 'left' : 'right');
       }
-      P.label(ctx, fr.X(0) + 8, 14, 'validação', th.orange);
-      P.label(ctx, fr.X(0) + 8, 28, 'treino', th.cyan);
+      pill(ctx, th, fr.X(0) + 8, 14, 'validação', th.orange);
+      pill(ctx, th, fr.X(0) + 8, 28, 'treino', th.cyan);
     }
 
     function redraw() { drawFit(); drawLoss(); }

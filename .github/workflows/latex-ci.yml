@@ -379,8 +379,23 @@ jobs:
           path: deploy/
           if-no-files-found: warn
 
+  # Teste de abertura das demos interativas (docs/): sintaxe de todo .js e
+  # carregamento headless de cada página, falhando em erros de console. Roda
+  # fora do container TeX Live porque precisa do Chrome do runner.
+  check-demos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke-test interactive demos
+        run: bash scripts/check_demos.sh
+        env:
+          BROWSER: google-chrome
+
   deploy:
-    needs: compile-problems
+    needs: [compile-problems, check-demos]
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     permissions:

@@ -37,7 +37,7 @@
         return v >= 0 ? [oc[0], oc[1], oc[2], a] : [cc[0], cc[1], cc[2], a];
       });
       P.axes(ctx, fr, {
-        xlabel: 'posição i', ylabel: 'dimensão',
+        ylabel: 'dimensão',
         xticks: [0, Math.round(L / 2), L],
         yticks: [0, Math.round(d / 2), d],
       });
@@ -45,9 +45,32 @@
       ctx.strokeStyle = th.green;
       ctx.lineWidth = 2;
       ctx.strokeRect(fr.X(0), fr.Y(2 * k + 2), fr.iw, fr.Y(2 * k) - fr.Y(2 * k + 2));
-      P.label(ctx, fr.X(L) - 6, fr.Y(2 * k + 2) - 4, 'dims ' + 2 * k + ', ' + (2 * k + 1), th.green, 'right');
-      P.label(ctx, fr.X(0) + 8, fr.Y(d) + 14, '+1', th.orange);
-      P.label(ctx, fr.X(0) + 34, fr.Y(d) + 14, '−1', th.cyan);
+      /* Rótulo do par: acima do retângulo, à esquerda (o rótulo do eixo x fica à direita);
+         se o retângulo encosta no topo, o rótulo vai logo abaixo dele. */
+      const dimsTxt = 'dims ' + 2 * k + ', ' + (2 * k + 1);
+      const topY = fr.Y(2 * k + 2) - 4;
+      const dimsY = topY < fr.Y(d) + 12 ? fr.Y(2 * k) + 12 : topY;
+      pill(ctx, th, fr.X(0) + 6, dimsY, dimsTxt);
+      P.label(ctx, fr.X(0) + 6, dimsY, dimsTxt, th.green);
+      /* Legenda de cor com fundo, para não se misturar ao heatmap. */
+      const legY = fr.Y(d) + 14;
+      pill(ctx, th, fr.X(L) - 52, legY, '+1   −1');
+      P.label(ctx, fr.X(L) - 52, legY, '+1', th.orange);
+      P.label(ctx, fr.X(L) - 26, legY, '−1', th.cyan);
+      /* Rótulo do eixo x com fundo: o heatmap cobre o canto inferior direito. */
+      pill(ctx, th, fr.X(L) - 4, fr.Y(0) - 8, 'posição i', 'right');
+      P.label(ctx, fr.X(L) - 4, fr.Y(0) - 8, 'posição i', th.comment, 'right');
+    }
+
+    /* Fundo semitransparente atrás de um rótulo de 11px. */
+    function pill(ctx, th, x, y, text, align) {
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      const x0 = align === 'right' ? x - tw : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(x0 - 3, y - 11, tw + 6, 15);
+      ctx.globalAlpha = 1;
     }
 
     function drawCurves() {
@@ -56,7 +79,7 @@
       P.clear(ctx, w, h);
       const fr = P.frame(ctx, w, h, 0, L, -1.25, 1.25);
       P.axes(ctx, fr, {
-        xlabel: 'posição i', ylabel: 'PE',
+        ylabel: 'PE',
         xticks: [0, Math.round(L / 2), L],
         yticks: [-1, 0, 1],
       });
@@ -82,8 +105,14 @@
         P.scatter(ctx, fr, ps, th.cyan, { r: 2.2, alpha: 0.9 });
         P.scatter(ctx, fr, pc, th.orange, { r: 2.2, alpha: 0.9 });
       }
-      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 12, 'sin · dim ' + 2 * k, th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 26, 'cos · dim ' + (2 * k + 1), th.orange);
+      /* Legenda e rótulo do eixo com fundo: as curvas ocupam o quadro inteiro. */
+      const lSin = 'sin · dim ' + 2 * k, lCos = 'cos · dim ' + (2 * k + 1);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(fr.ymax) + 12, lSin);
+      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 12, lSin, th.cyan);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(fr.ymax) + 26, lCos);
+      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 26, lCos, th.orange);
+      pill(ctx, th, fr.X(L) - 4, fr.Y(fr.ymin) - 8, 'posição i', 'right');
+      P.label(ctx, fr.X(L) - 4, fr.Y(fr.ymin) - 8, 'posição i', th.comment, 'right');
     }
 
     function updateReadout() {

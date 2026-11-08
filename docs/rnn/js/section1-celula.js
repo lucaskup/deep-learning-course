@@ -12,6 +12,20 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvUnroll = $('s1-unroll'), cvState = $('s1-state');
     const slIh = $('s1-thih'), slHh = $('s1-thhh'), slHo = $('s1-thho');
     const btnStep = $('s1-step'), btnRun = $('s1-run');
@@ -68,11 +82,15 @@
       P.clear(ctx, w, h);
 
       const slotW = (w - 16) / T;
-      const yOut = 26;                 /* centro dos círculos de saída */
+      const cellW = Math.min(slotW - 26, 86);
+      /* Em canvas estreito as células ficam curtas: fontes menores, só o
+         valor de h_t dentro da célula e o rótulo ŷ_t acima do círculo (que
+         desce um pouco para o rótulo caber). */
+      const narrow = cellW < 60;
+      const yOut = narrow ? 30 : 26;   /* centro dos círculos de saída */
       const cellTop = 58, cellH = 46;
       const barZero = h - 52;          /* linha do zero das barras de entrada */
       const barScale = 34 / XMAX;      /* px por unidade de x */
-      const cellW = Math.min(slotW - 26, 86);
       layout = { slotW, barZero, barScale };
 
       /* Linha do zero das entradas */
@@ -111,12 +129,13 @@
         ctx.lineWidth = t === cur ? 2.2 : 1.4;
         roundRect(ctx, cl, cellTop, cellW, cellH, 7);
         ctx.stroke();
-        ctx.font = '11px sans-serif';
+        ctx.font = (narrow ? 10 : 11) + 'px sans-serif';
         ctx.fillStyle = th.green;
         ctx.textAlign = 'center';
         ctx.fillText('tanh', cx, cellTop + 17);
         if (active) {
-          P.mathText(ctx, 'h_' + t + '=' + hs[t].toFixed(2), cx, cellTop + 35, th.orange, 'center', 11);
+          const hTxt = narrow ? hs[t].toFixed(2) : 'h_' + t + '=' + hs[t].toFixed(2);
+          P.mathText(ctx, hTxt, cx, cellTop + 35, th.orange, 'center', narrow ? 10 : 11);
         }
 
         /* Seta da célula para a saída e círculo ŷ_t */
@@ -129,11 +148,13 @@
         ctx.lineWidth = 1.4;
         ctx.stroke();
         if (active) {
-          ctx.font = '10px sans-serif';
+          ctx.font = (narrow ? 9 : 10) + 'px sans-serif';
           ctx.fillStyle = th.pink;
           ctx.fillText(ys[t].toFixed(2), cx, yOut + 3.5);
         }
-        P.mathText(ctx, 'ŷ_' + t, cx + 22, yOut + 4, th.pink, 'left', 10);
+        /* Em canvas estreito o rótulo ŷ_t vai para cima do círculo. */
+        if (narrow) P.mathText(ctx, 'ŷ_' + t, cx, yOut - 17, th.pink, 'center', 9);
+        else P.mathText(ctx, 'ŷ_' + t, cx + 16, yOut - 9, th.pink, 'left', 10);
 
         /* Seta recorrente h_t entre células */
         if (t < T) {
@@ -141,7 +162,7 @@
           ctx.globalAlpha = t + 1 <= cur ? 1 : 0.35;
           arrow(ctx, cl + cellW + 2, cellTop + cellH / 2, nx - 3, cellTop + cellH / 2, th.orange, 1.6);
           if (t <= cur) {
-            P.mathText(ctx, hs[t].toFixed(2), (cl + cellW + nx) / 2, cellTop + cellH / 2 - 6, th.orange, 'center', 10);
+            P.mathText(ctx, hs[t].toFixed(2), (cl + cellW + nx) / 2, cellTop + cellH / 2 - 6, th.orange, 'center', narrow ? 8 : 10);
           }
         }
         ctx.globalAlpha = 1;
@@ -149,9 +170,10 @@
 
       /* h_0 = 0 entrando na primeira célula */
       const c1 = 8 + slotW * 0.5 - cellW / 2;
+      const a0 = Math.max(4, c1 - 24);
       ctx.globalAlpha = 0.8;
-      arrow(ctx, c1 - 24, cellTop + cellH / 2, c1 - 3, cellTop + cellH / 2, th.orange, 1.4);
-      P.mathText(ctx, 'h_0=0', c1 - 14, cellTop + cellH / 2 - 7, th.orange, 'center', 10);
+      arrow(ctx, a0, cellTop + cellH / 2, c1 - 3, cellTop + cellH / 2, th.orange, 1.4);
+      P.mathText(ctx, narrow ? 'h_0' : 'h_0=0', Math.max(3, a0 - 2), cellTop + cellH / 2 - 8, th.orange, 'left', narrow ? 9 : 10);
       ctx.globalAlpha = 1;
     }
 
@@ -170,8 +192,8 @@
         P.line(ctx, fr, ts.slice(1), yv.slice(1), th.pink, { width: 1.8, dash: [5, 3] });
         P.scatter(ctx, fr, ts.slice(1).map((t, i) => [t, yv[i + 1]]), th.pink, { r: 2.6, alpha: 1 });
       }
-      P.label(ctx, fr.X(0) + 8, fr.Y(2.2) + 12, 'h_t', th.orange);
-      P.label(ctx, fr.X(0) + 8, fr.Y(2.2) + 26, 'ŷ_t', th.pink);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(2.2) + 12, 'h_t', th.orange);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(2.2) + 26, 'ŷ_t', th.pink);
     }
 
     function updateReadout() {

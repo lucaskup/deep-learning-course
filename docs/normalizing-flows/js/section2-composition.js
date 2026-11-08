@@ -1,5 +1,5 @@
 /* Seção 2: composição de K camadas inversíveis em 1D, f = f_K ∘ … ∘ f_1,
-   com a densidade se deformando passo a passo e |f′| = Π|f_k′|. */
+   com a densidade se deformando passo a passo e |g′| = Π|g_k′| (mapa generativo). */
 (function () {
   'use strict';
   window.DL = window.DL || {};
@@ -81,7 +81,7 @@
       const { ctx, w, h } = P.setup(cvMap);
       P.clear(ctx, w, h);
       const fr = P.frame(ctx, w, h, ZMIN, ZMAX, -XLIM, XLIM);
-      P.axes(ctx, fr, { xlabel: 'z', ylabel: 'x = f(z)', xticks: [-3, 0, 3], yticks: [-4, 0, 4] });
+      P.axes(ctx, fr, { xlabel: 'z', ylabel: 'x = g(z)', xticks: [-3, 0, 3], yticks: [-4, 0, 4] });
       P.line(ctx, fr, [ZMIN, ZMAX], [ZMIN, ZMAX], th.comment, { width: 1, dash: [4, 4], alpha: 0.5 });
       P.line(ctx, fr, zgrid, stages[K].xs, th.orange, { width: 2.2 });
     }
@@ -96,8 +96,8 @@
         x = x + L.alpha * t;
       }
       $('s2-readout').textContent =
-        'K = ' + K + ' · |f′(0)| = Π|f_k′| = ' + prod.toFixed(2) +
-        ' · log|f′(0)| = Σ log|f_k′| = ' + Math.log(prod).toFixed(2);
+        'K = ' + K + ' · |g′(0)| = Π|g_k′| = ' + prod.toFixed(2) +
+        ' · log|g′(0)| = Σ log|g_k′| = ' + Math.log(prod).toFixed(2);
     }
 
     function redraw() {

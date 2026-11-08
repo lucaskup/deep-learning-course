@@ -6,6 +6,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const MAX_STEPS = 5000;
 
   function init() {
@@ -124,10 +137,28 @@
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.strokeRect(fr.X(dx) - 4.5, fr.Y(dy) - 4.5, 9, 9);
-        /* rótulos para batches pequenos */
-        if (N <= 6) {
-          P.mathText(ctx, 'q_' + (i + 1), fr.X(1.18 * qx), fr.Y(1.18 * qy) + 4, color, 'center');
-          P.mathText(ctx, 'd_' + (i + 1), fr.X(1.18 * dx), fr.Y(1.18 * dy) + 4, color, 'center');
+      }
+      /* Rótulos para batches pequenos: consulta por dentro do círculo, documento por
+         fora, com fundo para não se perderem sobre as cordas. Rótulos do mesmo lado
+         com ângulos quase iguais ganham raios diferentes, para não cobrirem um ao outro. */
+      if (N <= 6) {
+        const labels = [];
+        for (let i = 0; i < N; i++) {
+          labels.push({ t: 'q_' + (i + 1), a: thQ[i], r: 0.82, dir: -1, c: pairColor(i) });
+          labels.push({ t: 'd_' + (i + 1), a: thD[i], r: 1.18, dir: 1, c: pairColor(i) });
+        }
+        const dAng = (a, b) => {
+          const d = Math.abs(a - b) % (2 * Math.PI);
+          return Math.min(d, 2 * Math.PI - d);
+        };
+        for (let m = 1; m < labels.length; m++) {
+          for (let n = 0; n < m; n++) {
+            const L = labels[m], O = labels[n];
+            if (L.dir === O.dir && dAng(L.a, O.a) < 0.2 && Math.abs(L.r - O.r) < 0.1) L.r += 0.14 * L.dir;
+          }
+        }
+        for (const L of labels) {
+          pillText(ctx, th, L.t, fr.X(L.r * Math.cos(L.a)), fr.Y(L.r * Math.sin(L.a)) + 4, L.c, 'center');
         }
       }
     }
@@ -142,7 +173,6 @@
       const cell = Math.min((w - ml - mr) / N, (h - mt - mb) / N);
       const x0 = ml + (w - ml - mr - cell * N) / 2;
       const y0 = mt;
-      mat = { cell, x0, y0 };
 
       const pc = P.rgb(th.purple);
       for (let i = 0; i < N; i++) {
@@ -157,7 +187,7 @@
             ctx.strokeRect(x + 0.5, y + 0.5, cell - 2, cell - 2);
           }
           if (cell >= 30) {
-            ctx.fillStyle = Prob[i][j] > 0.45 ? th.bg : th.comment;
+            ctx.fillStyle = Prob[i][j] > 0.45 ? th.bg : th.fg;
             ctx.font = '9px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(Prob[i][j].toFixed(2), x + cell / 2, y + cell / 2 + 3);

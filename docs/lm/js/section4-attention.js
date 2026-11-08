@@ -28,6 +28,19 @@
       return { scores, a, c };
     }
 
+    /* Rótulo com fundo semitransparente: fica legível sobre setas e eixos. */
+    function pillText(ctx, th, x, y, text, color, align) {
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const bx = align === 'center' ? x - tw / 2 - 3 : (align === 'right' ? x - tw - 3 : x - 3);
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y - 11, tw + 6, 14);
+      ctx.restore();
+      P.label(ctx, x, y, text, color, align);
+    }
+
     function drawPlane() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvPlane);
@@ -52,14 +65,14 @@
         P.arrow(ctx, fr, 0, 0, s[0], s[1], th.green, { width: 2 });
         ctx.globalAlpha = 1;
         const off = s[1] >= 0 ? -8 : 14;
-        P.label(ctx, fr.X(s[0]), fr.Y(s[1]) + off, TOKENS[k], th.green, 'center');
+        pillText(ctx, th, fr.X(s[0]), fr.Y(s[1]) + off, TOKENS[k], th.green, 'center');
       });
       // h_t
       P.arrow(ctx, fr, 0, 0, H[0], H[1], th.pink, { width: 3, head: 11 });
-      P.label(ctx, fr.X(H[0]), fr.Y(H[1]) - 10, 'h_t', th.pink, 'center');
+      pillText(ctx, th, fr.X(H[0]), fr.Y(H[1]) - 10, 'h_t', th.pink, 'center');
       // contexto
       P.arrow(ctx, fr, 0, 0, c[0], c[1], th.purple, { width: 2.4, dash: [5, 4] });
-      P.label(ctx, fr.X(c[0]) + 8, fr.Y(c[1]) + 4, 'c', th.purple);
+      pillText(ctx, th, fr.X(c[0]) + 8, fr.Y(c[1]) + 4, 'c', th.purple, 'left');
     }
 
     function drawBars() {
@@ -69,9 +82,11 @@
       const { scores, a } = compute();
       const fr = P.frame(ctx, w, h, 0, 1, 0, Math.max(0.5, Math.max(...a) * 1.25), { l: 30, r: 8, t: 8, b: 42 });
       P.axes(ctx, fr, { yticks: [0, 0.5] });
+      /* com barras estreitas "score 2,0" vira "s=2,0" para os rótulos não se sobreporem */
+      const narrow = fr.iw / TOKENS.length < 60;
       P.bars(ctx, fr, TOKENS, a, th.purple, {
         values: a.map((v) => f(v, 2)),
-        sublabels: scores.map((s) => 'score ' + f(s, 1)),
+        sublabels: scores.map((s) => (narrow ? 's=' : 'score ') + f(s, 1)),
         sublabelColor: th.pink,
       });
     }
@@ -136,6 +151,7 @@
     redraw();
     P.onRedraw(redraw);
     P.observeResize(cvPlane, redraw);
+    P.observeResize(cvBars, redraw);
   }
 
   DM.sections.push({ name: 's4-attention', init });

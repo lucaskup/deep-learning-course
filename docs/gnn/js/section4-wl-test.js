@@ -140,8 +140,10 @@
       readout.textContent = msg;
     }
 
+    const presetBtns = { a: document.getElementById('s4-preset-a'), b: document.getElementById('s4-preset-b') };
     function setPreset(key) {
       state.preset = key;
+      for (const k of Object.keys(presetBtns)) presetBtns[k].classList.toggle('active', k === key);
       reset();
       redraw();
     }
@@ -152,6 +154,7 @@
     document.getElementById('s4-reset').addEventListener('click', () => { reset(); redraw(); });
 
     reset();
+    presetBtns[state.preset].classList.add('active');
     DL.plot.observeResize(cv1, redraw);
     DL.plot.observeResize(cv2, redraw);
     DL.plot.onRedraw(redraw);

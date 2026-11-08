@@ -69,7 +69,7 @@
       const n = Math.max(1, tokens.length);
       const slot = inner / n;
       const centers = [];
-      ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      ctx.font = (slot < 64 ? 11 : 12) + 'px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
       for (let k = 0; k < tokens.length; k++) {
         const cx = pad + slot * (k + 0.5);
         centers.push(cx);
@@ -115,7 +115,7 @@
       const matchGen = new Set(M.L.pairs.map((p) => p[1]));
       const yRef = 44, yGen = h - 44;
 
-      P.mathText(ctx, 'referência θ a esquecer', 14, 22, th.comment, 'left', 11);
+      P.mathText(ctx, 'referência em D_f (conjunto a esquecer)', 14, 22, th.comment, 'left', 11);
       P.mathText(ctx, 'gerado pelo modelo', 14, h - 14, th.comment, 'left', 11);
 
       const cRef = drawRow(ctx, refTok, matchRef, yRef, th.fg, th.green, th);

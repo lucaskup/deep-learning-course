@@ -75,12 +75,27 @@
     /* labelT: fração ao longo da aresta onde fica o rótulo (evita colisão no cruzamento). */
     const conns = [
       { from: 'x1', to: 'h1', w: () => W1[0][0], g: (S) => S.gW1[0][0], name: 'θ_{11}⁽¹⁾', labelT: 0.45 },
-      { from: 'x2', to: 'h1', w: () => W1[0][1], g: (S) => S.gW1[0][1], name: 'θ_{12}⁽¹⁾', labelT: 0.78 },
+      { from: 'x2', to: 'h1', w: () => W1[0][1], g: (S) => S.gW1[0][1], name: 'θ_{12}⁽¹⁾', labelT: 0.66 },
       { from: 'x1', to: 'h2', w: () => W1[1][0], g: (S) => S.gW1[1][0], name: 'θ_{21}⁽¹⁾', labelT: 0.78 },
       { from: 'x2', to: 'h2', w: () => W1[1][1], g: (S) => S.gW1[1][1], name: 'θ_{22}⁽¹⁾', labelT: 0.45 },
       { from: 'h1', to: 'o',  w: () => W2[0],    g: (S) => S.gW2[0],    name: 'θ_1⁽²⁾',    labelT: 0.5 },
       { from: 'h2', to: 'o',  w: () => W2[1],    g: (S) => S.gW2[1],    name: 'θ_2⁽²⁾',    labelT: 0.5 },
     ];
+
+    /* Rótulo (uma ou duas linhas) sobre fundo opaco: as arestas se cruzam e,
+       no canvas estreito, os rótulos ficam colados aos nós. */
+    function pill(ctx, x, y, lines, color, size) {
+      const th = P.theme();
+      ctx.font = size + 'px sans-serif';
+      let tw = 0;
+      for (const t of lines) tw = Math.max(tw, ctx.measureText(t.replace(/[_{}]/g, '')).width);
+      const hh = size + 3;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - tw / 2 - 3, y - size + 1, tw + 6, hh * lines.length + 2);
+      ctx.globalAlpha = 1;
+      lines.forEach((t, i) => P.mathText(ctx, t, x, y + hh * i, color, 'center', size));
+    }
 
     function redraw() {
       const th = P.theme();
@@ -89,6 +104,10 @@
       const S = compute();
       const px = (id) => ({ x: pos[id].fx * w, y: pos[id].fy * h });
       const grad = view === 'grad';
+      /* Canvas estreito (celular): rótulos de aresta em duas linhas com fonte
+         menor, rótulos dos nós de cima acima do nó e os de baixo abaixo. */
+      const narrow = w < 520;
+      const efs = narrow ? 9 : 10.5;
 
       /* normalização da espessura pelo maior valor absoluto da vista atual */
       let vmax = 0;
@@ -119,14 +138,16 @@
         ctx.closePath();
         ctx.fill();
         /* rótulo da aresta */
-        const lx = p1.x + (p2.x - p1.x) * c.labelT;
-        const ly = p1.y + (p2.y - p1.y) * c.labelT;
+        /* no canvas estreito, rótulos das arestas retas se afastam dos nós de entrada */
+        const labelT = narrow && c.labelT <= 0.5 ? 0.6 : c.labelT;
+        const lx = p1.x + (p2.x - p1.x) * labelT;
+        const ly = p1.y + (p2.y - p1.y) * labelT;
         let ox = -uy, oy = ux;
         if (oy > 0) { ox = -ox; oy = -oy; }
-        const text = grad
-          ? '∂J/∂' + c.name + ' = ' + fgrad(v)
-          : c.name + ' = ' + fnum(v, 2);
-        P.mathText(ctx, text, lx + ox * 12, ly + oy * 12, color, 'center', 10.5);
+        const name = grad ? '∂J/∂' + c.name : c.name;
+        const val = grad ? fgrad(v) : fnum(v, 2);
+        const lines = narrow ? [name, val] : [name + ' = ' + val];
+        pill(ctx, lx + ox * 12, ly + oy * (narrow ? 20 : 12), lines, color, efs);
       }
 
       /* nós */
@@ -159,7 +180,12 @@
         ctx.lineWidth = 1.4;
         ctx.stroke();
         P.mathText(ctx, n.name, c.x, c.y + 4, th.fg, 'center', 12);
-        if (n.below) P.mathText(ctx, n.below, c.x, c.y + R + 16, n.belowColor, 'center', 11);
+        if (n.below) {
+          /* no canvas estreito, x₁ e a₁ ficam acima do nó (longe das arestas de baixo) */
+          const above = narrow && (n.id === 'x1' || n.id === 'h1');
+          const ly = above ? c.y - R - 8 : c.y + R + (narrow && n.id === 'o' ? 22 : 16);
+          pill(ctx, c.x, ly, [n.below], n.belowColor, narrow ? 10 : 11);
+        }
       }
 
       /* legenda da vista atual */
@@ -205,8 +231,13 @@
       update();
     });
 
+    /* Reinicia pesos e também as entradas (x₁, x₂, y) para os valores iniciais. */
     btnReset.addEventListener('click', () => {
       sampleWeights();
+      $('s2-x1').value = 0.5; $('s2-x2').value = 0.1; $('s2-y').value = 0.6;
+      $('s2-x1-val').textContent = fnum(0.5, 1);
+      $('s2-x2-val').textContent = fnum(0.1, 1);
+      $('s2-y-val').textContent = fnum(0.6, 2);
       lastMsg = '';
       update();
     });

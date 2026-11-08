@@ -1,4 +1,4 @@
-/* Seção 3: positional encoding sinusoidal P_{i,j} (Vaswani et al., 2017),
+/* Seção 6: positional encoding sinusoidal P_{i,j} (Vaswani et al., 2017),
    heatmap posição × dimensão e produto escalar P_i·P_j com pico em j = i. */
 (function () {
   'use strict';
@@ -11,8 +11,8 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
-    const cvHeat = $('s7-heatmap'), cvDot = $('s7-dot');
-    const slD = $('s7-d'), slN = $('s7-n'), slPos = $('s7-pos');
+    const cvHeat = $('s6-heatmap'), cvDot = $('s6-dot');
+    const slD = $('s6-d'), slN = $('s6-n'), slPos = $('s6-pos');
 
     let d = +slD.value;
     let n = Math.round(Math.pow(10, +slN.value));
@@ -44,11 +44,26 @@
       });
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawHeat() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvHeat);
       P.clear(ctx, w, h);
-      const fr = P.frame(ctx, w, h, 0, d, 0, NPOS);
+      const fr = P.frame(ctx, w, h, 0, d, 0, NPOS, { l: 38, r: 10, t: 10, b: 36 });
       frHeat = fr;
       const cy = P.rgb(th.cyan), or = P.rgb(th.orange);
       /* posição 0 no topo: linha y do frame cresce para baixo via NPOS − i */
@@ -61,10 +76,12 @@
         return [c[0], c[1], c[2], 20 + 235 * Math.min(1, Math.abs(v))];
       });
       P.axes(ctx, fr, {
-        xlabel: 'dimensão j', ylabel: 'posição i',
+        ylabel: 'posição i',
         xticks: [0, Math.round(d / 2), d],
         yticks: [],
       });
+      /* rótulo abaixo dos ticks, fora do heatmap */
+      P.label(ctx, fr.X(d), fr.Y(0) + 30, 'dimensão j', th.comment, 'right');
       ctx.fillStyle = th.comment;
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'right';
@@ -79,7 +96,7 @@
       ctx.moveTo(fr.X(0), ym);
       ctx.lineTo(fr.X(d), ym);
       ctx.stroke();
-      P.label(ctx, fr.X(d) - 56, ym - 5, 'i = ' + pos, th.green);
+      legendBox(ctx, th, fr.X(d) - 8, ym - 20, [['i = ' + pos, th.green]], 'right');
     }
 
     function drawDot() {
@@ -105,7 +122,7 @@
       for (let j = 0; j < NPOS; j++) {
         if (Math.abs(j - pos) > 3 && dots[j] > side) side = dots[j];
       }
-      $('s7-readout').textContent =
+      $('s6-readout').textContent =
         'd = ' + d + ' · n = ' + n + ' · maior pico secundário = ' + side.toFixed(2);
     }
 
@@ -118,7 +135,7 @@
     function setPos(p) {
       pos = Math.max(0, Math.min(NPOS - 1, Math.round(p)));
       slPos.value = pos;
-      $('s7-pos-val').textContent = pos;
+      $('s6-pos-val').textContent = pos;
       recompute();
       redraw();
     }
@@ -139,13 +156,13 @@
 
     slD.addEventListener('input', () => {
       d = +slD.value;
-      $('s7-d-val').textContent = d;
+      $('s6-d-val').textContent = d;
       recompute();
       redraw();
     });
     slN.addEventListener('input', () => {
       n = Math.round(Math.pow(10, +slN.value));
-      $('s7-n-val').textContent = n;
+      $('s6-n-val').textContent = n;
       recompute();
       redraw();
     });
@@ -158,5 +175,5 @@
     P.observeResize(cvDot, redraw);
   }
 
-  DL.sections.push({ name: 's7-positional-encoding', init });
+  DL.sections.push({ name: 's6-positional-encoding', init });
 })();

@@ -36,9 +36,10 @@
       <p class="course-subtitle">Demonstrações interativas da aula de Normalizing Flows</p>
       <p class="course-desc">
         Quatro visualizações que acompanham os slides: a mudança de variável
-        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|df/dz|<sup>−1</sup></span>
-        em 1D com o termo do jacobiano visível, a composição
-        <span class="formula">f = f<sub>K</sub> ∘ … ∘ f<sub>1</sub></span> deformando a
+        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|dg/dz|<sup>−1</sup></span>
+        em 1D, para o mapa generativo <span class="formula">x = g(z)</span>, com o termo do
+        jacobiano visível, a composição
+        <span class="formula">g = g<sub>K</sub> ∘ … ∘ g<sub>1</sub></span> deformando a
         gaussiana base passo a passo, a camada de <em>affine coupling</em>
         <span class="formula">y<sup>B</sup> = x<sup>B</sup> ⊙ exp(s(x<sup>A</sup>)) + t(x<sup>A</sup>)</span>
         em 2D, e o treino por máxima verossimilhança minimizando a NLL
@@ -53,12 +54,17 @@
     <div class="container">
       <h2 class="section-title">1 · Mudança de variável em 1D</h2>
       <p class="demo-text">
+        As seções 1 a 3 mostram o mapa <strong>generativo</strong>
+        <span class="formula">g = f<sup>−1</sup></span>, de <span class="formula">z</span> para
+        <span class="formula">x</span>; o flow <span class="formula">f: x → z</span> dos slides,
+        com <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(f(x))·|det ∂f/∂x|</span>, é a
+        inversa desse mapa, e a seção 4 treina nessa direção.
         Partimos da base <span class="formula">z ∼ 𝒩(0,1)</span> e aplicamos uma
         transformação monotônica ajustável
-        <span class="formula">x = f(z) = b + a·z + c·tanh(z/0.7)</span>.
+        <span class="formula">x = g(z) = b + a·z + c·tanh(z/0.7)</span>.
         A conservação de probabilidade exige <span class="formula">p(x)·dx = p(z)·dz</span>,
         logo a densidade resultante é
-        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|f′(z)|<sup>−1</sup></span>:
+        <span class="formula">p<sub>X</sub>(x) = p<sub>Z</sub>(z)·|g′(z)|<sup>−1</sup></span>:
         onde o flow alonga o eixo (derivada grande) a densidade abaixa, onde comprime
         (derivada pequena) a densidade sobe. A curva tracejada mostra o que acontece se
         <em>esquecermos</em> o termo do jacobiano: a área sob a curva deixa de ser 1.
@@ -81,15 +87,15 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box">
-            <p class="canvas-caption">Base p<sub>Z</sub>(z) = 𝒩(0,1) e amostras</p>
+            <p class="canvas-caption" style="min-height: 3.6em">Base p<sub>Z</sub>(z) = 𝒩(0,1) e amostras</p>
             <canvas id="s1-base"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">Transformação x = f(z) (arraste o ponto z<sub>0</sub>)</p>
+            <p class="canvas-caption" style="min-height: 3.6em">Transformação x = g(z) (arraste o ponto z<sub>0</sub>)</p>
             <canvas id="s1-map"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">p<sub>X</sub>(x) com jacobiano (sólida) e sem (tracejada) + histograma das amostras transformadas</p>
+            <p class="canvas-caption" style="min-height: 3.6em">p<sub>X</sub>(x) com jacobiano (sólida) e sem (tracejada) + histograma das amostras transformadas</p>
             <canvas id="s1-out"></canvas>
           </div>
         </div>
@@ -101,7 +107,7 @@
           densidade bimodal, como na figura dos slides. Compare a sólida com a tracejada no
           readout: sem o jacobiano a área fica longe de 1. Arraste
           <span class="formula">z<sub>0</sub></span> até o centro e veja
-          <span class="formula">f′(z<sub>0</sub>)</span> grande exatamente onde a densidade é baixa.
+          <span class="formula">g′(z<sub>0</sub>)</span> grande exatamente onde a densidade é baixa.
         </p>
       </div>
     </div>
@@ -113,11 +119,13 @@
       <h2 class="section-title">2 · Composição de K camadas</h2>
       <p class="demo-text">
         A classe de funções inversíveis e diferenciáveis é fechada em composição:
-        <span class="formula">f = f<sub>K</sub> ∘ f<sub>K−1</sub> ∘ … ∘ f<sub>1</sub></span>.
-        Cada camada aqui é simples, <span class="formula">f<sub>k</sub>(z) = z + α<sub>k</sub>·tanh((z − μ<sub>k</sub>)/s<sub>k</sub>)</span>,
+        <span class="formula">g = g<sub>K</sub> ∘ g<sub>K−1</sub> ∘ … ∘ g<sub>1</sub></span>
+        (aqui também no sentido generativo, de <span class="formula">z</span> para
+        <span class="formula">x</span>).
+        Cada camada aqui é simples, <span class="formula">g<sub>k</sub>(z) = z + α<sub>k</sub>·tanh((z − μ<sub>k</sub>)/s<sub>k</sub>)</span>,
         mas empilhando camadas a gaussiana base se deforma em distribuições cada vez mais
         ricas. Pela regra da cadeia o determinante do jacobiano da composição é o produto
-        dos determinantes, <span class="formula">|f′| = Π<sub>k</sub> |f<sub>k</sub>′|</span>,
+        dos determinantes, <span class="formula">|g′| = Π<sub>k</sub> |g<sub>k</sub>′|</span>,
         então basta que cada camada seja barata para a rede inteira ser tratável.
         Mova o slider de <span class="formula">K</span> e veja a densidade se deformar passo a passo.
       </p>
@@ -137,7 +145,7 @@
             <canvas id="s2-density"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">Mapa composto x = f(z) (tracejado: identidade)</p>
+            <p class="canvas-caption">Mapa composto x = g(z) (tracejado: identidade)</p>
             <canvas id="s2-map"></canvas>
           </div>
         </div>
@@ -147,7 +155,7 @@
           <span class="formula">z = 0</span> é o produto dos jacobianos das camadas, e em log
           vira uma soma, exatamente o termo que entra na NLL. Clique 🎲 algumas vezes:
           composições diferentes geram multimodalidades diferentes, mesmo com cada
-          <span class="formula">f<sub>k</sub></span> sendo um único "solavanco" de tanh.
+          <span class="formula">g<sub>k</sub></span> sendo um único "solavanco" de tanh.
         </p>
       </div>
     </div>
@@ -163,6 +171,11 @@
         <span class="formula">x<sup>B</sup></span> sofre uma transformação afim cujos
         parâmetros vêm de <span class="formula">x<sup>A</sup></span>:
         <span class="formula">y<sup>B</sup> = x<sup>B</sup>·exp(s(x<sup>A</sup>)) + t(x<sup>A</sup>)</span>.
+        Os slides escrevem essa mesma camada no sentido <span class="formula">x → z</span>,
+        <span class="formula">z<sup>B</sup> = x<sup>B</sup> ⊙ exp(s(x<sup>A</sup>)) + t(x<sup>A</sup>)</span>;
+        aqui a entrada da camada é a amostra da base <span class="formula">z ∼ 𝒩(0, I)</span>
+        (ciano) e a saída <span class="formula">y = g(z)</span> é a amostra transformada
+        (laranja), o sentido generativo, cuja inversa tem a mesma forma afim.
         Como <span class="formula">x<sup>A</sup></span> não depende de
         <span class="formula">x<sup>B</sup></span>, o jacobiano é triangular e
         <span class="formula">log|det J| = Σ s</span>. Aqui a "coupling network" é
@@ -248,11 +261,11 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Dados (ciano), amostras do flow (laranja) e densidade aprendida p<sub>X</sub>(x) (mapa de cores)</p>
+            <p class="canvas-caption" style="min-height: 2.6em">Dados (ciano), amostras do flow (laranja) e densidade aprendida p<sub>X</sub>(x) (mapa de cores)</p>
             <canvas id="s4-plane"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">NLL média por passo (ciano: bruta, laranja: média móvel)</p>
+            <p class="canvas-caption" style="min-height: 2.6em">NLL média por passo (ciano: bruta, laranja: média móvel)</p>
             <canvas id="s4-nll"></canvas>
           </div>
         </div>

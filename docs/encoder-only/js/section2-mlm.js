@@ -155,48 +155,89 @@
       ctx.font = '13px sans-serif';
       const padX = 12, gap = 8, chipH = 32;
       const widths = inputTok.map((t) => ctx.measureText(t).width + 2 * padX);
-      const total = widths.reduce((a, b) => a + b, 0) + gap * (sent.length - 1);
-      let x = Math.max(8, (w - total) / 2);
-      const y = h / 2 - chipH / 2 - 6;
 
+      /* Quebra os chips em linhas quando a frase não cabe na largura do canvas. */
+      const maxW = w - 16;
+      const rows = [[]];
+      let rowW = 0;
       for (let i = 0; i < sent.length; i++) {
-        const cw = widths[i];
-        const st = state[i];
-        let fill = th.card, stroke = th.line, txt = th.fg;
-        if (st === 'mask') { fill = 'rgba(255,85,85,0.18)'; stroke = th.red; }
-        if (st === 'rand') { fill = 'rgba(255,184,108,0.18)'; stroke = th.orange; }
-        if (st === 'kept') { fill = 'rgba(80,250,123,0.12)'; stroke = th.green; }
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = i === sel && st !== 'visible' ? 2.5 : 1.2;
-        ctx.beginPath();
-        ctx.roundRect(x, y, cw, chipH, 7);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = txt;
-        ctx.textAlign = 'center';
-        ctx.font = '13px sans-serif';
-        ctx.fillText(inputTok[i], x + cw / 2, y + chipH / 2 + 4);
-        /* Alvo original sob o chip nas posições previstas. */
-        if (st !== 'visible') {
-          ctx.fillStyle = th.comment;
-          ctx.font = '10px sans-serif';
-          ctx.fillText('alvo: ' + sent[i], x + cw / 2, y + chipH + 14);
+        const need = widths[i] + (rows[rows.length - 1].length ? gap : 0);
+        if (rowW + need > maxW && rows[rows.length - 1].length) {
+          rows.push([]);
+          rowW = 0;
         }
-        chips.push({ x, y, w: cw, h: chipH, i });
-        x += cw + gap;
+        rows[rows.length - 1].push(i);
+        rowW += widths[i] + (rows[rows.length - 1].length > 1 ? gap : 0);
       }
+      const rowPitch = chipH + 24; /* chip + linha "alvo:" por baixo */
 
-      /* Legenda dos três estados da regra 80/10/10. */
+      /* Legenda dos três estados da regra 80/10/10, com quebra de linha
+         quando o canvas é estreito. */
+      ctx.font = '10px sans-serif';
+      const legend = [
+        { t: '■ [MASK] (80%)', c: th.red },
+        { t: '■ troca aleatória (10%)', c: th.orange },
+        { t: '■ mantido (10%)', c: th.green },
+      ];
+      const legendLines = [[]];
+      let lx = 0;
+      for (const item of legend) {
+        item.w = ctx.measureText(item.t).width;
+        if (lx + item.w > w - 20 && legendLines[legendLines.length - 1].length) {
+          legendLines.push([]);
+          lx = 0;
+        }
+        item.x = 10 + lx;
+        legendLines[legendLines.length - 1].push(item);
+        lx += item.w + 14;
+      }
+      const legendH = 8 + 14 * legendLines.length;
+      const blockH = rows.length * rowPitch - 6;
+      const yStart = Math.max(6, (h - legendH - blockH) / 2);
+
+      const tint = (c, a) => 'rgba(' + P.rgb(c).join(',') + ',' + a + ')';
+      rows.forEach((row, r) => {
+        const total = row.reduce((a, i) => a + widths[i], 0) + gap * (row.length - 1);
+        let x = Math.max(8, (w - total) / 2);
+        const y = yStart + r * rowPitch;
+        for (const i of row) {
+          const cw = widths[i];
+          const st = state[i];
+          let fill = th.card, stroke = th.line, txt = th.fg;
+          if (st === 'mask') { fill = tint(th.red, 0.18); stroke = th.red; }
+          if (st === 'rand') { fill = tint(th.orange, 0.18); stroke = th.orange; }
+          if (st === 'kept') { fill = tint(th.green, 0.12); stroke = th.green; }
+          ctx.fillStyle = fill;
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = i === sel && st !== 'visible' ? 2.5 : 1.2;
+          ctx.beginPath();
+          ctx.roundRect(x, y, cw, chipH, 7);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = txt;
+          ctx.textAlign = 'center';
+          ctx.font = '13px sans-serif';
+          ctx.fillText(inputTok[i], x + cw / 2, y + chipH / 2 + 4);
+          /* Alvo original sob o chip nas posições previstas. */
+          if (st !== 'visible') {
+            ctx.fillStyle = th.comment;
+            ctx.font = '10px sans-serif';
+            ctx.fillText('alvo: ' + sent[i], x + cw / 2, y + chipH + 14);
+          }
+          chips.push({ x, y, w: cw, h: chipH, i });
+          x += cw + gap;
+        }
+      });
+
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'left';
-      const ly = h - 8;
-      ctx.fillStyle = th.red;
-      ctx.fillText('■ [MASK] (80%)', 10, ly);
-      ctx.fillStyle = th.orange;
-      ctx.fillText('■ troca aleatória (10%)', 110, ly);
-      ctx.fillStyle = th.green;
-      ctx.fillText('■ mantido (10%)', 262, ly);
+      legendLines.forEach((line, k) => {
+        const ly = h - 8 - 14 * (legendLines.length - 1 - k);
+        for (const item of line) {
+          ctx.fillStyle = item.c;
+          ctx.fillText(item.t, item.x, ly);
+        }
+      });
     }
 
     /* ── Distribuição prevista na posição selecionada ── */

@@ -5,6 +5,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   function omega(k, d) { return Math.pow(10000, -2 * k / d); }
 
   /* Produto interno normalizado em função do offset m: (2/d)·Σ_k cos(m·ω_k). */
@@ -55,7 +68,7 @@
         return v >= 0 ? [oc[0], oc[1], oc[2], a] : [cc[0], cc[1], cc[2], a];
       });
       P.axes(ctx, fr, {
-        xlabel: 'posição j', ylabel: 'posição i',
+        ylabel: 'posição i',
         xticks: [0, Math.round(L / 2), L],
         yticks: [0, Math.round(L / 2), L],
       });
@@ -65,8 +78,15 @@
       ctx.strokeRect(fr.X(0), fr.Y(i + 1), fr.iw, fr.Y(i) - fr.Y(i + 1));
       ctx.strokeStyle = th.orange;
       ctx.strokeRect(fr.X(0), fr.Y(i2 + 1), fr.iw, fr.Y(i2) - fr.Y(i2 + 1));
-      P.label(ctx, fr.X(L) - 6, fr.Y(i + 1) - 3, 'i = ' + i, th.cyan, 'right');
-      P.label(ctx, fr.X(L) - 6, fr.Y(i2 + 1) - 3, "i' = " + i2, th.orange, 'right');
+      /* Rótulos das linhas: acima da faixa; se a faixa encosta no topo, abaixo dela.
+         Com i = i′ o segundo rótulo desce para não cobrir o primeiro. */
+      const rowLabelY = (row) => {
+        const y = fr.Y(row + 1) - 3;
+        return y < fr.Y(L) + 11 ? fr.Y(row) + 12 : y;
+      };
+      pillText(ctx, th, 'i = ' + i, fr.X(L) - 6, rowLabelY(i), th.cyan, 'right');
+      pillText(ctx, th, "i' = " + i2, fr.X(L) - 6, i === i2 ? fr.Y(i2) + 12 : rowLabelY(i2), th.orange, 'right');
+      pillText(ctx, th, 'posição j', fr.X(L) - 4, fr.Y(0) - 8, th.comment, 'right');
     }
 
     function drawCurve() {
@@ -77,7 +97,7 @@
       for (let m = 0; m < L; m++) ymin = Math.min(ymin, table[m]);
       const fr = P.frame(ctx, w, h, 0, L - 1, ymin - 0.1, 1.1);
       P.axes(ctx, fr, {
-        xlabel: 'posição j', ylabel: 'PE_i · PE_j',
+        ylabel: 'PE_i · PE_j',
         xticks: [0, Math.round((L - 1) / 2), L - 1],
         yticks: [0, 0.5, 1],
       });
@@ -92,8 +112,15 @@
       P.line(ctx, fr, js, yi2, th.orange, { width: 1.8 });
       P.scatter(ctx, fr, [[i, 1]], th.cyan, { r: 4, alpha: 1 });
       P.scatter(ctx, fr, [[i2, 1]], th.orange, { r: 4, alpha: 1 });
-      P.label(ctx, fr.X(i), fr.Y(1.1) + 12, 'j = i', th.cyan, 'center');
-      P.label(ctx, fr.X(i2), fr.Y(1.1) + 12, "j = i'", th.orange, 'center');
+      /* Rótulos dos picos, puxados para dentro do quadro quando i está numa borda. */
+      ctx.font = '11px sans-serif';
+      const clampX = (x, txt) => {
+        const half = ctx.measureText(txt).width / 2 + 2;
+        return Math.max(fr.X(0) + half, Math.min(fr.X(L - 1) - half, x));
+      };
+      pillText(ctx, th, 'j = i', clampX(fr.X(i), 'j = i'), fr.Y(1.1) + 12, th.cyan, 'center');
+      pillText(ctx, th, "j = i'", clampX(fr.X(i2), "j = i'"), fr.Y(1.1) + 12, th.orange, 'center');
+      pillText(ctx, th, 'posição j', fr.X(L - 1) - 4, fr.Y(fr.ymin) - 8, th.comment, 'right');
     }
 
     function updateReadout() {

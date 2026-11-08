@@ -5,6 +5,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const P0 = 0.3, MAX_ITERS = 400;
   const sigmoid = (z) => 1 / (1 + Math.exp(-z));
   const logit = (p) => Math.log(p / (1 - p));
@@ -27,7 +40,10 @@
       theta = logit(P0);
       hist = [sigmoid(theta)];
       rng = DL.utils.mulberry32(42);
-      sampleGroup();
+      /* Grupo inicial com metade de acertos (1, 0, 1, 0, …), o exemplo dos slides:
+         r̄ = 0.5, σ_r = 0.5 e Â_i = ±1. Os grupos seguintes são amostrados de π_θ. */
+      group = [];
+      for (let i = 0; i < G; i++) group.push(i % 2 === 0 ? 1 : 0);
     }
 
     function sampleGroup() {
@@ -66,7 +82,7 @@
       const fr = P.frame(ctx, w, h, 0.5, G + 0.5, -2.6, 2.6);
       frGroup = fr;
       P.axes(ctx, fr, {
-        xlabel: 'amostra i', ylabel: '',
+        ylabel: '',
         xticks: G <= 8 ? group.map((_, i) => i + 1) : [1, Math.round(G / 2), G],
         yticks: [-2, -1, 0, 1, 2],
       });
@@ -92,11 +108,12 @@
         ctx.fillRect(cx - wAdv / 2, y0, wAdv, Math.max(1.5, hh));
         ctx.globalAlpha = 1;
         /* rótulo de acerto/erro */
-        P.label(ctx, cx, fr.Y(-2.6) + 16, group[i] === 1 ? '✓' : '✗',
+        P.label(ctx, cx, fr.Y(-2.6) - 20, group[i] === 1 ? '✓' : '✗',
           group[i] === 1 ? th.green : th.red, 'center');
       }
-      P.label(ctx, fr.X(0.6), fr.Y(2.6) + 14, 'r_i (ciano fino) · Â_i (barra larga)', th.comment);
-      P.label(ctx, fr.X(G + 0.45), fr.Y(mean) - 5, 'r̄ = ' + mean.toFixed(2), th.cyan, 'right');
+      pillText(ctx, th, 'r_i (ciano fino) · Â_i (barra larga)', fr.X(0.6), fr.Y(2.6) + 14, th.comment);
+      pillText(ctx, th, 'r̄ = ' + mean.toFixed(2), fr.X(G + 0.45), fr.Y(mean) - 5, th.cyan, 'right');
+      pillText(ctx, th, 'amostra i', fr.X(G + 0.5) - 4, fr.Y(-2.6) - 8, th.comment, 'right');
       if (std < 1e-9) {
         P.label(ctx, fr.X((G + 1) / 2), fr.Y(1.6), 'grupo unânime: σ_r = 0, sem gradiente', th.orange, 'center');
       }

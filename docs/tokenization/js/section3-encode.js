@@ -31,7 +31,7 @@
     }
 
     function tokClass(t, idx) {
-      if (t.length === 1 && !baseSet.has(t)) return 'tok-red';
+      if (B.cpLen(t) === 1 && !baseSet.has(t)) return 'tok-red';
       const palette = ['tok-cyan', 'tok-green', 'tok-orange', 'tok-purple', 'tok-pink'];
       return palette[idx % palette.length];
     }
@@ -49,7 +49,7 @@
         group.className = 'word-group' + (wi === selected ? ' sel' : '');
         group.title = 'clique para ver a derivação de "' + w + '"';
         const enc = B.encodeWord(w, k);
-        nChar += w.length + 1;
+        nChar += B.cpLen(w) + 1;
         for (const t of enc.sym) {
           nTok += 1;
           group.appendChild(chip(t, tokClass(t, idx)));
@@ -83,7 +83,7 @@
         line.appendChild(lab);
         const merged = si > 0 ? st.label.slice(st.label.indexOf('(') + 1).replace(/[(), ]/g, '') : null;
         for (const t of st.sym) {
-          const unk = t.length === 1 && !baseSet.has(t);
+          const unk = B.cpLen(t) === 1 && !baseSet.has(t);
           line.appendChild(chip(t, unk ? 'tok-red' : (merged && t === merged ? 'tok-new' : '')));
         }
         box.appendChild(line);

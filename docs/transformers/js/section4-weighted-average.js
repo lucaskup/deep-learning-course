@@ -15,7 +15,7 @@
 
     const cvPlane = $('s4-plane'), cvW = $('s4-weights');
     const slG = $('s4-gamma');
-    const fmt = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',').replace('-', '−');
+    const fmt = (v, d) => v.toFixed(d == null ? 2 : d).replace('-', '−');
 
     let seed = 5;
     let gamma = +slG.value;
@@ -60,6 +60,21 @@
         upper.push(q);
       }
       return lower.slice(0, -1).concat(upper.slice(0, -1));
+    }
+
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
     }
 
     function drawPlane() {
@@ -113,7 +128,7 @@
         ctx.arc(fr.X(pts[i][0]), fr.Y(pts[i][1]), 4 + 16 * a[i], 0, 2 * Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1;
-        P.mathText(ctx, 'v_' + (i + 1), fr.X(pts[i][0]) + 8, fr.Y(pts[i][1]) - 8, th.fg, 'left', 11);
+        legendBox(ctx, th, fr.X(pts[i][0]) + 8, fr.Y(pts[i][1]) - 22, [['v_' + (i + 1), th.fg]]);
       }
 
       /* média simples (caso γ = 0) */
@@ -125,14 +140,14 @@
       ctx.moveTo(fr.X(mean[0]) - 5, fr.Y(mean[1]) + 5);
       ctx.lineTo(fr.X(mean[0]) + 5, fr.Y(mean[1]) - 5);
       ctx.stroke();
-      P.label(ctx, fr.X(mean[0]) + 8, fr.Y(mean[1]) + 12, 'média simples', th.green);
+      legendBox(ctx, th, fr.X(mean[0]) + 8, fr.Y(mean[1]) - 2, [['média simples', th.green]]);
 
       /* saída c */
       ctx.fillStyle = th.purple;
       ctx.beginPath();
       ctx.arc(fr.X(c[0]), fr.Y(c[1]), 6, 0, 2 * Math.PI);
       ctx.fill();
-      P.mathText(ctx, 'c', fr.X(c[0]) + 9, fr.Y(c[1]) + 4, th.purple, 'left', 13);
+      legendBox(ctx, th, fr.X(c[0]) + 9, fr.Y(c[1]) - 10, [['c', th.purple]]);
     }
 
     function drawWeights() {
@@ -140,7 +155,7 @@
       const { ctx, w, h } = P.setup(cvW);
       P.clear(ctx, w, h);
       const { a } = compute();
-      const fr = P.frame(ctx, w, h, 0, M, 0, 1.1, { l: 34, r: 8, t: 8, b: 40 });
+      const fr = P.frame(ctx, w, h, 0, M, 0, 1.1, { l: 34, r: 30, t: 8, b: 40 });
       P.axes(ctx, fr, { ylabel: 'a_i', yticks: [0, 0.5, 1] });
       const cw = fr.iw / M;
 
@@ -156,7 +171,7 @@
       ctx.lineTo(fr.X(M), fr.Y(1 / M));
       ctx.stroke();
       ctx.setLineDash([]);
-      P.mathText(ctx, '1/m', fr.X(M) - 4, fr.Y(1 / M) - 5, th.comment, 'right', 10);
+      P.mathText(ctx, '1/m', fr.X(M) + 4, fr.Y(1 / M) + 4, th.comment, 'left', 10);
 
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';

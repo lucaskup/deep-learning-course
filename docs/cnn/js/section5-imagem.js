@@ -174,7 +174,7 @@
     /* Geometria comum: centraliza uma área de gw por gh pixels no canvas. */
     function geom(cv, gw, gh) {
       const { w, h } = P.setup(cv);
-      const pad = 10;
+      const pad = 22;   /* deixa espaço para o rótulo acima da imagem */
       const scale = Math.min((w - 2 * pad) / gw, (h - 2 * pad) / gh);
       return { w, h, scale, ox: (w - gw * scale) / 2, oy: (h - gh * scale) / 2 };
     }
