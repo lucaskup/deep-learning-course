@@ -1,8 +1,8 @@
 /* Seção 3: coeficientes de atenção em GAT.
    Esquerda: estrela v + 3 vizinhos com espessura de aresta proporcional
-   a alpha. Direita: plano dos embeddings projetados Wh, com pontos
+   a alpha. Direita: plano dos embeddings projetados h Wᵀ, com pontos
    arrastáveis e a direção de atenção controlada pelo slider theta.
-   Score: e_u = LeakyReLU((1,0)·Wh_v + (cos t, sin t)·Wh_u), o preset
+   Score: e_vu = LeakyReLU((1,0)·h_v Wᵀ + (cos t, sin t)·h_u Wᵀ), o preset
    theta = 0 reproduz o exemplo numérico dos slides. */
 (function () {
   'use strict';
@@ -46,6 +46,19 @@
     }
     function neighborColors(t) { return [t.cyan, t.orange, t.green]; }
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, t, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = t.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      DL.plot.mathText(ctx, text, x, y, color, align, size);
+    }
+
     function drawGraph() {
       const { ctx, w, h } = DL.plot.setup(cvG);
       const t = DL.plot.theme();
@@ -66,13 +79,23 @@
         ctx.lineTo(ex, ey);
         ctx.stroke();
         ctx.globalAlpha = 1;
-        /* Rótulo do alpha no meio da aresta, deslocado para fora. */
+        /* Rótulo do alpha no meio da aresta, deslocado para fora, sobre uma
+           pílula na cor do fundo para não se confundir com a aresta. */
         const mx = (sx + ex) / 2, my = (sy + ey) / 2;
-        ctx.fillStyle = cols[i];
+        const lx = mx + (STAR[i].x < 0 ? -28 : 28);
+        const ly = my + (STAR[i].y < 0 ? 16 : 0);
+        const txt = al[i].toFixed(2);
         ctx.font = 'bold 12px sans-serif';
+        const tw = ctx.measureText(txt).width;
+        ctx.fillStyle = t.bg;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.roundRect(lx - tw / 2 - 4, ly - 11, tw + 8, 15, 6);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = cols[i];
         ctx.textAlign = 'center';
-        ctx.fillText(al[i].toFixed(2), mx + (STAR[i].x < 0 ? -26 : 26),
-          my + (STAR[i].y < 0 ? 14 : 0));
+        ctx.fillText(txt, lx, ly);
       }
       /* Nós. */
       const nodes = [{ x: 0, y: 0, lab: 'v', col: t.pink }]
@@ -107,7 +130,7 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      /* Direção de atenção (parte que multiplica Wh_u). */
+      /* Direção de atenção (parte que multiplica h_u Wᵀ). */
       const th = state.theta * Math.PI / 180;
       const ax = 0.85 * Math.cos(th), ay = 0.85 * Math.sin(th);
       ctx.strokeStyle = t.pink;
@@ -124,7 +147,7 @@
       ctx.lineTo(fr.X(ax) - 9 * Math.cos(ang + 0.4), fr.Y(ay) - 9 * Math.sin(ang + 0.4));
       ctx.closePath();
       ctx.fill();
-      DL.plot.label(ctx, fr.X(ax * 0.5), fr.Y(ay * 0.5) - 10, 'direção de a', t.pink, 'center');
+      tag(ctx, t, fr.X(ax * 0.5), fr.Y(ay * 0.5) - 10, 'direção de a', t.pink, 'center');
 
       /* Pontos: vizinhos (círculos) e v (losango). */
       const cols = neighborColors(t);
@@ -133,7 +156,9 @@
         ctx.beginPath();
         ctx.arc(fr.X(u.x), fr.Y(u.y), 7, 0, 2 * Math.PI);
         ctx.fill();
-        DL.plot.label(ctx, fr.X(u.x) + 9, fr.Y(u.y) + 4, 'Wh_{u' + (i + 1) + '}', cols[i]);
+        /* Rótulo do lado em que cabe no quadro, sobre uma pílula. */
+        const right = fr.X(u.x) + 9 + 44 < fr.X(EMB.xmax);
+        tag(ctx, t, fr.X(u.x) + (right ? 9 : -9), fr.Y(u.y) + 4, 'h_{u' + (i + 1) + '}Wᵀ', cols[i], right ? 'left' : 'right');
       });
       ctx.fillStyle = t.pink;
       const vx = fr.X(state.v.x), vy = fr.Y(state.v.y);
@@ -142,8 +167,9 @@
       ctx.lineTo(vx, vy + 8); ctx.lineTo(vx - 8, vy);
       ctx.closePath();
       ctx.fill();
-      /* Rótulo à esquerda: no preset, Wh_v coincide com Wh_{u1}. */
-      DL.plot.label(ctx, vx - 11, vy + 4, 'Wh_v', t.pink, 'right');
+      /* Rótulo abaixo do losango: no preset, h_v Wᵀ coincide com h_{u1} Wᵀ
+         (rótulo à direita) e a seta da direção de a termina logo à esquerda. */
+      tag(ctx, t, vx, Math.min(fr.Y(EMB.ymin) - 4, vy + 22), 'h_vWᵀ', t.pink, 'center');
     }
 
     function redraw() {
@@ -178,6 +204,7 @@
       redraw();
     });
     cvE.addEventListener('pointerup', () => { dragging = null; });
+    cvE.addEventListener('pointercancel', () => { dragging = null; });
 
     slider.addEventListener('input', () => {
       state.theta = parseInt(slider.value, 10);

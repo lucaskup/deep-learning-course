@@ -14,6 +14,10 @@
   </script>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../shared/demo.css" />
+  <style>
+    /* Preset selecionado, no mesmo estilo de .tab.active. */
+    .btn-ctl.active { background: var(--purple); border-color: var(--purple); color: var(--bg); font-weight: 600; }
+  </style>
 </head>
 <body>
 
@@ -86,13 +90,13 @@
   <!-- ════════ Seção 2: Oversmoothing ════════ -->
   <section id="s2" class="demo-section">
     <div class="container">
-      <h2 class="section-title">2 · Oversmoothing: uma GCN de verdade</h2>
+      <h2 class="section-title">2 · Oversmoothing com a propagação da GCN</h2>
       <p class="demo-text">
         Um grafo com duas comunidades. Cada nó começa com um atributo 2D que
         indica sua comunidade (ciano vs laranja, com ruído) e aplicamos
         <span class="formula">k</span> vezes a propagação da GCN,
-        <span class="formula">H ← D̃^{−1/2} Ã D̃^{−1/2} H</span> (a conta real,
-        sem pesos treináveis). A cor de cada nó é o seu embedding atual. Mova o
+        <span class="formula">H ← D̃^{−1/2} Ã D̃^{−1/2} H</span> (sem pesos
+        treináveis). A cor de cada nó é o seu embedding atual. Mova o
         slider de profundidade e veja as cores convergirem.
       </p>
       <div class="panel">
@@ -117,8 +121,8 @@
           💡 Com <span class="formula">k = 2</span> as comunidades ainda são
           separáveis (e a classificação seria fácil); com
           <span class="formula">k = 10</span> a distância média entre embeddings
-          desaba e os nós ficam indistinguíveis. Esse é o trade-off central:
-          profundidade compra alcance, mas destrói a diversidade dos embeddings.
+          desaba e os nós ficam indistinguíveis. Profundidade compra alcance
+          ao custo da diversidade dos embeddings.
           Mitigações nos slides: skip connections, Jumping Knowledge, DropEdge.
         </p>
       </div>
@@ -131,9 +135,9 @@
       <h2 class="section-title">3 · Coeficientes de atenção em GAT</h2>
       <p class="demo-text">
         O nó <span class="formula">v</span> tem três vizinhos. A GAT calcula um
-        score <span class="formula">e_u = LeakyReLU(a·[Wh_v ‖ Wh_u])</span> e
+        score <span class="formula">e_{vu} = LeakyReLU([h_v Wᵀ ‖ h_u Wᵀ] aᵀ)</span> e
         normaliza com softmax para obter <span class="formula">α_{vu}</span>.
-        <strong>Arraste os embeddings</strong> <span class="formula">Wh_u</span>
+        <strong>Arraste os embeddings</strong> <span class="formula">h_u Wᵀ</span>
         no plano à direita (ou gire a direção de atenção
         <span class="formula">θ</span>) e veja a espessura das arestas mudar à
         esquerda. O preset reproduz o exemplo numérico dos slides,
@@ -153,7 +157,7 @@
             <canvas id="s3-graph"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">Plano dos embeddings projetados Wh (arraste os pontos)</p>
+            <p class="canvas-caption">Plano dos embeddings projetados h Wᵀ (arraste os pontos)</p>
             <canvas id="s3-embed"></canvas>
           </div>
         </div>
@@ -194,11 +198,11 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box">
-            <p class="canvas-caption">G₁ — multiset de cores: <span id="s4-ms1"></span></p>
+            <p class="canvas-caption">G₁, multiset de cores: <span id="s4-ms1"></span></p>
             <canvas id="s4-g1"></canvas>
           </div>
           <div class="canvas-box">
-            <p class="canvas-caption">G₂ — multiset de cores: <span id="s4-ms2"></span></p>
+            <p class="canvas-caption">G₂, multiset de cores: <span id="s4-ms2"></span></p>
             <canvas id="s4-g2"></canvas>
           </div>
         </div>

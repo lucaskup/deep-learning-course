@@ -16,6 +16,20 @@
     const P = DL.plot, U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvFit = $('s1-fit'), cvLoss = $('s1-loss');
     const slDepth = $('s1-depth');
     const btnRun = $('s1-run'), btnReset = $('s1-reset'), btnSeed = $('s1-seed');
@@ -200,9 +214,9 @@
       P.line(ctx, fr, gx, gp, th.cyan, { width: 2 });
       P.line(ctx, fr, gx, gr, th.orange, { width: 2 });
       ctx.restore();
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 14, 'plain', th.cyan);
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 28, 'residual', th.orange);
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 42, 'alvo', th.green);
+      pill(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 14, 'plain', th.cyan);
+      pill(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 28, 'residual', th.orange);
+      pill(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 42, 'alvo', th.green);
     }
 
     function drawLoss() {

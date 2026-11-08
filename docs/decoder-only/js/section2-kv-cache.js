@@ -122,6 +122,21 @@
       ctx.closePath();
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawCells() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvCells);
@@ -129,10 +144,14 @@
       const maxLen = promptLen + MAXGEN;
       const slot = Math.min(76, (w - 50) / maxLen);
       const x0 = 42;
-      const yTok = 34, yK = 92, yV = 126, boxH = 26, kvH = 24;
+      /* Em canvas estreito (celular) a caixa de cada token fica com menos de
+         30 px: a palavra é escrita na vertical numa caixa mais alta. */
+      const narrow = slot < 34;
+      const boxH = narrow ? 48 : 26, kvH = 24;
+      const yTok = 46, yK = yTok + boxH + 30, yV = yK + kvH + 10;
 
       const t = tokens.length - promptLen;
-      const phase = t === 0
+      let phase = t === 0
         ? 'Prefill: K,V dos ' + promptLen + ' tokens do prompt computados em paralelo'
         : (mode === 'cache'
           ? 'Decode passo ' + t + ': 1 par K,V novo, ' + (tokens.length - 1) + ' reutilizados do cache'
@@ -140,7 +159,17 @@
       ctx.fillStyle = th.fg;
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(phase + (finished ? ' · geração encerrada' : ''), 10, 16);
+      if (finished) phase += ' · geração encerrada';
+      if (ctx.measureText(phase).width > w - 16) {
+        /* versão curta do título quando não cabe na largura do canvas */
+        phase = t === 0
+          ? 'Prefill: ' + promptLen + ' pares K,V em paralelo'
+          : (mode === 'cache'
+            ? 'Decode ' + t + ': 1 par novo, ' + (tokens.length - 1) + ' do cache'
+            : 'Decode ' + t + ': ' + tokens.length + ' pares recomputados');
+        if (finished) phase += ' · fim';
+      }
+      ctx.fillText(phase, 10, 16);
 
       P.mathText(ctx, 'K_i', x0 - 28, yK + kvH / 2 + 4, th.comment, 'left');
       P.mathText(ctx, 'V_i', x0 - 28, yV + kvH / 2 + 4, th.comment, 'left');
@@ -160,9 +189,19 @@
         roundRect(ctx, cx, yTok, slot - 6, boxH, 5);
         ctx.stroke();
         ctx.fillStyle = th.fg;
-        ctx.font = (word.length > 7 ? 9 : 11) + 'px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(word, cx + (slot - 6) / 2, yTok + boxH / 2 + 4);
+        if (narrow) {
+          ctx.save();
+          ctx.translate(cx + (slot - 6) / 2 + 3, yTok + boxH / 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.font = (word.length > 7 ? 8 : 9) + 'px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(word, 0, 0);
+          ctx.restore();
+        } else {
+          ctx.font = (word.length > 7 ? 9 : 11) + 'px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(word, cx + (slot - 6) / 2, yTok + boxH / 2 + 4);
+        }
         /* Seta token → K */
         ctx.strokeStyle = th.line;
         ctx.beginPath();
@@ -227,7 +266,7 @@
       }
       const top = dist.slice(0, 8);
       const ymax = Math.max(0.3, top[0][1] * 1.15);
-      const fr = P.frame(ctx, w, h, 0.4, top.length + 0.6, 0, ymax, { l: 38, r: 10, t: 10, b: 40 });
+      const fr = P.frame(ctx, w, h, 0.4, top.length + 0.6, 0, ymax, { l: 38, r: 10, t: 10, b: 56 });
       P.axes(ctx, fr, { ylabel: 'P', yticks: [0, +(ymax / 2).toFixed(2), +ymax.toFixed(2)] });
       const bw = Math.min(34, fr.iw / top.length * 0.6);
       for (let k = 0; k < top.length; k++) {
@@ -268,8 +307,10 @@
       P.line(ctx, fr, tsNow, tsNow.map(costCache), th.green, { width: 2.4 });
       const cur = mode === 'cache' ? costCache(t) : costNo(t);
       P.scatter(ctx, fr, [[t, cur]], mode === 'cache' ? th.green : th.red, { r: 4.5, alpha: 1 });
-      P.label(ctx, fr.X(MAXGEN * 0.45), fr.Y(costNo(MAXGEN * 0.62)), 'sem cache ~ O(n²)', th.red);
-      P.label(ctx, fr.X(MAXGEN * 0.55), fr.Y(costCache(MAXGEN) + ymax * 0.06), 'com cache ~ O(n)', th.green);
+      /* Rótulos fora das curvas: o de O(n²) termina em t = n/2, onde a curva
+         ainda está abaixo do valor em 0.72·n; o de O(n) fica acima do fim da reta. */
+      legendBox(ctx, th, fr.X(MAXGEN * 0.5), fr.Y(costNo(MAXGEN * 0.72)) - 10, [['sem cache ~ O(n²)', th.red]], 'right');
+      legendBox(ctx, th, fr.X(MAXGEN) - 4, fr.Y(costCache(MAXGEN)) - 30, [['com cache ~ O(n)', th.green]], 'right');
     }
 
     function updateReadout() {

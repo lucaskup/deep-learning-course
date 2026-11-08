@@ -6,6 +6,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const K = 41, XMIN = 0, XMAX = 10;
   const LR = 0.3, MAX_ITERS = 300;
 
@@ -93,7 +106,7 @@
       const YMAX = 6;
       const fr = P.frame(ctx, w, h, XMIN, XMAX, 0, YMAX);
       P.axes(ctx, fr, {
-        xlabel: 'tipo de resposta y', ylabel: 'reward',
+        ylabel: 'reward',
         xticks: [0, 2, 4, 6, 8, 10],
         yticks: [0, 2, 4, 6],
       });
@@ -115,10 +128,16 @@
       P.line(ctx, fr, xs, r.map((v) => Math.min(YMAX, v)), th.orange, { width: 2 });
       P.line(ctx, fr, xs, u, th.green, { width: 2 });
 
-      P.label(ctx, fr.X(0.2), fr.Y(YMAX) + 14, 'π_θ (barras)', th.purple);
-      P.label(ctx, fr.X(0.2), fr.Y(YMAX) + 28, 'π_{ref} (SFT)', th.comment);
-      P.label(ctx, fr.X(6), fr.Y(uOf(6)) - 8, 'u: utilidade real', th.green, 'center');
-      P.label(ctx, fr.X(9.2), fr.Y(Math.min(YMAX, rOf(9.2))) - 8, 'r_φ: pico falso', th.orange, 'center');
+      pillText(ctx, th, 'π_θ (barras)', fr.X(0.2), fr.Y(YMAX) + 14, th.purple);
+      pillText(ctx, th, 'π_{ref} (SFT)', fr.X(0.2), fr.Y(YMAX) + 28, th.comment);
+      pillText(ctx, th, 'u: utilidade real', fr.X(6), fr.Y(uOf(6)) - 8, th.green, 'center');
+      /* O pico falso fica junto da borda direita: o rótulo é puxado para dentro do quadro. */
+      ctx.font = '11px sans-serif';
+      const pkHalf = ctx.measureText('rφ: pico falso').width / 2 + 4;
+      const pkX = Math.min(fr.X(9.2), fr.X(XMAX) - pkHalf);
+      const pkY = Math.max(fr.Y(YMAX) + 12, fr.Y(Math.min(YMAX, rOf(9.2))) - 8);
+      pillText(ctx, th, 'r_φ: pico falso', pkX, pkY, th.orange, 'center');
+      pillText(ctx, th, 'tipo de resposta y', fr.X(XMAX) - 4, fr.Y(0) - 8, th.comment, 'right');
     }
 
     function drawCurves() {
@@ -138,9 +157,9 @@
       P.line(ctx, fr, ks, histR.map(cap), th.orange, { width: 1.8 });
       P.line(ctx, fr, ks, histU.map(cap), th.green, { width: 1.8 });
       P.line(ctx, fr, ks, histKL.map(cap), th.pink, { width: 1.8 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(ymax) + 14, 'E[r_φ] (RM)', th.orange);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ymax) + 28, 'E[u] (real)', th.green);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ymax) + 42, 'KL(π_θ ‖ π_{ref})', th.pink);
+      pillText(ctx, th, 'E[r_φ] (RM)', fr.X(0) + 8, fr.Y(ymax) + 14, th.orange);
+      pillText(ctx, th, 'E[u] (real)', fr.X(0) + 8, fr.Y(ymax) + 28, th.green);
+      pillText(ctx, th, 'KL(π_θ ‖ π_{ref})', fr.X(0) + 8, fr.Y(ymax) + 42, th.pink);
     }
 
     function updateReadout() {

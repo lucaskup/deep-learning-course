@@ -67,12 +67,26 @@
         }
         frontier = next;
       }
-      /* caminho greedy: argmax local em cada passo (só entre nós exibidos) */
+      /* Caminho greedy: argmax local em cada passo, independente do beam.
+         Um filho greedy que o beam podou é expandido mesmo assim (até a
+         mesma profundidade) e recebe status 'pruned' para ser exibido. */
       let g = rootNode;
       g.greedy = true;
-      while (vis(g).length > 0) {
-        g = vis(g).reduce((best, c) => (c.p > best.p ? c : best), vis(g)[0]);
-        g.greedy = true;
+      for (let lvl = 1; lvl <= MAX_DEPTH; lvl++) {
+        if (g.finished) break;
+        if (expandFn && g.children.length === 0 && lvl <= ngramDepth) expandFn(g);
+        if (g.children.length === 0) break;
+        const best = g.children.reduce((acc, c) => (c.p > acc.p ? c : acc), g.children[0]);
+        if (!best.status) {
+          best.logp = g.logp + Math.log(best.p);
+          best.depth = lvl;
+          best.finished = best.token === M.EOS;
+          best.children = best.children || [];
+          best.seq = best.seq || [...g.seq, best.token];
+          best.status = 'pruned';
+        }
+        best.greedy = true;
+        g = best;
       }
     }
 
@@ -185,7 +199,7 @@
           faded: node.status === 'pruned' && !node.greedy,
         });
         // candidatos (folhas do beam) ganham o produto acumulado logo abaixo
-        if (vis(node).length === 0 && node.status === 'beam' && !isRoot) {
+        if (vis(node).length === 0 && (node.status === 'beam' || node.greedy) && !isRoot) {
           const prod = Math.exp(node.logp);
           P.label(ctx, node.px, node.py + 19, '∏=' + (prod >= 0.001 ? f(prod, 2) : prod.toExponential(1).replace('.', ',')), th.purple, 'center');
         }
@@ -195,7 +209,7 @@
 
     /* ── tabela de candidatos com penalidade por comprimento ── */
     function collectCandidates(node, out) {
-      if (node.depth > 0 && node.status === 'beam' && (node.finished || vis(node).length === 0)) {
+      if (node.depth > 0 && (node.status === 'beam' || node.greedy) && (node.finished || vis(node).length === 0)) {
         out.push(node);
       }
       for (const c of vis(node)) collectCandidates(c, out);
@@ -222,7 +236,11 @@
       });
       html += '</table>';
       if (mode === 'preset') {
-        html += '<p class="demo-text small">No exemplo dos slides todos os candidatos têm n = 2, então α não muda a ordem. ' +
+        const ns = new Set(scored.map((c) => c.n));
+        const lenNote = ns.size === 1
+          ? 'No exemplo dos slides todos os candidatos têm n = ' + scored[0].n + ', então α não muda a ordem. '
+          : 'Com este b os candidatos têm comprimentos diferentes (n = ' + [...ns].sort().join(' e ') + '), então α já pode reordenar a tabela. ';
+        html += '<p class="demo-text small">' + lenNote +
           'Troque para o modelo n-gram e expanda até aparecer um candidato com &lt;eos&gt; para ver α reordenar.</p>';
       }
       $('s2-table').innerHTML = html;

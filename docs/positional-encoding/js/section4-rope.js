@@ -5,6 +5,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const LIM = 1.6, OFFMAX = 16;
 
   function rot(v, a) {
@@ -87,7 +100,7 @@
       const amp = Math.hypot(q[0], q[1]) * Math.hypot(k[0], k[1]) + 0.1;
       const fr = P.frame(ctx, w, h, -OFFMAX, OFFMAX, -amp, amp);
       P.axes(ctx, fr, {
-        xlabel: 'offset j − i', ylabel: 'score',
+        ylabel: 'score',
         xticks: [-OFFMAX, 0, OFFMAX],
         yticks: [-1, 0, 1],
       });
@@ -102,8 +115,18 @@
       }
       P.line(ctx, fr, xs, ys, th.purple, { width: 1.8 });
       const cur = j - i;
-      P.scatter(ctx, fr, [[cur, scoreAt(cur)]], th.green, { r: 5, alpha: 1 });
-      P.label(ctx, fr.X(cur), fr.Y(scoreAt(cur)) - 10, 'j − i = ' + cur, th.green, 'center');
+      const sCur = scoreAt(cur);
+      P.scatter(ctx, fr, [[cur, sCur]], th.green, { r: 5, alpha: 1 });
+      /* Rótulo do ponto: acima dele, ou abaixo quando o ponto encosta no topo;
+         nas bordas do eixo o texto é puxado para dentro do quadro. */
+      const curTxt = 'j − i = ' + cur;
+      ctx.font = '11px sans-serif';
+      const curHalf = ctx.measureText(curTxt).width / 2 + 2;
+      const curX = Math.max(fr.X(-OFFMAX) + curHalf, Math.min(fr.X(OFFMAX) - curHalf, fr.X(cur)));
+      let curY = fr.Y(sCur) - 10;
+      if (curY < fr.Y(amp) + 12) curY = fr.Y(sCur) + 20;
+      pillText(ctx, th, curTxt, curX, curY, th.green, 'center');
+      pillText(ctx, th, 'offset j − i', fr.X(OFFMAX) - 4, fr.Y(-amp) - 8, th.comment, 'right');
     }
 
     function updateReadout() {
@@ -146,6 +169,7 @@
     });
     cvPlane.addEventListener('pointermove', dragTo);
     cvPlane.addEventListener('pointerup', () => { dragging = null; });
+    cvPlane.addEventListener('pointercancel', () => { dragging = null; });
 
     slI.addEventListener('input', () => {
       i = +slI.value;

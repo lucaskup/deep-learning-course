@@ -71,6 +71,22 @@
       return L;
     }
 
+    /* ΔL de cada token ativo: log-likelihood do corpus sem o token menos a
+       atual, com as probabilidades dos demais tokens fixas (a re-estimação
+       é o passo seguinte do ciclo, feita pela renormalização). Tokens fora
+       de todo melhor caminho têm ΔL = 0, como no slide (5/6). */
+    function deltas(p) {
+      const base = corpusLL(p);
+      const d = {};
+      for (const t of ORDER) {
+        if (removed.has(t) || CHARS.includes(t)) continue;
+        const q = Object.assign({}, p);
+        delete q[t];
+        d[t] = corpusLL(q) - base;
+      }
+      return d;
+    }
+
     /* L do vocabulário completo com P por contagem (slide 4/6): −49.63.
        Com renormalização e vocabulário completo o valor é o mesmo. */
     const L_FULL = (() => {
@@ -87,8 +103,14 @@
       return el;
     }
 
+    function fmtDelta(v) {
+      if (Math.abs(v) < 1e-9) return '0';
+      return (v > 0 ? '+' : '') + v.toFixed(2).replace('-', '−');
+    }
+
     function renderVocab() {
       const p = probs();
+      const dl = deltas(p);
       const box = $('s5-vocab');
       box.innerHTML = '';
       for (const t of ORDER) {
@@ -100,7 +122,8 @@
         else if (COUNTS[t] === 11) cls += ' tok-green';
         const info = off
           ? 'podado (clique para restaurar)'
-          : 'count ' + COUNTS[t] + ' · P = ' + p[t].toFixed(3);
+          : 'count ' + COUNTS[t] + ' · P = ' + p[t].toFixed(3) +
+            (isChar ? '' : ' · ΔL se podado = ' + fmtDelta(dl[t]));
         const el = chip(t, cls, isChar ? 'caractere: nunca é podado · ' + info : info);
         if (isChar) el.classList.add('tok-locked');
         el.addEventListener('click', () => {
@@ -235,14 +258,12 @@
       drawLattice();
     }
 
-    /* Poda todos os tokens (não caracteres) fora das melhores segmentações
-       atuais: exatamente os Δ = 0 do slide (5/6). */
+    /* Poda todos os tokens (não caracteres) cujo ΔL calculado é zero:
+       exatamente os Δ = 0 do slide (5/6). */
     $('s5-prune').addEventListener('click', () => {
-      const p = probs();
-      const used = new Set();
-      for (const [w] of WORDS) for (const t of viterbi(w, p).seg) used.add(t);
-      for (const t of ORDER) {
-        if (!CHARS.includes(t) && !used.has(t)) removed.add(t);
+      const dl = deltas(probs());
+      for (const t of Object.keys(dl)) {
+        if (Math.abs(dl[t]) < 1e-9) removed.add(t);
       }
       redraw();
     });

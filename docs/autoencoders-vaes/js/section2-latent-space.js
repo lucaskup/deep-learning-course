@@ -65,6 +65,19 @@
       ctx.clip();
     }
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     function gaussCurve(ctx, fr, mu, sig, color, opts) {
       const xs = [], ys = [];
       for (let i = 0; i <= 160; i++) {
@@ -87,14 +100,16 @@
       const zsStd = stats.zs.map((z) => (z - stats.mean) / stats.std);
       const fr = P.frame(ctx, w, h, -ZR, ZR, 0, 0.95);
       frAE = fr;
-      P.axes(ctx, fr, { xlabel: 'z (padronizado)', ylabel: 'densidade', xticks: [-3, 0, 3], yticks: [] });
+      P.axes(ctx, fr, { ylabel: 'densidade', xticks: [-3, 0, 3], yticks: [] });
       clipPlot(ctx, fr);
       P.histogram(ctx, fr, zsStd, 44, th.cyan, { alpha: 0.6 });
       gaussCurve(ctx, fr, 0, 1, th.comment, { width: 1.4, dash: [4, 3] });
       zMarker(ctx, fr, th.purple);
       ctx.restore();
-      P.label(ctx, fr.X(-ZR) + 8, fr.Y(0.95) + 14, 'códigos z = g(x,φ)', th.cyan);
-      P.label(ctx, fr.X(-ZR) + 8, fr.Y(0.95) + 28, 'gaussiana ajustada', th.comment);
+      /* Rótulo do eixo depois das barras, com pílula: o histograma chega até a borda. */
+      tag(ctx, th, fr.X(ZR) - 4, fr.Y(0) - 8, 'z (padronizado)', th.comment, 'right');
+      tag(ctx, th, fr.X(-ZR) + 8, fr.Y(0.95) + 14, 'códigos z = g(x,φ)', th.cyan);
+      tag(ctx, th, fr.X(-ZR) + 8, fr.Y(0.95) + 28, 'gaussiana ajustada', th.comment);
     }
 
     function drawLatVAE(post) {
@@ -116,7 +131,7 @@
       const ymax = Math.max(0.8, 1.15 * peak);
       const fr = P.frame(ctx, w, h, -ZR, ZR, 0, ymax);
       frVAE = fr;
-      P.axes(ctx, fr, { xlabel: 'z', ylabel: 'densidade', xticks: [-3, 0, 3], yticks: [] });
+      P.axes(ctx, fr, { ylabel: 'densidade', xticks: [-3, 0, 3], yticks: [] });
       clipPlot(ctx, fr);
       /* algumas q(z|x) individuais, finas */
       for (let i = 0; i < post.length; i += 9) {
@@ -126,9 +141,10 @@
       gaussCurve(ctx, fr, 0, 1, th.green, { width: 1.6, dash: [4, 3] });
       zMarker(ctx, fr, th.purple);
       ctx.restore();
-      P.label(ctx, fr.X(-ZR) + 8, fr.Y(ymax) + 14, 'posterior agregado', th.orange);
-      P.label(ctx, fr.X(-ZR) + 8, fr.Y(ymax) + 28, 'q(z|x,φ) individuais', th.red);
-      P.label(ctx, fr.X(-ZR) + 8, fr.Y(ymax) + 42, 'prior p(z) = N(0,1)', th.green);
+      tag(ctx, th, fr.X(ZR) - 4, fr.Y(0) - 8, 'z', th.comment, 'right');
+      tag(ctx, th, fr.X(-ZR) + 8, fr.Y(ymax) + 14, 'posterior agregado', th.orange);
+      tag(ctx, th, fr.X(-ZR) + 8, fr.Y(ymax) + 28, 'q(z|x,φ) individuais', th.red);
+      tag(ctx, th, fr.X(-ZR) + 8, fr.Y(ymax) + 42, 'prior p(z) = N(0,1)', th.green);
     }
 
     function drawData(stats) {
@@ -171,7 +187,10 @@
       const pa = M.decode(ae.dec, [mapAE(zStar)]);
       const pv = M.decode(vae.dec, [zStar]);
       ctx.restore();
-      for (const [p, c, t] of [[pa, th.cyan, 'f_{AE}(z*)'], [pv, th.orange, 'f_{VAE}(z*)']]) {
+      /* Antes do treino os dois pontos coincidem: afasta os rótulos na vertical. */
+      const close = Math.hypot(fr.X(pa[0]) - fr.X(pv[0]), fr.Y(pa[1]) - fr.Y(pv[1])) < 30;
+      const dys = close ? [-8, 16] : [4, 4];
+      [[pa, th.cyan, 'f_{AE}(z*)'], [pv, th.orange, 'f_{VAE}(z*)']].forEach(([p, c, t], i) => {
         ctx.beginPath();
         ctx.arc(fr.X(p[0]), fr.Y(p[1]), 6, 0, 2 * Math.PI);
         ctx.fillStyle = c;
@@ -179,10 +198,14 @@
         ctx.strokeStyle = th.fg;
         ctx.lineWidth = 1.6;
         ctx.stroke();
-        P.label(ctx, fr.X(p[0]) + 9, fr.Y(p[1]) + 4, t, c);
-      }
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 14, 'gerações do AE', th.cyan);
-      P.label(ctx, fr.X(-XR) + 8, fr.Y(YR) + 28, 'gerações do VAE', th.orange);
+        /* Rótulo do lado em que cabe, preso ao quadro, sobre uma pílula. */
+        const px = fr.X(p[0]), py = fr.Y(p[1]);
+        const right = px + 9 + 56 < fr.X(XR);
+        const ly = Math.max(fr.Y(YR) + 12, Math.min(fr.Y(-YR) - 4, py + dys[i]));
+        tag(ctx, th, px + (right ? 9 : -9), ly, t, c, right ? 'left' : 'right');
+      });
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 14, 'gerações do AE', th.cyan);
+      tag(ctx, th, fr.X(-XR) + 8, fr.Y(YR) + 28, 'gerações do VAE', th.orange);
     }
 
     function updateReadout() {
@@ -191,7 +214,8 @@
       $('s2-readout').textContent =
         'passo ' + k +
         ' · J AE = ' + (isFinite(lossAE) ? lossAE.toFixed(3) : '…') +
-        (v ? ' · VAE: recon = ' + v.recon.toFixed(2) + ', KL = ' + v.kl.toFixed(2) : '');
+        (v ? ' · VAE: recon = 6·‖x−x̂‖² = ' + v.recon.toFixed(2) +
+          ' (MSE = ' + (v.recon / RECON_W).toFixed(3) + '), KL = ' + v.kl.toFixed(2) : '');
     }
 
     function redraw() {

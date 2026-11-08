@@ -64,7 +64,7 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvMat);
       P.clear(ctx, w, h);
-      const padL = 40, padT = 30, padR = 10, padB = 26;
+      const padL = 40, padT = 44, padR = 10, padB = 26;
       const cell = Math.min((w - padL - padR) / n, (h - padT - padB) / n);
       const x0 = padL + ((w - padL - padR) - cell * n) / 2;
       const y0 = padT;
@@ -122,7 +122,7 @@
         P.mathText(ctx, 't_' + (k + 1), x0 + k * cell + cell / 2, y0 - 8, th.comment, 'center');
       }
       P.mathText(ctx, 'consulta (i)', x0 - 28, y0 + cell * n + 16, th.comment, 'left');
-      P.mathText(ctx, 'consultado (j) →', x0 + cell * n, y0 - 8, th.comment, 'right');
+      P.mathText(ctx, 'consultado (j) →', x0 + cell * n, y0 - 24, th.comment, 'right');
     }
 
     function drawRow() {
@@ -163,7 +163,7 @@
           el.textContent = 'célula (' + i + ', ' + j + '): score = ' +
             scores[hover.i][hover.j].toFixed(2) + ' · peso = ' + wts[hover.j].toFixed(2);
         } else {
-          const why = mode === 'causal' || hover.j > hover.i ? 'j > i' : 'j < i − W';
+          const why = mode === 'causal' || hover.j > hover.i ? 'j > i' : 'j < i − w';
           el.textContent = 'célula (' + i + ', ' + j + '): mascarada (' + why + '), peso 0';
         }
       } else {

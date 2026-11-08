@@ -66,6 +66,36 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo sobre fundo opaco (legível sobre heatmap, curvas e pontos);
+       com fr, fica dentro do retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr, size) {
+      const th = P.theme();
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      if (fr) {
+        x = Math.max(fr.X(fr.xmin) + lead + 4, Math.min(fr.X(fr.xmax) - (tw - lead) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + size + 3, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - size + 1, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+    /* Fundo opaco atrás do rótulo do eixo x que P.axes desenha dentro do
+       gráfico (sobre o amarelo do viridis o texto some). */
+    function xlabelPill(ctx, fr, text) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(fr.X(fr.xmax) - 7 - tw, fr.Y(fr.ymin) - 18, tw + 6, 14);
+      ctx.globalAlpha = 1;
+    }
+
     const cvData = $('s4-data'), cvSlice = $('s4-slice');
     const slT0 = $('s4-t0'), slT1 = $('s4-t1');
     const btnReset = $('s4-reset');
@@ -92,7 +122,8 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvSlice);
       P.clear(ctx, w, h);
-      const fr = P.frame(ctx, w, h, T1MIN, T1MAX, 0, 1.05);
+      /* Margem esquerda maior para o rótulo L não colidir com os ticks. */
+      const fr = P.frame(ctx, w, h, T1MIN, T1MAX, 0, 1.05, { l: 50, r: 10, t: 10, b: 24 });
       P.axes(ctx, fr, { xlabel: 'θ_1', ylabel: 'L', xticks: [2.5, 12.5, 22.5], yticks: [0, 0.5, 1] });
       const sx = [], sy = [];
       for (let i = 0; i <= 200; i++) {
@@ -102,7 +133,7 @@
       }
       /* Loss do mínimo global como referência do quão baixo dá para chegar. */
       P.line(ctx, fr, [T1MIN, T1MAX], [bestL, bestL], th.green, { width: 1.2, dash: [5, 4] });
-      P.label(ctx, fr.X(T1MAX) - 4, fr.Y(bestL) - 6, 'mínimo global', th.green, 'right');
+      pill(ctx, fr.X(T1MAX) - 4, fr.Y(bestL) - 6, 'mínimo global', th.green, 'right');
       P.line(ctx, fr, sx, sy, th.purple, { width: 1.8 });
       const cur = loss(t0, t1);
       ctx.beginPath();
@@ -126,8 +157,8 @@
     }
 
     function syncLabels() {
-      $('s4-t0-val').textContent = t0.toFixed(2);
-      $('s4-t1-val').textContent = t1.toFixed(2);
+      $('s4-t0-val').textContent = t0.toFixed(2).replace('-', '−');
+      $('s4-t1-val').textContent = t1.toFixed(2).replace('-', '−');
     }
 
     slT0.addEventListener('input', () => { t0 = +slT0.value; syncLabels(); redraw(); });

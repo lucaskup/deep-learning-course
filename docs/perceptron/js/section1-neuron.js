@@ -54,6 +54,25 @@
       ctx.restore();
     }
 
+    /* Rótulo sobre fundo opaco, para não sumir entre os pontos; opcionalmente
+       limitado ao retângulo do gráfico (o vetor pode apontar para a borda). */
+    function pill(ctx, x, y, text, color, align, fr) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      if (fr) {
+        const half = align === 'center' ? tw / 2 : 0;
+        x = Math.max(fr.X(fr.xmin) + half + 4, Math.min(fr.X(fr.xmax) - (align === 'center' ? half : tw) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + 14, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      const x0 = align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - 10, tw + 6, 14);
+      ctx.globalAlpha = 1;
+      P.label(ctx, x, y, text, color, align);
+    }
+
     function redraw() {
       const th = P.theme();
       const [t0, t1, t2] = theta();
@@ -90,8 +109,8 @@
           [fx + s * vx, fx + s * vx + s * ux, fx + s * ux],
           [fy + s * vy, fy + s * vy + s * uy, fy + s * uy], th.fg, { width: 1 });
         arrow(ctx, fr, fx, fy, fx + 1.4 * ux, fy + 1.4 * uy, th.green, 2.4);
-        P.label(ctx, fr.X(fx + 1.75 * ux), fr.Y(fy + 1.75 * uy) + 4, '(θ₁, θ₂)', th.green, 'center');
         ctx.restore();
+        pill(ctx, fr.X(fx + 1.75 * ux), fr.Y(fy + 1.75 * uy) + 4, '(θ₁, θ₂)', th.green, 'center', fr);
       }
 
       /* Pontos coloridos pela classe prevista */
@@ -99,8 +118,8 @@
       const neg = pts.filter((p) => predict([t0, t1, t2], p[0], p[1]) === -1);
       P.scatter(ctx, fr, pos, th.cyan, { r: 4, alpha: 0.9 });
       P.scatter(ctx, fr, neg, th.orange, { r: 4, alpha: 0.9 });
-      P.label(ctx, fr.X(-R) + 8, 16, 'ŷ = +1', th.cyan);
-      P.label(ctx, fr.X(-R) + 8, 30, 'ŷ = −1', th.orange);
+      pill(ctx, fr.X(-R) + 8, 16, 'ŷ = +1', th.cyan);
+      pill(ctx, fr.X(-R) + 8, 30, 'ŷ = −1', th.orange);
     }
 
     for (const k of ['t0', 't1', 't2']) sl[k].addEventListener('input', redraw);

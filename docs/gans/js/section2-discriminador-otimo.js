@@ -5,6 +5,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const XMIN = -7, XMAX = 19, NGRID = 600;
   const MU_REAL = 7, LN2 = Math.LN2;
   const MU_LO = -4, MU_HI = 18;
@@ -63,7 +76,7 @@
       const YMAX = peak * 1.2;
       const fr = P.frame(ctx, w, h, XMIN, XMAX, 0, YMAX);
       frDist = fr;
-      P.axes(ctx, fr, { xlabel: 'x', ylabel: 'densidade', xticks: [-4, 0, 7, 12, 18], yticks: [0, 0.2, 0.4] });
+      P.axes(ctx, fr, { ylabel: 'densidade', xticks: [-4, 0, 7, 12, 18], yticks: [0, 0.2, 0.4] });
 
       const n = 260, gx = [], gp = [], gq = [], gm = [], gd = [];
       for (let i = 0; i <= n; i++) {
@@ -81,9 +94,11 @@
       P.line(ctx, fr, gx, gq, th.orange, { width: 2 });
       P.line(ctx, fr, gx, gd, th.purple, { width: 2 });
 
-      P.label(ctx, fr.X(XMAX) - 4, fr.Y(YMAX) + 12, '1', th.purple, 'right');
-      P.label(ctx, fr.X(XMAX) - 4, fr.Y(YMAX / 2) + 4, '0.5', th.purple, 'right');
-      P.label(ctx, fr.X(XMAX) - 4, fr.Y(0) - 4, '0', th.purple, 'right');
+      /* Eixo da direita para D*(x) (0 a 1), com fundo; o rótulo do eixo x fica à sua esquerda. */
+      pillText(ctx, th, '1', fr.X(XMAX) - 4, fr.Y(YMAX) + 12, th.purple, 'right');
+      pillText(ctx, th, '0.5', fr.X(XMAX) - 4, fr.Y(YMAX / 2) + 4, th.purple, 'right');
+      pillText(ctx, th, '0', fr.X(XMAX) - 4, fr.Y(0) - 4, th.purple, 'right');
+      pillText(ctx, th, 'x', fr.X(XMAX) - 18, fr.Y(0) - 8, th.comment, 'right');
 
       /* marcador arrastável de μ* */
       ctx.beginPath();
@@ -95,10 +110,10 @@
       ctx.stroke();
       P.label(ctx, fr.X(mu) + 8, fr.Y(0) - 8, 'μ*', th.orange);
 
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, 'P(x) real', th.cyan);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'P*(x) gerada', th.orange);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 42, 'M(x) mistura', th.comment);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 56, 'D*(x)', th.purple);
+      pillText(ctx, th, 'P(x) real', fr.X(XMIN) + 8, fr.Y(YMAX) + 14, th.cyan);
+      pillText(ctx, th, 'P*(x) gerada', fr.X(XMIN) + 8, fr.Y(YMAX) + 28, th.orange);
+      pillText(ctx, th, 'M(x) mistura', fr.X(XMIN) + 8, fr.Y(YMAX) + 42, th.comment);
+      pillText(ctx, th, 'D*(x)', fr.X(XMIN) + 8, fr.Y(YMAX) + 56, th.purple);
     }
 
     function drawJS() {
@@ -108,8 +123,8 @@
       const fr = P.frame(ctx, w, h, MU_LO, MU_HI, 0, 0.78);
       P.axes(ctx, fr, { xlabel: 'μ*', ylabel: 'D_{JS} (nats)', xticks: [-4, 0, 7, 12, 18], yticks: [0, 0.35, 0.69] });
       P.line(ctx, fr, [MU_LO, MU_HI], [LN2, LN2], th.green, { width: 1.2, dash: [5, 4] });
-      P.label(ctx, fr.X(MU_HI) - 4, fr.Y(LN2) - 6, 'ln 2', th.green, 'right');
       P.line(ctx, fr, jsCurve.mus, jsCurve.vals, th.purple, { width: 2 });
+      pillText(ctx, th, 'ln 2', fr.X(MU_HI) - 4, fr.Y(LN2) - 6, th.green, 'right');
       const cur = divergences(mu, sigma).js;
       P.scatter(ctx, fr, [[mu, cur]], th.orange, { r: 4.5, alpha: 1 });
     }

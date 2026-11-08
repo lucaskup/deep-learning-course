@@ -80,6 +80,21 @@
         : 'nenhum merge ainda';
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawCurve() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvCurve);
@@ -91,8 +106,7 @@
       P.line(ctx, fr, ks, B.WP.states.map((s) => s.tokens), th.orange, { width: 1.8 });
       P.scatter(ctx, fr, [[k, B.BPE.states[k].tokens]], th.cyan, { r: 4, alpha: 1 });
       P.scatter(ctx, fr, [[k, B.WP.states[k].tokens]], th.orange, { r: 4, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(100) + 14, 'BPE (frequência)', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(100) + 28, 'WordPiece (likelihood)', th.orange);
+      legendBox(ctx, th, fr.X(maxK) - 8, fr.Y(100), [['BPE (frequência)', th.cyan], ['WordPiece (likelihood)', th.orange]], 'right');
     }
 
     function redraw() {

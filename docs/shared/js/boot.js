@@ -10,7 +10,8 @@
   let lastTime = 0;
 
   function loop(now) {
-    const dt = lastTime ? (now - lastTime) / 1000 : 0;
+    /* Limita dt para que uma aba inativa não avance a simulação de uma vez. */
+    const dt = lastTime ? Math.min(0.1, (now - lastTime) / 1000) : 0;
     lastTime = now;
     for (const fn of Array.from(tickers)) fn(dt);
     if (tickers.size > 0) rafId = requestAnimationFrame(loop);
@@ -26,11 +27,11 @@
   /* Botão de tema (mesmo mecanismo da página inicial do curso). */
   const root = document.documentElement;
   const btn = document.getElementById('theme-toggle');
-  function syncIcon() { btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀'; }
-  btn.addEventListener('click', function () {
+  function syncIcon() { if (btn) btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀'; }
+  if (btn) btn.addEventListener('click', function () {
     const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     root.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) { /* armazenamento bloqueado */ }
     syncIcon();
   });
   syncIcon();

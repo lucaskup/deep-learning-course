@@ -11,8 +11,10 @@
 
   /* CDF da normal padrão via aproximação de erf (Abramowitz-Stegun 7.1.26). */
   function phi(z) {
-    const t = 1 / (1 + 0.3275911 * Math.abs(z));
-    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+    /* Φ(z) = ½(1 + erf(z/√2)); a aproximação abaixo é de erf(x), x = |z|/√2. */
+    const x = Math.abs(z) / Math.SQRT2;
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     const e = 0.5 * (1 + y);
     return z >= 0 ? e : 1 - e;
   }
@@ -48,8 +50,11 @@
       const { ctx, w, h } = DL.plot.setup(distCv);
       const t = DL.plot.theme();
       DL.plot.clear(ctx, w, h);
-      const fr = DL.plot.frame(ctx, w, h, 0, 1, 0, YMAX);
-      DL.plot.axes(ctx, fr, { xlabel: 'escore s', xticks: [0, 0.5, 1] });
+      /* Margem inferior maior para o rótulo do eixo ficar abaixo dos ticks,
+         longe da cauda das densidades. */
+      const fr = DL.plot.frame(ctx, w, h, 0, 1, 0, YMAX, { l: 38, r: 10, t: 10, b: 36 });
+      DL.plot.axes(ctx, fr, { xticks: [0, 0.5, 1] });
+      DL.plot.label(ctx, fr.X(1), fr.Y(0) + 28, 'escore s', t.comment, 'right');
 
       const p = state.p, tau = state.tau;
       const f0 = (x) => (1 - p) * gauss(x, M0);
@@ -75,8 +80,22 @@
       for (let x = 0; x <= 1.0001; x += 0.004) { xs.push(x); y0.push(f0(x)); y1.push(f1(x)); }
       DL.plot.line(ctx, fr, xs, y0, t.red, { width: 2 });
       DL.plot.line(ctx, fr, xs, y1, t.cyan, { width: 2 });
-      DL.plot.label(ctx, fr.X(M0) - 8, fr.Y(f0(M0)) - 10, 'y = 0 (não reincide)', t.red, 'right');
-      DL.plot.label(ctx, fr.X(M1) + 8, fr.Y(f1(M1)) - 10, 'y = 1 (reincide)', t.cyan, 'left');
+      /* Rótulos centrados acima de cada pico, presos dentro do quadro e sobre
+         uma pílula (em telas estreitas a curva passa por trás do texto). */
+      function peakLabel(x, y, text, color) {
+        ctx.font = '11px sans-serif';
+        const tw = ctx.measureText(text).width;
+        const cx = Math.max(fr.X(0) + tw / 2 + 2, Math.min(fr.X(1) - tw / 2 - 2, fr.X(x)));
+        const cy = Math.max(fr.Y(YMAX) + 12, fr.Y(y) - 12);
+        ctx.fillStyle = t.bg;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(cx - tw / 2 - 3, cy - 11, tw + 6, 15);
+        ctx.globalAlpha = 1;
+        DL.plot.label(ctx, cx, cy, text, color, 'center');
+      }
+      /* Levemente deslocados para fora, longe do limiar inicial em 0,5. */
+      peakLabel(M0 - 0.04, f0(M0), 'y = 0 (não reincide)', t.red);
+      peakLabel(M1 + 0.04, f1(M1), 'y = 1 (reincide)', t.cyan);
 
       /* Limiar. */
       ctx.strokeStyle = t.fg;
@@ -148,6 +167,7 @@
     distCv.addEventListener('pointerdown', (ev) => { dragging = true; distCv.setPointerCapture(ev.pointerId); pointerTau(ev); });
     distCv.addEventListener('pointermove', (ev) => { if (dragging) pointerTau(ev); });
     distCv.addEventListener('pointerup', () => { dragging = false; });
+    distCv.addEventListener('pointercancel', () => { dragging = false; });
 
     tauSlider.addEventListener('input', () => {
       state.tau = parseFloat(tauSlider.value);

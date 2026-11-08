@@ -39,6 +39,20 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvArch = $('s1-arch'), cvParams = $('s1-params');
     const slLayer = $('s1-layer');
     const btnStep = $('s1-step'), btnRun = $('s1-run'), btnReset = $('s1-reset');
@@ -69,30 +83,34 @@
       const ctx = sz.ctx, w = sz.w, h = sz.h;
       P.clear(ctx, w, h);
 
-      const padL = 12, padR = 12, padT = 34, padB = 36;
-      const ih = h - padT - padB;
+      const padL = 12, padR = 12, padB = 36;
       const n = STAGES.length;
       const slotW = (w - padL - padR) / n;
-      const cy = padT + ih / 2;
       slots = [];
 
-      /* Legenda no topo */
+      /* Legenda no topo; em canvas estreito quebra em mais de uma linha e
+         empurra a pirâmide para baixo. */
       const legend = [
         ['conv 3×3 + ReLU', th.red], ['max pool 2×2', th.orange],
         ['densa', th.cyan], ['softmax', th.green],
       ];
-      let lx = padL;
+      let lx = padL, ly = 17;
       ctx.font = '11px sans-serif';
       for (const item of legend) {
+        const iw = 14 + ctx.measureText(item[0]).width;
+        if (lx > padL && lx + iw > w - padR) { lx = padL; ly += 15; }
         ctx.fillStyle = item[1];
         ctx.globalAlpha = 0.75;
-        ctx.fillRect(lx, 8, 10, 10);
+        ctx.fillRect(lx, ly - 9, 10, 10);
         ctx.globalAlpha = 1;
         ctx.fillStyle = th.comment;
         ctx.textAlign = 'left';
-        ctx.fillText(item[0], lx + 14, 17);
-        lx += 14 + ctx.measureText(item[0]).width + 16;
+        ctx.fillText(item[0], lx + 14, ly);
+        lx += iw + 16;
       }
+      const padT = ly + 17;
+      const ih = h - padT - padB;
+      const cy = padT + ih / 2;
 
       for (let i = 0; i < n; i++) {
         const st = STAGES[i];
@@ -125,8 +143,19 @@
       /* Rótulos do estágio atual: nome acima, dimensões abaixo */
       const cur = STAGES[idx], sl = slots[idx];
       const cx = sl.x + sl.w / 2;
-      P.mathText(ctx, cur.name, cx, sl.y - 8, th.fg, 'center', 12);
-      P.mathText(ctx, stageDims(cur), cx, padT + ih + 16, th.fg, 'center', 11);
+      /* Caixas de altura cheia (entrada, conv 224) levam o nome para dentro da caixa,
+         senão ele colide com a legenda do topo. */
+      const nameY = sl.y - 8 < padT - 4 ? sl.y + 14 : sl.y - 8;
+      /* Rótulos centrados no estágio, presos à área do canvas e com fundo,
+         para ficarem legíveis sobre as caixas vizinhas. */
+      function clampedLabel(text, y, size) {
+        ctx.font = size + 'px sans-serif';
+        const tw = ctx.measureText(text).width;
+        const x = Math.max(padL + tw / 2, Math.min(w - padR - tw / 2, cx));
+        pill(ctx, th, x, y, text, th.fg, 'center', size);
+      }
+      clampedLabel(cur.name, nameY, 12);
+      clampedLabel(stageDims(cur), padT + ih + 16, 11);
 
       /* Marcas dos blocos convolucionais */
       ctx.fillStyle = th.comment;

@@ -1,4 +1,5 @@
-/* Seção 1: self-attention é invariante a permutação; somar PE(i) quebra a simetria.
+/* Seção 1: self-attention é equivariante a permutação (Attn(PX) = P·Attn(X));
+   somar PE(i) quebra a simetria.
    Frase e embeddings d=4 idênticos ao cálculo manual dos slides. */
 (function () {
   'use strict';
@@ -83,7 +84,7 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvAttn);
       P.clear(ctx, w, h);
-      const padL = 58, padT = 10, padB = 44, padR = 8;
+      const padL = 58, padT = 10, padB = 62, padR = 8;
       const cell = Math.max(8, Math.min((w - padL - padR) / N, (h - padT - padB) / N));
       const x0 = padL, y0 = padT;
       const pc = P.rgb(th.purple);
@@ -115,7 +116,7 @@
         ctx.fillText(WORDS[perm[j]], 0, 8);
         ctx.restore();
       }
-      P.label(ctx, x0, y0 + N * cell + 34, 'linha i (query) · coluna j (key)', th.comment);
+      P.label(ctx, x0, y0 + N * cell + 54, 'linha i (query) · coluna j (key)', th.comment);
     }
 
     function drawOut(out, base) {

@@ -140,7 +140,9 @@
       P.line(ctx, fr, [0, 1, 2, 3], rf, th.cyan, { width: 1.8 });
       P.scatter(ctx, fr, rf.map((v, l) => [l, v]), th.cyan, { r: 3.5, alpha: 1 });
       for (let l = 0; l <= 3; l++) {
-        P.label(ctx, fr.X(l) + 6, fr.Y(rf[l]) - 6, String(rf[l]), th.fg);
+        /* O último rótulo fica à esquerda do ponto para não sair do canvas. */
+        const left = l === 3;
+        P.label(ctx, fr.X(l) + (left ? -6 : 6), fr.Y(rf[l]) - 6, String(rf[l]), th.fg, left ? 'right' : 'left');
       }
       if (sel) {
         P.scatter(ctx, fr, [[sel.l, rf[sel.l]]], th.orange, { r: 5, alpha: 1 });

@@ -10,10 +10,10 @@
   const HALF = 1.8; /* meia-largura da janela em décadas de N */
 
   const MODELS = [
-    { name: 'GPT-3', N: 175e9, D: 300e9 },
-    { name: 'Gopher', N: 280e9, D: 300e9 },
-    { name: 'Chinchilla', N: 70e9, D: 1.4e12 },
-    { name: 'Llama 3 8B', N: 8e9, D: 15e12 },
+    { name: 'GPT-3', N: 175e9, D: 300e9, dx: -6, dy: 14, align: 'right' },
+    { name: 'Gopher', N: 280e9, D: 300e9, dx: 6, dy: -7, align: 'left' },
+    { name: 'Chinchilla', N: 70e9, D: 1.4e12, dx: 6, dy: 12, align: 'left' },
+    { name: 'Llama 3 8B', N: 8e9, D: 15e12, dx: 6, dy: 12, align: 'left' },
   ];
 
   const loss = (N, D) => E + A / Math.pow(N, AL) + B / Math.pow(D, BE);
@@ -45,6 +45,21 @@
       return Math.max(c - HALF, Math.min(c + HALF, userLogN));
     };
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : (align === 'center' ? x - wmax / 2 - 6 : x - 6);
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawIso() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvIso);
@@ -56,7 +71,7 @@
       /* Janela vertical: do mínimo até o valor nas bordas */
       const lmin = lossIso(c, nStar(c));
       const ledge = lossIso(c, Math.pow(10, x0));
-      const y0 = lmin - 0.06 * (ledge - lmin);
+      const y0 = lmin - 0.24 * (ledge - lmin); /* folga abaixo do mínimo para o rótulo do ótimo */
       const y1 = ledge + 0.10 * (ledge - lmin);
       const fr = P.frame(ctx, w, h, x0, x1, y0, y1, { l: 44, r: 12, t: 12, b: 26 });
       frIso = fr;
@@ -80,24 +95,30 @@
       P.line(ctx, fr, xs, ysLo, th.comment, { width: 1.2, alpha: 0.45, dash: [4, 4] });
       P.line(ctx, fr, xs, ysHi, th.comment, { width: 1.2, alpha: 0.45, dash: [4, 4] });
       P.line(ctx, fr, xs, ysMain, th.purple, { width: 2.2 });
-      P.label(ctx, fr.X(x1) - 64, fr.Y(ysLo[M]) - 6, 'C / 30', th.comment);
-      P.label(ctx, fr.X(x1) - 64, fr.Y(ysHi[M]) + 14, 'C × 30', th.comment);
+      /* As curvas vizinhas saem do frame: o rótulo fica preso à borda. */
+      const clampY = (y) => Math.max(fr.pad.t + 12, Math.min(fr.Y(fr.ymin) - 22, y));
+      P.label(ctx, fr.X(x1) - 4, clampY(fr.Y(ysLo[M]) - 6), 'C / 30', th.comment, 'right');
+      P.label(ctx, fr.X(x1) - 4, clampY(fr.Y(ysHi[M]) + 14), 'C × 30', th.comment, 'right');
 
       /* Ótimo (N*) e a regra 20N (coincidem por construção; o rótulo reforça) */
       P.scatter(ctx, fr, [[lc, lmin]], th.green, { r: 5, alpha: 1 });
-      P.label(ctx, fr.X(lc) + 8, fr.Y(lmin) + 16, 'ótimo: N* (D* = 20·N*)', th.green);
+      const optText = w < 520 ? 'ótimo: N*' : 'ótimo: N* (D* = 20·N*)';
+      legendBox(ctx, th, fr.X(lc), fr.Y(lmin) + 8, [[optText, th.green]], 'center');
 
       /* Ponto do aluno (arrastável) */
       const ux = curLogN();
       const uy = lossIso(c, Math.pow(10, ux));
       ctx.beginPath();
       ctx.arc(fr.X(ux), fr.Y(uy), 7, 0, 2 * Math.PI);
-      ctx.fillStyle = th.bg;
+      ctx.fillStyle = '#ffffff';   /* branco fixo, legível nos dois temas */
       ctx.fill();
-      ctx.strokeStyle = th.fg;
+      ctx.strokeStyle = '#222222';
       ctx.lineWidth = 2;
       ctx.stroke();
-      P.label(ctx, fr.X(ux) + 10, fr.Y(uy) - 8, 'N = ' + fmtCount(Math.pow(10, ux)), th.fg);
+      /* Rótulo do lado oposto ao ótimo, para não cobrir o ponto verde. */
+      const nText = 'N = ' + fmtCount(Math.pow(10, ux));
+      if (ux >= lc) legendBox(ctx, th, fr.X(ux) + 10, fr.Y(uy) - 24, [[nText, th.fg]]);
+      else legendBox(ctx, th, fr.X(ux) - 10, fr.Y(uy) - 24, [[nText, th.fg]], 'right');
     }
 
     function drawOpt() {
@@ -119,8 +140,17 @@
       }
       P.line(ctx, fr, xs, yn, th.cyan, { width: 2 });
       P.line(ctx, fr, xs, yd, th.orange, { width: 2 });
-      P.label(ctx, fr.X(20.2), fr.Y(yn[0]) - 8, 'N* ∝ C^0.5', th.cyan);
-      P.label(ctx, fr.X(20.2), fr.Y(yd[0]) - 8, 'D* ∝ C^0.5', th.orange);
+      /* Rótulos inclinados junto às retas, acima delas */
+      const along = (ys, text, color) => {
+        const ang = Math.atan2(fr.Y(ys[10]) - fr.Y(ys[0]), fr.X(xs[10]) - fr.X(xs[0]));
+        ctx.save();
+        ctx.translate(fr.X(xs[2]), fr.Y(ys[2]));
+        ctx.rotate(ang);
+        P.mathText(ctx, text, 0, -7, color, 'left', 11);
+        ctx.restore();
+      };
+      along(yn, 'N* ∝ C^0.5', th.cyan);
+      along(yd, 'D* ∝ C^0.5', th.orange);
 
       /* C atual */
       P.line(ctx, fr, [logC, logC], [8, 14], th.comment, { width: 1, dash: [4, 4], alpha: 0.7 });
@@ -132,7 +162,7 @@
         const lx = Math.log10(6 * m.N * m.D);
         P.scatter(ctx, fr, [[lx, Math.log10(m.N)]], th.cyan, { r: 3.5, alpha: 0.95 });
         P.scatter(ctx, fr, [[lx, Math.log10(m.D)]], th.orange, { r: 3.5, alpha: 0.95 });
-        P.label(ctx, fr.X(lx) + 5, fr.Y(Math.log10(m.N)) + 11, m.name, th.comment);
+        legendBox(ctx, th, fr.X(lx) + m.dx, fr.Y(Math.log10(m.N)) + m.dy - 14, [[m.name, th.comment]], m.align);
       }
     }
 

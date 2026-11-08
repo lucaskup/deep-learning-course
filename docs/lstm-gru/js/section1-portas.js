@@ -63,6 +63,21 @@
       ctx.globalAlpha = 1;
     }
 
+
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
     function vline(ctx, fr, x, color) {
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
@@ -89,9 +104,7 @@
       P.line(ctx, fr, ks.slice(0, t + 1), upto(hs), th.green, { width: 2.2 });
       P.scatter(ctx, fr, [[t, cs[t]]], th.orange, { r: 3.5, alpha: 1 });
       P.scatter(ctx, fr, [[t, hs[t]]], th.green, { r: 3.5, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 14, 'x_t', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 28, 'c_t', th.orange);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 42, 'h_t', th.green);
+      legendBox(ctx, th, fr.X(0) + 8, fr.Y(ym), [['x_t', th.cyan], ['c_t', th.orange], ['h_t', th.green]]);
     }
 
     function drawBars() {

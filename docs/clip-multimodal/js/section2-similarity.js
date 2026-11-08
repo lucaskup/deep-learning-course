@@ -1,6 +1,6 @@
 /* Seção 2: matriz de similaridade contrastiva S = UVᵀ.
    N vetores unitários de imagem e N de texto, parametrizados por ângulo,
-   arrastáveis em duas circunferências. S_ij = û_i·v̂_j = cos(a_i − b_j). */
+   arrastáveis em duas circunferências. S_ij = ũ_i·ṽ_j = cos(a_i − b_j). */
 (function () {
   'use strict';
   window.DL = window.DL || {};
@@ -34,11 +34,13 @@
     const sim = (i, j) => Math.cos(imgA[i] - txtA[j]);
 
     function makeGeom(w, h) {
-      const r = Math.min(h * 0.34, w * 0.2);
+      /* Raio menor e centros mais afastados: sobra espaço entre as duas
+         circunferências para os rótulos ũ_i e ṽ_j (a 14 px da borda). */
+      const r = Math.min(h * 0.34, w * 0.17);
       return {
         r,
-        img: { cx: w * 0.27, cy: h * 0.54 },
-        txt: { cx: w * 0.73, cy: h * 0.54 },
+        img: { cx: w * 0.25, cy: h * 0.54 },
+        txt: { cx: w * 0.75, cy: h * 0.54 },
       };
     }
 
@@ -54,10 +56,11 @@
       P.clear(ctx, w, h);
       geom = makeGeom(w, h);
 
-      [['img', geom.img, th.cyan, 'û'], ['txt', geom.txt, th.orange, 'v̂']].forEach(([set, g, col, sym]) => {
+      [['img', geom.img, th.cyan, 'ũ'], ['txt', geom.txt, th.orange, 'ṽ']].forEach(([set, g, col, sym]) => {
         ctx.strokeStyle = th.line; ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.arc(g.cx, g.cy, geom.r, 0, 2 * Math.PI); ctx.stroke();
-        P.mathText(ctx, set === 'img' ? 'imagens' : 'textos', g.cx, g.cy - geom.r - 12, col, 'center', 12);
+        /* Título acima do anel de rótulos ũ_k, ṽ_k (que fica a 14 px da circunferência). */
+        P.mathText(ctx, set === 'img' ? 'imagens' : 'textos', g.cx, g.cy - geom.r - 30, col, 'center', 12);
         const arr = set === 'img' ? imgA : txtA;
         for (let k = 0; k < N; k++) {
           const p = ptOf(set, k);
@@ -85,11 +88,11 @@
       const ox = padL + (gw - cell * N) / 2;
       const oy = padT + (gh - cell * N) / 2;
 
-      P.mathText(ctx, 'textos  v̂_j →', ox + cell * N / 2, padT - 14, th.orange, 'center', 11);
+      P.mathText(ctx, 'textos  ṽ_j →', ox + cell * N / 2, padT - 14, th.orange, 'center', 11);
       ctx.save();
       ctx.translate(ox - 18, oy + cell * N / 2);
       ctx.rotate(-Math.PI / 2);
-      P.mathText(ctx, 'imagens  û_i', 0, 0, th.cyan, 'center', 11);
+      P.mathText(ctx, 'imagens  ũ_i', 0, 0, th.cyan, 'center', 11);
       ctx.restore();
 
       for (let i = 0; i < N; i++) {

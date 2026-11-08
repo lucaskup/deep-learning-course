@@ -148,11 +148,11 @@
       redraw();
     });
     cvLoss.addEventListener('pointerup', () => { drag = null; });
+    cvLoss.addEventListener('pointercancel', () => { drag = null; });
 
     const apply = (key) => { MEM = PRESETS[key].mem.slice(); NON = PRESETS[key].non.slice(); redraw(); };
     $('s4-leak').addEventListener('click', () => apply('leak'));
     $('s4-private').addEventListener('click', () => apply('priv'));
-    $('s4-reset').addEventListener('click', () => apply('leak'));
 
     redraw();
     P.onRedraw(redraw);

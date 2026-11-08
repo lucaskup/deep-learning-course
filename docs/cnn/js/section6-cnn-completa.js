@@ -12,6 +12,20 @@
   function init() {
     const P = DL.plot, G = DL.grid, T = DL.tinycnn;
     const $ = (id) => document.getElementById(id);
+
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
     const N = T.N, M = T.M, F1 = T.F1, F2 = T.F2, C = T.C;
 
     const cv1 = $('s6-row1'), cv2 = $('s6-row2'), cv3 = $('s6-row3'), cvLoss = $('s6-loss');
@@ -79,12 +93,24 @@
           ctx.fillStyle = fill;
           ctx.fillRect(x0 + j * cs, y0 + i * cs, cs, cs);
           if (text) {
-            ctx.fillStyle = text;
-            ctx.font = Math.max(8, Math.min(12, cs * 0.33)) + 'px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(fmt(v), x0 + j * cs + cs / 2, y0 + i * cs + cs / 2);
-            ctx.textBaseline = 'alphabetic';
+            /* A fonte encolhe até o número caber na célula; se nem com 7px
+               couber, a célula fica só com a cor. */
+            const txt = fmt(v);
+            let fs = Math.max(8, Math.min(12, cs * 0.33));
+            ctx.font = fs + 'px sans-serif';
+            let tw = ctx.measureText(txt).width;
+            if (tw > cs - 2) {
+              fs = Math.max(7, fs * (cs - 2) / tw);
+              ctx.font = fs + 'px sans-serif';
+              tw = ctx.measureText(txt).width;
+            }
+            if (tw <= cs - 1) {
+              ctx.fillStyle = text;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(txt, x0 + j * cs + cs / 2, y0 + i * cs + cs / 2);
+              ctx.textBaseline = 'alphabetic';
+            }
           }
         }
       }
@@ -407,7 +433,7 @@
       let ymax = 1;
       for (const v of hist.loss) ymax = Math.max(ymax, v);
       ymax = Math.ceil(ymax * 5) / 5;
-      const fr = P.frame(ctx, w, h, 0, xmax, 0, ymax);
+      const fr = P.frame(ctx, w, h, 0, xmax, 0, ymax, { l: 38, r: 34, t: 10, b: 24 });
       const yt = [];
       for (let v = 0; v <= ymax + 1e-9; v += 0.2) yt.push(Math.round(v * 10) / 10);
       const xt = [0, 0.25, 0.5, 0.75, 1].map((t) => Math.round(t * xmax));
@@ -417,8 +443,12 @@
         P.line(ctx, fr, xs, hist.loss, th.purple, { width: 1.8 });
         P.line(ctx, fr, xs, hist.acc.map((a) => a * ymax), th.green, { width: 1.8 });
       }
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 14, 'perda BCE (treino)', th.purple);
-      P.label(ctx, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 28, 'acurácia (teste, escala 0 a 1)', th.green);
+      /* Eixo próprio da acurácia (0 a 1) à direita; a curva é desenhada em acc·ymax. */
+      for (const v of [0, 0.5, 1]) {
+        P.mathText(ctx, v.toFixed(1), fr.X(fr.xmax) + 6, fr.Y(v * ymax) + 4, th.green, 'left', 10);
+      }
+      pill(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 14, 'perda BCE (treino)', th.purple);
+      pill(ctx, th, fr.X(fr.xmin) + 8, fr.Y(fr.ymax) + 28, 'acurácia (teste, eixo à direita, 0 a 1)', th.green);
     }
 
     /* ── Leitor de cálculo ──────────────────────────────────────────── */

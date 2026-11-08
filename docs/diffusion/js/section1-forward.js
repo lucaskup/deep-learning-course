@@ -21,6 +21,19 @@
     let traj1d = null, hi = [0, 1, 2];
     let moonsTraj = null, moonsLab = null;
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     /* Pré-computa toda a aleatoriedade: o slider de t é determinístico nos dois sentidos. */
     function regenerate() {
       const rng = U.mulberry32(seed);
@@ -84,8 +97,8 @@
       }
       P.line(ctx, fr, xs, ref, th.comment, { dash: [5, 4], width: 1.4 });
       P.line(ctx, fr, xs, exact, th.purple, { width: 2.2 });
-      P.label(ctx, fr.X(-3) + 8, fr.Y(0.85) + 12, 'q(z_t) exata', th.purple);
-      P.label(ctx, fr.X(-3) + 8, fr.Y(0.85) + 26, '𝒩(0, 1)', th.comment);
+      tag(ctx, th, fr.X(-3) + 8, fr.Y(0.85) + 12, 'q(z_t) exata', th.purple);
+      tag(ctx, th, fr.X(-3) + 8, fr.Y(0.85) + 26, '𝒩(0, 1)', th.comment);
     }
 
     function drawMoons() {

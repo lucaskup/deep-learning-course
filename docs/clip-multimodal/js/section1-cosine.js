@@ -1,6 +1,6 @@
 /* Seção 1: similaridade do cosseno no espaço compartilhado.
    Dois vetores arrastáveis u, v; mostramos u·v, ‖u‖‖v‖, cosθ e θ,
-   além dos normalizados û, v̂ sobre a circunferência de raio 1. */
+   além dos normalizados ũ, ṽ sobre a circunferência de raio 1. */
 (function () {
   'use strict';
   window.DL = window.DL || {};
@@ -95,8 +95,8 @@
       ctx.beginPath(); ctx.arc(iso.X(uh[0]), iso.Y(uh[1]), 5, 0, 2 * Math.PI); ctx.fill();
       ctx.fillStyle = th.green;
       ctx.beginPath(); ctx.arc(iso.X(vh[0]), iso.Y(vh[1]), 5, 0, 2 * Math.PI); ctx.fill();
-      P.label(ctx, iso.X(uh[0]) + 7, iso.Y(uh[1]) + 12, 'û', th.pink);
-      P.label(ctx, iso.X(vh[0]) + 7, iso.Y(vh[1]) + 12, 'v̂', th.green);
+      P.label(ctx, iso.X(uh[0]) + 7, iso.Y(uh[1]) + 12, 'ũ', th.pink);
+      P.label(ctx, iso.X(vh[0]) + 7, iso.Y(vh[1]) + 12, 'ṽ', th.green);
     }
 
     function drawCos() {

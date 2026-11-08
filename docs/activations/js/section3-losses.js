@@ -12,6 +12,19 @@
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo sobre fundo opaco, para não se confundir com as curvas. */
+    function pill(ctx, x, y, text, color, align) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - 10, tw + 6, 14);
+      ctx.globalAlpha = 1;
+      P.label(ctx, x, y, text, color, align);
+    }
+
     const cvLoss = $('s3-loss'), cvGrad = $('s3-grad');
     const tabY1 = $('s3-y1'), tabY0 = $('s3-y0');
 
@@ -47,12 +60,12 @@
       P.axes(ctx, frLoss, { xlabel: 'z', xticks: [-8, -4, 0, 4, 8], yticks: [0, 4, 8] });
       P.line(ctx, frLoss, zs, ce, th.purple, { width: 2.2 });
       P.line(ctx, frLoss, zs, mse, th.orange, { width: 2.2 });
-      P.label(ctx, frLoss.X(ZMIN) + 10, frLoss.Y(lmax) + 14, 'ℒ_{BCE}', th.purple);
-      P.label(ctx, frLoss.X(ZMIN) + 10, frLoss.Y(lmax) + 30, 'ℒ_{MSE}', th.orange);
+      pill(ctx, frLoss.X(ZMIN) + 10, frLoss.Y(lmax) + 14, 'ℒ_{BCE}', th.purple);
+      pill(ctx, frLoss.X(ZMIN) + 10, frLoss.Y(lmax) + 30, 'ℒ_{MSE}', th.orange);
       P.line(ctx, frLoss, [z0, z0], [0, lmax], th.comment, { width: 1, dash: [3, 3] });
       P.scatter(ctx, frLoss, [[z0, Math.min(lmax, lossCE(z0))]], th.purple, { r: 5, alpha: 1 });
       P.scatter(ctx, frLoss, [[z0, lossMSE(z0)]], th.orange, { r: 5, alpha: 1 });
-      P.label(ctx, frLoss.X(z0) + 8, frLoss.Y(lmax) + 14, 'z_0', th.pink);
+      pill(ctx, z0 > ZMAX - 1 ? frLoss.X(z0) - 22 : frLoss.X(z0) + 8, frLoss.Y(lmax) + 14, 'z_0', th.pink);
 
       /* ── |dℒ/dz| ── */
       ({ ctx, w, h } = P.setup(cvGrad));

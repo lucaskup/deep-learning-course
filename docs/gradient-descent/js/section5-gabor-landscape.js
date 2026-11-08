@@ -10,6 +10,36 @@
   function init() {
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
+
+    /* Rótulo sobre fundo opaco (legível sobre heatmap, curvas e pontos);
+       com fr, fica dentro do retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr, size) {
+      const th = P.theme();
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      if (fr) {
+        x = Math.max(fr.X(fr.xmin) + lead + 4, Math.min(fr.X(fr.xmax) - (tw - lead) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + size + 3, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - size + 1, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+    /* Fundo opaco atrás do rótulo do eixo x que P.axes desenha dentro do
+       gráfico (sobre o amarelo do viridis o texto some). */
+    function xlabelPill(ctx, fr, text) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(fr.X(fr.xmax) - 7 - tw, fr.Y(fr.ymin) - 18, tw + 6, 14);
+      ctx.globalAlpha = 1;
+    }
     const G = DL.gaborDemo;
 
     const cvSurf = $('s5-surface'), cvData = $('s5-data');
@@ -89,10 +119,12 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvSurf);
       P.clear(ctx, w, h);
-      const fr = P.frame(ctx, w, h, G.T0MIN, G.T0MAX, G.T1MIN, G.T1MAX);
+      /* Margem esquerda maior: os ticks "12.5"/"22.5" colidiam com o rótulo θ_1. */
+      const fr = P.frame(ctx, w, h, G.T0MIN, G.T0MAX, G.T1MIN, G.T1MAX, { l: 52, r: 10, t: 10, b: 24 });
       frSurf = fr;
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(surf, fr.X(fr.xmin), fr.Y(fr.ymax), fr.iw, fr.ih);
+      xlabelPill(ctx, fr, 'θ_0');
       P.axes(ctx, fr, { xlabel: 'θ_0', ylabel: 'θ_1', xticks: [-10, 0, 10], yticks: [2.5, 12.5, 22.5] });
 
       clipPlot(ctx, fr);
@@ -103,13 +135,17 @@
       ctx.restore();
 
       P.scatter(ctx, fr, [G.best], th.green, { r: 4, alpha: 1 });
-      P.label(ctx, fr.X(G.best[0]) + 8, fr.Y(G.best[1]) + 4, 'mínimo global', th.green);
+      /* Rótulo sobre fundo opaco: verde sobre o amarelo do viridis é ilegível no tema claro. */
+      pill(ctx, fr.X(G.best[0]) + 8, fr.Y(G.best[1]) + 4, 'mínimo global', th.green, 'left', fr);
       ctx.beginPath();
       ctx.arc(fr.X(start[0]), fr.Y(start[1]), 6, 0, 2 * Math.PI);
       ctx.strokeStyle = th.fg;
       ctx.lineWidth = 2;
       ctx.stroke();
-      P.label(ctx, fr.X(start[0]) + 9, fr.Y(start[1]) - 8, 'início', th.fg);
+      /* perto da borda direita o rótulo passa para a esquerda do marcador */
+      const sx = fr.X(start[0]);
+      if (sx + 60 > fr.X(fr.xmax)) pill(ctx, sx - 9, fr.Y(start[1]) - 8, 'início', th.fg, 'right', fr);
+      else pill(ctx, sx + 9, fr.Y(start[1]) - 8, 'início', th.fg, 'left', fr);
     }
 
     function drawData() {
@@ -136,7 +172,7 @@
       const p = cur();
       $('s5-readout').textContent =
         'k = ' + (traj.length - 1) +
-        ' · θ = (' + p[0].toFixed(2) + ', ' + p[1].toFixed(2) + ')' +
+        ' · θ = (' + p[0].toFixed(2).replace('-', '−') + ', ' + p[1].toFixed(2).replace('-', '−') + ')' +
         ' · L = ' + G.loss(p[0], p[1]).toFixed(3);
     }
 

@@ -45,7 +45,7 @@
       rowC.innerHTML = '';
       let nChar = 0;
       for (const w of ws) {
-        for (const c of (w + B.EOW).split('')) {
+        for (const c of Array.from(w + B.EOW)) {
           nChar += 1;
           rowC.appendChild(chip(c, c === B.EOW ? 'tok-purple' : ''));
         }
@@ -75,11 +75,11 @@
       for (const w of ws) {
         for (const t of B.encodeWord(w, K_SUB).sym) {
           nSub += 1;
-          if (t.length === 1 && !baseSet.has(t)) {
+          if (B.cpLen(t) === 1 && !baseSet.has(t)) {
             nUnk += 1;
             rowS.appendChild(chip(t, 'tok-red', 'caractere fora do vocabulário base'));
           } else {
-            rowS.appendChild(chip(t, t.length > 1 ? 'tok-green' : ''));
+            rowS.appendChild(chip(t, B.cpLen(t) > 1 ? 'tok-green' : ''));
           }
         }
       }

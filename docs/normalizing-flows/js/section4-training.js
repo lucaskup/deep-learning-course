@@ -8,6 +8,19 @@
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
+
   const H = 16, SCAP = 1.5, B = 96, LR = 0.003;
   const BETA1 = 0.9, BETA2 = 0.999, EPS = 1e-8;
   const LOG2PI = Math.log(2 * Math.PI);
@@ -268,7 +281,7 @@
         const col = P.viridis(0.25 + 0.75 * u);
         return [col[0], col[1], col[2], Math.round(235 * u)];
       });
-      P.axes(ctx, fr, { xlabel: 'x_1', ylabel: 'x_2', xticks: [-3, 0, 3], yticks: [-3, 0, 3] });
+      P.axes(ctx, fr, { ylabel: 'x_2', xticks: [-3, 0, 3], yticks: [-3, 0, 3] });
       ctx.save();
       ctx.beginPath();
       ctx.rect(fr.X(-LIM), fr.Y(LIM), fr.iw, fr.ih);
@@ -276,12 +289,14 @@
       P.scatter(ctx, fr, data, th.cyan, { r: 1.8, alpha: 0.3 });
       P.scatter(ctx, fr, currentSamples(), th.orange, { r: 2, alpha: 0.65 });
       ctx.restore();
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(LIM) + 14, 'dados', th.cyan);
-      P.label(ctx, fr.X(-LIM) + 8, fr.Y(LIM) + 28, 'amostras do flow', th.orange);
+      /* Legenda e rótulos com fundo: o mapa de cores cobre o quadro inteiro. */
+      pillText(ctx, th, 'dados', fr.X(-LIM) + 8, fr.Y(LIM) + 14, th.cyan);
+      pillText(ctx, th, 'amostras do flow', fr.X(-LIM) + 8, fr.Y(LIM) + 28, th.orange);
+      pillText(ctx, th, 'x_1', fr.X(LIM) - 4, fr.Y(-LIM) - 8, th.comment, 'right');
       const k = Math.round(stagePos);
       if (k < K) {
-        P.label(ctx, fr.X(LIM) - 8, fr.Y(LIM) + 14,
-          'após ' + k + ' de ' + K + ' camadas inversas', th.orange, 'right');
+        pillText(ctx, th, 'após ' + k + ' de ' + K + ' camadas inversas',
+          fr.X(LIM) - 8, fr.Y(LIM) + 42, th.orange, 'right');
       }
     }
 

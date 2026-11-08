@@ -112,10 +112,13 @@
         counts.push(binom(n, k));
         cmax = Math.max(cmax, counts[k]);
       }
-      const fr = P.frame(ctx, w, h, -0.6, n + 0.6, 0, cmax * 1.25);
+      /* Margem inferior maior: o rótulo do eixo x fica abaixo dos ticks,
+         e não no canto do gráfico, onde a última barra o cobriria. */
+      const fr = P.frame(ctx, w, h, -0.6, n + 0.6, 0, cmax * 1.25, { l: 38, r: 10, t: 10, b: 38 });
       const ticks = [];
       for (let k = 0; k <= n; k++) ticks.push(k);
-      P.axes(ctx, fr, { xlabel: 'profundidade k', ylabel: 'nº de caminhos', xticks: ticks, yticks: [0, cmax] });
+      P.axes(ctx, fr, { ylabel: 'nº de caminhos', xticks: ticks, yticks: [0, cmax] });
+      P.mathText(ctx, 'profundidade k', fr.X(n / 2), fr.Y(0) + 30, th.comment, 'center', 11);
       const cur = popcount(path);
       for (let k = 0; k <= n; k++) {
         const x0 = fr.X(k - 0.34), x1 = fr.X(k + 0.34);

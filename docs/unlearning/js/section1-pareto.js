@@ -37,6 +37,19 @@
       return { x: x, y: y };
     }
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     function harmonic() {
       const s = slS.map((sl) => +sl.value);
       let inv = 0;
@@ -49,12 +62,15 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvPar);
       P.clear(ctx, w, h);
-      const fr = P.frame(ctx, w, h, 0, 1, 0, 1);
+      /* Margem inferior maior: o rótulo do eixo x fica abaixo dos ticks, longe do
+         marcador "modelo trivial", que ocupa o canto inferior direito do quadro. */
+      const fr = P.frame(ctx, w, h, 0, 1, 0, 1, { l: 38, r: 10, t: 10, b: 36 });
       frPar = fr;
       P.axes(ctx, fr, {
-        xlabel: 'Forget Quality', ylabel: 'Model Utility',
+        ylabel: 'Model Utility',
         xticks: [0, 0.5, 1], yticks: [0, 0.5, 1],
       });
+      P.label(ctx, fr.X(1), fr.Y(0) + 28, 'Forget Quality', th.comment, 'right');
 
       /* Região inviável (acima da fronteira) levemente sombreada. */
       const xs = [], ys = [];
@@ -73,16 +89,20 @@
       ctx.restore();
 
       P.line(ctx, fr, xs, ys, th.purple, { width: 2.2 });
-      P.label(ctx, fr.X(0.05), fr.Y(0.2), 'inviável', th.red);
-      P.mathText(ctx, 'Utility = 1 − ForgetQuality²', fr.X(0.50), fr.Y(0.70), th.purple, 'left', 11);
+      /* "inviável" no canto superior direito da região sombreada; a fórmula na
+         região viável à esquerda, onde nenhuma curva ou marcador passa. */
+      P.mathText(ctx, 'inviável', fr.X(0.97), fr.Y(0.93), th.red, 'right', 11);
+      P.mathText(ctx, 'Utility = 1 − ForgetQuality²', fr.X(0.04), fr.Y(0.60), th.purple, 'left', 11);
 
-      /* Marcadores de referência. */
+      /* Marcadores de referência (o de "sem unlearning" fica abaixo do ponto,
+         pois a curva passa logo acima dele). */
       for (const m of MARKERS) {
         const c = th[m.key];
         P.scatter(ctx, fr, [[m.x, m.y]], c, { r: 5, alpha: 1 });
         const al = m.x > 0.7 ? 'right' : 'left';
         const off = m.x > 0.7 ? -8 : 8;
-        P.mathText(ctx, m.name, fr.X(m.x) + off, fr.Y(m.y) - 7, c, al, 11);
+        const dy = m.y > 0.9 ? 16 : -7;
+        tag(ctx, th, fr.X(m.x) + off, fr.Y(m.y) + dy, m.name, c, al, 11);
       }
 
       /* Ponto de operação arrastável. */
@@ -100,7 +120,7 @@
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvHarm);
       P.clear(ctx, w, h);
-      const fr = P.frame(ctx, w, h, 0, 4, 0, 1, { l: 30, r: 10, t: 14, b: 30 });
+      const fr = P.frame(ctx, w, h, 0, 4, 0, 1, { l: 30, r: 10, t: 30, b: 30 });
       P.axes(ctx, fr, { yticks: [0, 0.5, 1] });
 
       const r = harmonic();
@@ -134,7 +154,15 @@
       ctx.lineTo(fr.X(4), ym);
       ctx.stroke();
       ctx.setLineDash([]);
-      P.mathText(ctx, 'média aritmética = ' + fm(r.mean), fr.X(0.05), ym - 5, th.comment, 'left', 10);
+      /* Legenda no topo do canvas, fora da área das barras e dos seus valores. */
+      ctx.strokeStyle = th.comment;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(fr.X(0.05), 12);
+      ctx.lineTo(fr.X(0.45), 12);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      P.mathText(ctx, 'média aritmética = ' + fm(r.mean), fr.X(0.55), 15, th.comment, 'left', 10);
     }
 
     function updateReadout() {
@@ -162,6 +190,7 @@
       redraw();
     });
     cvPar.addEventListener('pointerup', () => { dragging = false; });
+    cvPar.addEventListener('pointercancel', () => { dragging = false; });
 
     for (const sl of slS) sl.addEventListener('input', redraw);
     btnReset.addEventListener('click', () => {

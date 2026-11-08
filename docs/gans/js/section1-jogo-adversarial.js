@@ -39,6 +39,17 @@
       }
     }
 
+    /* Fundo semitransparente atrás de um rótulo curto. */
+    function pill(ctx, th, x, y, text, align) {
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.8;
+      ctx.fillRect(x0 - 3, y - 11, tw + 6, 15);
+      ctx.globalAlpha = 1;
+    }
+
     function reset() {
       rng = U.mulberry32(seed);
       theta = theta0;
@@ -104,7 +115,7 @@
       const YMAX = 0.55;
       const fr = P.frame(ctx, w, h, XMIN, XMAX, 0, YMAX);
       frDist = fr;
-      P.axes(ctx, fr, { xlabel: 'x', ylabel: 'densidade', xticks: [-4, 0, 4, 7, 12], yticks: [0, 0.2, 0.4] });
+      P.axes(ctx, fr, { ylabel: 'densidade', xticks: [-4, 0, 4, 7, 12], yticks: [0, 0.2, 0.4] });
 
       /* minibatches como histogramas */
       P.histogram(ctx, fr, realBatch, 36, th.cyan, { alpha: 0.18 });
@@ -124,9 +135,15 @@
       P.line(ctx, fr, xs, dd, th.purple, { width: 2, dash: [6, 3] });
 
       /* eixo da direita para a sigmóide (0 a 1) */
+      pill(ctx, th, fr.X(XMAX) - 4, fr.Y(YMAX) + 12, '1', 'right');
       P.label(ctx, fr.X(XMAX) - 4, fr.Y(YMAX) + 12, '1', th.purple, 'right');
+      pill(ctx, th, fr.X(XMAX) - 4, fr.Y(YMAX / 2) + 4, '0.5', 'right');
       P.label(ctx, fr.X(XMAX) - 4, fr.Y(YMAX / 2) + 4, '0.5', th.purple, 'right');
+      pill(ctx, th, fr.X(XMAX) - 4, fr.Y(0) - 4, '0', 'right');
       P.label(ctx, fr.X(XMAX) - 4, fr.Y(0) - 4, '0', th.purple, 'right');
+      /* Rótulo do eixo x à esquerda do eixo da direita, para não se sobreporem. */
+      pill(ctx, th, fr.X(XMAX) - 18, fr.Y(0) - 8, 'x', 'right');
+      P.label(ctx, fr.X(XMAX) - 18, fr.Y(0) - 8, 'x', th.comment, 'right');
 
       /* marcador arrastável de θ */
       ctx.beginPath();
@@ -138,8 +155,11 @@
       ctx.stroke();
       P.label(ctx, fr.X(theta) + 8, fr.Y(0) - 8, 'θ', th.orange);
 
+      pill(ctx, th, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, 'P(x) real');
       P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, 'P(x) real', th.cyan);
+      pill(ctx, th, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'P*(x) gerada');
       P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'P*(x) gerada', th.orange);
+      pill(ctx, th, fr.X(XMIN) + 8, fr.Y(YMAX) + 42, 'σ(f[x,ϕ])');
       P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 42, 'σ(f[x,ϕ])', th.purple);
     }
 
@@ -184,13 +204,15 @@
       if (done()) stopRun();
     }
 
+    /* Arrastar θ pausa o treino e move o ponto atual sem contar como passo do gerador. */
     cvDist.addEventListener('pointerdown', (e) => {
       if (!frDist) return;
+      stopRun();
       dragging = true;
       cvDist.setPointerCapture(e.pointerId);
       const r = cvDist.getBoundingClientRect();
       theta = Math.max(XMIN + 1, Math.min(XMAX - 1, frDist.invX(e.clientX - r.left)));
-      hist.push(theta);
+      hist[hist.length - 1] = theta;
       sampleBatches();
       redraw();
     });

@@ -234,14 +234,17 @@
       if (running) { stopRun(); return; }
       running = true;
       accT = 0;
-      steps = 0;
       btnRun.textContent = '⏸ Pausar';
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => {
       stopRun();
       mu = 1; sigma = 0.5; steps = 0;
+      wMode2 = 0.5;
+      slW.value = wMode2;
+      $('s3-w-val').textContent = wMode2.toFixed(2);
       syncSliders();
+      rebuildData();
       rebuildCurve();
       redraw();
     });

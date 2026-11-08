@@ -56,12 +56,12 @@
         similaridade do cosseno
         <span class="formula">cosθ = (u·v)/(‖u‖‖v‖)</span>.
         Como o cosseno só depende da direção, a comparação é feita sobre os vetores
-        normalizados <span class="formula">û = u/‖u‖</span> e
-        <span class="formula">v̂ = v/‖v‖</span>, que vivem na circunferência de raio 1.
+        normalizados <span class="formula">ũ = u/‖u‖</span> e
+        <span class="formula">ṽ = v/‖v‖</span>, que vivem na circunferência de raio 1.
         Arraste as pontas de <span class="formula">u</span> (ciano) e
         <span class="formula">v</span> (laranja): o arco mostra o ângulo
         <span class="formula">θ</span> entre eles e os pontos na circunferência são
-        <span class="formula">û</span> e <span class="formula">v̂</span>.
+        <span class="formula">ũ</span> e <span class="formula">ṽ</span>.
       </p>
       <div class="panel">
         <div class="controls">
@@ -70,7 +70,7 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Plano com u, v, o arco do ângulo θ e os normalizados û, v̂ na circunferência (arraste as pontas)</p>
+            <p class="canvas-caption">Plano com u, v, o arco do ângulo θ e os normalizados ũ, ṽ na circunferência (arraste as pontas)</p>
             <canvas id="s1-plane"></canvas>
           </div>
           <div class="canvas-box">
@@ -81,7 +81,7 @@
         <p class="demo-text small">
           💡 Quando <span class="formula">u</span> e <span class="formula">v</span> apontam
           para o mesmo lado, <span class="formula">cosθ</span> se aproxima de 1 e os pontos
-          <span class="formula">û</span>, <span class="formula">v̂</span> quase coincidem.
+          <span class="formula">ũ</span>, <span class="formula">ṽ</span> quase coincidem.
           Em ângulo reto o produto interno zera (<span class="formula">cosθ = 0</span>) e em
           direções opostas <span class="formula">cosθ = −1</span>. Aumentar o comprimento de um
           vetor muda <span class="formula">‖u‖‖v‖</span> e <span class="formula">u·v</span> na
@@ -98,8 +98,8 @@
       <p class="demo-text">
         No treino contrastivo um lote traz <span class="formula">N</span> imagens e
         <span class="formula">N</span> textos, codificados como vetores unitários
-        <span class="formula">û<sub>i</sub></span> e <span class="formula">v̂<sub>j</sub></span>.
-        A matriz de similaridade <span class="formula">S<sub>ij</sub> = û<sub>i</sub>·v̂<sub>j</sub></span>
+        <span class="formula">ũ<sub>i</sub></span> e <span class="formula">ṽ<sub>j</sub></span>.
+        A matriz de similaridade <span class="formula">S<sub>ij</sub> = ũ<sub>i</sub>·ṽ<sub>j</sub></span>
         guarda o cosseno de cada par. Os pares corretos ficam na diagonal
         (os <span class="formula">N</span> positivos) e todo o resto são os
         <span class="formula">N(N−1)</span> negativos. Arraste os pontos nas duas
@@ -115,18 +115,18 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Vetores unitários: imagens û<sub>i</sub> (ciano) e textos v̂<sub>j</sub> (laranja) nas duas circunferências (arraste)</p>
+            <p class="canvas-caption">Vetores unitários: imagens ũ<sub>i</sub> (ciano) e textos ṽ<sub>j</sub> (laranja) nas duas circunferências (arraste)</p>
             <canvas id="s2-circles"></canvas>
           </div>
           <div class="canvas-box square">
-            <p class="canvas-caption">Matriz S<sub>ij</sub> = û<sub>i</sub>·v̂<sub>j</sub>: linhas são imagens, colunas são textos, a diagonal (verde) são os positivos</p>
+            <p class="canvas-caption">Matriz S<sub>ij</sub> = ũ<sub>i</sub>·ṽ<sub>j</sub>: linhas são imagens, colunas são textos, a diagonal (verde) são os positivos</p>
             <canvas id="s2-heat"></canvas>
           </div>
         </div>
         <p class="demo-text small">
           💡 O objetivo do treino é deixar a diagonal alta (positivos com cosseno perto de 1)
           e o resto baixo (negativos com cosseno perto de 0 ou negativo). Alinhe
-          <span class="formula">û<sub>1</sub></span> com <span class="formula">v̂<sub>1</sub></span>:
+          <span class="formula">ũ<sub>1</sub></span> com <span class="formula">ṽ<sub>1</sub></span>:
           a célula <span class="formula">S<sub>11</sub></span> acende. Gire um texto para perto
           de outra imagem e um negativo fora da diagonal vai brilhar, exatamente o que a perda
           contrastiva quer evitar.
@@ -145,7 +145,7 @@
         <span class="formula">p<sub>ij</sub> = exp(S<sub>ij</sub>/τ) / Σ<sub>k</sub> exp(S<sub>ik</sub>/τ)</span>.
         Cada imagem deve escolher seu texto (softmax por linha) e cada texto deve escolher sua
         imagem (softmax por coluna). As probabilidades alvo são as da diagonal, e a perda final
-        é <span class="formula">L<sub>CLIP</sub> = ½(L<sub>img→txt</sub> + L<sub>txt→img</sub>)</span>.
+        é <span class="formula">L<sub>CLIP</sub> = ½(L<sub>i→t</sub> + L<sub>t→i</sub>)</span>.
         A temperatura <span class="formula">τ</span> controla o quão afiada fica a distribuição.
         O controle de alinhamento gira cada texto na direção da sua imagem correspondente.
       </p>
@@ -157,6 +157,7 @@
           <label class="slider-label">alinhamento = <span id="s3-align-val">0.30</span>
             <input type="range" id="s3-align" min="0" max="100" value="30" step="1" />
           </label>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -192,12 +193,12 @@
       <p class="demo-text">
         Na classificação zero-shot o classificador é montado na hora da inferência: cada classe
         vira um prompt de texto (por exemplo "uma foto de um gato"), codificado num vetor
-        unitário <span class="formula">v̂<sub>k</sub></span>. Para uma imagem
-        <span class="formula">û</span> calculamos os escores
-        <span class="formula">s<sub>k</sub> = û·v̂<sub>k</sub></span> e aplicamos
+        unitário <span class="formula">ṽ<sub>k</sub></span>. Para uma imagem
+        <span class="formula">ũ</span> calculamos os escores
+        <span class="formula">s<sub>k</sub> = ũ·ṽ<sub>k</sub></span> e aplicamos
         <span class="formula">softmax(s<sub>k</sub>/τ)</span> para obter a probabilidade de
         cada classe. A predição é o <span class="formula">argmax</span>. Arraste a imagem
-        <span class="formula">û</span> e os prompts e veja a predição mudar.
+        <span class="formula">ũ</span> e os prompts e veja a predição mudar.
       </p>
       <div class="panel">
         <div class="controls">
@@ -209,7 +210,7 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Imagem û (ciano) e os prompts de classe v̂<sub>k</sub> na circunferência (arraste qualquer um)</p>
+            <p class="canvas-caption">Imagem ũ (ciano) e os prompts de classe ṽ<sub>k</sub> na circunferência (arraste qualquer um)</p>
             <canvas id="s4-circle"></canvas>
           </div>
           <div class="canvas-box">
@@ -219,7 +220,7 @@
         </div>
         <p class="demo-text small">
           💡 Nenhum peso foi treinado para essas classes: o classificador surge das comparações
-          de cosseno na inferência. Aproxime <span class="formula">û</span> de um prompt e ele
+          de cosseno na inferência. Aproxime <span class="formula">ũ</span> de um prompt e ele
           vence; coloque a imagem entre dois prompts e baixe <span class="formula">τ</span> para
           ver a decisão ficar mais agressiva, com quase toda a massa na classe mais próxima.
         </p>

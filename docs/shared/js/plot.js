@@ -3,6 +3,15 @@
   'use strict';
   window.DL = window.DL || {};
 
+  /* O CSS deixa os canvases com touch-action: pan-y (a página rola ao tocar
+     num gráfico estático). Um canvas que registra arraste recebe touch-action:
+     none automaticamente, para que o arraste não dispute com a rolagem. */
+  const canvasAdd = HTMLCanvasElement.prototype.addEventListener;
+  HTMLCanvasElement.prototype.addEventListener = function (type) {
+    if (type === 'pointerdown' || type === 'mousedown' || type === 'touchstart') this.style.touchAction = 'none';
+    return canvasAdd.apply(this, arguments);
+  };
+
   let themeCache = null;
   const redrawCallbacks = [];
 
@@ -117,6 +126,27 @@
     }
   }
 
+  /* Largura aproximada de um texto no estilo de mathText (sem os marcadores de subscrito). */
+  function textWidth(ctx, text, size) {
+    ctx.font = (size || 11) + 'px sans-serif';
+    return ctx.measureText(String(text).replace(/[_{}]/g, '')).width;
+  }
+
+  /* Texto com uma pílula de fundo na cor do canvas, para rótulos que caem
+     sobre curvas, pontos ou mapas de calor. Mesma assinatura de mathText. */
+  function pill(ctx, text, x, y, color, align, size) {
+    size = size || 11;
+    const tw = textWidth(ctx, text, size);
+    let x0 = x - 3;
+    if (align === 'center') x0 = x - tw / 2 - 3;
+    else if (align === 'right') x0 = x - tw - 3;
+    ctx.fillStyle = theme().bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    mathText(ctx, text, x, y, color, align, size);
+  }
+
   function axes(ctx, fr, opts) {
     opts = opts || {};
     const t = theme();
@@ -130,14 +160,16 @@
     ctx.stroke();
     /* Rótulo do eixo x no canto inferior direito, dentro da área do
        gráfico, para não colidir com os ticks nem com marcadores. */
+    /* Os rótulos ficam dentro da área do gráfico, então levam uma pílula de
+       fundo para continuarem legíveis quando os dados chegam ao canto. */
     if (opts.xlabel) {
-      mathText(ctx, opts.xlabel, fr.X(fr.xmax) - 4, fr.Y(fr.ymin) - 8, t.comment, 'right');
+      pill(ctx, opts.xlabel, fr.X(fr.xmax) - 4, fr.Y(fr.ymin) - 8, t.comment, 'right');
     }
     if (opts.ylabel) {
       ctx.save();
       ctx.translate(12, fr.Y((fr.ymin + fr.ymax) / 2));
       ctx.rotate(-Math.PI / 2);
-      mathText(ctx, opts.ylabel, 0, 0, t.comment, 'center');
+      pill(ctx, opts.ylabel, 0, 0, t.comment, 'center');
       ctx.restore();
     }
     ctx.fillStyle = t.comment;
@@ -156,9 +188,14 @@
     }
   }
 
+  /* Rótulo de tick: usa o menor número de casas (até 3) que reproduz o valor,
+     para que 0.35 e 1.05 não virem "0.3" e "1.1"; cai em 2 casas quando não dá. */
   function fmt(v) {
     if (Math.abs(v) >= 100 || v === Math.round(v)) return String(Math.round(v));
-    return v.toFixed(Math.abs(v) < 0.1 ? 2 : 1);
+    for (let d = 1; d <= 3; d++) {
+      if (Math.abs(parseFloat(v.toFixed(d)) - v) < 1e-9) return v.toFixed(d);
+    }
+    return v.toFixed(2);
   }
 
   function line(ctx, fr, xs, ys, color, opts) {
@@ -257,5 +294,5 @@
     ];
   }
 
-  DL.plot = { theme, onRedraw, redrawAll, rgb, setup, observeResize, frame, clear, axes, line, scatter, histogram, heatmap, label, mathText, viridis };
+  DL.plot = { theme, onRedraw, redrawAll, rgb, setup, observeResize, frame, clear, axes, line, scatter, histogram, heatmap, label, mathText, viridis, pill, textWidth };
 })();

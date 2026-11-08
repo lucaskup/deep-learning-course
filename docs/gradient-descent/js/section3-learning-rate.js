@@ -1,19 +1,62 @@
-/* Seção 3: taxa de aprendizado η em uma função 1D não convexa.
-   f(θ) = (θ⁴ − 3θ² + θ)/4 tem mínimo global em θ ≈ −1.30 e local em θ ≈ 1.13. */
+/* Seção 3: taxa de aprendizado η em 1D. Duas paisagens: a convexa ℒ = θ²
+   dos slides (θ₀ = 2, presets η = 0.02 / 0.3 / 1.1) e a não convexa
+   f(θ) = (θ⁴ − 3θ² + θ)/4, com mínimo global em θ ≈ −1.30 e local em θ ≈ 1.13. */
 (function () {
   'use strict';
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
-  const XMIN = -2.5, XMAX = 2.5, YMIN = -1.3, YMAX = 6;
   const MAX_STEPS = 300, TRAIL = 40;
-
-  function f(x) { return (x * x * x * x - 3 * x * x + x) / 4; }
-  function df(x) { return x * x * x - 1.5 * x + 0.25; }
+  const MODES = {
+    convex: {
+      f: (x) => x * x, df: (x) => 2 * x,
+      xmin: -4.6, xmax: 4.6, ymin: -1, ymax: 19, x0: 2,
+      xticks: [-4, -2, 0, 2, 4], yticks: [0, 5, 10, 15], lossCap: 20, tan: 1.2, label: 'ℒ(θ) = θ²',
+    },
+    nonconvex: {
+      f: (x) => (x * x * x * x - 3 * x * x + x) / 4, df: (x) => x * x * x - 1.5 * x + 0.25,
+      xmin: -2.5, xmax: 2.5, ymin: -1.3, ymax: 6, x0: 2.3,
+      xticks: [-2, -1, 0, 1, 2], yticks: [0, 2, 4, 6], lossCap: 8, tan: 0.65, label: 'f(θ) = (θ⁴ − 3θ² + θ)/4',
+    },
+  };
+  let mode = MODES.nonconvex;
+  let XMIN = mode.xmin, XMAX = mode.xmax, YMIN = mode.ymin, YMAX = mode.ymax;
+  const f = (x) => mode.f(x);
+  const df = (x) => mode.df(x);
 
   function init() {
     const P = DL.plot;
     const $ = (id) => document.getElementById(id);
+
+    /* Rótulo sobre fundo opaco (legível sobre heatmap, curvas e pontos);
+       com fr, fica dentro do retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr, size) {
+      const th = P.theme();
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const lead = align === 'center' ? tw / 2 : align === 'right' ? tw : 0;
+      if (fr) {
+        x = Math.max(fr.X(fr.xmin) + lead + 4, Math.min(fr.X(fr.xmax) - (tw - lead) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + size + 3, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x - lead - 3, y - size + 1, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+    /* Fundo opaco atrás do rótulo do eixo x que P.axes desenha dentro do
+       gráfico (sobre o amarelo do viridis o texto some). */
+    function xlabelPill(ctx, fr, text) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(fr.X(fr.xmax) - 7 - tw, fr.Y(fr.ymin) - 18, tw + 6, 14);
+      ctx.globalAlpha = 1;
+    }
 
     const cvFn = $('s3-fn'), cvLoss = $('s3-loss');
     const slEta = $('s3-eta');
@@ -21,9 +64,10 @@
 
     /* Slider em escala log: η ∈ [0.001, 1.2] */
     const sliderToEta = (v) => 0.001 * Math.pow(1200, v / 100);
+    const etaToSlider = (e) => 100 * Math.log(e / 0.001) / Math.log(1200);
 
     let eta = sliderToEta(+slEta.value);
-    let x0 = 2.3;
+    let x0 = mode.x0;
     let hist = [x0];
     let diverged = false;
     let running = false, acc = 0;
@@ -77,7 +121,7 @@
       P.clear(ctx, w, h);
       const fr = P.frame(ctx, w, h, XMIN, XMAX, YMIN, YMAX);
       frFn = fr;
-      P.axes(ctx, fr, { xlabel: 'θ', ylabel: 'f(θ)', xticks: [-2, -1, 0, 1, 2], yticks: [0, 2, 4, 6] });
+      P.axes(ctx, fr, { xlabel: 'θ', ylabel: 'f(θ)', xticks: mode.xticks, yticks: mode.yticks });
 
       const xs = [], ys = [];
       for (let x = XMIN; x <= XMAX + 1e-9; x += 0.02) { xs.push(x); ys.push(f(x)); }
@@ -93,7 +137,7 @@
       const xc = last();
       if (isFinite(xc)) {
         /* Tangente no ponto atual */
-        const g = df(xc), t0 = xc - 0.65, t1 = xc + 0.65;
+        const g = df(xc), t0 = xc - mode.tan, t1 = xc + mode.tan;
         P.line(ctx, fr, [t0, t1], [f(xc) + g * (t0 - xc), f(xc) + g * (t1 - xc)],
           th.orange, { dash: [5, 4], width: 1.6 });
         /* Bola no iterado atual (arrastável) */
@@ -107,9 +151,9 @@
       }
       ctx.restore();
 
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, 'f(θ)', th.purple);
-      P.label(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'tangente f′(θ_k)', th.orange);
-      if (diverged) P.label(ctx, fr.X(0), fr.Y(YMAX) + 18, 'divergiu!', th.red, 'center');
+      pill(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 14, mode.label, th.purple);
+      pill(ctx, fr.X(XMIN) + 8, fr.Y(YMAX) + 28, 'tangente f′(θ_k)', th.orange);
+      if (diverged) pill(ctx, fr.X(0), fr.Y(YMAX) + 18, 'divergiu!', th.red, 'center');
     }
 
     function drawLoss() {
@@ -121,7 +165,7 @@
       const vals = hist.map((x) => f(x));
       let vmax = 0;
       for (const v of vals) if (isFinite(v)) vmax = Math.max(vmax, Math.min(v, 50));
-      const ymax = Math.max(1, Math.min(8, vmax * 1.08));
+      const ymax = Math.max(1, Math.min(mode.lossCap, vmax * 1.08));
       const fr = P.frame(ctx, w, h, 0, kmax, -1.2, ymax);
       P.axes(ctx, fr, {
         xlabel: 'k', ylabel: 'f(θ_k)',
@@ -204,6 +248,31 @@
       eta = sliderToEta(+slEta.value);
       $('s3-eta-val').textContent = eta.toFixed(3);
     });
+    /* Presets de η dos três painéis dos slides. */
+    for (const b of document.querySelectorAll('[data-s3-eta]')) {
+      b.addEventListener('click', () => {
+        eta = +b.dataset.s3Eta;
+        slEta.value = Math.round(etaToSlider(eta));
+        $('s3-eta-val').textContent = eta.toFixed(3);
+        stopRun();
+        hist = [x0];
+        diverged = false;
+        redraw();
+      });
+    }
+    function setMode(name) {
+      stopRun();
+      mode = MODES[name];
+      XMIN = mode.xmin; XMAX = mode.xmax; YMIN = mode.ymin; YMAX = mode.ymax;
+      x0 = mode.x0;
+      hist = [x0];
+      diverged = false;
+      $('s3-tab-convex').classList.toggle('active', name === 'convex');
+      $('s3-tab-nonconvex').classList.toggle('active', name === 'nonconvex');
+      redraw();
+    }
+    $('s3-tab-convex').addEventListener('click', () => setMode('convex'));
+    $('s3-tab-nonconvex').addEventListener('click', () => setMode('nonconvex'));
 
     $('s3-eta-val').textContent = eta.toFixed(3);
     redraw();

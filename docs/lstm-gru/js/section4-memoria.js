@@ -47,6 +47,21 @@
       }
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawTimeline() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvTime);
@@ -73,9 +88,8 @@
       P.line(ctx, fr, ks, hr, th.pink, { width: 1.8 });
       P.line(ctx, fr, ks, cs, th.orange, { width: 2.4 });
       P.scatter(ctx, fr, [[T, cs[T]], [T, hr[T]]], th.fg, { r: 3, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 14, 'bit x_1', th.purple);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 28, 'c_t (LSTM)', th.orange);
-      P.label(ctx, fr.X(0) + 8, fr.Y(ym) + 42, 'h_t (RNN)', th.pink);
+      legendBox(ctx, th, fr.X(0) + 8, fr.Y(ym), [
+        ['bit x_1', th.purple], ['c_t (LSTM)', th.orange], ['h_t (RNN)', th.pink]]);
     }
 
     function drawGates() {
@@ -93,8 +107,7 @@
       for (let k = 1; k <= T; k++) ks.push(k);
       P.line(ctx, fr, ks, fs.slice(1), th.cyan, { width: 2 });
       P.line(ctx, fr, ks, is.slice(1), th.purple, { width: 2 });
-      P.label(ctx, fr.X(T) - 60, fr.Y(1.08) + 14, 'f_t', th.cyan);
-      P.label(ctx, fr.X(T) - 32, fr.Y(1.08) + 14, 'i_t', th.purple);
+      legendBox(ctx, th, fr.X(T) - 8, fr.Y(1.08), [['f_t', th.cyan], ['i_t', th.purple]], 'right');
     }
 
     function verdict(v) {

@@ -6,6 +6,7 @@
 
   const N = 80;
   const HIST_WINDOW = 400;
+  const MAX_UPDATES = 2000;   /* teto do treino animado no caso não separável */
   const MODES = {
     sep: { dist: 3.2, noise: 0.7, range: 4.2 },
     nonsep: { dist: 1.1, noise: 0.95, range: 3.2 },
@@ -23,7 +24,7 @@
 
     let seed = 7, mode = 'sep';
     let data = null, ys = null, thetaInit = null, theta = null;
-    let cursor = 0, updates = 0, errHist = [], lastUpd = null, converged = false;
+    let cursor = 0, updates = 0, errHist = [], lastUpd = null, converged = false, capped = false;
     let training = false, acc = 0;
 
     function eta() { return +slEta.value; }
@@ -48,7 +49,7 @@
     function resetTraining() {
       stopTraining();
       theta = thetaInit.slice();
-      cursor = 0; updates = 0; lastUpd = null; converged = false;
+      cursor = 0; updates = 0; lastUpd = null; converged = false; capped = false;
       errHist = [countErrors()];
       updateStatus();
       drawPlane();
@@ -80,7 +81,11 @@
     function updateStatus() {
       $('s3-status').textContent = 'atualizações: ' + updates +
         ' · mal classificados: ' + errHist[errHist.length - 1] + ' / ' + N +
-        (converged ? ' · convergiu ✓' : '');
+        (converged ? ' · convergiu ✓' : '') +
+        (capped ? ' · parado em ' + MAX_UPDATES + ' atualizações: o PLA não converge aqui' : '');
+      /* Depois de convergir (ou do teto) não há mais passo a dar. */
+      btnTrain.disabled = converged || capped;
+      btnStep.disabled = converged || capped;
     }
 
     function arrow(ctx, fr, x0, y0, x1, y1, color, width, alpha) {
@@ -103,6 +108,24 @@
       ctx.closePath();
       ctx.fill();
       ctx.restore();
+    }
+
+    /* Rótulo sobre fundo opaco, limitado ao retângulo do gráfico. */
+    function pill(ctx, x, y, text, color, align, fr) {
+      const th = P.theme();
+      ctx.font = '11px sans-serif';
+      const tw = ctx.measureText(text).width;
+      if (fr) {
+        const half = align === 'center' ? tw / 2 : 0;
+        x = Math.max(fr.X(fr.xmin) + half + 4, Math.min(fr.X(fr.xmax) - (align === 'center' ? half : tw) - 4, x));
+        y = Math.max(fr.Y(fr.ymax) + 14, Math.min(fr.Y(fr.ymin) - 6, y));
+      }
+      const x0 = align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x;
+      ctx.fillStyle = th.card;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - 10, tw + 6, 14);
+      ctx.globalAlpha = 1;
+      P.label(ctx, x, y, text, color, align);
     }
 
     function drawPlane() {
@@ -148,8 +171,6 @@
         arrow(ctx, fr, s * o[1], s * o[2], s * t[1], s * t[2], th.pink, 2);
         arrow(ctx, fr, 0, 0, s * t[1], s * t[2], th.green, 2.4);
         const mx = s * (o[1] + t[1]) / 2, my = s * (o[2] + t[2]) / 2;
-        P.label(ctx, fr.X(mx) + 8, fr.Y(my), 'η·y·x', th.pink);
-        P.label(ctx, fr.X(s * t[1]) + 8, fr.Y(s * t[2]) - 6, 'θ novo', th.green);
         /* Destaque do ponto mal classificado usado na atualização */
         const p = data[lastUpd.i];
         ctx.strokeStyle = th.red;
@@ -157,10 +178,28 @@
         ctx.beginPath();
         ctx.arc(fr.X(p[0]), fr.Y(p[1]), 8, 0, 2 * Math.PI);
         ctx.stroke();
+        ctx.restore();
+        /* Rótulos sobre fundo opaco, desenhados por cima da nuvem de pontos. */
+        /* η·y·x à esquerda e abaixo do meio da contribuição, θ novo à direita e
+           acima da ponta: não se cobrem mesmo quando a atualização é pequena */
+        pill(ctx, fr.X(mx) - 8, fr.Y(my) + 14, 'η·y·x', th.pink, 'right', fr);
+        pill(ctx, fr.X(s * t[1]) + 8, fr.Y(s * t[2]) - 6, 'θ novo', th.green, 'left', fr);
+        return;
       } else if (normW > 1e-6) {
         const s = (0.45 * R) / Math.max(0.6, normW);
         arrow(ctx, fr, 0, 0, s * t[1], s * t[2], th.green, 2.4);
-        P.label(ctx, fr.X(s * t[1]) + 8, fr.Y(s * t[2]) - 6, '(θ₁, θ₂)', th.green);
+        ctx.restore();
+        /* Rótulo logo além da ponta da seta, sobre um fundo opaco, para não
+           sumir na nuvem de pontos. */
+        const ux = t[1] / normW, uy = t[2] / normW;
+        ctx.font = '11px sans-serif';
+        const tw = ctx.measureText('(θ₁, θ₂)').width;
+        /* Centro do rótulo afastado da ponta na direção da seta, mais meia
+           largura do texto, para o fundo não cobrir a ponta. */
+        const lx = fr.X(s * t[1]) + ux * (12 + tw / 2);
+        const ly = fr.Y(s * t[2]) - uy * 14 + 4;
+        pill(ctx, lx, ly, '(θ₁, θ₂)', th.green, 'center', fr);
+        return;
       }
       ctx.restore();
     }
@@ -187,6 +226,7 @@
       P.line(ctx, fr, [start, end], [0, 0], th.line, { dash: [3, 4], width: 1 });
       P.line(ctx, fr, xs, vals, th.purple, { width: 2 });
       if (converged) P.label(ctx, fr.X(end) - 6, fr.Y(0) - 8, 'convergiu: 0 erros', th.green, 'right');
+      else if (capped) P.label(ctx, fr.X(end) - 6, fr.Y(fr.ymax) + 12, 'não converge: erros oscilam', th.orange, 'right');
     }
 
     function redrawAllLocal() {
@@ -203,6 +243,11 @@
         const ok = step();
         changed = true;
         if (!ok) { stopTraining(); break; }
+        if (mode === 'nonsep' && updates >= MAX_UPDATES) {
+          capped = true;
+          stopTraining();
+          break;
+        }
       }
       if (changed) { updateStatus(); redrawAllLocal(); }
     }

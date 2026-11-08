@@ -10,8 +10,10 @@
   const TOL = 0.03;
 
   function phi(z) {
-    const t = 1 / (1 + 0.3275911 * Math.abs(z));
-    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+    /* Φ(z) = ½(1 + erf(z/√2)); a aproximação abaixo é de erf(x), x = |z|/√2. */
+    const x = Math.abs(z) / Math.SQRT2;
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     const e = 0.5 * (1 + y);
     return z >= 0 ? e : 1 - e;
   }
@@ -63,8 +65,9 @@
       const { ctx, w, h } = DL.plot.setup(cv);
       const t = DL.plot.theme();
       DL.plot.clear(ctx, w, h);
-      const fr = DL.plot.frame(ctx, w, h, 0, 1, 0, YMAX);
-      DL.plot.axes(ctx, fr, { xlabel: 'escore s', xticks: [0, 0.5, 1] });
+      const fr = DL.plot.frame(ctx, w, h, 0, 1, 0, YMAX, { l: 38, r: 10, t: 10, b: 36 });
+      DL.plot.axes(ctx, fr, { xticks: [0, 0.5, 1] });
+      DL.plot.label(ctx, fr.X(1), fr.Y(0) + 28, 'escore s', t.comment, 'right');
 
       const f0 = (x) => (1 - p) * gauss(x, M0);
       const f1 = (x) => p * gauss(x, M1);
@@ -170,6 +173,7 @@
       cv.addEventListener('pointerdown', (ev) => { dragging = true; cv.setPointerCapture(ev.pointerId); apply(ev); });
       cv.addEventListener('pointermove', (ev) => { if (dragging) apply(ev); });
       cv.addEventListener('pointerup', () => { dragging = false; });
+      cv.addEventListener('pointercancel', () => { dragging = false; });
     }
     attachDrag(cvA, 'ta', () => frA);
     attachDrag(cvB, 'tb', () => frB);

@@ -12,6 +12,19 @@
     const $ = (id) => document.getElementById(id);
     const sched = U.linearSchedule(T, 1e-4, 0.2);
 
+    /* Rótulo sobre uma pílula na cor do fundo, para não se misturar com os dados. */
+    function tag(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     /* ── 3a: kernel ───────────────────────────────────────── */
     const cvTraj = $('s3a-traj'), cvDist = $('s3a-dist');
     let ta = 25, xa = 1.5, seedA = 42;
@@ -76,9 +89,9 @@
       P.histogram(ctx, fr, seq, 36, th.cyan, { alpha: 0.4 });
       P.histogram(ctx, fr, oneShot, 36, th.green, { alpha: 0.4 });
       P.line(ctx, fr, xs, pdf, th.purple, { width: 2.2 });
-      P.label(ctx, fr.X(-3) + 8, 14, 'sequencial (' + K_SIM + ' cadeias)', th.cyan);
-      P.label(ctx, fr.X(-3) + 8, 28, 'kernel, 1 passo (' + M_KERNEL + ')', th.green);
-      P.label(ctx, fr.X(-3) + 8, 42, '𝒩(√α_t·x, 1−α_t)', th.purple);
+      tag(ctx, th, fr.X(-3) + 8, 14, 'sequencial (' + K_SIM + ' cadeias)', th.cyan);
+      tag(ctx, th, fr.X(-3) + 8, 28, 'kernel, 1 passo (' + M_KERNEL + ')', th.green);
+      tag(ctx, th, fr.X(-3) + 8, 42, '𝒩(√α_t·x, 1−α_t)', th.purple);
     }
 
     $('s3a-t').addEventListener('input', (e) => { ta = +e.target.value; $('s3a-t-val').textContent = ta; drawA(); });
@@ -128,9 +141,9 @@
       P.line(ctx, fr, xs, prior, th.orange, { width: 2 });
       P.line(ctx, fr, xs, lik, th.cyan, { width: 2 });
       P.line(ctx, fr, xs, post, th.purple, { width: 2.6 });
-      P.label(ctx, fr.X(-3) + 8, 14, 'prior q(z_{t−1}|x)', th.orange);
-      P.label(ctx, fr.X(-3) + 8, 28, 'verossimilhança q(z_t|z_{t−1}) renorm.', th.cyan);
-      P.label(ctx, fr.X(-3) + 8, 42, 'posterior q(z_{t−1}|z_t, x)', th.purple);
+      tag(ctx, th, fr.X(-3) + 8, 14, 'prior q(z_{t−1}|x)', th.orange);
+      tag(ctx, th, fr.X(-3) + 8, 28, 'verossimilhança q(z_t|z_{t−1}) renorm.', th.cyan);
+      tag(ctx, th, fr.X(-3) + 8, 42, 'posterior q(z_{t−1}|z_t, x)', th.purple);
 
       /* Marcadores arrastáveis de x e z_t na base do gráfico */
       const y0 = fr.Y(0);

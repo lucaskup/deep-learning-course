@@ -99,6 +99,21 @@
         'k = ' + k + ' · |V| = ' + st.vocab.length + ' · tokens no corpus = ' + st.tokens;
     }
 
+    /* Bloco de legenda com fundo semitransparente, para que o texto continue
+       legível quando barras ou curvas passam por baixo. items: [[texto, cor]]. */
+    function legendBox(ctx, th, x, y, items, align) {
+      ctx.font = '11px sans-serif';
+      let wmax = 0;
+      for (const it of items) wmax = Math.max(wmax, ctx.measureText(it[0].replace(/[_{}]/g, '')).width);
+      const bx = align === 'right' ? x - wmax - 6 : x - 6;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = th.card;
+      ctx.fillRect(bx, y, wmax + 12, 14 * items.length + 6);
+      ctx.restore();
+      items.forEach((it, k) => P.label(ctx, x, y + 14 * (k + 1), it[0], it[1], align || 'left'));
+    }
+
     function drawCurve() {
       const th = P.theme();
       const { ctx, w, h } = P.setup(cvCurve);
@@ -111,8 +126,7 @@
       const st = B.BPE.states[k];
       P.scatter(ctx, fr, [[k, st.tokens]], th.cyan, { r: 4, alpha: 1 });
       P.scatter(ctx, fr, [[k, st.vocab.length]], th.purple, { r: 4, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(100) + 14, 'tokens no corpus', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(100) + 28, '|V|', th.purple);
+      legendBox(ctx, th, fr.X(maxK) - 8, fr.Y(100), [['tokens no corpus', th.cyan], ['|V|', th.purple]], 'right');
     }
 
     function redraw() {

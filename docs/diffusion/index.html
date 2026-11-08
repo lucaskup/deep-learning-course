@@ -56,6 +56,14 @@
         Arraste o tempo e observe a distribuição marginal (roxo) convergir para a
         normal padrão (tracejado).
       </p>
+      <p class="demo-text small">
+        💡 Arraste <span class="formula">t</span> devagar a partir de 0 e acompanhe as três
+        trajetórias destacadas: cada uma segue um caminho aleatório diferente, mas a marginal
+        roxa perde as duas modas e vira a gaussiana tracejada bem antes de
+        <span class="formula">t = T</span>. Na aba 2D, repare que as duas luas se fundem num
+        disco e que os círculos de 1σ e 2σ passam a conter a fração esperada dos pontos; clique
+        em 🎲 para confirmar que o destino final não depende da amostra inicial.
+      </p>
       <div class="panel">
         <div class="controls">
           <div class="tabs" role="tablist">
@@ -98,6 +106,18 @@
         <em>sinal</em> (<span class="formula">√α<sub>t</sub></span>) e quanto <em>ruído</em>
         (<span class="formula">√(1−α<sub>t</sub>)</span>) compõem
         <span class="formula">z<sub>t</sub> = √α<sub>t</sub>·x + √(1−α<sub>t</sub>)·ε</span>.
+        Ao mudar <span class="formula">T</span>, o painel redefine
+        <span class="formula">β<sub>max</sub> = min(0,2; 20/T)</span>, para que o ruído total
+        acumulado fique comparável entre horizontes (o DDPM original usa
+        <span class="formula">β<sub>max</sub> = 0,02</span> com <span class="formula">T = 1000</span>).
+      </p>
+      <p class="demo-text small">
+        💡 Compare as abas Linear e Cosseno com o mesmo <span class="formula">T</span>: no
+        schedule linear, <span class="formula">α<sub>t</sub></span> despenca nos primeiros passos
+        e a imagem do gato já está irreconhecível na metade do processo; no cosseno a queda é
+        gradual e o sinal sobrevive por mais tempo. Depois reduza <span class="formula">T</span>
+        para 4 com o preset da aula e confira no readout os valores de
+        <span class="formula">α<sub>t</sub></span> do exemplo numérico dos slides.
       </p>
       <div class="panel">
         <div class="controls">
@@ -109,7 +129,7 @@
             <input type="range" id="s2-T" min="0" max="100" value="35" step="1" />
           </label>
           <label class="slider-label" id="s2-bmax-wrap">β<sub>max</sub> = <span id="s2-bmax-val">0.20</span>
-            <input type="range" id="s2-bmax" min="0.05" max="0.5" value="0.2" step="0.01" />
+            <input type="range" id="s2-bmax" min="0.01" max="0.5" value="0.2" step="0.01" />
           </label>
           <button class="btn-ctl" id="s2-preset" type="button">Exemplo da aula (T=4)</button>
         </div>
@@ -190,7 +210,7 @@
       <div class="panel">
         <div class="controls">
           <label class="slider-label">t = <span id="s3b-t-val">25</span> / 50
-            <input type="range" id="s3b-t" min="2" max="50" value="25" step="1" />
+            <input type="range" id="s3b-t" min="3" max="50" value="25" step="1" />
           </label>
           <span class="readout formula" id="s3b-readout"></span>
         </div>
@@ -221,7 +241,7 @@
     <div class="container">
       <h2 class="section-title">4 · Treine um mini diffusion model ao vivo</h2>
       <p class="demo-text">
-        Uma MLP <span class="formula">g(z, t, c)</span> (13→64→64→2, ~5,6 mil parâmetros) é treinada
+        Uma MLP <span class="formula">g(z, t, c)</span> (13→64→64→2, ≈5,2 mil parâmetros) é treinada
         aqui no navegador com o algoritmo dos slides. O processo de difusão tem
         <span class="formula">T = 50</span> passos, com schedule linear
         <span class="formula">β<sub>t</sub></span> de 10<sup>−4</sup> a 0,2. A cada iteração sorteia-se

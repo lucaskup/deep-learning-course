@@ -12,6 +12,20 @@
     const P = DL.plot, U = DL.utils;
     const $ = (id) => document.getElementById(id);
 
+    /* Rótulo com fundo semitransparente na cor do canvas, para legendas e
+       anotações desenhadas sobre curvas, pontos ou caixas. */
+    function pill(ctx, th, x, y, text, color, align, size) {
+      size = size || 11;
+      ctx.font = size + 'px sans-serif';
+      const tw = ctx.measureText(text.replace(/[_{}]/g, '')).width;
+      const x0 = align === 'right' ? x - tw : align === 'center' ? x - tw / 2 : x;
+      ctx.fillStyle = th.bg;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+      ctx.globalAlpha = 1;
+      P.mathText(ctx, text, x, y, color, align, size);
+    }
+
     const cvVar = $('s4-var'), cvHist = $('s4-hist');
     const slDepth = $('s4-depth');
     const btnSeed = $('s4-seed');
@@ -111,9 +125,9 @@
       P.line(ctx, fr, ks, simBN.vars.map(lg), th.orange, { width: 2 });
       P.scatter(ctx, fr, ks.map((k) => [k, lg(simNo.vars[k])]), th.cyan, { r: 2.6, alpha: 1 });
       P.scatter(ctx, fr, ks.map((k) => [k, lg(simBN.vars[k])]), th.orange, { r: 2.6, alpha: 1 });
-      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 14, 'sem batch norm', th.cyan);
-      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 28, 'com batch norm', th.orange);
-      P.label(ctx, fr.X(0) + 8, fr.Y(fr.ymax) + 42, 'referência 2^k', th.green);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(fr.ymax) + 14, 'sem batch norm', th.cyan);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(fr.ymax) + 28, 'com batch norm', th.orange);
+      pill(ctx, th, fr.X(0) + 8, fr.Y(fr.ymax) + 42, 'referência 2^k', th.green);
     }
 
     function drawHist() {
@@ -126,14 +140,17 @@
       const ymax = 0.55 / sdBN;
       const fr = P.frame(ctx, w, h, -R, R, 0, ymax);
       P.axes(ctx, fr, {
-        xlabel: 'ativação', ylabel: 'densidade',
+        ylabel: 'densidade',
         xticks: [-Math.round(R * 0.75), 0, Math.round(R * 0.75)],
         yticks: [],
       });
       P.histogram(ctx, fr, simNo.final, 60, th.cyan, { alpha: 0.5 });
       P.histogram(ctx, fr, simBN.final, 60, th.orange, { alpha: 0.5 });
-      P.label(ctx, fr.X(-R) + 8, fr.Y(ymax) + 14, 'σ sem BN = ' + sdNo.toFixed(1), th.cyan);
-      P.label(ctx, fr.X(-R) + 8, fr.Y(ymax) + 28, 'σ com BN = ' + sdBN.toFixed(1), th.orange);
+      /* Rótulo do eixo x desenhado depois das barras, com fundo, porque a
+         cauda do histograma sem batch norm chega ao canto inferior direito. */
+      pill(ctx, th, fr.X(R) - 4, fr.Y(0) - 8, 'ativação', th.comment, 'right');
+      pill(ctx, th, fr.X(-R) + 8, fr.Y(ymax) + 14, 'σ sem BN = ' + sdNo.toFixed(1), th.cyan);
+      pill(ctx, th, fr.X(-R) + 8, fr.Y(ymax) + 28, 'σ com BN = ' + sdBN.toFixed(1), th.orange);
     }
 
     function updateReadout() {

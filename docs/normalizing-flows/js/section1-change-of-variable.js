@@ -1,9 +1,23 @@
 /* Seção 1: mudança de variável em 1D, x = f(z) monotônica ajustável sobre
-   z ~ N(0,1), com o termo do jacobiano visível (p_X = p_Z / |f'|). */
+   z ~ N(0,1), mapa generativo x = g(z), com o termo do jacobiano visível
+   (p_X = p_Z / |g'|). */
 (function () {
   'use strict';
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
+
+  /* Rótulo com fundo semitransparente (cor do canvas), legível sobre curvas e heatmaps. */
+  function pillText(ctx, th, text, x, y, color, align, size) {
+    size = size || 11;
+    ctx.font = size + 'px sans-serif';
+    const tw = ctx.measureText(text.replace(/_\{([^}]*)\}/g, '$1').replace(/_(.)/g, '$1')).width;
+    const x0 = align === 'right' ? x - tw : (align === 'center' ? x - tw / 2 : x);
+    ctx.fillStyle = th.bg;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x0 - 3, y - size, tw + 6, size + 4);
+    ctx.globalAlpha = 1;
+    DL.plot.mathText(ctx, text, x, y, color, align, size);
+  }
 
   const ZMIN = -3.5, ZMAX = 3.5, W = 0.7, NSAMP = 3000, NGRID = 400;
 
@@ -72,7 +86,9 @@
       P.line(ctx, fr, g.z, g.pz, th.cyan, { width: 2 });
       /* Marcador z0 */
       P.line(ctx, fr, [z0, z0], [0, 0.48], th.fg, { width: 1, dash: [4, 4], alpha: 0.6 });
-      P.label(ctx, fr.X(z0) + 5, fr.Y(0.45), 'z_0', th.fg);
+      /* Rótulo do marcador: à direita, ou à esquerda quando z0 encosta na borda. */
+      if (z0 > ZMAX - 0.6) P.label(ctx, fr.X(z0) - 5, fr.Y(0.45), 'z_0', th.fg, 'right');
+      else P.label(ctx, fr.X(z0) + 5, fr.Y(0.45), 'z_0', th.fg);
       P.label(ctx, fr.X(ZMIN) + 8, fr.Y(0.5) + 12, 'p_Z(z) = N(0,1)', th.cyan);
     }
 
@@ -84,7 +100,7 @@
       const fr = P.frame(ctx, w, h, ZMIN, ZMAX, xlo, xhi);
       frMap = fr;
       P.axes(ctx, fr, {
-        xlabel: 'z', ylabel: 'x = f(z)',
+        xlabel: 'z', ylabel: 'x = g(z)',
         xticks: [-3, 0, 3],
         yticks: [Math.ceil(xlo), 0, Math.floor(xhi)],
       });
@@ -100,8 +116,11 @@
       ctx.arc(fr.X(z0), fr.Y(x0), 6, 0, 2 * Math.PI);
       ctx.fillStyle = th.fg;
       ctx.fill();
-      P.label(ctx, fr.X(z0) + 9, fr.Y(x0) - 8, "f'(z_0) = " + fp(z0).toFixed(2), th.fg);
-      P.label(ctx, fr.X(ZMIN) + 8, fr.Y(xhi) + 12, 'x = f(z)', th.orange);
+      /* Rótulo da derivada com fundo (fica sobre a curva); muda de lado perto da borda direita. */
+      const dTxt = "g'(z_0) = " + fp(z0).toFixed(2);
+      if (z0 > 1.2) pillText(ctx, th, dTxt, fr.X(z0) - 9, fr.Y(x0) - 8, th.fg, 'right');
+      else pillText(ctx, th, dTxt, fr.X(z0) + 9, fr.Y(x0) - 8, th.fg);
+      P.label(ctx, fr.X(ZMIN) + 8, fr.Y(xhi) + 12, 'x = g(z)', th.orange);
     }
 
     function drawOut() {
@@ -128,9 +147,10 @@
       /* Marcador x0 = f(z0) */
       const x0 = f(z0);
       P.line(ctx, fr, [x0, x0], [0, ymax * 0.95], th.fg, { width: 1, dash: [4, 4], alpha: 0.6 });
-      P.label(ctx, fr.X(x0) + 5, fr.Y(ymax * 0.9), 'x_0', th.fg);
-      P.label(ctx, fr.X(xlo) + 8, fr.Y(ymax) + 12, 'p_X(x) = p_Z(z)/|f′(z)|', th.orange);
-      P.label(ctx, fr.X(xlo) + 8, fr.Y(ymax) + 26, 'sem jacobiano', th.pink);
+      if (x0 > xlo + 0.88 * (xhi - xlo)) P.label(ctx, fr.X(x0) - 5, fr.Y(ymax * 0.9), 'x_0', th.fg, 'right');
+      else P.label(ctx, fr.X(x0) + 5, fr.Y(ymax * 0.9), 'x_0', th.fg);
+      pillText(ctx, th, 'p_X(x) = p_Z(z)/|g′(z)|', fr.X(xlo) + 8, fr.Y(ymax) + 12, th.orange);
+      pillText(ctx, th, 'sem jacobiano', fr.X(xlo) + 8, fr.Y(ymax) + 26, th.pink);
     }
 
     function updateReadout() {
@@ -138,7 +158,7 @@
       const d = fp(z0);
       $('s1-readout').textContent =
         'z₀ = ' + z0.toFixed(2) +
-        ' · f′(z₀) = ' + d.toFixed(2) +
+        ' · g′(z₀) = ' + d.toFixed(2) +
         ' · p_X(x₀) = ' + (U.gaussPdf(z0, 0, 1) / d).toFixed(3) +
         ' · área: com jacobiano = 1.00, sem = ' + g.areaNoJac.toFixed(2);
     }

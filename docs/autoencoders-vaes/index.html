@@ -159,7 +159,7 @@
       <h2 class="section-title">3 · Reparametrization trick</h2>
       <p class="demo-text">
         A amostragem <span class="formula">z* ~ q(z|x,φ)</span> é um nó estocástico no meio da rede,
-        e não dá para fazer backpropagation através de um sorteio. O truque visto em aula reescreve a
+        e não dá para fazer backpropagation através de um sorteio. O truque da reparametrização reescreve a
         amostra como <span class="formula">z* = μ + σ·ε</span> com
         <span class="formula">ε ~ N(0,1)</span> sorteado fora da rede: o gráfico da esquerda mostra
         que isso é só uma reta, com inclinação <span class="formula">σ</span> e intercepto
@@ -218,13 +218,17 @@
       <p class="demo-text">
         A função de custo do VAE é
         <span class="formula">−ELBO = reconstrução + D<sub>KL</sub>[q(z|x,φ) ‖ p(z)]</span>,
-        e para verossimilhança gaussiana a reconstrução é exatamente um MSE, como nos slides.
-        Aqui você treina o VAE com a perda generalizada
+        e para verossimilhança gaussiana a reconstrução é um MSE, como nos slides.
+        Aqui o termo de reconstrução é ponderado,
+        <span class="formula">recon = 6·‖x − x̂‖²</span>, o que equivale a uma verossimilhança
+        gaussiana com <span class="formula">σ² = 1/12</span> (o readout mostra também o MSE sem
+        peso). Você treina o VAE com a perda generalizada
         <span class="formula">recon + β·KL</span> e muda <span class="formula">β</span>
-        durante o treino. Com <span class="formula">β = 1</span> recupera-se o ELBO;
+        durante o treino. Com <span class="formula">β = 1</span> recupera-se o ELBO sob essa
+        verossimilhança;
         com <span class="formula">β = 0</span> sobra só a reconstrução e o modelo vira um AE,
         com σ(x) → 0 e os μ(x) espalhados longe do prior; com <span class="formula">β</span> grande o
-        KL domina e aparece o posterior collapse da aula: <span class="formula">KL → 0</span>,
+        KL domina e aparece o posterior collapse: <span class="formula">KL → 0</span>,
         <span class="formula">μ(x) → 0</span>, <span class="formula">σ(x) → 1</span> para todo
         <span class="formula">x</span>, e o decoder, sem informação em <span class="formula">z</span>,
         reconstrói um borrão perto da média dos dados.
@@ -259,7 +263,7 @@
           💡 Treine com <span class="formula">β = 1</span> até estabilizar e então arraste
           <span class="formula">β</span> para <span class="formula">10</span> sem pausar: a curva
           vermelha (KL) despenca, as marcas de <span class="formula">μ(x)</span> colapsam em zero e as
-          reconstruções cianas se amontoam no centro, o quadro clássico de posterior collapse. Volte
+          reconstruções cianas se amontoam no centro, o quadro de posterior collapse. Volte
           para <span class="formula">β = 0</span> e veja o efeito oposto: a reconstrução melhora, mas o
           posterior agregado descola do prior verde e o latente deixa de ser amostrável. O equilíbrio
           do ELBO é o meio termo que mantém as duas coisas.

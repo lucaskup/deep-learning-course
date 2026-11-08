@@ -26,6 +26,7 @@
     let seed = 7;
 
     let t, thC, thS, lossC, lossS, noise, rng;
+    let divC = false, divS = false; /* trajetória bateu no clamp de ±60 (divergiu) */
     let running = false, acc = 0;
 
     const L = (p) => 0.5 * (p[0] * p[0] + C * p[1] * p[1]);
@@ -55,6 +56,8 @@
       lossS = [L(START)];
       noise = [];
       rng = DL.utils.mulberry32(seed);
+      divC = false;
+      divS = false;
     }
 
     function sgdStep(p, lr, eps) {
@@ -69,6 +72,9 @@
       const eps = noiseAt(t);
       thC = sgdStep(thC, etaMax, eps);
       thS = sgdStep(thS, eta(t), eps);
+      const hit = (p) => Math.abs(p[0]) >= 60 || Math.abs(p[1]) >= 60;
+      if (hit(thC)) divC = true;
+      if (hit(thS)) divS = true;
       lossC.push(L(thC));
       lossS.push(L(thS));
       t++;
@@ -130,12 +136,12 @@
     }
 
     function updateReadout() {
-      const num = (v) => (isFinite(v) ? v.toExponential(1) : '∞');
+      const num = (v, div) => (div || !isFinite(v) ? '∞ (divergiu)' : v.toExponential(1));
       const cur = t < T ? eta(t) : eta(T - 1);
       $('s1-readout').textContent =
         't = ' + t + ' · η_t = ' + cur.toFixed(3) +
-        ' · ℒ const = ' + num(lossC[lossC.length - 1]) +
-        ' · ℒ schedule = ' + num(lossS[lossS.length - 1]);
+        ' · ℒ const = ' + num(lossC[lossC.length - 1], divC) +
+        ' · ℒ schedule = ' + num(lossS[lossS.length - 1], divS);
     }
 
     function redraw() {
