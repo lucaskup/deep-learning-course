@@ -1,0 +1,153 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidade 5}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\\hline
+e & h & b & f & d & c & g & a & f & c \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (e)}
+A associação correta é 1-(ii), 2-(iv), 3-(i), 4-(iii). A GAN treina gerador e discriminador com objetivos opostos (ii). O \textit{normalizing flow} aprende uma bijeção dos dados para uma gaussiana e avalia a densidade pela mudança de variável, $\log p_X(\mathbf{x}) = \log p_Z(f(\mathbf{x})) + \log\left|\det \partial f/\partial \mathbf{x}\right|$ (iv). O VAE maximiza o ELBO, soma de reconstrução e de $-D_{KL}[q(\mathbf{z}\mid\mathbf{x},\boldsymbol{\phi})\,\|\,p(\mathbf{z})]$ (i). O modelo difusor tem um processo de difusão fixo e treina apenas o \textit{decoder} que remove ruído (iii).\\
+\textbf{(a)} troca VAE e \textit{flow}: atribui a mudança de variável ao VAE e o ELBO ao \textit{flow}.
+\textbf{(b)} troca GAN e difusor: a GAN não remove ruído passo a passo, e o difusor não tem rede adversária.
+\textbf{(c)} troca \textit{flow} e difusor: o \textit{flow} é uma bijeção treinada por verossimilhança, sem cadeia de ruído.
+\textbf{(d)} troca GAN e VAE: o VAE não tem jogo adversarial, e a GAN não otimiza reconstrução mais KL.
+\textbf{(f)} troca GAN e \textit{flow}: a GAN não fornece densidade por mudança de variável.
+\textbf{(g)} troca VAE e difusor: o \textit{encoder} do difusor é fixo, enquanto o do VAE é aprendido.
+\textbf{(h)} erra as quatro associações.
+
+\subsection*{Questão 2 \textemdash{} Resposta: (h)}
+O latente tem $8\,192$ dimensões para uma entrada de $4\,096$: o \textit{autoencoder} é \textit{overcomplete} e não há nenhuma outra regularização (ruído ou esparsidade). Nessa condição a rede pode implementar a identidade e reconstruir qualquer entrada com erro próximo de zero, inclusive imagens que nunca viu, então o erro de reconstrução deixa de carregar informação sobre normalidade. A correção direta é recriar o gargalo: reduzir $D_z$ para bem menos que $4\,096$ (também valem ruído na entrada, como no \textit{denoising autoencoder}, ou penalidade de esparsidade).\\
+\textbf{(a)} o erro das anomalias já é próximo de zero, então o \textit{decoder} tem capacidade de sobra; aumentá-la agrava a cópia.
+\textbf{(b)} não existe limiar que separe duas classes com erro igualmente próximo de zero.
+\textbf{(c)} oscilação por taxa de aprendizado alta produziria erro alto e instável, e o sintoma é erro baixo e estável.
+\textbf{(d)} a distância entre códigos não é definida para uma imagem de teste isolada e não ataca a causa, que é a ausência de gargalo.
+\textbf{(e)} treinar com defeitos ensinaria a rede a reconstruí-los bem, o oposto do que o detector precisa.
+\textbf{(f)} a escolha de MSE ou entropia cruzada não impede a solução de cópia quando não há gargalo.
+\textbf{(g)} \textit{posterior collapse} é uma patologia do VAE (KL do posterior contra o \textit{prior}), e o modelo é um \textit{autoencoder} determinístico.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (b)}
+O termo de reconstrução do ELBO é uma esperança sobre $q(\mathbf{z}\mid\mathbf{x},\boldsymbol{\phi})$, estimada com uma amostra $\mathbf{z}^{*}$. Se $\mathbf{z}^{*}$ é sorteado diretamente de $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, a amostragem é um nó estocástico no meio da rede, e o \textit{backpropagation} não tem como derivar a amostra em relação a $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}$: o gradiente da reconstrução para no latente. Com $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}^{*}$, o sorteio fica em $\boldsymbol{\epsilon}^{*} \sim \mathcal{N}(0, \mathbf{I})$, uma distribuição fixa que independe de $\boldsymbol{\phi}$, e $\mathbf{z}^{*}$ é uma função determinística e diferenciável de $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}$. A distribuição de $\mathbf{z}^{*}$ continua sendo $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, e o gradiente flui do \textit{decoder} até $\boldsymbol{\phi}$.\\
+\textbf{(a)} a forma fechada da KL vem de $q$ e do \textit{prior} serem gaussianas, e esse termo já depende de $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}$ sem amostragem; o \textit{trick} atua no termo de reconstrução.
+\textbf{(c)} $\mathbf{z}^{*}$ segue $\mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, a mesma distribuição de antes da reescrita; quem aproxima $q$ do \textit{prior} é o termo KL.
+\textbf{(d)} $\boldsymbol{\epsilon}^{*}$ é sorteado de novo a cada passagem, e a variância de $\mathbf{z}^{*}$ continua sendo $\boldsymbol{\Sigma}$.
+\textbf{(e)} o VAE não usa mudança de variável nem exige inversibilidade; esse é o mecanismo dos \textit{normalizing flows}, e o VAE maximiza um limite inferior de $\log p(\mathbf{x})$.
+\textbf{(f)} o latente continua aleatório por causa de $\boldsymbol{\epsilon}^{*}$; $\mathbf{z}^{*} = \boldsymbol{\mu}$ só ocorreria com $\boldsymbol{\Sigma} = \mathbf{0}$, e receber códigos distintos para o mesmo $\mathbf{x}$ faz parte do treino do VAE.
+\textbf{(g)} \textit{encoder} e \textit{decoder} são atualizados juntos, pelo mesmo ELBO; o \textit{trick} serve para ligar os dois pelo gradiente, e treino alternado é característica das GANs.
+\textbf{(h)} o posterior verdadeiro continua intratável e $q$ apenas o aproxima; o ELBO é limite inferior de $\log p(\mathbf{x})$ independentemente de como o gradiente é estimado.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (f)}
+Lacuna (1): o processo de difusão é uma cadeia de Markov gaussiana totalmente definida pelos hiperparâmetros $\beta_t$; ele não possui parâmetros treináveis. Lacuna (2): no DDPM a rede $g_t[\mathbf{z}_t, \thetav_t]$ é treinada com a perda $\lVert g_t[\mathbf{z}_t,\thetav_t] - \boldsymbol{\epsilon}\rVert^{2}$, isto é, prevê o ruído $\boldsymbol{\epsilon}$ usado pelo kernel para construir $\mathbf{z}_t$. Lacuna (3): a amostragem começa em $\mathbf{z}_T \sim \mathcal{N}(0, \mathbf{I})$ e percorre a cadeia reversa; nenhuma imagem do conjunto de treino é usada na geração.\\
+\textbf{(a), (d), (e), (h)} afirmam que o \textit{encoder} é treinado em conjunto com o \textit{decoder}, o que vale para o VAE, e não para o difusor.
+\textbf{(b), (d), (g), (h)} colocam $\mathbf{z}_{t-1}$ como alvo da rede; essa é a formulação anterior à reparametrização, que o DDPM substitui pela predição de $\boldsymbol{\epsilon}$.
+\textbf{(a), (c), (g), (h)} iniciam a geração em uma imagem do treino, o que descreveria reconstrução, e não geração de uma amostra nova.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} a função de custo do discriminador tem um termo sobre amostras reais e um sobre amostras geradas $g[\mathbf{z}^{(j)}, \thetav]$; o gerador só aparece no segundo, então seu gradiente chega exclusivamente pelas amostras que ele produz. Essa é a razão pela qual regiões sem amostras geradas não produzem gradiente para o gerador.
+
+\textbf{II é correta:} o discriminador ótimo é $D^{*}(\mathbf{x}) = P(\mathbf{x}) / (P(\mathbf{x}) + P^{*}(\mathbf{x}))$; com $P^{*} = P$ ele vale $\tfrac{1}{2}$ em todo ponto, e nenhum dos dois jogadores consegue melhorar: é o equilíbrio de Nash do jogo.
+
+\textbf{III é incorreta:} a GAN é um modelo implícito. O discriminador devolve a probabilidade de uma amostra ser real, que depende da razão $P / (P + P^{*})$, e não o valor de $P(\mathbf{x})$; não há densidade explícita para avaliar.
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)}, \textbf{(b)} excluem uma afirmação correta.
+\textbf{(c)}, \textbf{(e)}, \textbf{(f)}, \textbf{(g)} incluem a afirmação III, que é falsa.
+\textbf{(h)} contradiz I e II.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (c)}
+A KL cai para perto de zero enquanto a reconstrução estaciona em valor alto, e as amostras do \textit{prior} são todas parecidas: é o \textit{posterior collapse}. Um \textit{decoder} de alta capacidade consegue modelar $\mathbf{x}$ sem usar $\mathbf{z}$, então o caminho mais barato para o otimizador é zerar a KL fazendo $q(\mathbf{z}\mid\mathbf{x},\boldsymbol{\phi}) = p(\mathbf{z})$ para todo $\mathbf{x}$; o latente deixa de carregar informação e o \textit{decoder} produz uma saída média. Mitigações: \textit{KL annealing} (rampa do peso da KL de $0$ a $1$), \textit{free bits} (não penalizar a KL abaixo de um limiar por dimensão) ou reduzir a capacidade do \textit{decoder}.\\
+\textbf{(a)} memorização produziria reconstrução baixa no treino, e aqui ela permanece alta.
+\textbf{(b)} o objetivo é maximizar o ELBO inteiro; KL nula com reconstrução ruim e amostras sem diversidade é falha, e o platô alto não é ruído irredutível.
+\textbf{(d)} latente pequeno demais produziria KL alta (o \textit{encoder} precisaria usar cada dimensão), e aqui a KL é quase zero.
+\textbf{(e)} \textit{mode collapse} e \textit{minibatch discrimination} pertencem ao treinamento de GANs; no VAE não há discriminador.
+\textbf{(f)} uma taxa alta gera oscilação ou divergência, e as curvas são suaves e estáveis.
+\textbf{(g)} a escolha entre MSE e entropia cruzada não explica a KL ir a zero nem a perda de informação no latente.
+\textbf{(h)} a KL próxima de zero exige $\boldsymbol{\mu} \to 0$ e $\boldsymbol{\Sigma} \to \mathbf{I}$ para todo $\mathbf{x}$, resultado do aprendizado, e não de saturação de ativação.
+
+\subsection*{Questão 7 \textemdash{} Resposta: (g)}
+A distância de Wasserstein mede o trabalho (massa vezes distância) para transportar a distribuição gerada até a real. Por isso ela continua a diminuir à medida que as duas distribuições se aproximam, mesmo quando os suportes ainda não se tocam, e fornece gradiente informativo ao gerador. A divergência de Jensen--Shannon, ao contrário, satura em $\ln 2$ para suportes disjuntos, e o gradiente do gerador desaparece. Em dados de alta dimensão, suportes disjuntos são a regra no início do treino, o que torna essa propriedade decisiva.\\
+\textbf{(a)} a distância de Wasserstein compara duas distribuições e independe da acurácia de um classificador; no WGAN o crítico nem classifica, e o valor estimado diminui quando o gerador melhora.
+\textbf{(b)} a WGAN não elimina o \textit{mode collapse} por construção; ela melhora a estabilidade do treino.
+\textbf{(c)} o treinamento continua alternado, e o WGAN usa $n_{\text{critic}} = 5$ passos do crítico por passo do gerador.
+\textbf{(d)} a função de custo continua não convexa nos parâmetros de redes profundas.
+\textbf{(e)} o crítico não tem sigmoide nem \textit{softmax}: devolve um escalar sem restrição de intervalo.
+\textbf{(f)} o primal (programação linear) é evitado; usa-se a forma dual com a restrição 1-Lipschitz no crítico.
+\textbf{(h)} a razão de densidades é o que o discriminador ótimo da GAN original estima; o crítico de Wasserstein não devolve probabilidade.
+
+\subsection*{Questão 8 \textemdash{} Resposta: (a)}
+Como $\mathbf{x}^{A}$ é copiado, a Jacobiana da camada é triangular por blocos, $\begin{bmatrix}\mathbf{I} & \mathbf{0} \\ \partial\hat{f}/\partial\mathbf{x}^{A} & \partial\hat{f}/\partial\mathbf{x}^{B}\end{bmatrix}$, e o determinante depende apenas do bloco inferior-direito; na escolha afim ele é diagonal e $\log|\det J| = \sum_i s_i$. Na inversa, $\mathbf{x}^{A} = \mathbf{z}^{A}$ já está disponível, então a mesma rede é reavaliada em $\mathbf{x}^{A}$ para recuperar $(\mathbf{s}, \mathbf{t})$ e a transformação elemento a elemento é desfeita em forma fechada. A rede que produz $(\mathbf{s}, \mathbf{t})$ nunca é invertida e pode ser qualquer rede neural.\\
+\textbf{(b)} a rede de acoplamento pode ter qualquer tamanho; o projeto não visa reduzir parâmetros.
+\textbf{(c)} a partição é arbitrária (e alternada por permutações entre camadas); não há redundância assumida nos dados.
+\textbf{(d)} não há gargalo: a bijeção preserva a dimensão, $\dim \mathbf{z} = \dim \mathbf{x}$.
+\textbf{(e)} o determinante vale $\prod_i e^{s_i}$, diferente de $1$ em geral; o termo de log-determinante permanece na função de custo.
+\textbf{(f)} a rede de acoplamento não precisa ser inversível, pois é apenas reavaliada, nunca invertida.
+\textbf{(g)} \textit{flows} preservam a dimensão; reduzir dimensão quebraria a inversibilidade.
+\textbf{(h)} a camada é treinada por uma única função de custo (a verossimilhança), sem perdas independentes por metade.
+
+
+\subsection*{Questão 9 \textemdash{} Resposta: (f)}
+O gerador só recebe sinal através do discriminador. Se um tipo de amostra (o dígito 1) engana o discriminador, o gerador pode mapear quase todo $\mathbf{z}^{*}$ para essa região: as amostras ficam realistas, mas a cobertura da distribuição real se perde. Esse é o \textit{mode collapse}, a falha de cobertura típica das GANs no trilema dos modelos geradores.\\
+\textbf{(a)} \textit{posterior collapse} é uma falha do VAE e produz amostras borradas; aqui as amostras são nítidas.
+\textbf{(b)} o gerador nunca vê as imagens de treino diretamente, e as amostras variam com $\mathbf{z}^{*}$, então não há cópia de uma única imagem.
+\textbf{(c)} no equilíbrio o gerador reproduz toda a distribuição, com os dez dígitos; gerar só o 1 contradiz esse estado.
+\textbf{(d)} o MNIST tem cerca de 10\% dos exemplos em cada dígito; mesmo um conjunto desbalanceado levaria a outros dígitos em menor proporção.
+\textbf{(e)} inversibilidade e mudança de variável pertencem aos \textit{normalizing flows}; a GAN não calcula densidade.
+\textbf{(g)} processo direto e cadeia reversa pertencem aos modelos difusores.
+\textbf{(h)} o termo KL pertence ao VAE; a GAN não tem esse termo na função de custo.
+
+\subsection*{Questão 10 \textemdash{} Resposta: (c)}
+Com $\alpha_t$ decrescendo, o coeficiente $\sqrt{\alpha_t}$ da imagem cai e o coeficiente $\sqrt{1 - \alpha_t}$ do ruído cresce. Em $t = T$, $\alpha_T \approx 0$ e $\mathbf{z}_T \approx \boldsymbol{\epsilon} \sim \mathcal{N}(0, \mathbf{I})$, o que permite iniciar a geração a partir de ruído puro.\\
+\textbf{(a)} inverte o sentido: o peso da imagem é $\sqrt{\alpha_t}$, que diminui com $t$.
+\textbf{(b)} a soma $\alpha_t + (1 - \alpha_t) = 1$ vale sempre, mas a proporção entre os dois termos muda a cada passo.
+\textbf{(d)} todos os $\mathbf{z}_t$ têm a mesma dimensão de $\mathbf{x}$; o processo direto não tem gargalo.
+\textbf{(e)} $\boldsymbol{\epsilon}$ é sorteado de $\mathcal{N}(0, \mathbf{I})$; o processo direto não tem parâmetros treináveis.
+\textbf{(f)} $\alpha_t$ é monótono decrescente, então o ruído só cresce; $\mathbf{z}_T$ é ruído puro.
+\textbf{(g)} $\alpha_1$ é próximo de 1, então $\mathbf{z}_1$ ainda é quase a imagem original; a informação se perde aos poucos.
+\textbf{(h)} $\mathbf{z}_T$ se aproxima de $\mathcal{N}(0, \mathbf{I})$, independente de $\mathbf{x}$; a geração parte de ruído, e não de uma imagem média.
+
+\color{black}
+
+\end{document}

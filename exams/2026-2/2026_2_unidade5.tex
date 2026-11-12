@@ -1,0 +1,342 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning,patterns,arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\thetav}{\boldsymbol{\theta}}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidade 5}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+\end{tabular}
+\qquad
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+6 & & & & & & & & \\\hline
+7 & & & & & & & & \\\hline
+8 & & & & & & & & \\\hline
+9 & & & & & & & & \\\hline
+10 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (10 x 1,0 = 10,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (10{,}0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-H column matching (families x training mechanism) ----------
+\item (1{,}0) Associe cada família de modelo gerador (coluna da esquerda) ao mecanismo pelo qual ela é treinada (coluna da direita).
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{p{0.20\linewidth} p{0.74\linewidth}}
+\textbf{1.} GAN & \textbf{(i)} aprende \textit{encoder} e \textit{decoder} probabilísticos; a perda soma um erro de reconstrução e uma penalidade que aproxima o latente de um \textit{prior} gaussiano. \\
+\textbf{2.} \textit{Normalizing flow} & \textbf{(ii)} treina duas redes com objetivos opostos: uma produz amostras a partir de ruído e a outra tenta separá-las das amostras reais. \\
+\textbf{3.} VAE & \textbf{(iii)} treina uma rede para desfazer, um passo por vez, a adição de ruído gaussiano feita por um processo fixo, sem parâmetros aprendidos. \\
+\textbf{4.} Modelo difusor & \textbf{(iv)} aprende uma função inversível dos dados para uma gaussiana; a densidade de um ponto vem da mudança de variável com o determinante da Jacobiana. \\
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item 1-(ii); \quad 2-(i); \quad 3-(iv); \quad 4-(iii)
+    \item 1-(iii); \quad 2-(iv); \quad 3-(i); \quad 4-(ii)
+    \item 1-(ii); \quad 2-(iii); \quad 3-(i); \quad 4-(iv)
+    \item 1-(i); \quad 2-(iv); \quad 3-(ii); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(i); \quad 4-(iii)
+    \item 1-(iv); \quad 2-(ii); \quad 3-(i); \quad 4-(iii)
+    \item 1-(ii); \quad 2-(iv); \quad 3-(iii); \quad 4-(i)
+    \item 1-(iii); \quad 2-(i); \quad 3-(iv); \quad 4-(ii)
+\end{enumerate}
+
+%% ---------- Q2: OBJ-C scenario diagnostic (autoencoder without bottleneck) ----------
+\pagebreak
+\item (1{,}0) Uma equipe treina um \textit{autoencoder} para detectar defeitos em peças a partir de fotos $64 \times 64$ em escala de cinza ($4\,096$ \textit{features}): a ideia é marcar como anomalia toda imagem com erro de reconstrução alto. O latente tem $8\,192$ dimensões, não há ruído na entrada nem penalidade de esparsidade, e o treino usa apenas peças normais. Em teste, o erro de reconstrução fica próximo de zero tanto para peças normais quanto para peças defeituosas, e o detector não separa as duas classes. Qual é o diagnóstico e a correção mais direta?
+\begin{enumerate}[a)]
+    \item O \textit{decoder} tem capacidade insuficiente para reconstruir defeitos; aumentar o número de camadas faz o erro das anomalias subir e separa as classes.
+    \item O limiar de decisão foi mal escolhido; recalibrá-lo sobre um conjunto de validação separa as classes sem nenhuma alteração na arquitetura.
+    \item A taxa de aprendizado está alta demais e a rede oscila; reduzi-la em uma ordem de grandeza faz o erro das anomalias ficar maior que o das normais.
+    \item O erro de reconstrução deveria ser medido no latente, e não nos \textit{pixels}; trocar a métrica pela distância entre códigos separa as classes.
+    \item Faltam exemplos de defeitos no treino; incluir peças defeituosas com rótulo ensina a rede a reconstruí-las mal e separa as classes.
+    \item A função de perda MSE não é adequada a imagens; trocar por entropia cruzada por \textit{pixel} faz as anomalias apresentarem erro maior.
+    \item O modelo sofre de \textit{posterior collapse}; adicionar \textit{KL annealing} devolve informação ao latente e separa as duas classes.
+    \item Sem gargalo, a rede aprende a copiar a entrada e reconstrói qualquer imagem; reduzir o latente para bem menos de $4\,096$ dimensões recria a restrição.
+\end{enumerate}
+
+%% ---------- Q3: OBJ-D mechanism-purpose recall (VAE reparametrization trick) ----------
+\item (1{,}0) No treinamento de um VAE, o latente passado ao \textit{decoder} é calculado como $\mathbf{z}^{*} = \boldsymbol{\mu} + \boldsymbol{\Sigma}^{1/2}\boldsymbol{\epsilon}^{*}$, com $\boldsymbol{\epsilon}^{*} \sim \mathcal{N}(0, \mathbf{I})$, em vez de ser amostrado diretamente de $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi}) = \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$. Qual alternativa melhor explica o que essa reescrita (\textit{reparametrization trick}) faz e por que ela é necessária?
+\begin{enumerate}[a)]
+    \item Ela dá ao termo KL do ELBO uma expressão em forma fechada; sem ela, a divergência entre $q$ e o \textit{prior} teria de ser estimada por amostragem a cada passo.
+    \item Ela concentra a aleatoriedade em $\boldsymbol{\epsilon}^{*}$, que independe de $\boldsymbol{\phi}$; sem ela, o gradiente da reconstrução não atravessa a amostragem e não chega ao \textit{encoder}.
+    \item Ela faz $\mathbf{z}^{*}$ seguir o \textit{prior} $\mathcal{N}(0, \mathbf{I})$ durante o treino; sem ela, o \textit{decoder} veria no treino latentes de uma distribuição diferente da usada na geração.
+    \item Ela reduz a variância de $\mathbf{z}^{*}$ ao fixar $\boldsymbol{\epsilon}^{*}$ em um único valor por época; sem ela, o ruído da amostragem impediria a queda da perda de reconstrução.
+    \item Ela torna inversível a transformação de $\mathbf{x}$ em $\mathbf{z}^{*}$; sem ela, $\log p(\mathbf{x})$ não poderia ser calculado pela mudança de variável com o determinante da Jacobiana.
+    \item Ela remove a aleatoriedade do latente, pois $\mathbf{z}^{*}$ passa a coincidir com $\boldsymbol{\mu}$; sem ela, o \textit{decoder} receberia códigos distintos para o mesmo $\mathbf{x}$ e não convergiria.
+    \item Ela desacopla \textit{encoder} e \textit{decoder}, que passam a ser atualizados em passos alternados; sem ela, o gradiente do \textit{decoder} desestabilizaria os parâmetros $\boldsymbol{\phi}$.
+    \item Ela torna tratável o posterior verdadeiro $p(\mathbf{z} \mid \mathbf{x}, \thetav)$, obtido a partir de $\boldsymbol{\mu}$ e $\boldsymbol{\Sigma}$; sem ela, o ELBO deixaria de ser um limite inferior de $\log p(\mathbf{x})$.
+\end{enumerate}
+
+%% ---------- Q4: OBJ-E fill-in-the-blanks (diffusion pipeline) ----------
+\pagebreak
+\item (1{,}0) Assinale a alternativa que preenche corretamente as lacunas do parágrafo abaixo.
+
+\begin{quote}
+``Em um modelo difusor, o processo de difusão (\textit{encoder}) \textbf{(1)}: ele adiciona ruído gaussiano em passos sucessivos, controlados pelo \textit{noise schedule} $\beta_t$. O \textit{decoder} é uma rede neural que, no DDPM, recebe $\mathbf{z}_t$ e o passo $t$ e é treinada para prever \textbf{(2)}. Após o treinamento, a geração de uma nova imagem começa a partir de \textbf{(3)} e percorre a cadeia reversa até produzir $\mathbf{x}$.''
+\end{quote}
+
+\begin{enumerate}[a)]
+    \item (1) é treinado em conjunto com o \textit{decoder}; (2) o ruído $\boldsymbol{\epsilon}$ adicionado; (3) uma imagem do conjunto de treino
+    \item (1) não possui parâmetros treináveis; (2) o latente anterior $\mathbf{z}_{t-1}$; (3) ruído puro $\mathbf{z}_T \sim \mathcal{N}(0, \mathbf{I})$
+    \item (1) não possui parâmetros treináveis; (2) o ruído $\boldsymbol{\epsilon}$ adicionado; (3) uma imagem do conjunto de treino
+    \item (1) é treinado em conjunto com o \textit{decoder}; (2) o latente anterior $\mathbf{z}_{t-1}$; (3) ruído puro $\mathbf{z}_T \sim \mathcal{N}(0, \mathbf{I})$
+    \item (1) é treinado em conjunto com o \textit{decoder}; (2) o ruído $\boldsymbol{\epsilon}$ adicionado; (3) ruído puro $\mathbf{z}_T \sim \mathcal{N}(0, \mathbf{I})$
+    \item (1) não possui parâmetros treináveis; (2) o ruído $\boldsymbol{\epsilon}$ adicionado; (3) ruído puro $\mathbf{z}_T \sim \mathcal{N}(0, \mathbf{I})$
+    \item (1) não possui parâmetros treináveis; (2) o latente anterior $\mathbf{z}_{t-1}$; (3) uma imagem do conjunto de treino
+    \item (1) é treinado em conjunto com o \textit{decoder}; (2) o latente anterior $\mathbf{z}_{t-1}$; (3) uma imagem do conjunto de treino
+\end{enumerate}
+
+%% ---------- Q5: OBJ-B I/II/III analysis (GANs) ----------
+\item (1{,}0) Sobre as asserções abaixo a respeito de GANs:
+
+\textbf{I.} Na função de custo do discriminador, o gerador aparece apenas no termo das amostras geradas; por isso o gerador recebe gradiente somente por meio das amostras que ele próprio produz.
+
+\textbf{II.} Quando a distribuição gerada coincide com a distribuição real, o discriminador ótimo devolve $\tfrac{1}{2}$ em todo ponto, e o jogo adversarial atinge o equilíbrio.
+
+\textbf{III.} Depois de treinada, uma GAN permite calcular a densidade $p(\mathbf{x})$ de uma nova imagem $\mathbf{x}$ com uma única passagem pelo discriminador.
+
+\begin{center}
+\begin{tikzpicture}[
+    font=\small,
+    >={Stealth[length=5pt]},
+    net/.style={draw, rounded corners=3pt, thick, minimum height=1.0cm,
+                minimum width=1.7cm, align=center},
+    lbl/.style={font=\footnotesize, align=center},
+  ]
+  \node (z) at (0,0) {$\mathbf{z}^{(j)}$};
+  \node[net, fill=black!8] (gen) at (2.0,0) {$g[\mathbf{z}^{(j)},\thetav]$};
+  \node[lbl, below=0.12cm of gen] {Gerador};
+  \node (xgen) at (4.5,0) {$\{\mathbf{x}^{(j)*}\}$};
+  \node[lbl, below=0.12cm of xgen] {Amostras geradas};
+  \node (xreal) at (4.5,1.4) {$\{\mathbf{x}^{(i)}\}$};
+  \node[lbl, above=0.12cm of xreal] {Exemplos reais};
+  \node[net, fill=black!20] (disc) at (7.6,0.7) {$\sigma\!\left(f[\,\cdot\,,\boldsymbol{\phi}]\right)$};
+  \node[lbl, below=0.12cm of disc] {Discriminador};
+  \node[lbl] (out) at (10.4,0.7) {Probabilidade\\de ser real};
+  \draw[->] (z) -- (gen);
+  \draw[->] (gen) -- (xgen);
+  \draw[->] (xgen.east) -- (disc.west);
+  \draw[->] (xreal.east) -- (disc.west);
+  \draw[->] (disc) -- (out);
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q6: OBJ-J plot interpretation (posterior collapse, TikZ) ----------
+\pagebreak
+\item (1{,}0) As curvas abaixo mostram, ao longo das épocas de treinamento de um VAE em MNIST com um \textit{decoder} de alta capacidade, os dois termos de $-\mathrm{ELBO}$: o termo KL, $D_{KL}\!\left[q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})\,\|\,p(\mathbf{z})\right]$, e o termo de reconstrução. Ao final do treino, amostras obtidas com $\mathbf{z}^{*} \sim p(\mathbf{z})$ seguidas do \textit{decoder} são muito parecidas entre si e lembram um dígito ``médio'', borrado.
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    width=9cm, height=5cm,
+    xlabel={época}, ylabel={valor do termo},
+    xmin=0, xmax=10, ymin=0, ymax=2.3,
+    xtick={0,2,4,6,8,10}, ytick=\empty,
+    axis lines=left, no markers,
+    legend style={font=\small, at={(0.98,0.5)}, anchor=east, draw=none, fill=none},
+    domain=0:10, samples=80,
+]
+    \addplot[thick, dashed] {1.6*exp(-0.55*x) + 0.03};
+    \addlegendentry{KL}
+    \addplot[thick] {1.9 - 0.5*exp(-0.35*x)};
+    \addlegendentry{reconstrução}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+Qual é a interpretação correta do que aconteceu, e qual a mitigação adequada?
+\begin{enumerate}[a)]
+    \item \textit{Overfitting}: a KL baixa indica memorização do conjunto de treino; adicionar \textit{dropout} no \textit{encoder} restaura a diversidade das amostras geradas.
+    \item Treino bem-sucedido: KL $\to 0$ é o objetivo do VAE, e o platô da reconstrução é o ruído irredutível $\sigma^{2}$ do \textit{decoder} gaussiano.
+    \item \textit{Posterior collapse}: $q(\mathbf{z} \mid \mathbf{x}, \boldsymbol{\phi})$ igualou o \textit{prior} para todo $\mathbf{x}$ e o \textit{decoder} passou a ignorar $\mathbf{z}$; \textit{KL annealing} ou \textit{free bits} mitigam o problema.
+    \item Latente pequeno demais: $D_z$ não comporta a variabilidade dos dígitos; dobrar $D_z$ faz a KL voltar a subir e a reconstrução cair.
+    \item \textit{Mode collapse}: o \textit{decoder} concentrou as amostras em uma única moda; \textit{minibatch discrimination} no \textit{decoder} recupera a cobertura.
+    \item Taxa de aprendizado alta: o otimizador saltou o mínimo da reconstrução; reduzi-la faz a reconstrução cair e a KL voltar a subir.
+    \item Perda inadequada: a reconstrução usa MSE em \textit{pixels} binários; trocar por entropia cruzada separa as modas dos dígitos no latente.
+    \item \textit{Encoder} saturado: as ativações sigmoide do \textit{encoder} travaram $\boldsymbol{\Sigma}$ em $\mathbf{I}$; trocar por ReLU faz a KL voltar a subir.
+\end{enumerate}
+
+%% ---------- Q7: OBJ-A concept identification (Wasserstein distance in WGAN) ----------
+\pagebreak
+\item (1{,}0) Qual a importância da distância de Wasserstein no contexto do treinamento de GANs (WGAN), em comparação com a divergência de Jensen--Shannon da formulação original?
+\begin{enumerate}[a)]
+    \item Mede a acurácia do discriminador sobre amostras reais e geradas; por isso cresce ao longo do treino e indica o momento de interromper a atualização do gerador.
+    \item Elimina o colapso para a moda por construção, pois penaliza explicitamente cada moda da distribuição real que o gerador deixa de cobrir.
+    \item Dispensa o treinamento alternado: crítico e gerador passam a ser otimizados em um único passo de gradiente sobre a mesma função de custo.
+    \item Torna a função de custo convexa nos parâmetros do gerador, garantindo convergência ao ótimo global com qualquer taxa de aprendizado.
+    \item Substitui a sigmoide do discriminador por uma \textit{softmax}, permitindo que o crítico classifique as amostras em várias categorias de qualidade.
+    \item Exige resolver o problema de transporte ótimo (programação linear) a cada iteração, o que torna o treino mais lento, porém mais preciso.
+    \item Mede o trabalho para transportar a massa de uma distribuição até a outra; por isso varia com a separação entre elas e dá gradiente ao gerador mesmo com suportes disjuntos.
+    \item Mede a razão entre as densidades real e gerada em cada ponto, de modo que o crítico devolve diretamente a probabilidade de a amostra ser real.
+\end{enumerate}
+
+%% ---------- Q8: OBJ-D architectural-purpose recall (coupling layer copies x^A) ----------
+\item (1{,}0) Em uma camada \textit{coupling} de um \textit{normalizing flow}, a entrada é dividida em duas metades, $\mathbf{x}^{A}$ e $\mathbf{x}^{B}$. A metade $\mathbf{x}^{A}$ é copiada inalterada para a saída e apenas $\mathbf{x}^{B}$ é transformada, com parâmetros $(\mathbf{s}, \mathbf{t})$ produzidos por uma rede neural a partir de $\mathbf{x}^{A}$. Por que a camada é projetada dessa forma?
+\begin{center}
+\begin{tikzpicture}[
+    font=\small,
+    cell/.style={draw=black, thick, minimum width=0.7cm, minimum height=0.55cm, inner sep=1pt},
+    acell/.style={cell, fill=black!8},
+    bcell/.style={cell, fill=black!30},
+    rcell/.style={cell, pattern=north east lines},
+    box/.style={draw=black, thick, rounded corners=2pt, fill=white,
+                align=center, font=\scriptsize, inner sep=4pt},
+    fwd/.style={->, thick},
+    cpy/.style={->, thick, black!50},
+  ]
+  % entrada x
+  \node[acell] (x1) at (0,2.70) {}; \node[acell] (x2) at (0,2.10) {};
+  \node[bcell] (x3) at (0,1.50) {}; \node[bcell] (x4) at (0,0.90) {};
+  \node at (0,3.30) {$\mathbf{x}$};
+  % divisao
+  \node[acell] (a1) at (3,3.00) {}; \node[acell] (a2) at (3,2.40) {};
+  \node[bcell] (b1) at (3,1.20) {}; \node[bcell] (b2) at (3,0.60) {};
+  \node[font=\scriptsize] at (3,3.55) {$\mathbf{x}^{A}$};
+  \node[font=\scriptsize] at (3,0.05) {$\mathbf{x}^{B}$};
+  % caixas
+  \node[box] (cn) at (6,2.05) {Coupling\\Network};
+  \node[box] (ct) at (6,0.50) {Coupling\\Transform};
+  % saida
+  \node[acell] (f1) at (9.6,2.70) {}; \node[acell] (f2) at (9.6,2.10) {};
+  \node[rcell] (f3) at (9.6,1.50) {}; \node[rcell] (f4) at (9.6,0.90) {};
+  \node at (9.6,3.30) {$\mathbf{z} = f(\mathbf{x})$};
+  % legenda
+  \node[acell, minimum width=0.45cm, minimum height=0.32cm] (l1) at (0.3,-0.65) {};
+  \node[right=2pt of l1, font=\scriptsize] {$\mathbf{x}^{A}$, copiado};
+  \node[bcell, minimum width=0.45cm, minimum height=0.32cm] (l2) at (3.6,-0.65) {};
+  \node[right=2pt of l2, font=\scriptsize] {$\mathbf{x}^{B}$, entrada da \textit{transform}};
+  \node[rcell, minimum width=0.45cm, minimum height=0.32cm] (l3) at (7.6,-0.65) {};
+  \node[right=2pt of l3, font=\scriptsize] {$\mathbf{z}^{B}$, transformado};
+  % setas da divisao
+  \draw[cpy] (x1.east) -- (a1.west); \draw[cpy] (x2.east) -- (a2.west);
+  \draw[cpy] (x3.east) -- (b1.west); \draw[cpy] (x4.east) -- (b2.west);
+  \node[font=\scriptsize, black!60] at (1.5,3.20) {Split};
+  % A -> rede
+  \draw[fwd] (3.5,2.20) -- (cn.west);
+  % copia de A
+  \draw[cpy] (a1.east) .. controls (6,3.55) .. (f1.west);
+  \node[font=\scriptsize, black!60] at (6,3.62) {cópia $\mathbf{x}^{A}$};
+  \draw[cpy] (a2.east) .. controls (6,3.10) .. (f2.west);
+  % B -> transform
+  \draw[fwd] (b1.east) -- (ct.west); \draw[fwd] (b2.east) -- (ct.west);
+  % rede -> transform
+  \draw[fwd] (cn.south) -- (ct.north) node[midway, right, font=\scriptsize] {$(\mathbf{s}, \mathbf{t})$};
+  % transform -> saida
+  \draw[fwd] (ct.east) -- (f3.west); \draw[fwd] (ct.east) -- (f4.west);
+  \node[font=\scriptsize, black!60] at (8.0,1.95) {Concat.};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item Porque a Jacobiana fica triangular por blocos, com determinante barato, e a inversa só reavalia a rede em $\mathbf{x}^{A}$, sem precisar invertê-la.
+    \item Porque transformar metade das dimensões reduz pela metade o número de parâmetros da camada, o que evita \textit{overfitting} em conjuntos pequenos.
+    \item Porque metade das dimensões de uma imagem natural é redundante, e copiá-la sem alteração preserva essa informação para a reconstrução.
+    \item Porque a cópia de $\mathbf{x}^{A}$ cria um gargalo de informação equivalente ao latente de um VAE, forçando a rede a comprimir os dados.
+    \item Porque isso garante determinante igual a $1$ para a camada, o que elimina o termo de log-determinante da função de custo.
+    \item Porque a rede que produz $(\mathbf{s}, \mathbf{t})$ precisa ser inversível, e restringir sua entrada a $\mathbf{x}^{A}$ é a única forma de manter essa propriedade.
+    \item Porque assim o \textit{flow} pode reduzir a dimensão dos dados, levando $\mathbf{x}$ a um latente $\mathbf{z}$ com menos dimensões que a entrada.
+    \item Porque a divisão em duas metades permite treinar as duas partes da camada com funções de custo independentes, acelerando a convergência.
+\end{enumerate}
+
+%% ---------- Q9 -------------------------------------------------
+\pagebreak
+\item (1{,}0) Uma GAN é treinada no MNIST. Depois de algumas épocas, as amostras do gerador são nítidas e realistas, mas, para vetores $\mathbf{z}^{*}$ diferentes, o gerador produz quase sempre o dígito 1, com pequenas variações de traço. Qual é o diagnóstico?
+\begin{enumerate}[a)]
+    \item \textit{Posterior collapse}: o latente deixou de carregar informação sobre a entrada, e por isso o gerador passa a produzir um dígito médio e borrado.
+    \item \textit{Overfitting} do gerador: ele memorizou uma única imagem do conjunto de treino e a reproduz pixel a pixel para qualquer $\mathbf{z}^{*}$ sorteado.
+    \item Discriminador ótimo: ele atribui probabilidade $\frac{1}{2}$ a todas as amostras, sinal de que o gerador já reproduz toda a distribuição dos dados reais.
+    \item Dados desbalanceados: o MNIST tem muito mais exemplos do dígito 1 que dos outros, e o gerador apenas reproduz essa proporção do conjunto de treino.
+    \item Falta de inversibilidade: o gerador não é bijetor, e a fórmula de mudança de variável passa a atribuir densidade apenas à região do dígito 1.
+    \item \textit{Mode collapse}: o gerador encontrou um tipo de amostra que engana o discriminador e concentra sua saída nela, sem cobrir os outros modos dos dados.
+    \item Ruído insuficiente no processo direto: $\mathbf{z}_T$ ainda guarda informação da imagem, e a cadeia reversa converge sempre para o mesmo dígito.
+    \item Falta do termo KL: sem ele, o latente do gerador não se aproxima do \textit{prior}, e todas as amostras de $\mathbf{z}^{*}$ caem na região do dígito 1.
+\end{enumerate}
+
+%% ---------- Q10 ------------------------------------------------
+\item (1{,}0) Em um modelo difusor, o processo direto produz $\mathbf{z}_t = \sqrt{\alpha_t}\,\mathbf{x} + \sqrt{1 - \alpha_t}\,\boldsymbol{\epsilon}$, com $\boldsymbol{\epsilon} \sim \mathcal{N}(0, \mathbf{I})$ e $\alpha_t$ decrescendo de um valor próximo de 1 em $t = 1$ até um valor próximo de 0 em $t = T$. O que acontece com $\mathbf{z}_t$ à medida que $t$ aumenta?
+\begin{enumerate}[a)]
+    \item O peso da imagem cresce e o do ruído cai: $\mathbf{z}_t$ fica cada vez mais parecido com $\mathbf{x}$, e $\mathbf{z}_T$ é uma cópia limpa da imagem original.
+    \item A proporção entre imagem e ruído fica constante, porque $\alpha_t$ e $1 - \alpha_t$ somam 1 em todos os passos, e $\mathbf{z}_T$ se parece tanto com $\mathbf{x}$ quanto $\mathbf{z}_1$.
+    \item O peso da imagem cai e o do ruído cresce: $\mathbf{z}_t$ perde informação de $\mathbf{x}$ aos poucos, e $\mathbf{z}_T$ fica praticamente indistinguível de uma amostra de $\mathcal{N}(0, \mathbf{I})$.
+    \item A dimensão de $\mathbf{z}_t$ diminui a cada passo, como em um \textit{encoder} com gargalo, até que $\mathbf{z}_T$ se torne um vetor latente compacto da imagem.
+    \item O peso da imagem cai, mas $\boldsymbol{\epsilon}$ é produzido por uma rede treinada, e $\mathbf{z}_T$ passa a ser a saída de um \textit{encoder} ajustado junto com o \textit{decoder}.
+    \item O ruído cresce até $t = T/2$ e depois diminui, de modo que $\mathbf{z}_T$ volta a ser parecido com $\mathbf{x}$ e serve de alvo para a reconstrução.
+    \item O peso da imagem cai a zero já em $t = 1$, e os passos seguintes apenas somam mais ruído a um vetor que não guarda mais nenhuma informação de $\mathbf{x}$.
+    \item O peso da imagem cai e o do ruído cresce, mas $\mathbf{z}_T$ converge para a média das imagens de treino, que é o ponto de partida usado na geração.
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}

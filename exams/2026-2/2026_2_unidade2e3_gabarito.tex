@@ -1,0 +1,167 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{xcolor}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo \textemdash{} Gabarito} \hfill \textbf{Prova, Unidades 2 e 3}\\
+Prof. Lucas S. Kupssinskü
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Objective questions
+%% =============================================================
+\section*{Questões Objetivas}
+
+\textbf{Quadro de respostas:}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+1 & 2 & 3 & 4 & 5 & 6 \\\hline
+f & e & b & g & d & c \\\hline
+\end{tabular}
+\end{center}
+
+\color{blue}
+
+\subsection*{Questão 1 \textemdash{} Resposta: (f)}
+Preenchimento correto: (1) soma; (2) o resíduo $H(\mathbf{x}) - \mathbf{x}$; (3) $2^n$. As alternativas variam ao longo dos mesmos três eixos, então as explicações se agrupam por lacuna.
+
+\textbf{Lacuna (1):} o bloco residual calcula $\mathbf{h} = \mathbf{x} + f[\mathbf{x}]$, uma soma elemento a elemento, por isso a saída do ramo precisa ter o mesmo tamanho da entrada. Concatenar canais é a estratégia da DenseNet e das conexões laterais da U-Net. Erram aqui (a), (c), (e) e (h).
+
+\textbf{Lacuna (2):} como a entrada é somada à saída, o ramo só precisa produzir a correção $f[\mathbf{x}] = H(\mathbf{x}) - \mathbf{x}$, o resíduo. Se a transformação ideal for a identidade, basta $f \to 0$, o que explica por que empilhar blocos residuais não degrada o treino. Aprender o mapeamento completo $H(\mathbf{x})$ é o que uma camada sem atalho precisa fazer. Erram aqui (a), (b), (e) e (g).
+
+\textbf{Lacuna (3):} cada bloco pode ser aplicado ou pulado pela conexão de atalho, e as escolhas são independentes, então há $2^n$ caminhos da entrada à saída (e $2^{n-1}$ deles passam por um $f_i$ específico). A saída se comporta como um ensemble implícito de redes de profundidades diferentes. O valor $n$ conta um caminho por bloco, como se os caminhos fossem apenas ``pular até o bloco $i$ e seguir'', ignorando as combinações. Erram aqui (a), (d), (g) e (h).
+
+\subsection*{Questão 2 \textemdash{} Resposta: (e)}
+Com a ordem Linear $\to$ ReLU, a última operação do ramo é a ReLU, então $f[\mathbf{x}] \ge 0$ componente a componente e $\mathbf{h} = \mathbf{x} + f[\mathbf{x}] \ge \mathbf{x}$: o bloco só consegue aumentar os valores da representação, nunca diminuí-los. Invertendo para ReLU $\to$ Linear, a camada linear vem por último e pode produzir valores negativos, de modo que o ramo soma ou subtrai de $\mathbf{x}$. O problema que essa inversão cria (uma entrada toda negativa é zerada pela ReLU no início do ramo) é resolvido pela camada linear colocada antes do primeiro bloco.\\
+\textbf{(a)} a ordem das operações não altera o número de pesos da camada linear, que depende apenas das dimensões de entrada e saída.
+\textbf{(b)} inverte a relação: colocar a ReLU primeiro é o que cria o risco de a entrada toda negativa zerar o ramo; a camada linear inicial é que mitiga esse risco.
+\textbf{(c)} a derivada do caminho de atalho é $\mathbf{I}$ em qualquer bloco residual, independentemente da ordem das operações dentro do ramo.
+\textbf{(d)} a soma de duas funções é diferenciável onde ambas o são; a ReLU já não é diferenciável em zero em qualquer posição do ramo, e isso não impede o treino.
+\textbf{(f)} a variância da saída do bloco dobra pela soma dos dois ramos em qualquer ordem; o controle da variância é papel do \textit{batch norm}, não da ordem das operações.
+\textbf{(g)} a necessidade de uma projeção $1 \times 1$ no atalho surge quando o ramo muda o número de canais ou a resolução, e não depende da ordem entre ReLU e Linear.
+\textbf{(h)} a ReLU zera os valores negativos e mantém os positivos; ela não centra as ativações em zero nem padroniza a escala, que são operações do \textit{batch norm}.
+
+\subsection*{Questão 3 \textemdash{} Resposta: (b)}
+Com a softmax uniforme, o modelo atribui $p(y_t \mid y_{<t}) = 1/|V| = 2^{-14}$ ao \textit{token} observado em toda posição $t$. A entropia cruzada média por \textit{token} é
+\[
+H = -\frac{1}{m}\sum_{t=1}^{m} \log_2 p(y_t \mid y_{<t}) = -\frac{1}{1\,000}\cdot 1\,000 \cdot \log_2 2^{-14} = 14 \text{ bits},
+\]
+e a perplexidade é $2^{H} = 2^{14} = 16\,384 = |V|$. O resultado independe de $m$ e da sequência avaliada: o modelo de máxima entropia tem perplexidade $|V|$ em qualquer texto. Esse valor é o referencial de um modelo que não aprendeu nada, e o treino deve levar a perplexidade para baixo de $|V|$.\\
+\textbf{(a)} confunde perplexidade com entropia cruzada; a perplexidade é $2^{H}$, e não $H$.
+\textbf{(c)} inverte as duas grandezas: a perplexidade é $16\,384$, e a entropia cruzada é $\log_2 16\,384 = 14$ bits.
+\textbf{(d)} soma a log-verossimilhança sobre os $m$ \textit{tokens} sem dividir por $m$; $14\,000$ bits é o total da sequência, e não a média por \textit{token}.
+\textbf{(e)} $0$ bits e perplexidade $1$ correspondem a um modelo que dá probabilidade $1$ ao \textit{token} correto em toda posição, o oposto da distribuição uniforme.
+\textbf{(f)} esquece o sinal negativo da definição; como $p \le 1$, $-\log_2 p \ge 0$ e a perplexidade é sempre pelo menos $1$.
+\textbf{(g)} usa $|V|/2$, a posição média do \textit{token} correto em uma ordenação aleatória; a probabilidade atribuída a cada \textit{token} é $1/|V|$, e $-\log_2(1/|V|) = 14$.
+\textbf{(h)} multiplica a perplexidade por $m$; a perplexidade é a exponencial de uma média por \textit{token} e não cresce com o comprimento da sequência.
+
+\subsection*{Questão 4 \textemdash{} Resposta: (g)}
+A \textit{softmax} é monotônica: quanto maior o \textit{score}, maior o peso de atenção, com a mesma ordem. Basta ordenar os produtos escalares com $\mathbf{h}_t = (2;\ {-}1)$:
+\begin{align*}
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_1) &= 2 \cdot 1 + ({-}1) \cdot 1 = 1, &
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_2) &= 2 \cdot 3 + ({-}1) \cdot 2 = 4, \\
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_3) &= 2 \cdot ({-}1) + ({-}1) \cdot 3 = -5, &
+\mathrm{score}(\mathbf{h}_t, \mathbf{s}_4) &= 2 \cdot 0 + ({-}1) \cdot ({-}3) = 3.
+\end{align*}
+Logo a ordem é
+\[
+\mathbf{s}_2\ (4) \;>\; \mathbf{s}_4\ (3) \;>\; \mathbf{s}_1\ (1) \;>\; \mathbf{s}_3\ ({-}5).
+\]
+Os pesos correspondentes são $\mathbf{a}^{(t)} \approx [\,0{,}035;\ 0{,}705;\ 0{,}000;\ 0{,}259\,]$, mas o cálculo das exponenciais não é necessário para ordenar.\\
+\textbf{(a)} ordena pelo módulo do \textit{score} ($5, 4, 3, 1$); um \textit{score} muito negativo recebe peso próximo de zero, e não o maior peso.
+\textbf{(b)} ordena pela distância euclidiana entre $\mathbf{h}_t$ e $\mathbf{s}_k$ ($\sqrt{5}, \sqrt{8}, \sqrt{10}, 5$), como em um vizinho mais próximo; a atenção de produto escalar mede alinhamento, não proximidade.
+\textbf{(c)} ordena pela norma dos estados do \textit{encoder} ($\sqrt{13}, \sqrt{10}, 3, \sqrt{2}$), ignorando o estado do \textit{decoder}; o \textit{score} depende dos dois vetores.
+\textbf{(d)} ordena em sentido crescente do \textit{score}, como se a \textit{softmax} favorecesse os menores valores.
+\textbf{(e)} usa apenas a primeira componente dos produtos ($6, 2, {-}2, 0$), esquecendo a contribuição da segunda componente de $\mathbf{h}_t$.
+\textbf{(f)} usa apenas a segunda componente dos produtos ($-1, {-}2, {-}3, 3$), esquecendo a primeira.
+\textbf{(h)} erra o sinal da segunda componente de $\mathbf{h}_t$, usando $(2;\ 1)$ e obtendo \textit{scores} $3, 8, 1, {-}3$.
+
+\subsection*{Questão 5 \textemdash{} Resposta: (d)}
+\textbf{I é correta:} a célula recorrente aplica a mesma função $f(\mathbf{x}_t, \mathbf{h}_{t-1})$ em todos os passos de tempo, com os mesmos $\mathbf{\Theta}_{ih}$, $\mathbf{\Theta}_{hh}$ e $\mathbf{b}_h$. O número de parâmetros depende das dimensões de $\mathbf{x}_t$ e $\mathbf{h}_t$, e não do comprimento da sequência, que é o que permite processar sequências de tamanho variável.
+
+\textbf{II é correta:} como $z_t = x_t\,\theta_{ih} + h_{t-1}\,\theta_{hh} + b_h$, a derivada local de $z_t$ em relação a $\theta_{hh}$ é $h_{t-1}$, e o peso aparece em todos os passos. O BPTT soma as contribuições: $\partial J / \partial \theta_{hh} = \sum_t (\partial J / \partial z_t)\, h_{t-1}$. Em particular, o passo $1$ contribui com zero quando $h_0 = 0$.
+
+\textbf{III é incorreta:} em uma tarefa \textit{many-to-one} a função de custo é calculada apenas a partir da saída do último passo, que resume a sequência inteira; somar a \textit{loss} de todos os passos é o esquema das tarefas \textit{many-to-many}, como modelagem de linguagem.
+
+Logo, apenas I e II estão corretas.\\
+\textbf{(a)/(b)} excluem uma das afirmações corretas.
+\textbf{(c)/(e)/(f)/(g)} incluem a afirmação III, que é falsa.
+\textbf{(h)} nega I e II, que são corretas.
+
+\subsection*{Questão 6 \textemdash{} Resposta: (c)}
+Sem atenção, a única ligação entre \textit{encoder} e \textit{decoder} é o vetor $\mathbf{c}$ da figura, formado pelo estado final da RNN que lê a frase da esquerda para a direita e pelo estado final da RNN que lê da direita para a esquerda. Esse vetor tem tamanho fixo, qualquer que seja o comprimento da frase de origem, e o \textit{decoder} gera todos os \textit{tokens} da tradução condicionado apenas a ele. Toda a informação da frase de origem precisa caber em $\mathbf{c}$, que por isso é um gargalo de informação: a qualidade da tradução cai em frases longas. O mecanismo de atenção remove o gargalo ao dar ao \textit{decoder} acesso a todos os estados do \textit{encoder} a cada passo.\\
+\textbf{(a)} descreve o custo sequencial das RNNs, que impede a paralelização ao longo da sequência; é uma limitação de tempo de computação, e o gargalo é uma limitação de informação.
+\textbf{(b)} descreve o desvanecimento do gradiente, um problema de otimização presente em qualquer RNN longa; o gargalo existe mesmo que o gradiente chegue intacto a todos os passos.
+\textbf{(d)} a \textit{softmax} atribui probabilidade a todos os \textit{tokens} do vocabulário de destino e não restringe quais deles podem ser gerados; o gargalo está entre \textit{encoder} e \textit{decoder}, e não na camada de saída.
+\textbf{(e)} descreve a propagação de erros da geração autorregressiva, que ocorre em qualquer \textit{decoder}, com ou sem atenção.
+\textbf{(f)} os dois estados por \textit{token} aumentam o custo de memória por um fator constante e não limitam o comprimento da frase; o gargalo vem de o \textit{decoder} receber apenas o vetor $\mathbf{c}$, e não os estados de cada \textit{token}.
+\textbf{(g)} a afirmação é falsa: o \textit{decoder} gera \textit{tokens} até emitir o símbolo de fim de sequência, então origem e tradução podem ter comprimentos diferentes.
+\textbf{(h)} o \textit{decoder} é unidirecional porque a tradução é gerada da esquerda para a direita; isso é uma propriedade da geração autorregressiva e não tem relação com a quantidade de informação que chega do \textit{encoder}.
+
+\color{black}
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative question
+%% =============================================================
+\section*{Questão Dissertativa}
+
+\color{blue}
+
+\subsection*{Questão 7 \textemdash{} RNN escalar com ReLU: \textit{forward} e BPTT}
+
+\textbf{(a) (2{,}0)} \textit{Forward pass}, com $h_0 = 0$:
+\begin{align*}
+    z_1 &= x_1\,\theta_{ih} + h_0\,\theta_{hh} = 2 \cdot 0{,}5 + 0 \cdot 0{,}4 = 1{,}0, \qquad h_1 = \mathrm{ReLU}(1{,}0) = 1{,}0, \\
+    z_2 &= x_2\,\theta_{ih} + h_1\,\theta_{hh} = 1 \cdot 0{,}5 + 1{,}0 \cdot 0{,}4 = 0{,}9, \qquad h_2 = \mathrm{ReLU}(0{,}9) = 0{,}9, \\
+    \hat{y}_2 &= h_2\,\theta_{ho} = 0{,}9 \cdot 1{,}0 = 0{,}9, \\
+    J &= \tfrac{1}{2}(\hat{y}_2 - y)^2 = \tfrac{1}{2}(0{,}9 - 2)^2 = \tfrac{1}{2}(1{,}21) = 0{,}605.
+\end{align*}
+Como as duas pré-ativações são positivas, a ReLU age como identidade nos dois passos e $h_t = z_t$.
+
+\textit{Critério:} $1{,}0$ para $z_1$, $h_1$, $z_2$ e $h_2$; $1{,}0$ para $\hat{y}_2$ e $J$.
+
+\textbf{(b) (2{,}0)} \textit{Backward pass} (BPTT). Com $z_1, z_2 > 0$, $\mathrm{ReLU}'(z_1) = \mathrm{ReLU}'(z_2) = 1$.
+\begin{align*}
+    \frac{\partial J}{\partial \hat{y}_2} &= \hat{y}_2 - y = 0{,}9 - 2 = -1{,}1 \\
+    \frac{\partial J}{\partial \theta_{ho}} &= \frac{\partial J}{\partial \hat{y}_2}\, h_2 = -1{,}1 \cdot 0{,}9 = -0{,}99 \\
+    \frac{\partial J}{\partial h_2} &= \frac{\partial J}{\partial \hat{y}_2}\, \theta_{ho} = -1{,}1 \cdot 1{,}0 = -1{,}1 \\
+    \frac{\partial J}{\partial z_2} &= \frac{\partial J}{\partial h_2}\, \mathrm{ReLU}'(z_2) = -1{,}1 \cdot 1 = -1{,}1 \\
+    \frac{\partial J}{\partial h_1} &= \frac{\partial J}{\partial z_2}\, \theta_{hh} = -1{,}1 \cdot 0{,}4 = -0{,}44 \\
+    \frac{\partial J}{\partial z_1} &= \frac{\partial J}{\partial h_1}\, \mathrm{ReLU}'(z_1) = -0{,}44 \cdot 1 = -0{,}44 \\[0.3em]
+    \frac{\partial J}{\partial \theta_{ih}} &= \frac{\partial J}{\partial z_2}\, x_2 + \frac{\partial J}{\partial z_1}\, x_1 = (-1{,}1)(1) + (-0{,}44)(2) = -1{,}1 - 0{,}88 = -1{,}98 \\
+    \frac{\partial J}{\partial \theta_{hh}} &= \frac{\partial J}{\partial z_2}\, h_1 + \frac{\partial J}{\partial z_1}\, h_0 = (-1{,}1)(1{,}0) + (-0{,}44)(0) = -1{,}1
+\end{align*}
+Os pesos $\theta_{ih}$ e $\theta_{hh}$ são compartilhados entre os passos, por isso as contribuições de $t = 2$ e $t = 1$ são somadas; como $h_0 = 0$, o passo $1$ não contribui para $\theta_{hh}$. Com a ReLU na região linear, o fator que atravessa o tempo é apenas $\theta_{hh} = 0{,}4$, em vez de $\theta_{hh}\,(1 - \tanh^2(z_1))$ como na célula com $\tanh$.
+
+\textit{Critério:} $1{,}0$ para $\partial J / \partial \theta_{ho}$ e para a retropropagação até $z_2$ e $z_1$ (os gradientes intermediários não são pedidos no enunciado, mas o desenvolvimento que leva aos gradientes finais deve aparecer); $1{,}0$ para $\partial J / \partial \theta_{ih}$ e $\partial J / \partial \theta_{hh}$ com as contribuições dos dois passos somadas. Erro de arredondamento ou sinal propagado de forma consistente a partir de um passo anterior perde no máximo $0{,}5$ em cada metade.
+
+\color{black}
+
+\end{document}

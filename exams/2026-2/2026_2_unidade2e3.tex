@@ -1,0 +1,336 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{XCharter}
+\usepackage[brazil]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage[xcharter,bigdelims,vvarbb]{newtxmath}
+% newtxmath's operators font requests the fontspec family `XCharter(0)' in OT1;
+% without these substitutions math digits and operator names silently fall back
+% to Computer Modern (LaTeX Font Warning: Font shape `OT1/XCharter(0)/m/n' undefined).
+\DeclareFontFamily{OT1}{XCharter(0)}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{n}{<->ssub * XCharter-TLF/m/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{m}{it}{<->ssub * XCharter-TLF/m/it}{}
+\DeclareFontShape{OT1}{XCharter(0)}{b}{n}{<->ssub * XCharter-TLF/b/n}{}
+\DeclareFontShape{OT1}{XCharter(0)}{bx}{n}{<->ssub * XCharter-TLF/b/n}{}
+\usepackage{enumerate}
+\usepackage{multicol}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, calc, fit, backgrounds}
+
+% Cores e estilos da célula recorrente (mesma convenção dos slides de RNN).
+\definecolor{PastelBlue}{HTML}{BCD8EC}
+\definecolor{PastelPink}{HTML}{FFCBE1}
+\definecolor{PastelGreen}{HTML}{D6E5BD}
+\definecolor{PastelYellow}{HTML}{F9E1A8}
+\tikzset{
+    rnncell/.style={draw, rounded corners, fill=PastelGreen, minimum width=1.6cm, minimum height=1.0cm},
+    inputnode/.style={circle, draw, fill=PastelBlue, minimum size=0.7cm, inner sep=1pt, font=\small},
+    outputnode/.style={circle, draw, fill=PastelPink, minimum size=0.7cm, inner sep=1pt, font=\small},
+    opnode/.style={draw, fill=PastelYellow, rounded corners=2pt, font=\small, inner sep=2pt}
+}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\renewcommand{\arraystretch}{1.4}
+
+\begin{document}
+
+%% =============================================================
+%%  Header
+%% =============================================================
+{\Large\bfseries Aprendizado Profundo} \hfill \textbf{Prova, Unidades 2 e 3}\\
+Prof. Lucas S. Kupssinskü \hfill Data: \rule{3cm}{0.4pt}\\[0.4em]
+Nome: \rule{12cm}{0.4pt}
+
+\rule{\linewidth}{0.8pt}
+
+%% =============================================================
+%%  Response grid
+%% =============================================================
+\textbf{Quadro de respostas (questões objetivas):}\\[0.3em]
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Questão} & \textbf{a} & \textbf{b} & \textbf{c} & \textbf{d} & \textbf{e} & \textbf{f} & \textbf{g} & \textbf{h} \\\hline
+1 & & & & & & & & \\\hline
+2 & & & & & & & & \\\hline
+3 & & & & & & & & \\\hline
+4 & & & & & & & & \\\hline
+5 & & & & & & & & \\\hline
+6 & & & & & & & & \\\hline
+\end{tabular}
+\end{center}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Objective questions  (6 x 1,0 = 6,0 pts)
+%% =============================================================
+\section*{Questões Objetivas (6{,}0 pts)}
+\textit{Cada questão possui apenas uma alternativa correta. Marque a letra escolhida no quadro de respostas.}
+
+\begin{enumerate}[1)]
+
+%% ---------- Q1: OBJ-E fill-in-the-blanks (residual connections) ----------
+\item (1{,}0) Assinale a alternativa que preenche corretamente as lacunas do parágrafo abaixo.
+
+\begin{quote}
+``Em uma ResNet, cada bloco \textbf{(1)} a sua entrada $\mathbf{x}$ à saída do ramo processado, de modo que o ramo precisa aprender apenas \textbf{(2)}. Expandindo a expressão da saída de uma rede com $n$ blocos residuais, ela pode ser lida como a soma de contribuições que percorrem \textbf{(3)} caminhos distintos da entrada à saída.''
+\end{quote}
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, node distance=0.55cm, every node/.style={font=\small},
+    blk/.style={draw, fill=PastelGreen, minimum size=0.8cm},
+    mrg/.style={circle, draw, fill=PastelYellow, inner sep=0pt, minimum size=0.6cm, font=\scriptsize\bfseries}]
+    \node (x) {$\mathbf{x}$};
+    \node[blk, right=0.9cm of x] (f1) {$f_1$};
+    \node[mrg, right=of f1] (m1) {(1)};
+    \node[blk, right=0.9cm of m1] (f2) {$f_2$};
+    \node[mrg, right=of f2] (m2) {(1)};
+    \node[right=0.9cm of m2] (dots) {$\cdots$};
+    \node[blk, right=0.9cm of dots] (fn) {$f_n$};
+    \node[mrg, right=of fn] (mn) {(1)};
+    \node[right=of mn] (y) {$\mathbf{y}$};
+    \foreach \a/\b in {x/f1, f1/m1, m1/f2, f2/m2, m2/dots, dots/fn, fn/mn, mn/y}
+        \draw[->, thick] (\a) -- (\b);
+    % conexões de atalho: saem antes de cada bloco e chegam ao nó de combinação
+    \foreach \a/\b/\m in {x/f1/m1, m1/f2/m2, dots/fn/mn}{
+        \coordinate (t) at ($(\a.east)!0.5!(\b.west)$);
+        \fill (t) circle (1.2pt);
+        \draw[->, thick, rounded corners=4pt] (t) -- ++(0,0.85) -| (\m.north);
+    }
+\end{tikzpicture}
+
+{\small Rede com $n$ blocos residuais. Cada nó \textbf{(1)} combina a conexão de atalho com a saída do ramo processado $f_i$.}
+\end{center}
+
+\begin{multicols}{2}
+\begin{enumerate}[a)]
+    \item (1) concatena; (2) o mapeamento completo $H(\mathbf{x})$; (3) $n$
+    \item (1) soma; (2) o mapeamento completo $H(\mathbf{x})$; (3) $2^n$
+    \item (1) concatena; (2) o resíduo $H(\mathbf{x}) - \mathbf{x}$; (3) $2^n$
+    \item (1) soma; (2) o resíduo $H(\mathbf{x}) - \mathbf{x}$; (3) $n$
+    \item (1) concatena; (2) o mapeamento completo $H(\mathbf{x})$; (3) $2^n$
+    \item (1) soma; (2) o resíduo $H(\mathbf{x}) - \mathbf{x}$; (3) $2^n$
+    \item (1) soma; (2) o mapeamento completo $H(\mathbf{x})$; (3) $n$
+    \item (1) concatena; (2) o resíduo $H(\mathbf{x}) - \mathbf{x}$; (3) $n$
+\end{enumerate}
+\end{multicols}
+
+%% ---------- Q2: OBJ-D architectural-purpose recall (ReLU -> Linear order in the residual branch) ----------
+\item (1{,}0) Em uma ResNet, o ramo processado de cada bloco residual aplica a ativação antes da transformação linear (ReLU $\to$ Linear $\to$ $+$), e a rede começa com uma camada linear antes do primeiro bloco. Por que o ramo usa a ordem ReLU $\to$ Linear em vez de Linear $\to$ ReLU?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, node distance=0.6cm, every node/.style={font=\small},
+    lin/.style={draw, fill=PastelGreen, minimum height=0.8cm, minimum width=1.3cm},
+    act/.style={draw, fill=PastelPink, minimum height=0.8cm, minimum width=1.3cm},
+    mrg/.style={circle, draw, fill=PastelYellow, inner sep=0pt, minimum size=0.6cm}]
+    \node (x) {$\mathbf{x}$};
+    \node[lin, right=of x] (l0) {Linear};
+    \node[act, right=1.3cm of l0] (r1) {ReLU};
+    \node[lin, right=of r1] (l1) {Linear};
+    \node[mrg, right=of l1] (m1) {$+$};
+    \node[right=0.9cm of m1] (dots) {$\cdots$};
+    \node[right=of dots] (y) {$\mathbf{y}$};
+    \foreach \a/\b in {x/l0, l0/r1, r1/l1, l1/m1, m1/dots, dots/y}
+        \draw[->, thick] (\a) -- (\b);
+    \coordinate (t) at ($(l0.east)!0.5!(r1.west)$);
+    \fill (t) circle (1.2pt);
+    \draw[->, thick, rounded corners=4pt] (t) -- ++(0,0.95) -| (m1.north);
+    \begin{scope}[on background layer]
+        \node[draw, dashed, gray, rounded corners, inner xsep=7pt, inner ysep=5pt,
+              fit={(t) (r1) (l1) (m1) ($(m1.north)+(0,0.65)$)},
+              label={[gray, font=\footnotesize]below:bloco residual}] {};
+    \end{scope}
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item A ordem ReLU $\to$ Linear reduz o número de parâmetros do ramo, pois a camada linear passa a operar sobre entradas esparsas e pode ter menos pesos.
+    \item Aplicar a ReLU primeiro garante que a entrada do ramo nunca seja toda negativa, evitando que a ReLU zere a propagação \textit{forward} do bloco.
+    \item A ordem ReLU $\to$ Linear torna a derivada do caminho de atalho igual a $\mathbf{I}$, o que não ocorre quando a ReLU é a última operação do ramo.
+    \item Com a ReLU no fim do ramo, a soma com $\mathbf{x}$ deixaria de ser diferenciável nos pontos em que o ramo vale zero; a ordem inversa evita isso.
+    \item Com Linear $\to$ ReLU, a saída do ramo é sempre não negativa e o bloco só pode aumentar a representação; com ReLU $\to$ Linear, o ramo pode somar ou subtrair.
+    \item A ordem ReLU $\to$ Linear mantém a variância da saída do ramo igual à da entrada, o que dispensa o uso de \textit{batch norm} dentro do bloco residual.
+    \item Com Linear $\to$ ReLU, a conexão de atalho precisaria de uma convolução $1 \times 1$ para casar dimensões; a ordem inversa preserva as dimensões por si só.
+    \item A ReLU antes da camada linear funciona como normalização, centrando as ativações em zero antes da multiplicação pelos pesos da camada linear.
+\end{enumerate}
+
+%% ---------- Q3: numerical computation (uniform LM has perplexity |V|) ----------
+\item (1{,}0) Um modelo de linguagem com RNN usa um vocabulário de $|V| = 16\,384 = 2^{14}$ \textit{tokens}. Logo após a inicialização, a camada de saída produz o mesmo \textit{logit} para todos os \textit{tokens} em todas as posições, de modo que a softmax é uniforme sobre o vocabulário. O modelo é avaliado em uma sequência de validação com $m = 1\,000$ \textit{tokens}. A entropia cruzada média por \textit{token}, em bits, e a perplexidade são
+\[
+H(y_{1:m}) = -\frac{1}{m}\sum_{t=1}^{m} \log_2 p(y_t \mid y_{<t}), \qquad \text{Perplexidade}(y_{1:m}) = 2^{H(y_{1:m})}.
+\]
+Quais são os valores de $H$ e da perplexidade do modelo nessa sequência?
+\begin{enumerate}[a)]
+    \item Entropia cruzada de $14$ bits por \textit{token} e perplexidade $14$.
+    \item Entropia cruzada de $14$ bits por \textit{token} e perplexidade $16\,384$.
+    \item Entropia cruzada de $16\,384$ bits por \textit{token} e perplexidade $14$.
+    \item Entropia cruzada de $14\,000$ bits por \textit{token} e perplexidade $2^{14\,000}$.
+    \item Entropia cruzada de $0$ bits por \textit{token} e perplexidade $1$.
+    \item Entropia cruzada de $-14$ bits por \textit{token} e perplexidade $2^{-14}$.
+    \item Entropia cruzada de $13$ bits por \textit{token} e perplexidade $8\,192$.
+    \item Entropia cruzada de $14$ bits por \textit{token} e perplexidade $16\,384\,000$.
+\end{enumerate}
+
+%% ---------- Q4: numerical ordering (dot-product attention weights) ----------
+\item (1{,}0) Em um modelo \textit{seq2seq} com atenção de produto escalar, o estado do \textit{decoder} no passo $t$ é $\mathbf{h}_t = (2;\ {-}1)$ e os estados do \textit{encoder} são $\mathbf{s}_1 = (1;\ 1)$, $\mathbf{s}_2 = (3;\ 2)$, $\mathbf{s}_3 = ({-}1;\ 3)$ e $\mathbf{s}_4 = (0;\ {-}3)$. Os pesos de atenção são
+\[
+a_k^{(t)} = \frac{\exp\bigl(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_k)\bigr)}{\sum_{i=1}^{4}\exp\bigl(\mathrm{score}(\mathbf{h}_t, \mathbf{s}_i)\bigr)}, \qquad \mathrm{score}(\mathbf{h}_t, \mathbf{s}_k) = \mathbf{h}_t\,\mathbf{s}_k^{\top}.
+\]
+Qual a ordem dos estados do \textit{encoder}, do \textbf{maior} para o \textbf{menor} peso de atenção $a_k^{(t)}$?
+\begin{multicols}{2}
+\begin{enumerate}[a)]
+    \item $\mathbf{s}_3,\ \mathbf{s}_2,\ \mathbf{s}_4,\ \mathbf{s}_1$
+    \item $\mathbf{s}_1,\ \mathbf{s}_4,\ \mathbf{s}_2,\ \mathbf{s}_3$
+    \item $\mathbf{s}_2,\ \mathbf{s}_3,\ \mathbf{s}_4,\ \mathbf{s}_1$
+    \item $\mathbf{s}_3,\ \mathbf{s}_1,\ \mathbf{s}_4,\ \mathbf{s}_2$
+    \item $\mathbf{s}_2,\ \mathbf{s}_1,\ \mathbf{s}_4,\ \mathbf{s}_3$
+    \item $\mathbf{s}_4,\ \mathbf{s}_1,\ \mathbf{s}_2,\ \mathbf{s}_3$
+    \item $\mathbf{s}_2,\ \mathbf{s}_4,\ \mathbf{s}_1,\ \mathbf{s}_3$
+    \item $\mathbf{s}_2,\ \mathbf{s}_1,\ \mathbf{s}_3,\ \mathbf{s}_4$
+\end{enumerate}
+\end{multicols}
+
+%% ---------- Q5: OBJ-B I/II/III analysis (vanilla RNN and BPTT) ----------
+\pagebreak
+\item (1{,}0) Sobre as asserções abaixo a respeito de redes recorrentes \textit{vanilla}:
+
+\textbf{I.} Os parâmetros $\mathbf{\Theta}_{ih}$, $\mathbf{\Theta}_{hh}$ e $\mathbf{b}_h$ são compartilhados por todos os passos de tempo, de modo que o número de parâmetros da célula independe do comprimento da sequência processada.
+
+\textbf{II.} No \textit{backpropagation through time}, o gradiente de $J$ em relação a $\theta_{hh}$ soma as contribuições de todos os passos de tempo, e a contribuição do passo $t$ é proporcional ao estado interno anterior $h_{t-1}$.
+
+\textbf{III.} Em uma tarefa \textit{many-to-one}, como análise de sentimento de uma frase, a função de custo é calculada a partir da saída $\hat{\mathbf{y}}_t$ de cada passo de tempo e somada ao longo de toda a sequência.
+
+\begin{enumerate}[a)]
+    \item Apenas I está correta.
+    \item Apenas II está correta.
+    \item Apenas III está correta.
+    \item Apenas I e II estão corretas.
+    \item Apenas II e III estão corretas.
+    \item Apenas I e III estão corretas.
+    \item Todas estão corretas.
+    \item Nenhuma está correta.
+\end{enumerate}
+
+%% ---------- Q6: OBJ-D concept recall (seq2seq bottleneck, bidirectional encoder) ----------
+\item (1{,}0) A figura mostra um tradutor \textit{seq2seq} baseado em RNNs, sem mecanismo de atenção, com \textit{encoder} bidirecional, traduzindo do português \texttt{o gato preto dorme} para o inglês \texttt{the black cat sleeps}. Qual das frases abaixo melhor explica o problema do gargalo nessa arquitetura?
+
+\begin{center}
+\begin{tikzpicture}[>=stealth, every node/.style={font=\small},
+    fw/.style={draw, rounded corners=2pt, fill=PastelGreen, minimum size=0.5cm},
+    bw/.style={draw, rounded corners=2pt, fill=PastelBlue, minimum size=0.5cm},
+    dc/.style={draw, rounded corners=2pt, fill=PastelPink, minimum size=0.5cm},
+    tok/.style={font=\small\ttfamily, inner sep=2pt, text height=1.5ex, text depth=0.4ex}]
+    % encoder bidirecional
+    \foreach \k/\w in {1/o, 2/gato, 3/preto, 4/dorme}{
+        \pgfmathsetmacro{\xx}{(\k-1)*1.5}
+        \node[tok] (e\k) at (\xx, 0) {\w};
+        \node[fw] (f\k) at (\xx-0.28, 1.0) {};
+        \node[bw] (b\k) at (\xx+0.28, 2.0) {};
+        \draw[->] (e\k.north -| f\k.south) -- (f\k.south);
+        \draw[->] (e\k.north -| b\k.south) -- (b\k.south);
+    }
+    \foreach \a/\b in {1/2, 2/3, 3/4}{
+        \draw[->, thick] (f\a) -- (f\b);
+        \draw[->, thick] (b\b) -- (b\a);
+    }
+    % vetor de contexto
+    \node[draw, rounded corners=2pt, fill=PastelYellow, minimum width=0.5cm, minimum height=1.3cm] (c) at (6.2, 1.5) {$\mathbf{c}$};
+    \draw[->, thick] (f4.east) -- (f4.east -| c.west);
+    \draw[->, thick, rounded corners=4pt] (b1.north) -- ++(0, 0.5) -| (c.north);
+    % decoder
+    \foreach \k/\i/\o in {1/{<s>}/the, 2/the/black, 3/black/cat, 4/cat/sleeps}{
+        \pgfmathsetmacro{\xx}{7.7+(\k-1)*1.5}
+        \node[dc] (d\k) at (\xx, 1.5) {};
+        \node[tok] (i\k) at (\xx, 0) {\i};
+        \node[tok] (o\k) at (\xx, 2.75) {\o};
+        \draw[->] (i\k) -- (d\k);
+        \draw[->] (d\k) -- (o\k);
+    }
+    \draw[->, thick] (c) -- (d1);
+    \foreach \a/\b in {1/2, 2/3, 3/4}
+        \draw[->, thick] (d\a) -- (d\b);
+    \node[gray, font=\footnotesize] at (2.25, -0.6) {\textit{encoder} bidirecional};
+    \node[gray, font=\footnotesize] at (9.95, -0.6) {\textit{decoder}};
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item O \textit{encoder} lê os \textit{tokens} um por vez, de modo que o tempo de tradução cresce linearmente com o comprimento da frase de origem.
+    \item O gradiente da \textit{loss} atravessa todos os passos do \textit{decoder} e do \textit{encoder}, e por isso desvanece antes de chegar aos primeiros \textit{tokens}.
+    \item O \textit{encoder} resume toda a frase de origem em um único vetor de tamanho fixo, e o \textit{decoder} gera a tradução condicionado apenas a esse vetor.
+    \item A \textit{softmax} do \textit{decoder} distribui probabilidade sobre todo o vocabulário de destino, o que limita o número de \textit{tokens} distintos que o modelo consegue gerar.
+    \item O \textit{decoder} recebe como entrada o \textit{token} que ele mesmo gerou no passo anterior, de modo que um erro no início se propaga pelo restante da tradução.
+    \item O \textit{encoder} bidirecional mantém dois estados ocultos por \textit{token}, o que dobra o uso de memória e limita o comprimento das frases de origem.
+    \item O \textit{decoder} precisa gerar exatamente um \textit{token} para cada \textit{token} lido pelo \textit{encoder}, o que impede traduções com comprimento diferente da origem.
+    \item O \textit{decoder} é unidirecional e só enxerga os \textit{tokens} de destino já gerados, de modo que cada palavra é escolhida sem acesso ao restante da tradução.
+\end{enumerate}
+
+\end{enumerate}
+
+\rule{\linewidth}{0.4pt}
+
+%% =============================================================
+%%  Dissertative question  (1 x 4,0 = 4,0 pts)
+%% =============================================================
+\pagebreak
+\section*{Questão Dissertativa (4{,}0 pts)}
+
+\begin{enumerate}[1)]
+\setcounter{enumi}{6}
+
+%% ---------- Q7: DISS-A forward / BPTT on a scalar ReLU RNN ----------
+\item (4{,}0) Considere a célula recorrente \textbf{escalar} da figura abaixo, com ativação \textbf{ReLU} no estado interno e saída linear:
+\[
+z_t = x_t\,\theta_{ih} + h_{t-1}\,\theta_{hh}, \qquad h_t = \mathrm{ReLU}(z_t), \qquad \hat{y}_t = h_t\,\theta_{ho},
+\]
+em que $\mathrm{ReLU}(z) = \max(0, z)$, com derivada $\mathrm{ReLU}'(z) = 1$ se $z > 0$ e $\mathrm{ReLU}'(z) = 0$ se $z < 0$. Os parâmetros são $\theta_{ih} = 0{,}5$, $\theta_{hh} = 0{,}4$ e $\theta_{ho} = 1{,}0$, sem \textit{bias}. A sequência de entrada é $x_1 = 2$, $x_2 = 1$, o estado inicial é $h_0 = 0$ e o alvo no passo $2$ é $y = 2$. A função de custo é $J = \tfrac{1}{2}(\hat{y}_2 - y)^2$, calculada apenas no último passo (\textit{many-to-one}).
+
+\begin{center}
+\begin{tikzpicture}[>=stealth]
+    % mesma geometria da célula dos slides de RNN, com ReLU no lugar de tanh
+    \node[draw, circle, inner sep=1pt, fill=white] (plus) at (0, 0) {$+$};
+    \node[opnode, minimum width=1.45cm, left=0.3cm of plus] (hh) {$h_{t-1}\,\theta_{hh}$};
+    \node[opnode, minimum width=1.45cm, right=0.3cm of plus] (act) {$\mathrm{ReLU}$};
+    \node[opnode, below=0.4cm of plus] (xh) {$x_t\,\theta_{ih}$};
+    \node[opnode, fill=PastelPink, above=0.4cm of plus] (out) {$h_t\,\theta_{ho}$};
+    \begin{scope}[on background layer]
+        \node[rnncell, fit=(hh)(act)(xh)(out), inner sep=0.25cm] (cell) {};
+    \end{scope}
+    \node[inputnode] (xnode) at ($(plus |- cell.south) + (0, -0.85)$) {$x_t$};
+    \node[outputnode, minimum size=0.85cm] (ynode) at ($(plus |- cell.north) + (0, 0.95)$) {$\hat{y}_t$};
+    \draw[->] (xnode) -- (xh);
+    \draw[->] (xh) -- (plus);
+    \draw[->] (hh) -- (plus);
+    \draw[->] (plus) -- node[above, font=\footnotesize] {$z_t$} (act);
+    \draw[->] (act) |- (out);
+    \draw[->] (out) -- (ynode);
+    % estado interno h_t: sai pela direita e retorna pela esquerda (recorrência)
+    \coordinate (R) at ($(cell.east) + (0.9, 0)$);
+    \coordinate (L) at ($(cell.west) + (-0.9, 0)$);
+    \coordinate (B) at ($(xnode.south) + (0, -0.5)$);
+    \draw[->, rounded corners=4pt] (act.east) -- (R |- act.east)
+        node[above, pos=0.8, font=\small] {$h_t$}
+        -- (R |- B) -- (L |- B) -- (L |- hh.west) -- (hh.west);
+\end{tikzpicture}
+\end{center}
+
+\begin{enumerate}[a)]
+    \item (2{,}0) Compute o \textit{forward pass}, indicando $z_1$, $h_1$, $z_2$, $h_2$, $\hat{y}_2$ e o valor de $J$.
+    \vspace{4.5cm}
+
+    \item (2{,}0) Compute, por \textit{backpropagation through time}, os gradientes $\dfrac{\partial J}{\partial \theta_{ho}}$, $\dfrac{\partial J}{\partial \theta_{ih}}$ e $\dfrac{\partial J}{\partial \theta_{hh}}$.
+    \vspace{7.5cm}
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document}
