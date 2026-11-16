@@ -499,7 +499,7 @@
     \end{tabular}}
 
     \vspace{0.3em}
-    {\small Para $\tau{=}1$: $\mathcal{L}_{i\to t} = -\tfrac{1}{2}(\log 0.608 + \log 0.723) = 0.411$. A outra direção usa a \textit{softmax} por \textbf{coluna}: $\mathcal{L}_{t\to i} = -\tfrac{1}{2}(\log 0.690 + \log 0.646) = 0.404$ (\textbf{diferente}!), logo $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(0.411 + 0.404) = 0.408$.}
+    {\small Para $\tau{=}1$: $\mathcal{L}_{i\to t} = -\tfrac{1}{2}(\log 0.608 + \log 0.723) = 0.411$. A outra direção usa a \textit{softmax} por \textbf{coluna}: $\mathcal{L}_{t\to i} = -\tfrac{1}{2}(\log 0.690 + \log 0.646) = 0.404$ (\textbf{diferente}!), logo $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(0.411 + 0.404) = 0.407$.}
 
     \vspace{0.2em}
     \begin{itemize}\setlength{\itemsep}{0pt}
@@ -606,8 +606,8 @@
     \end{columns}
 
     \vspace{0.5em}
-    Saída do \textit{backbone}: vetor de dimensão $d \in \{512, 768, 1024\}$,
-    depois projetado linearmente para $d_e = 512$ (ou 768 para ViT-L/14).
+    Nos ViTs, a saída do \textit{backbone} tem dimensão $768$ (ViT-B) ou $1024$ (ViT-L)
+    e é projetada linearmente para $d_e = 512$ (ViT-B) ou $768$ (ViT-L/14).
   \end{frame}
 
   %--- Slide: Encoder de texto ---
@@ -621,7 +621,7 @@
           \item Sequência máxima de 77 tokens
           \item Tokens especiais \texttt{[BOS]} e \texttt{[EOS]}
           \item Pooling: \textbf{representação do token \texttt{[EOS]}} na última camada
-          \item $\sim$63M parâmetros
+          \item $\sim$63M parâmetros (mais largo nas variantes maiores)
         \end{itemize}
       \end{column}
       \begin{column}{0.42\textwidth}
@@ -700,8 +700,8 @@
       \toprule
       Variante & Params (enc. imagem) & FLOPs/imagem & Memória de $\mathbf{S}$ ($N{=}32{\rm k}$) & Hardware (paper)\\
       \midrule
-      ResNet-50      & $\sim$38M & 4.1 GFLOPs & $\sim$4 GB (fp32) & --- \\
-      ResNet-50x64   & $\sim$420M & 165 GFLOPs   & $\sim$4 GB        & 592 V100 / 18 dias \\
+      ResNet-50      & $\sim$38M & 6.1 GFLOPs & $\sim$4 GB (fp32) & --- \\
+      ResNet-50x64   & $\sim$420M & 265 GFLOPs   & $\sim$4 GB        & 592 V100 / 18 dias \\
       ViT-B/32       & $\sim$88M & 4.4 GFLOPs & $\sim$4 GB        & --- \\
       ViT-L/14       & $\sim$304M & 81 GFLOPs    & $\sim$4 GB        & 256 V100 / 12 dias \\
       \bottomrule
@@ -767,7 +767,7 @@
       \begin{column}{0.50\textwidth}
         \begin{block}{Hiperparâmetros}
           \begin{itemize}
-            \item Otimizador: \textbf{AdamW}, $\beta=(0.9, 0.98)$
+            \item \textbf{AdamW}, $\beta_1{=}0.9$, $\beta_2{=}0.98$ (ViT) ou $0.999$ (ResNet)
             \item \textit{Weight decay} desacoplado, $0.2$
             \item Taxa de aprendizado com \textit{cosine schedule}
             \item Batch size: \textbf{32\,768}
@@ -785,7 +785,7 @@
           \end{itemize}
           Hiperparâmetros encontrados via \textit{mix} de
           \textit{grid}, \textit{random} e \textit{manual tuning} em
-          ResNet-50 na primeira época.
+          uma ResNet-50 treinada por 1 época.
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -830,7 +830,7 @@
     \end{block}
 
     \vspace{0.3em}
-    Comparação direta com SimCLRv2, BYOL, MoCo-v3 e ResNet supervisionada na ImageNet.
+    Comparação direta com SimCLRv2, BYOL, MoCo-v2 e ResNet supervisionada na ImageNet.
   \end{frame}
 
   %--- Slide: Tabela accuracy ---
@@ -839,18 +839,18 @@
     \resizebox{0.95\linewidth}{!}{%
     \begin{tabular}{@{}lccc@{}}
       \toprule
-      Método & ImageNet \textit{zero-shot} & ImageNet \textit{linear probe} & ObjectNet \textit{zero-shot} \\
+      Método & ImageNet \textit{zero-shot} & ImageNet \textit{linear probe} & ObjectNet \\
       \midrule
-      ResNet-50 supervisionada & --- & 76.1\% & 32.6\% \\
+      ResNet-101 supervisionada & --- & 76.2\% (treino supervisionado) & 32.6\% \\
       SimCLRv2 (linear)        & --- & 79.8\% & --- \\
-      \textbf{CLIP ViT-L/14}   & \textbf{75.5\%} & \textbf{83.9\%} & \textbf{72.3\%} \\
+      \textbf{CLIP ViT-L/14}   & \textbf{75.5\%} & \textbf{83.9\%} & --- \\
       CLIP ViT-L/14@336        & \textbf{76.2\%} & \textbf{85.4\%} & \textbf{72.3\%} \\
       \bottomrule
     \end{tabular}}
 
     \vspace{0.6em}
     \begin{itemize}\setlength{\itemsep}{0pt}
-      \item Zero-shot CLIP \textbf{empata} com ResNet-50 \emph{supervisionada} em ImageNet
+      \item Zero-shot CLIP ($76.2\%$) \textbf{empata} com a ResNet-101 \emph{supervisionada} em ImageNet
       \item Em \texttt{ObjectNet} (distribuição shiftada) a acurácia vai de $32.6\%$ para $72.3\%$
       \item \textit{Robustness}: CLIP degrada menos sob mudança de domínio
     \end{itemize}
@@ -967,7 +967,7 @@
       \[
         \mathbf{v}_k = \mathrm{normalize}\!\left( \tfrac{1}{T} \sum_{t=1}^{T} f_{\text{txt}}(\text{prompt}_t(k)) \right)
       \]
-      Ganho médio em ImageNet: $+3.5$ pp.
+      Ganho em ImageNet: $+3.5$ pp sobre o \textit{template} único.
     \end{block}
   \end{frame}
 
@@ -975,7 +975,7 @@
   \begin{frame}{Adaptação Eficiente: Linear Head, Adapter, LoRA}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
-        \begin{block}{Cabeçalho linear}
+        \begin{block}{Cabeça linear}
           Congelar CLIP, treinar uma camada $\mathbf{W} \in \mathbb{R}^{K \times d_e}$
           sobre os \textit{embeddings}.\\ \footnotesize
           \textit{Linear probe}: treina só $K \times d_e$ parâmetros.
@@ -993,7 +993,7 @@
         \end{block}
         \begin{alertblock}{Quando NÃO fazer fine-tuning}
           Se o \textit{zero-shot} já resolve a tarefa, o \textit{fine-tuning}
-          piora a generalização \textit{out-of-distribution}.
+          tende a piorar a generalização \textit{out-of-distribution}.
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -1086,8 +1086,8 @@
   \begin{frame}{Vieses Herdados da Web}
     O paper original dedica uma seção a auditoria de vieses:
     \begin{itemize}
-      \item Classificação errônea sistemática de pessoas negras como categorias não-humanas
-        em \texttt{FairFace}
+      \item Em \texttt{FairFace}, $4.9\%$ das imagens caem em categorias não-humanas;
+        para pessoas negras a taxa chega a $\sim 14\%$
       \item Associações de gênero em prompts ocupacionais (``CEO'' enviesa para masculino)
       \item Sensibilidade a vocabulário ofensivo presente nos pares web
     \end{itemize}
@@ -1105,7 +1105,7 @@
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
         \begin{itemize}
-          \item Trocar \texttt{"\{class\}"} por \texttt{"a photo of a \{class\}"} pode mudar \textit{accuracy} em $5$--$10$ pp
+          \item \textit{Template} e \textit{ensemble} somam cerca de $5$ pp de \textit{accuracy} em ImageNet
           \item Templates errados podem inverter ranqueamentos
           \item Sem \textit{ground truth}, calibrar prompt requer um conjunto de validação
         \end{itemize}
@@ -1124,23 +1124,24 @@
           \begin{axis}[
             xbar,
             width=6cm, height=4cm,
-            xmin=55, xmax=82,
+            xmin=68, xmax=79,
             xlabel={\textit{accuracy} \%},
-            symbolic y coords={classe,photo,ensemble,ensembleClean},
+            symbolic y coords={classe,photo,ensemble},
             ytick=data,
-            yticklabels={classe, photo of a class, ensemble 80, ensemble + clean},
+            yticklabels={classe, photo of a class, ensemble 80},
+            enlarge y limits=0.3,
             nodes near coords,
             nodes near coords align={horizontal},
             nodes near coords style={font=\tiny},
           ]
             \addplot[fill=PastelBlue]   coordinates {
-              (60.0,classe)
-              (66.0,photo)
-              (69.5,ensemble)
-              (76.2,ensembleClean)
+              (71.4,classe)
+              (72.7,photo)
+              (76.2,ensemble)
             };
           \end{axis}
-        \end{tikzpicture}}
+        \end{tikzpicture}}\\[0.2em]
+        {\scriptsize ImageNet \textit{zero-shot}, ViT-L/14@336; valores obtidos dos ganhos reportados no artigo ($+1.3$ e $+3.5$ pp).}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1167,7 +1168,7 @@
       \begin{column}{0.48\textwidth}
         \begin{block}{SigLIP (2023)}
           Substitui \textit{softmax} por \textbf{sigmoide} pareada:
-          $\ell_{ij} = \log\!\left(1 + e^{-y_{ij}\, \mathbf{u}_i\,\mathbf{v}_j^{\top} / \tau}\right)$
+          $\ell_{ij} = \log\!\left(1 + e^{-y_{ij}\,(\mathbf{u}_i\,\mathbf{v}_j^{\top} / \tau \,+\, b)}\right)$, com $y_{ij} = \pm 1$ e viés $b$ aprendido
           \begin{itemize}
             \item Não exige \textit{batch} grande
             \item Cada par é independente
@@ -1194,7 +1195,8 @@
       \begin{itemize}
         \item Conteúdo problemático (NSFW, vieses, material sensível) presente
         \item Direitos autorais: imagens coletadas sem consentimento explícito
-        \item Auditoria: \texttt{laion.ai} disponibiliza ferramentas de inspeção
+        \item Em dezembro de 2023, uma auditoria do Stanford Internet Observatory encontrou \textit{links} para material de abuso sexual infantil, e o \textit{dataset} foi retirado do ar
+        \item Em agosto de 2024 foi relançado como \textbf{Re-LAION-5B}, sem os \textit{links} identificados
       \end{itemize}
     \end{alertblock}
   \end{frame}

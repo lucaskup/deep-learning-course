@@ -79,14 +79,14 @@
       }
       ctx.stroke();
       const aMid = au + d / 2;
-      P.label(ctx, iso.X(0.85 * rArc * Math.cos(aMid)), iso.Y(0.85 * rArc * Math.sin(aMid)) + 4,
-        'θ', th.comment, 'center');
+      P.pill(ctx, 'θ', iso.X(0.85 * rArc * Math.cos(aMid)), iso.Y(0.85 * rArc * Math.sin(aMid)) + 4,
+        th.comment, 'center');
 
       /* Vetores u, v. */
       arrow(ctx, iso.cx, iso.cy, iso.X(u[0]), iso.Y(u[1]), th.cyan, 2.4);
       arrow(ctx, iso.cx, iso.cy, iso.X(v[0]), iso.Y(v[1]), th.orange, 2.4);
-      P.label(ctx, iso.X(u[0]) + 8, iso.Y(u[1]) - 6, 'u', th.cyan);
-      P.label(ctx, iso.X(v[0]) + 8, iso.Y(v[1]) - 6, 'v', th.orange);
+      P.pill(ctx, 'u', iso.X(u[0]) + 8, iso.Y(u[1]) - 6, th.cyan, 'left');
+      P.pill(ctx, 'v', iso.X(v[0]) + 8, iso.Y(v[1]) - 6, th.orange, 'left');
 
       /* Normalizados sobre a circunferência. */
       const uh = [u[0] / (norm(u) || 1), u[1] / (norm(u) || 1)];
@@ -95,8 +95,8 @@
       ctx.beginPath(); ctx.arc(iso.X(uh[0]), iso.Y(uh[1]), 5, 0, 2 * Math.PI); ctx.fill();
       ctx.fillStyle = th.green;
       ctx.beginPath(); ctx.arc(iso.X(vh[0]), iso.Y(vh[1]), 5, 0, 2 * Math.PI); ctx.fill();
-      P.label(ctx, iso.X(uh[0]) + 7, iso.Y(uh[1]) + 12, 'ũ', th.pink);
-      P.label(ctx, iso.X(vh[0]) + 7, iso.Y(vh[1]) + 12, 'ṽ', th.green);
+      P.pill(ctx, 'ũ', iso.X(uh[0]) + 7, iso.Y(uh[1]) + 12, th.pink, 'left');
+      P.pill(ctx, 'ṽ', iso.X(vh[0]) + 7, iso.Y(vh[1]) + 12, th.green, 'left');
     }
 
     function drawCos() {

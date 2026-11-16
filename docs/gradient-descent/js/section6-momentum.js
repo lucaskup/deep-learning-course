@@ -127,7 +127,11 @@
       for (const o of enabled()) update(o.id, runs[o.id]);
     }
 
-    function kCount() { return runs.gd.traj.length - 1; }
+    /* Número de passos dados: a maior trajetória entre todos os otimizadores,
+       para não depender de o GD estar marcado. */
+    function kCount() {
+      return Math.max.apply(null, OPTS.map((o) => runs[o.id].traj.length - 1));
+    }
 
     function done() {
       if (kCount() >= MAX_ITERS) return true;

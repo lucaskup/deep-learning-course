@@ -67,7 +67,7 @@
     \begin{itemize}
         \item Usadas principalmente em imagens.
     \end{itemize}
-    \item Criadas em 1989 por Yann LeCun, com a LeNet\footfullcite{lecun1989backprop}.
+    \item Treinadas com \textit{backpropagation} desde 1989 (LeCun et al.)\footfullcite{lecun1989backprop}; a LeNet-5 é de 1998.
     \item Explodiram em popularidade após 2012, com a AlexNet\footfullcite{krizhevsky2012imagenet}.
     \begin{itemize}
         \item Treinamento em GPUs.
@@ -231,7 +231,7 @@
     \begin{column}{.5\linewidth}
         \begin{itemize}
             \item \textbf{O mesmo kernel} $w_{m,n}$ é deslizado por toda a entrada.
-            \item O diagrama anterior mostrava apenas \emph{uma} aplicação do kernel; aqui ilustramos a aplicação em duas posições distintas.
+            \item Uma aplicação do kernel produz uma saída; a figura mostra o mesmo kernel aplicado em duas posições distintas.
             \item Para qualquer posição $(i,j)$:
             \begin{equation*}
                 z_{i,j} = \sum_{m,n} w_{m,n}\, x_{i+m-2,\, j+n-2}
@@ -243,32 +243,32 @@
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}, scale=0.55]
             % Entrada 5x5 com duas janelas 3x3 destacadas
-            \fill[BrickRed!25] (0.0,2.0) rectangle (1.5,3.5);
+            \fill[BrickRed!25] (0.0,1.0) rectangle (1.5,2.5);
             \fill[PastelBlue2!35] (1.0,0.0) rectangle (2.5,1.5);
-            \draw[step=0.5, gray!50] (0,0) grid (2.5,3.5);
-            \draw[gray!50] (0,0) rectangle (2.5,3.5);
-            \draw[thick, BrickRed] (0.0,2.0) rectangle (1.5,3.5);
+            \draw[step=0.5, gray!50] (0,0) grid (2.5,2.5);
+            \draw[gray!50] (0,0) rectangle (2.5,2.5);
+            \draw[thick, BrickRed] (0.0,1.0) rectangle (1.5,2.5);
             \draw[thick, PastelBlue2!80!black] (1.0,0.0) rectangle (2.5,1.5);
-            \node[font=\tiny, anchor=south] at (1.25,3.6) {Entrada $5\!\times\!5$};
+            \node[font=\tiny, anchor=south] at (1.25,2.6) {Entrada $5\!\times\!5$};
             % Kernel (mesmo, grid colorido)
-            \fill[PastelBlue2!25] (3.5,1.0) rectangle (5.0,2.5);
-            \draw[step=0.5, gray!50] (3.5,1.0) grid (5.0,2.5);
-            \draw[gray!50] (3.5,1.0) rectangle (5.0,2.5);
-            \draw[thick, PastelBlue2!80!black] (3.5,1.0) rectangle (5.0,2.5);
-            \node[font=\tiny, anchor=south] at (4.25,2.6) {Mesmo kernel};
+            \fill[PastelBlue2!25] (3.5,0.5) rectangle (5.0,2.0);
+            \draw[step=0.5, gray!50] (3.5,0.5) grid (5.0,2.0);
+            \draw[gray!50] (3.5,0.5) rectangle (5.0,2.0);
+            \draw[thick, PastelBlue2!80!black] (3.5,0.5) rectangle (5.0,2.0);
+            \node[font=\tiny, anchor=south] at (4.25,2.1) {Mesmo kernel};
             % Saida 3x3 com duas celulas destacadas
-            \fill[BrickRed!25] (6.5,2.0) rectangle (7.0,2.5);
+            \fill[BrickRed!25] (6.5,1.5) rectangle (7.0,2.0);
             \fill[PastelBlue2!35] (7.5,0.5) rectangle (8.0,1.0);
-            \draw[step=0.5, gray!50] (6.5,0.5) grid (8.0,2.5);
-            \draw[gray!50] (6.5,0.5) rectangle (8.0,2.5);
-            \draw[thick, BrickRed] (6.5,2.0) rectangle (7.0,2.5);
+            \draw[step=0.5, gray!50] (6.5,0.5) grid (8.0,2.0);
+            \draw[gray!50] (6.5,0.5) rectangle (8.0,2.0);
+            \draw[thick, BrickRed] (6.5,1.5) rectangle (7.0,2.0);
             \draw[thick, PastelBlue2!80!black] (7.5,0.5) rectangle (8.0,1.0);
-            \node[font=\tiny, anchor=south] at (7.25,2.6) {Saída $3\!\times\!3$};
+            \node[font=\tiny, anchor=south] at (7.25,2.1) {Saída $3\!\times\!3$};
             % Setas
-            \draw[->, BrickRed, thick] (1.55,2.75) -- (3.45,2.25);
-            \draw[->, BrickRed, thick] (5.05,2.25) -- (6.45,2.25);
-            \draw[->, PastelBlue2!80!black, thick] (2.55,0.75) -- (3.45,1.25);
-            \draw[->, PastelBlue2!80!black, thick] (5.05,1.25) -- (7.45,0.75);
+            \draw[->, BrickRed, thick] (1.55,1.75) -- (3.45,1.5);
+            \draw[->, BrickRed, thick] (5.05,1.5) -- (6.45,1.75);
+            \draw[->, PastelBlue2!80!black, thick] (2.55,0.75) -- (3.45,1.0);
+            \draw[->, PastelBlue2!80!black, thick] (5.05,1.0) -- (7.45,0.75);
         \end{tikzpicture}
     \end{column}
 \end{columns}
@@ -1284,11 +1284,11 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Implementação: \texttt{im2col} e Matriz de Toeplitz}
+\begin{frame}{Implementação: Convolução como Produto Matricial}
 \begin{itemize}
-    \item Versão utilizada na prática em GPUs e bibliotecas otimizadas.
-    \item Existe uma forma inteligente de organizar a matriz de pesos para obter o resultado da convolução com uma única multiplicação de matrizes.
-    \item Uma \textbf{matriz de Toeplitz} é uma matriz cujas diagonais principal e subdiagonais são constantes:
+    \item Bibliotecas otimizadas reduzem a convolução a multiplicações de matrizes.
+    \item A matriz de pesos pode ser organizada para obter o resultado da convolução com uma única multiplicação de matrizes.
+    \item Uma \textbf{matriz de Toeplitz} é uma matriz em que cada diagonal paralela à principal é constante:
 \end{itemize}
 \begin{equation*}
 \begin{bmatrix}
@@ -1302,7 +1302,7 @@ for m in range(0, M):           # linhas
 \end{equation*}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 1 -- Entrada e filtro}
+\begin{frame}{Produto matricial, passo 1: Entrada e filtro}
 \begin{itemize}
     \item Definimos a entrada $\mathbf{X}$ ($3\times 3$) e o filtro $\mathbf{\Theta}$ ($2\times 2$):
 \end{itemize}
@@ -1328,7 +1328,7 @@ for m in range(0, M):           # linhas
 \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 2 -- Tamanho da saída}
+\begin{frame}{Produto matricial, passo 2: Tamanho da saída}
 \begin{itemize}
     \item O tamanho da saída depende das janelas consideradas. Para $\mathbf{X}$~($3\times 3$) e $\mathbf{\Theta}$~($2\times 2$):
 \end{itemize}
@@ -1349,11 +1349,11 @@ for m in range(0, M):           # linhas
 \vspace{0.6em}
 \begin{itemize}
     \item Nos próximos passos calculamos o modo \textbf{full} ($4\times 4$), que é o que a construção com matrizes de Toeplitz produz diretamente.
-    \item O modo \textit{valid}, o mais comum em CNNs, corresponde às $2\times 2$ posições centrais da saída \textit{full}.
+    \item O modo \textit{valid} corresponde às $2\times 2$ posições centrais da saída \textit{full}.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 3 -- Zero padding do filtro}
+\begin{frame}{Produto matricial, passo 3: Zero padding do filtro}
 \begin{itemize}
     \item A construção com matrizes de Toeplitz calcula a convolução com o \textit{kernel} rotacionado em $180^\circ$. Para obter a correlação cruzada usada em CNNs, rotacionamos $\mathbf{\Theta}$ antes.
     \item Depois aplicamos \textit{zero padding} no filtro rotacionado até atingir o tamanho da saída $4\times 4$:
@@ -1385,9 +1385,9 @@ for m in range(0, M):           # linhas
 \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 4 -- Matrizes de Toeplitz por linha}
+\begin{frame}{Produto matricial, passo 4: Matrizes de Toeplitz por linha}
 \begin{itemize}
-    \item Para cada linha do filtro paddado, construímos uma matriz de Toeplitz $\mathbf{F}_k$ (tamanho saída$_h \times$ entrada$_w = 4\times 3$). Começamos pela última linha.
+    \item Para cada linha do filtro paddado, construímos uma matriz de Toeplitz $\mathbf{F}_k$ (tamanho saída$_w \times$ entrada$_w = 4\times 3$). Começamos pela última linha.
 \end{itemize}
 \vspace{0.3em}
 \centering
@@ -1429,7 +1429,7 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 5 -- Matriz de bloco Toeplitz}
+\begin{frame}{Produto matricial, passo 5: Matriz de bloco Toeplitz}
 \begin{itemize}
     \item Empilhamos as $F_k$ em uma matriz por blocos. O tamanho final é $16 \times 9$.
 \end{itemize}
@@ -1488,7 +1488,7 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 6 -- Vetorização da entrada}
+\begin{frame}{Produto matricial, passo 6: Vetorização da entrada}
 \begin{itemize}
     \item Vetorizamos $\mathbf{X}$ concatenando as linhas \textbf{de baixo para cima}:
 \end{itemize}
@@ -1523,7 +1523,7 @@ for m in range(0, M):           # linhas
 \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 7 -- Multiplicação e \textit{reshape}}
+\begin{frame}{Produto matricial, passo 7: Multiplicação e \textit{reshape}}
 \begin{itemize}
     \item Multiplicamos a matriz de bloco Toeplitz pelo vetor de entrada e fazemos \textit{reshape} para a forma da saída:
 \end{itemize}
@@ -1538,7 +1538,7 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 8 -- Produto por blocos}
+\begin{frame}{Produto matricial, passo 8: Produto por blocos}
 \begin{itemize}
     \item Separando $\mathbf{x}$ pelas linhas da imagem ($\mathbf{x}_3$, $\mathbf{x}_2$, $\mathbf{x}_1$), cada bloco de $\mathbf{y}$ é uma soma de produtos $\mathbf{F}_k\mathbf{x}_j$. Como $\mathbf{F}_2 = \mathbf{F}_3 = \mathbf{0}$, sobram poucos termos:
 \end{itemize}
@@ -1614,7 +1614,7 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col}: Passo 9 -- Resultado completo}
+\begin{frame}{Produto matricial, passo 9: Resultado completo}
 \begin{itemize}
     \item Como $\mathbf{x}$ foi vetorizado de baixo para cima, o \textit{reshape} coloca $\mathbf{y}_0$ na última linha de $\mathbf{Y}$ e $\mathbf{y}_3$ na primeira:
 \end{itemize}
@@ -1651,7 +1651,7 @@ for m in range(0, M):           # linhas
 \end{itemize}
 \end{frame}
 
-\begin{frame}{\texttt{im2col} vs Versão Ingênua}
+\begin{frame}{Produto Matricial vs Versão Ingênua}
 \begin{itemize}
     \item Versão ingênua em modo \textit{full}: deslizamos $\mathbf{\Theta}$ sobre $\mathbf{X}$ com \textit{padding} $K-1 = 1$ e preenchemos o \textit{feature map} posição a posição, $Y_{m,n} = \sum_{i,j} w_{i,j}\, x_{m+i-2,\, n+j-2}$.
 \end{itemize}
@@ -1735,15 +1735,16 @@ for m in range(0, M):           # linhas
 \end{tikzpicture}
 \vspace{0.4em}
 \begin{itemize}
-    \visible<4>{\item O \textit{feature map} ficou idêntico ao resultado do \texttt{im2col} no Passo 9. Sem o \textit{padding}, o laço calcularia apenas o miolo destacado: o modo \textit{valid}.}
+    \visible<4>{\item O \textit{feature map} ficou idêntico ao resultado do Passo 9. Sem o \textit{padding}, o laço calcularia apenas o miolo destacado: o modo \textit{valid}.}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Por que \texttt{im2col} é a escolha prática}
+\begin{frame}{Por que reduzir a convolução a um produto matricial}
 \begin{itemize}
     \item Reduz a convolução a uma multiplicação de matrizes (\texttt{GEMM}), o tipo de operação que GPUs e bibliotecas BLAS otimizam ao máximo.
     \item Permite usar a mesma rotina para qualquer combinação de \textit{kernel}, \textit{stride} e \textit{padding}, alterando apenas o layout dos dados.
-    \item Custa memória extra para armazenar as ``cópias'' das janelas, mas o ganho em velocidade compensa em larga escala.
+    \item O \texttt{im2col} é a variante usada em bibliotecas: copia cada janela da entrada para uma linha de uma matriz e multiplica pelo \textit{kernel} vetorizado.
+    \item Custa memória extra para armazenar as cópias das janelas, mas o ganho em velocidade compensa em larga escala.
 \end{itemize}
 \end{frame}
 

@@ -185,7 +185,7 @@
       $('s2-readout').textContent =
         'D = ' + fm(k.D, 3) + ' · p = ' + fm(p, 3) + ' · ' +
         (ok ? 'p alto ⇒ o teste não distingue as distribuições ⇒ esquecimento compatível com o oráculo'
-            : 'p baixo ⇒ distribuições distintas ⇒ esquecimento insuficiente');
+            : 'p baixo ⇒ o teste distingue o modelo desaprendido do oráculo ⇒ Forget Quality baixa');
     }
 
     function redraw() { drawCdf(); drawDots(); updateReadout(); }

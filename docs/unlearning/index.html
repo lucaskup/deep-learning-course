@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Machine Unlearning: o trade-off entre Forget Quality e Model Utility, o teste KS sobre Truth Ratios, ROUGE-L como medida de memorização literal e PrivLeak via ataque de inferência de pertencimento." />
+  <meta name="description" content="Demonstrações interativas de Machine Unlearning: o trade-off entre esquecimento e Model Utility, o teste KS sobre Truth Ratios, ROUGE-L como medida de memorização literal e PrivLeak via ataque de inferência de pertencimento." />
   <title>Machine Unlearning — Demo Interativa</title>
   <script>
     (function () {
@@ -37,27 +37,27 @@
       <p class="course-subtitle">Demonstrações interativas da aula de Machine Unlearning</p>
       <p class="course-desc">
         Quatro visualizações que acompanham os slides: o trade-off entre esquecer
-        (<span class="formula">Forget Quality</span>) e preservar a capacidade do modelo
+        o conteúdo de <span class="formula">D_f</span> e preservar a capacidade do modelo
         (<span class="formula">Model Utility</span>), o teste de Kolmogorov-Smirnov sobre os
         <span class="formula">Truth Ratios</span> que mede a qualidade do esquecimento,
         a métrica <span class="formula">ROUGE-L</span> de memorização literal via maior
         subsequência comum, e o <span class="formula">PrivLeak</span> estimado por um ataque
-        de inferência de pertencimento (a AUC ideal fica perto de
-        <span class="formula">0,5</span>).
+        de inferência de pertencimento (o valor ideal fica perto de
+        <span class="formula">0</span>).
       </p>
     </div>
   </header>
 
-  <!-- ════════ Seção 1: Trade-off Forget vs Utility ════════ -->
+  <!-- ════════ Seção 1: Trade-off esquecimento vs Utility ════════ -->
   <section id="s1" class="demo-section">
     <div class="container">
-      <h2 class="section-title">1 · O trade-off Forget vs Utility</h2>
+      <h2 class="section-title">1 · O trade-off entre esquecimento e Model Utility</h2>
       <p class="demo-text">
-        Toda receita de unlearning vive sobre uma fronteira de Pareto: melhorar o
-        esquecimento (<span class="formula">Forget Quality</span>, eixo x) tende a custar
+        Os métodos de unlearning operam sobre uma fronteira de Pareto ou abaixo dela: melhorar o
+        esquecimento (quanto de <span class="formula">D_f</span> deixou de vazar, eixo x) tende a custar
         capacidade no resto da tarefa (<span class="formula">Model Utility</span>, eixo y).
         A fronteira mostrada é a relação ilustrativa
-        <span class="formula">Utility = 1 − ForgetQuality²</span>: nenhum ponto de operação
+        <span class="formula">Utility = 1 − esquecimento²</span>: nenhum ponto de operação
         consegue ficar acima dela. Arraste a bola para escolher um ponto de operação (ele
         fica preso na fronteira ou abaixo dela) e compare com os três regimes de referência.
         O painel à direita mostra por que a <span class="formula">Model Utility</span> é
@@ -80,7 +80,7 @@
         </div>
         <div class="canvas-row">
           <div class="canvas-box square">
-            <p class="canvas-caption">Fronteira de Pareto Forget × Utility (arraste a bola para mover o ponto de operação)</p>
+            <p class="canvas-caption">Fronteira de Pareto esquecimento × Utility (arraste a bola para mover o ponto de operação)</p>
             <canvas id="s1-pareto"></canvas>
           </div>
           <div class="canvas-box">
@@ -90,10 +90,11 @@
         </div>
         <p class="demo-text small">
           💡 O ponto "sem unlearning" tem utilidade alta e esquecimento quase nulo, o "modelo
-          trivial" (que apenas degrada tudo) esquece bem mas é inútil, e o ponto "ideal" busca
-          o joelho da curva. Leve o slider de uma sub-métrica para perto de
-          <span class="formula">0,05</span> e observe o painel da direita: a média harmônica
-          colapsa, enquanto a média aritmética mal se mexe. Por isso a utilidade usa a média
+          trivial" (que apenas degrada tudo) não vaza nada de D_f mas é inútil, e o ponto "ideal" busca
+          o joelho da curva. A Forget Quality do TOFU, que compara o modelo com o oráculo,
+          também penaliza o modelo trivial. Com os outros dois sliders em 0,80, leve uma
+          sub-métrica para <span class="formula">0,05</span> e observe o painel da direita: a média harmônica
+          cai de 0,80 para 0,13, enquanto a média aritmética ainda marca 0,55. Por isso a utilidade usa a média
           harmônica. Ela penaliza qualquer dimensão que o unlearning tenha quebrado.
         </p>
       </div>
@@ -138,8 +139,9 @@
         <p class="demo-text small">
           💡 Quando os dois conjuntos se sobrepõem, D fica pequeno e o p-valor alto: o teste
           não distingue as distribuições e o esquecimento é considerado bom. Afaste um
-          conjunto do outro e D cresce, o p-valor despenca e o veredito vira esquecimento
-          insuficiente (o modelo desaprendido ainda denuncia que viu os dados).
+          conjunto do outro e D cresce, o p-valor despenca e o veredito vira Forget Quality
+          baixa: o modelo desaprendido é distinguível do oráculo, seja por ainda lembrar dos
+          dados, seja por ter esquecido além do que o oráculo esquece.
         </p>
       </div>
     </div>
@@ -150,7 +152,7 @@
     <div class="container">
       <h2 class="section-title">3 · Memorização literal: ROUGE-L</h2>
       <p class="demo-text">
-        Um sinal direto de que o modelo ainda memorizou um exemplo é ele reproduzir o texto
+        Um sinal de que o modelo ainda memorizou um exemplo é ele reproduzir o texto
         quase literalmente. O <span class="formula">ROUGE-L</span> mede essa sobreposição pela
         maior subsequência comum (LCS) entre a referência memorizada e o que o modelo gera.
         A partir do LCS calculamos
@@ -180,7 +182,7 @@
         <p class="demo-text small">
           💡 Troque os tokens por sinônimos ou reordene a frase e o F1 cai: o modelo está
           parafraseando, não recitando. Mantenha a maior parte dos tokens na mesma ordem e o
-          F1 sobe acima do limiar, sinal de vazamento por memorização literal. Um unlearning
+          F1 sobe acima de 0,5 (limiar ilustrativo desta demo), sinal de vazamento por memorização literal. Um unlearning
           eficaz deveria empurrar essa métrica para perto de zero no conjunto a esquecer.
         </p>
       </div>
@@ -193,12 +195,15 @@
       <h2 class="section-title">4 · Privacidade: PrivLeak via Membership Inference</h2>
       <p class="demo-text">
         O <span class="formula">PrivLeak</span> pergunta se ainda dá para descobrir quais
-        exemplos estavam no conjunto de treino olhando apenas a loss do modelo. Um atacante
-        prevê "membro" quando a loss é baixa, pois exemplos vistos no treino costumam ter loss
-        menor. A força do ataque é a área sob a curva ROC,
+        exemplos estavam no conjunto a esquecer (<span class="formula">D_f</span>) olhando apenas
+        a loss do modelo. Um atacante prevê "membro" quando a loss é baixa, pois exemplos vistos
+        no treino costumam ter loss menor. A força do ataque é a área sob a curva ROC,
         <span class="formula">AUC = #{pares com loss(membro) &lt; loss(não-membro)} / (n_in·n_out)</span>.
-        Arraste a loss de cada ponto e observe a ROC e a AUC. O esquecimento ideal deixa a AUC
-        perto de <span class="formula">0,5</span>: membros e não-membros ficam indistinguíveis.
+        O MUSE compara essa AUC no modelo desaprendido com a do oráculo retreinado:
+        <span class="formula">PrivLeak = (AUC_u − AUC_retrain) / AUC_retrain</span>, com valor
+        ideal próximo de <span class="formula">0</span>. Nesta demo o oráculo tem
+        <span class="formula">AUC_retrain = 0,5</span> (o atacante chuta). Arraste a loss de cada
+        ponto e observe a ROC, a AUC e o PrivLeak.
       </p>
       <div class="panel">
         <div class="controls">
@@ -213,17 +218,18 @@
             <canvas id="s4-loss"></canvas>
           </div>
           <div class="canvas-box square">
-            <p class="canvas-caption">Curva ROC ao varrer o limiar de loss; a diagonal é a AUC = 0,5</p>
+            <p class="canvas-caption">Curva ROC ao varrer o limiar de loss; a diagonal é a AUC = 0,5 do oráculo</p>
             <canvas id="s4-roc"></canvas>
           </div>
         </div>
         <p class="demo-text small">
-          💡 Quando os membros têm loss claramente menor, a ROC sobe para o canto superior
-          esquerdo e a AUC vai bem acima de <span class="formula">0,5</span>, denunciando o
-          pertencimento. Arraste as losses até membros e não-membros se misturarem: a ROC se
-          cola à diagonal, a AUC volta para perto de <span class="formula">0,5</span> e o
-          PrivLeak fica baixo. AUC longe de <span class="formula">0,5</span> para qualquer
-          lado é ruim, indica que ainda há informação de pertencimento vazando.
+          💡 Quando os membros têm loss menor que a dos não-membros, a ROC sobe para o canto
+          superior esquerdo e a AUC supera a do oráculo, denunciando o pertencimento. Arraste as
+          losses até membros e não-membros se misturarem: a ROC se cola à diagonal, a AUC volta
+          para perto da AUC do oráculo e o PrivLeak fica próximo de
+          <span class="formula">0</span>. PrivLeak longe de <span class="formula">0</span> para
+          qualquer lado indica que ainda há informação de pertencimento vazando. O veredito usa
+          o limiar ilustrativo <span class="formula">|PrivLeak| ≤ 0,20</span>.
         </p>
       </div>
     </div>

@@ -1,12 +1,17 @@
 /* Seção 4: PrivLeak estimado por um ataque de inferência de pertencimento.
    O atacante prevê "membro" quando a loss é baixa. A força do ataque é a AUC da ROC,
-   AUC = #{pares com loss(membro) < loss(não-membro)} / (n_in·n_out). Ideal ≈ 0,5. */
+   AUC = #{pares com loss(membro) < loss(não-membro)} / (n_in·n_out).
+   PrivLeak = (AUC_u − AUC_retrain) / AUC_retrain, com ideal ≈ 0. O oráculo desta
+   demo tem AUC_retrain = 0,5 e o limiar de |PrivLeak| do veredito é ilustrativo. */
 (function () {
   'use strict';
   window.DL = window.DL || {};
   DL.sections = DL.sections || [];
 
-  const fm = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',');
+  const fm = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',').replace('-', '−');
+
+  const AUC_RETRAIN = 0.5;      /* AUC do ataque contra o oráculo (atacante chuta) */
+  const PRIV_THRESHOLD = 0.2;   /* limiar ilustrativo de |PrivLeak| para o veredito */
 
   const PRESETS = {
     leak: { mem: [0.10, 0.20, 0.30, 0.65], non: [0.50, 0.60, 0.70, 0.80] },
@@ -112,11 +117,13 @@
 
     function updateReadout() {
       const a = auc();
-      const good = Math.abs(a - 0.5) <= 0.1;
+      const priv = (a - AUC_RETRAIN) / AUC_RETRAIN;
+      const good = Math.abs(priv) <= PRIV_THRESHOLD + 1e-9;
       $('s4-readout').textContent =
-        'AUC = ' + fm(a, 3) + ' · alvo: AUC ≈ 0,5 (faixa 0,40 a 0,60)';
+        'AUC do modelo = ' + fm(a, 3) + ' · AUC do oráculo = ' + fm(AUC_RETRAIN, 3) +
+        ' · PrivLeak = ' + fm(priv) + ' (ideal ≈ 0)';
       const badge = $('s4-verdict');
-      badge.textContent = good ? 'sem vazamento (AUC ≈ 0,5)' : 'PrivLeak: pertencimento vaza';
+      badge.textContent = good ? 'PrivLeak ≈ 0: sem vazamento' : 'PrivLeak longe de 0: pertencimento vaza';
       badge.className = 'un-badge ' + (good ? 'ok' : 'warn');
     }
 

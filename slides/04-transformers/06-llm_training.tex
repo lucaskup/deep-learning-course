@@ -166,7 +166,7 @@
       \begin{column}{0.52\textwidth}
         \begin{block}{1. \textit{Warm-up} linear}
           \begin{itemize}
-            \item LR cresce de 0 até $\eta_{\max}$ em $T_{\text{wu}}$ passos (1--2\% do treino)
+            \item LR cresce de 0 até $\eta_{\max}$ em $T_{\text{wu}}$ passos (cerca de 1\% do treino)
             \item Os momentos do Adam começam em zero: sem \textit{warm-up}, as primeiras atualizações seriam enormes
           \end{itemize}
         \end{block}
@@ -296,7 +296,7 @@
         \textcolor{DarkBlue}{\textbf{O que se repete}}
         \begin{itemize}\small
           \item \textit{Warm-up} curto (menos de 1\% dos passos) e decaimento suave
-          \item $\beta_2{=}0.95$ e \textit{batches} de milhões de tokens em todos
+          \item \textit{Batches} de milhões de tokens em todos; $\beta_2{=}0.95$ onde é reportado
           \item Contexto curto no pré-treino; contextos longos vêm numa fase final de extensão
         \end{itemize}
       \end{column}
@@ -412,7 +412,7 @@
           \end{tabular}}
           \end{center}
           \vspace{0.2em}
-          \textcolor{DarkRed}{\small \textbf{Lição do LIMA:} ``1000 exemplos
+          \textcolor{DarkRed}{\small \textbf{LIMA:} ``1000 exemplos
           cuidadosamente selecionados superam 52000 gerados automaticamente.''}
         \end{block}
       \end{column}
@@ -476,7 +476,7 @@
       \begin{column}{0.48\textwidth}
         \begin{block}{Pré-treinamento}
           \begin{itemize}
-            \item LR alto: $10^{-4}$ -- $3\times10^{-4}$
+            \item LR alto: da ordem de $10^{-4}$ (de $8\times10^{-5}$ a $5\times10^{-4}$)
             \item Centenas de bilhões de tokens
             \item \textit{Batch size} muito grande (milhões de tokens)
             \item \textit{Weight decay}: 0.1
@@ -1427,8 +1427,8 @@
     \textbf{Como ler o diagrama de bits:}
     \begin{itemize}
       \item Valor representado: $(-1)^S \times 2^{E - \text{bias}} \times (1 + M/2^{|M|})$. O expoente tem ``bias'' subtraído (ex.: FP32 bias = 127; o menor campo de expoente normal é $E=1$, que representa $2^{1-127} = 2^{-126} \approx 1.18\times10^{-38}$; $E=0$ é reservado para zero e subnormais, $E=255$ para $\pm\infty$ e NaN).
-      \item \textbf{FP32 vs BF16}: ambos têm 8 bits de expoente (mesmo intervalo dinâmico $[\sim\!3.4\times10^{-38}, \sim\!3.4\times10^{38}]$). BF16 sacrifica 16 bits de mantissa (23→7) para caber em 16 bits. Para gradientes de redes neurais, a precisão de 7 bits de mantissa geralmente é suficiente.
-      \item \textbf{FP16}: 5 bits de expoente $\to$ máximo $\approx 65504$. Gradientes de modelos grandes frequentemente excedem isso, causando \textit{inf/NaN}. Por isso o AMP usa \textit{loss scaling} com FP16 mas não com BF16.
+      \item \textbf{FP32 vs BF16}: ambos têm 8 bits de expoente (mesmo intervalo dinâmico $[\sim\!1.2\times10^{-38}, \sim\!3.4\times10^{38}]$). BF16 sacrifica 16 bits de mantissa (23→7) para caber em 16 bits. Para gradientes de redes neurais, a precisão de 7 bits de mantissa geralmente é suficiente.
+      \item \textbf{FP16}: 5 bits de expoente; o menor valor normal é $\approx 6\times10^{-5}$, então gradientes pequenos viram zero (\textit{underflow}). Por isso o AMP usa \textit{loss scaling} com FP16 mas não com BF16.
       \item \textbf{FP8}: introduzido nas GPUs H100 (Hopper). E4M3 para forward (mais precisão); E5M2 para backward (mais range). Throughput $\approx 2\times$ BF16 em H100.
     \end{itemize}
   }
@@ -1488,8 +1488,8 @@
         \end{block}
 
         \begin{alertblock}{BF16 dispensa \textit{loss scaling}}
-          \footnotesize Mesmo intervalo dinâmico do FP32 $\Rightarrow$ sem risco
-          de overflow em gradientes. \textbf{Preferir BF16} em GPUs Ampere+.
+          \footnotesize Mesmo intervalo dinâmico do FP32 $\Rightarrow$ gradientes
+          pequenos não sofrem underflow. \textbf{Preferir BF16} em GPUs Ampere+.
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -1506,7 +1506,7 @@
   %--- Slide: Paralelismo e memória de ativações ---
   \begin{frame}{Treinamento Distribuído: Paralelismo e Memória \cite{rajbhandari2020zero,shoeybi2019megatron,chen2016checkpoint}}
     \small
-    Um modelo de 70B em bf16 ocupa 140 GB só em pesos: \textbf{nenhuma GPU} o contém. O treino distribui o trabalho em três eixos.
+    Um modelo de 70B em bf16 ocupa 140 GB só em pesos: \textbf{não cabe} em uma GPU de 80 GB. O treino distribui o trabalho em três eixos.
     \begin{columns}[T]
       \begin{column}{0.62\textwidth}
         \resizebox{\linewidth}{!}{%

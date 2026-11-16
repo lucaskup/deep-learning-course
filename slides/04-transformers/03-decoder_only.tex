@@ -333,7 +333,7 @@
       \begin{column}{0.44\textwidth}
         \textbf{Arquitetura e treino}:
         \begin{itemize}
-          \item 117M parâmetros
+          \item 124M parâmetros
           \item 12 camadas, $d=768$, 12 cabeças
           \item Contexto: 512 tokens
           \item Treino: BooksCorpus ($\approx$1B tokens)
@@ -360,7 +360,7 @@
       \begin{column}{0.44\textwidth}
         \textbf{Arquitetura e treino}:
         \begin{itemize}
-          \item 1.5B parâmetros (XL; versões de 117M a 1.5B)
+          \item 1.5B parâmetros (XL; versões de 124M a 1.5B)
           \item 48 camadas, $d=1600$, 25 cabeças; Pre-Norm
           \item Contexto: 1024 tokens
           \item Treino: WebText ($\approx$10B tokens de texto web filtrado)
@@ -920,7 +920,7 @@
           \item $T > 1$: distribuição mais uniforme
         \end{itemize}
         \vspace{0.3em}
-        \textbf{Top-$p$}: selecione o menor conjunto de tokens cuja probabilidade acumulada $\ge p$ (ex: $p=0.9$), então amostre dentro desse conjunto.
+        \textbf{Top-$p$}: selecione o menor conjunto de tokens cuja probabilidade acumulada $\ge p$ (ex: $p=0.8$), então amostre dentro desse conjunto.
       \end{column}
       \begin{column}{0.44\textwidth}
         \resizebox{\linewidth}{!}{%
@@ -931,16 +931,18 @@
             xlabel={Token},
             ylabel={Probabilidade},
             symbolic x coords={$v_1$,$v_2$,$v_3$,$v_4$,$v_5$,$v_6$,$v_7$,$v_8$},
-            xtick=data,
+            xtick={$v_1$,$v_2$,$v_3$,$v_4$,$v_5$,$v_6$,$v_7$,$v_8$},
             ymin=0, ymax=0.55,
             width=7cm, height=4.5cm,
             enlarge x limits=0.08
           ]
-            \addplot[fill=CellBlue] coordinates
-              {($v_1$,0.45)($v_2$,0.25)($v_3$,0.15)($v_4$,0.07)($v_5$,0.04)($v_6$,0.02)($v_7$,0.01)($v_8$,0.01)};
+            \addplot[fill=CellGreen, bar shift=0pt] coordinates
+              {($v_1$,0.45)($v_2$,0.25)($v_3$,0.10)};
+            \addplot[fill=LightGray, draw=MidGray, bar shift=0pt] coordinates
+              {($v_4$,0.08)($v_5$,0.05)($v_6$,0.04)($v_7$,0.02)($v_8$,0.01)};
             \draw[DarkRed, dashed, thick]
-              (axis cs:{$v_4$}, 0) -- (axis cs:{$v_4$}, 0.55)
-              node[above, font=\tiny, DarkRed] {top-$p{=}0.85$};
+              ($(axis cs:{$v_3$}, 0)!0.5!(axis cs:{$v_4$}, 0)$) -- ($(axis cs:{$v_3$}, 0.55)!0.5!(axis cs:{$v_4$}, 0.55)$)
+              node[pos=0.88, right, font=\scriptsize, DarkRed] {top-$p{=}0.8$};
           \end{axis}
         \end{tikzpicture}}
       \end{column}
@@ -948,38 +950,38 @@
   \end{frame}
 
   \begin{frame}{Temperature, Top-$k$ e Top-$p$: Exemplo Numérico}
-    Logits para \textit{``O rato roeu a \_\_\_''} (mesmo exemplo da LM head):
-    \vspace{0.3em}
+    Logits para \textit{``O rato roeu a \_\_\_''} (mesmo exemplo da LM head), com top-$p$ de $p = 0.8$ aplicado em cada temperatura:
+    \vspace{0.4em}
     \begin{columns}[T]
-      \begin{column}{0.52\textwidth}
+      \begin{column}{0.50\textwidth}
+        \centering
+        \renewcommand{\arraystretch}{1.1}
         \resizebox{\linewidth}{!}{%
         \begin{tabular}{lrccc}
           \toprule
           \textbf{Token} & \textbf{Logit} & $P_{T=0.5}$ & $P_{T=1}$ & $P_{T=2}$ \\
           \midrule
-          \texttt{rolha} & 3.0    & \textbf{0.84} & \textbf{0.64} & \textbf{0.46} \\
-          \texttt{roupa} & 2.1    & 0.14 & 0.26 & 0.29 \\
-          \texttt{rua}   & 1.0    & 0.02 & 0.09 & 0.17 \\
-          \texttt{rei}   & $-0.5$ & 0.00 & 0.02 & 0.08 \\
+          \texttt{rolha} & 3.0    & \cellcolor{CellGreen}0.84 & \cellcolor{CellGreen}0.64 & \cellcolor{CellGreen}0.46 \\
+          \texttt{roupa} & 2.1    & \textcolor{MidGray}{0.14} & \cellcolor{CellGreen}0.26 & \cellcolor{CellGreen}0.29 \\
+          \texttt{rua}   & 1.0    & \textcolor{MidGray}{0.02} & \textcolor{MidGray}{0.09} & \cellcolor{CellGreen}0.17 \\
+          \texttt{rei}   & $-0.5$ & \textcolor{MidGray}{0.00} & \textcolor{MidGray}{0.02} & \textcolor{MidGray}{0.08} \\
+          \midrule
+          \multicolumn{2}{l}{Massa do conjunto}  & 0.84 & 0.90 & 0.92 \\
+          \multicolumn{2}{l}{Tokens no conjunto} & 1    & 2    & 3    \\
           \bottomrule
         \end{tabular}}
-        \vspace{0.3em}
-        \begin{itemize}
-          \item $T{=}0.5$ \textbf{afia}: quase greedy
-          \item $T{=}2$ \textbf{achata}: mais diversidade, mais risco
-        \end{itemize}
+
+        \vspace{0.4em}
+        {\scriptsize \colorbox{CellGreen}{\strut\ \ } mantido pelo top-$p$\qquad
+        \textcolor{MidGray}{0.00} cortado}
       \end{column}
-      \begin{column}{0.44\textwidth}
-        Truncamento sobre $P_{T=1}$:
-        \begin{block}{Top-$k$ com $k=2$}
-          Mantém \texttt{rolha}, \texttt{roupa}; renormaliza:\\
-          $P(\texttt{rolha}) = \dfrac{0.64}{0.64+0.26} = 0.71$
-        \end{block}
-        \begin{block}{Top-$p$ com $p=0.9$}
-          Acumulada: $0.64 \to 0.90$; o conjunto $\{\texttt{rolha}, \texttt{roupa}\}$ já atinge $p$, os demais são cortados.
-        \end{block}
-        \vspace{0.2em}
-        {\footnotesize Top-$k$ fixa o \textbf{tamanho} do conjunto; top-$p$ fixa a \textbf{massa} de probabilidade, adaptando-se à incerteza do modelo.}
+      \begin{column}{0.46\textwidth}
+        \begin{itemize}
+          \item $T{=}0.5$ \textbf{afia} a distribuição: \texttt{rolha} sozinha atinge $p$ e a amostragem equivale a greedy
+          \item $T{=}1$: \texttt{rolha} e \texttt{roupa} acumulam $0.90$
+          \item $T{=}2$ \textbf{achata} a distribuição: são necessários três tokens para acumular $p$
+          \item Top-$k$ com $k{=}2$ manteria \texttt{rolha} e \texttt{roupa} nas três colunas: top-$k$ fixa o \textbf{tamanho} do conjunto, top-$p$ fixa a \textbf{massa}
+        \end{itemize}
       \end{column}
     \end{columns}
   \end{frame}
@@ -1154,7 +1156,7 @@
         \end{itemize}
         \vspace{-0.2em}
         \begin{block}{Complexidade}
-          $\gamma+1$ passos de $M_q$ + 1 passe de $M_p$\\
+          $\gamma$ passos de $M_q$ + 1 passe de $M_p$\\
           $\to$ até $\gamma+1$ tokens gerados\\
           ($\gamma$ aceitos + 1 extra amostrado de $M_p$).\\
           Sem especulação: $\gamma+1$ passes de $M_p$.
@@ -1332,15 +1334,15 @@
         \begin{block}{Sem cache (naïve)}
           Para o $n$-ésimo token:\\
           Recalcula $\mathbf{K}$, $\mathbf{V}$ de todos os $n$ tokens\\
-          Custo por token: $\mathcal{O}(n d^2)$\\
-          Custo total: $\mathcal{O}(n^2 d^2)$
+          Custo por token: $\mathcal{O}(n d^2 + n^2 d)$\\
+          Custo total: $\mathcal{O}(n^2 d^2 + n^3 d)$
         \end{block}
         \vspace{0.3em}
         \begin{block}{Com cache}
           Computa $\mathbf{K}$, $\mathbf{V}$ apenas do token novo\\
           Concatena com o cache existente\\
-          Custo por token: $\mathcal{O}(n d)$\\
-          Custo total: $\mathcal{O}(n^2 d)$
+          Custo por token: $\mathcal{O}(d^2 + n d)$\\
+          Custo total: $\mathcal{O}(n d^2 + n^2 d)$
         \end{block}
         \vspace{0.2em}
         {\footnotesize Memória do cache $\propto n \cdot L \cdot d_k$, cresce com a sequência e número de camadas.}
@@ -1714,7 +1716,7 @@
             \item Janela local: $w = 4096$
             \item 32 camadas
             \item Campo receptivo: $32 \times 4096 = 131\text{K}$
-            \item Contexto declarado: 32K tokens
+            \item Contexto: 8K tokens
           \end{itemize}
         \end{block}
         \vspace{0.3em}
@@ -1741,12 +1743,11 @@
             \item \textbf{Exata}: mesmo resultado numérico, sem aproximação
             \item Memória extra $\mathcal{O}(n)$ em vez de $\mathcal{O}(n^2)$
             \item Speedup de $2$--$4\times$ no treino
-            \item FlashAttention-2 \cite{dao2023flashattention2}: padrão 
+            \item FlashAttention-2 \cite{dao2023flashattention2}: padrão atual
           \end{itemize}
         \end{block}
-        \vspace{0.3em}
-        \begin{alertblock}{Lição}
-          Parte do custo da atenção estava na \textbf{implementação}, não na matemática: otimizar antes de aproximar.
+        \begin{alertblock}{Implementação}
+          Parte do custo da atenção estava na \textbf{implementação}: otimizar antes de aproximar.
         \end{alertblock}
       \end{column}
     \end{columns}
@@ -1861,7 +1862,7 @@
         \[
           \mathbf{g}(\mathbf{x}) = \text{softmax}\!\left(\text{TopK}\!\left(\mathbf{x} \mathbf{W}_g,\; k\right)\right)
         \]
-        onde $\text{TopK}$ mantém os $k$ maiores scores e zera o resto.\\[0.4em]
+        onde $\text{TopK}$ mantém os $k$ maiores scores e substitui os demais por $-\infty$.\\[0.4em]
         Saída:
         \[
           \mathbf{y} = \sum_{i \in \text{Top-}k} g_i(\mathbf{x})\; \text{FFN}_i(\mathbf{x})
@@ -1947,7 +1948,7 @@
           \item 32 camadas transformer
           \item Cada FFN $\to$ 8 especialistas com $d_\text{ff} = 14336$ ($\approx$176M parâmetros cada)
           \item Top-2 routing por token
-          \item GQA ($G=8$), RMSNorm, SWA
+          \item GQA ($G=8$), RMSNorm
           \item Contexto: 32\,768 tokens
         \end{itemize}
       \end{column}
@@ -2062,12 +2063,12 @@
       \begin{column}{0.52\textwidth}
         \textbf{Hoffmann et al.\ (2022)}, DeepMind\\[0.4em]
         Treinaram 400+ modelos variando $N$ e $D$ com mesmo $C$.\\[0.4em]
-        \begin{block}{Resultado central}
+        \begin{block}{Resultado}
           Para compute ótimo:
           \[
             N^* \propto C^{0.5}, \quad D^* \propto C^{0.5}
           \]
-          \textbf{Dobrar compute $\to$ dobrar $N$ E dobrar $D$.}
+          \textbf{Quadruplicar o compute $\to$ dobrar $N$ e dobrar $D$.}
         \end{block}
       \end{column}
       \begin{column}{0.44\textwidth}
@@ -2132,7 +2133,7 @@
         \end{itemize}
       \end{column}
       \begin{column}{0.46\textwidth}
-        \begin{exampleblock}{Lição aprendida}
+        \begin{exampleblock}{Modelos menores, mais treino}
           Treinar modelos \textbf{menores por mais tempo} é mais custo-efetivo para implantação do que modelos gigantes subtreinados.
         \end{exampleblock}
         \vspace{0.3em}
@@ -2152,8 +2153,8 @@
       Llama 2 7B     & 7B     & 2T             & 4\,096  & RMSNorm & MHA \\
       Llama 2 70B    & 70B    & 2T             & 4\,096  & RMSNorm & GQA \\
       Llama 3 8B     & 8B     & 15T            & 8\,192  & RMSNorm & GQA \\
-      Mistral 7B     & 7B     & $\sim$1T       & 32\,768 & RMSNorm & GQA+SWA \\
-      Mixtral 8×7B   & 46.7B  & $\sim$1T       & 32\,768 & RMSNorm & GQA+MoE \\
+      Mistral 7B     & 7B     & não divulgado  & 8\,192  & RMSNorm & GQA+SWA \\
+      Mixtral 8×7B   & 46.7B  & não divulgado  & 32\,768 & RMSNorm & GQA+MoE \\
       \bottomrule
     \end{tabular}}
     \vspace{0.3em}
@@ -2361,7 +2362,7 @@
   \begin{frame}{Open LLM Leaderboard: Como Comparar Modelos}
     \begin{columns}[T]
       \begin{column}{0.52\textwidth}
-        Hugging Face mantém \textit{leaderboard} público de LLMs avaliados em condições padronizadas:
+        O Hugging Face manteve até 2024 um \textit{leaderboard} público de LLMs avaliados em condições padronizadas:
         \begin{itemize}
           \item ARC-Challenge (25-shot)
           \item HellaSwag (10-shot)
@@ -2436,7 +2437,7 @@
           {\footnotesize\begin{itemize}
             \item \textbf{MT-Bench}: instrução multi-turno avaliada por GPT-4
             \item \textbf{MATH}: 12500 problemas de competição
-            \item \textbf{MMMU}: multimodal (imagem + texto), 57 disciplinas
+            \item \textbf{MMMU}: multimodal (imagem + texto), 30 disciplinas
           \end{itemize}}
         \end{block}
         \vspace{0.2em}

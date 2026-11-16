@@ -482,8 +482,9 @@
         + \tfrac{1}{I}\sum_{i} \!\!\left(\ln\!\left[\sigma\!\left(f[\mathbf{x}^{(i)},\bm{\phi}]\right)\right]\right)
     \]
     \vspace{0.3em}
-    Isso não altera o \emph{ótimo} (multiplicar por constante não
-    muda o ponto ótimo), mas prepara o próximo passo.
+    Com $I = J$ (mesmo número de reais e geradas no \textit{batch}), isso
+    multiplica a loss por uma constante e não altera o ponto ótimo; cada
+    termo passa a ser uma média.
   \end{frame}
 
   %--- Slide: Expectation ---
@@ -764,7 +765,7 @@
     \[
       D_{JS}[P(\mathbf{x}^*)\|P(\mathbf{x})] =
       \tfrac{1}{2}D_{KL}\!\!\left[P(\mathbf{x}^*)\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]
-      + \tfrac{1}{2}\underbrace{D_{KL}\!\!\left[P(\mathbf{x})\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]}_{\text{limitado por } \tfrac{1}{2}P(\mathbf{x})\log 2}
+      + \tfrac{1}{2}\underbrace{D_{KL}\!\!\left[P(\mathbf{x})\Big\|\tfrac{P(\mathbf{x}^*)+P(\mathbf{x})}{2}\right]}_{\text{no máximo } \log 2}
     \]
     \vspace{0.4em}
     \begin{alertblock}{Consequência}
@@ -798,7 +799,7 @@
       $\frac{P(\mathbf{x})+P(\mathbf{x}^{*})}{2}$.
       \item Somando, obtemos $L[\bm{\phi}] = 2\,D_{JS}\!\left[P(\mathbf{x}^{*})\,\|\,P(\mathbf{x})\right] - 2\ln 2$.
     \end{enumerate}
-    \begin{alertblock}{Moral}
+    \begin{alertblock}{GAN e Jensen--Shannon}
       Treinar uma GAN com discriminador ótimo equivale a minimizar
       Jensen--Shannon. As fragilidades dessa divergência (assimetria
       qualidade vs cobertura, comportamento em suportes disjuntos)
@@ -1406,8 +1407,9 @@
       gerada.
       \item Penaliza norma do gradiente \emph{diferente de 1}, isto é,
       Lipschitz é atingida na intensidade certa, não no extremo.
-      \item Permite voltar a usar \textsc{Adam} e remover BatchNorm do
-      crítico. $\lambda = 10$ funciona bem na prática.
+      \item Permite voltar a usar \textsc{Adam}. O crítico não usa BatchNorm
+      (a penalidade é por amostra); usa-se LayerNorm. $\lambda = 10$
+      funciona bem na prática.
       \item Hoje é o default quando se fala em ``WGAN''.
     \end{itemize}
   \end{frame}
@@ -1504,7 +1506,7 @@
   \end{frame}
 
   %--- Slide: TLDR ---
-  \begin{frame}{\textit{TL;DR} sobre GANs}
+  \begin{frame}{GANs: Pontos Fortes e Fracos}
     \begin{columns}[T]
       \begin{column}{0.48\textwidth}
         \begin{itemize}

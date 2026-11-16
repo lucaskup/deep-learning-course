@@ -34,14 +34,14 @@
       <h1 class="course-title">Fairness em <span>Deep Learning</span></h1>
       <p class="course-subtitle">Demonstrações interativas da aula de fairness</p>
       <p class="course-desc">
-        Três visualizações que acompanham os slides: como o limiar de decisão
+        Três visualizações sobre fairness: como o limiar de decisão
         <span class="formula">τ</span> gera as taxas de erro
         (<span class="formula">FPR</span>, <span class="formula">FNR</span>,
         <span class="formula">PPV</span>), por que com taxas-base diferentes é
         impossível satisfazer calibração e igualdade de erros ao mesmo tempo
         (o caso COMPAS), e como funciona o debiasing de word embeddings por
         projeção <span class="formula">w′ = w − (w·g)g</span>.
-        Notação dos slides: <span class="formula">ŷ = 1 se s ≥ τ</span>,
+        Notação: <span class="formula">ŷ = 1 se s ≥ τ</span>,
         <span class="formula">p_a = P(y=1 | a)</span>.
       </p>
     </div>
@@ -109,7 +109,8 @@
         (<em>predictive parity</em> em Chouldechova); a calibração dos escores
         contínuos no sentido de Kleinberg et al. é uma condição relacionada,
         mas distinta.
-        Tente deixar <strong>todos</strong> verdes com taxas-base diferentes.
+        Com taxas-base diferentes, procure um par de limiares que deixe
+        <strong>todos</strong> verdes e observe em que regime isso acontece.
       </p>
       <div class="panel">
         <div class="controls">
@@ -127,7 +128,7 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s2-compas" type="button">⚖ Preset COMPAS (p_A ≠ p_B)</button>
+          <button class="btn-ctl primary" id="s2-compas" type="button">⚖ Taxas-base do COMPAS (p_A = 0,51, p_B = 0,39)</button>
           <button class="btn-ctl" id="s2-equal" type="button">↺ Taxas-base iguais</button>
         </div>
         <div class="controls" id="s2-badges"></div>
@@ -147,11 +148,18 @@
         </div>
         <p class="demo-text small">
           💡 Com <span class="formula">p_A = p_B</span> e limiares iguais, tudo fica verde.
-          Com o preset COMPAS, limiares iguais dão TPR e FPR iguais, mas a calibração
-          quebra; mover <span class="formula">τ_B</span> para consertar a PPV quebra TPR
-          e FPR. É a identidade dos slides:
-          <span class="formula">FPR = p/(1−p) · (1−PPV)/PPV · (1−FNR)</span>,
-          com <span class="formula">p</span> diferente, algo tem que ceder. A ProPublica
+          Com as taxas-base do COMPAS, limiares iguais dão TPR e FPR iguais, mas a
+          calibração quebra; mover <span class="formula">τ_B</span> para consertar a PPV
+          quebra TPR e FPR. Com <span class="formula">τ_B = 0,54</span> a PPV se iguala
+          e o grupo de maior taxa-base fica com FPR maior e FNR menor, o padrão do
+          COMPAS. A identidade
+          <span class="formula">FPR = p/(1−p) · (1−PPV)/PPV · (1−FNR)</span>
+          explica o efeito: com <span class="formula">p</span> diferente, algo tem que
+          ceder. Com limiares muito altos (<span class="formula">τ ≳ 0,7</span>) quase
+          não há falsos positivos, a PPV se aproxima de 1 e todos os indicadores ficam
+          verdes dentro da tolerância: é a exceção do teorema
+          (<span class="formula">PPV = 1</span> ou <span class="formula">FNR = 1</span>),
+          em que o classificador quase nunca prevê positivo. A ProPublica
           e a Northpointe mediam métricas diferentes do mesmo sistema.
         </p>
       </div>
@@ -192,10 +200,12 @@
         </div>
         <p class="demo-text small">
           💡 Com <span class="formula">λ = 1</span> as profissões caem sobre o eixo
-          neutro: a analogia enviesada man:programmer :: woman:homemaker desaparece,
-          enquanto king/queen preservam o gênero (que ali é legítimo). Ressalva dos
-          slides: em embeddings reais o viés é apenas atenuado, a vizinhança das
-          palavras continua carregando informação de gênero recuperável.
+          neutro: a analogia enviesada he:programmer :: she:homemaker desaparece
+          (o cosseno entre programmer − homemaker e he − she cai de 0,93 para 0),
+          enquanto king/queen preservam o gênero (que ali é legítimo). Ressalva:
+          em embeddings reais o viés é apenas atenuado, pois a vizinhança das
+          palavras continua carregando informação de gênero recuperável
+          (Gonen e Goldberg, 2019).
         </p>
       </div>
     </div>

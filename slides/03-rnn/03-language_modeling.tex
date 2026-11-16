@@ -623,7 +623,7 @@
     \end{itemize}
     \item $|V|$ é a perplexidade de quem não aprendeu nada, e serve como \textbf{referencial}, não como teto. Passar de $|V|$ significa que o modelo é pior que o chute uniforme, sinal de tokenizador trocado, distribuição de avaliação errada ou erro no cálculo.
     \item A leitura como ``número efetivo de \textit{tokens}'' vale no intervalo $[1, |V|]$. Acima de $|V|$ a perplexidade continua medindo o erro contra os dados, mas deixa de corresponder a uma contagem de alternativas.
-    \item A perplexidade só é \textbf{comparável} entre modelos com o \textbf{mesmo tamanho de vocabulário} (idealmente o mesmo tokenizador).
+    \item A perplexidade só é \textbf{comparável} entre modelos avaliados com o \textbf{mesmo tokenizador} e no mesmo conjunto de teste.
 \end{itemize}
 \end{frame}
 
@@ -771,7 +771,7 @@
         \useasboundingbox (-0.35, -1.35) rectangle (11.85, 1.35);
     \fi
     % ---- encoder bidirecional com os estados ocultos s_k ----
-    \foreach \i/\w in {0/Je, 1/vois, 2/un, 3/chat, 4/sur, 5/un, 6/tapis, 7/<eos>}{
+    \foreach \i/\w in {0/Eu, 1/vi, 2/um, 3/gato, 4/em, 5/um, 6/tapete, 7/<eos>}{
         \pgfmathtruncatemacro{\k}{\i+1}
         \node[enccell, minimum width=0.5cm, minimum height=0.6cm] (e\i) at (0.72*\i, 0) {$s_{\k}$};
         \node at (0.72*\i, -0.6) {\w};
@@ -780,7 +780,7 @@
         \draw[->, thin] (e\i.north) to[bend left=20] (e\j.north);
         \draw[->, thin] (e\j.south) to[bend left=20] (e\i.south);
     }
-    \node[font=\scriptsize, ForestGreen] at (2.52, 1.15) {\textbf{Encoder} (FR, bidirecional)};
+    \node[font=\scriptsize, ForestGreen] at (2.52, 1.15) {\textbf{Encoder} (PT, bidirecional)};
     % ---- decoder com teacher forcing; passos futuros esmaecidos ----
     \foreach \i/\inp/\out in {0/<bos>/I, 1/I/saw, 2/saw/a, 3/a/cat, 4/cat/on, 5/on/a, 6/a/mat, 7/mat/<eos>}{
         \pgfmathtruncatemacro{\k}{\i+1}
@@ -824,7 +824,7 @@
         \item \textit{Cross-Entropy Loss} a cada passo do \textit{decoder}.
         \item \textit{Beam Search} para gerar a tradução final.
     \end{itemize}
-    \item Exemplo: traduzir \texttt{Je vois un chat sur un tapis} (FR) para \texttt{I saw a cat on a mat} (EN).
+    \item Exemplo: traduzir \texttt{Eu vi um gato em um tapete} (PT) para \texttt{I saw a cat on a mat} (EN).
     \item O \textit{encoder} bidirecional produz os estados ocultos $\mathbf{s}_1, \dots, \mathbf{s}_8$ e o \textit{decoder} parte do estado oculto final para gerar a tradução.
 \end{itemize}
 \centering
@@ -999,7 +999,7 @@
 \scalebox{1.05}{%
 \begin{tikzpicture}[every node/.style={font=\scriptsize}]
     % ---------------- (1) encoder + estados s_k ----------------
-    \foreach \i/\w/\vec in {0/Je/{$(1;\,0)$}, 1/vois/{$(0;\,1)$}, 2/un/{$(0.5;\,{-}1)$}, 3/chat/{$({-}1;\,1)$}, 4/sur/{$({-}1;\,2)$}, 5/<eos>/{$(0;\,{-}1)$}}{
+    \foreach \i/\w/\vec in {0/Eu/{$(1;\,0)$}, 1/vi/{$(0;\,1)$}, 2/um/{$(0.5;\,{-}1)$}, 3/gato/{$({-}1;\,1)$}, 4/em/{$({-}1;\,2)$}, 5/<eos>/{$(0;\,{-}1)$}}{
         \node[enccell, minimum width=0.65cm, minimum height=0.8cm] (s\i) at (1.15*\i, 0) {};
         \node[font=\scriptsize] at (1.15*\i, -0.65) {\w};
         \node[font=\scriptsize, black!55] at (1.15*\i, -1.05) {\vec};
@@ -1077,7 +1077,7 @@
         \textcolor{decInk}{(2\;\;1)}\,\textcolor{encInk}{\begin{pmatrix}1 & 0 & 0.5 & {-}1 & {-}1 & 0\\ 0 & 1 & {-}1 & 1 & 2 & {-}1\end{pmatrix}}=(\,2\;\;1\;\;0\;\;{-}1\;\;0\;\;{-}1\,)
     \end{equation*}
     \item<3-> \textcolor{smInk}{\textbf{Pesos de atenção:}} $\textcolor{wInk}{\mathbf{a}^{(t)}}=\operatorname{softmax}(\textcolor{decInk}{\text{scores}_t})=[\,0.58;\,0.21;\,0.08;\,0.03;\,0.08;\,0.03\,]$.
-    \item<4-> \textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k} \approx (0.51;\,0.29)$, um vetor dominado por $\textcolor{encInk}{\mathbf{s}_1}$ (``Je'').
+    \item<4-> \textcolor{ctxInk}{\textbf{Contexto:}} $\textcolor{ctxInk}{\mathbf{c}^{(t)}}=\sum_k \textcolor{wInk}{a_k^{(t)}}\, \textcolor{encInk}{\mathbf{s}_k} \approx (0.51;\,0.29)$, um vetor dominado por $\textcolor{encInk}{\mathbf{s}_1}$ (``Eu'').
 \end{itemize}
 \end{frame}
 
@@ -1093,7 +1093,7 @@
     \begin{column}{.58\linewidth}
         \centering
         \begin{tikzpicture}[every node/.style={font=\scriptsize}]
-            % alignment matrix: rows = target (EN), cols = source (FR)
+            % alignment matrix: rows = target (EN), cols = source (PT)
             \foreach \r/\c/\v in {%
                 0/0/0.90, 0/1/0.05, 0/2/0.02, 0/3/0.00, 0/4/0.00, 0/5/0.00,
                 1/0/0.05, 1/1/0.88, 1/2/0.05, 1/3/0.02, 1/4/0.00, 1/5/0.00,
@@ -1104,8 +1104,8 @@
                 \fill[PastelBlue2!\fpeval{max(0,\v*100)}!white] (\c*0.8, {(5-\r)*0.8}) rectangle ++(0.8, 0.8);
                 \draw[gray!40] (\c*0.8, {(5-\r)*0.8}) rectangle ++(0.8, 0.8);
             }
-            % column labels (source, FR)
-            \foreach \c/\w in {0/Je, 1/vois, 2/un, 3/chat, 4/sur, 5/tapis}{
+            % column labels (source, PT)
+            \foreach \c/\w in {0/Eu, 1/vi, 2/um, 3/gato, 4/em, 5/tapete}{
                 \node[anchor=north, rotate=35] at (\c*0.8+0.4, -0.05) {\w};
             }
             % row labels (target, EN)

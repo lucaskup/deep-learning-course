@@ -212,8 +212,8 @@
       \begin{column}{0.4\textwidth}
         \textbf{Como resolver:}
         \begin{itemize}
-          \item PE que codifique apenas distância relativa $\to$ Parte 2
-          \item Reescalar/interpolar posições em tempo de teste $\to$ Parte 4
+          \item PE que codifique apenas distância relativa $\to$ PE relativo
+          \item Reescalar/interpolar posições em tempo de teste $\to$ extensão de contexto
           \item Sem PE: deixar o modelo inferir $\to$ NoPE
         \end{itemize}
       \end{column}
@@ -1058,7 +1058,7 @@
     \end{tabular}}
 
     \vspace{0.5em}
-    \textit{Head} 1 (inclinação maior): mais peso na posição $j{=}2$ (o \textit{token} imediatamente anterior).\\
+    \textit{Head} 1 (inclinação maior): mais peso na posição $j{=}2$ (o próprio \textit{token}).\\
     \textit{Head} 2 (inclinação menor): distribui atenção mais amplamente entre $j \in \{0,1,2\}$.
 
     \vspace{0.3em}
@@ -1100,7 +1100,7 @@
     \textcolor{DarkBlue}{\textbf{Não usar nenhum \textit{positional encoding}. Deixar a máscara causal fazer o trabalho.}}
 
     \begin{itemize}
-      \item Em um \textit{decoder} autorregressivo, a máscara de atenção é estritamente triangular inferior
+      \item Em um \textit{decoder} autorregressivo, a máscara de atenção é triangular inferior
       \item \textit{Token} na posição $i$ só pode atender a posições $j \le i$
       \item \textcolor{DarkBlue}{\textbf{O padrão de quais \textit{tokens} podem ser atendidos é, em si, informação posicional}}
       \item Cada posição vê um ``horizonte de histórico'' diferente
@@ -1330,7 +1330,7 @@
   \end{frame}
 
   %--- Slide: Empirical Results ---
-  \begin{frame}{Resultados Empíricos: Perplexidade vs.\ Comprimento de Contexto}
+  \begin{frame}{Extrapolação: Perplexidade vs.\ Comprimento de Contexto}
     {\small Desempenho relativo em modelagem de linguagem (menor = melhor). Todos treinados em $L = 2048$:}
 
     \centering
@@ -1355,7 +1355,7 @@
       \end{axis}
     \end{tikzpicture}
 
-    {\scriptsize\textit{Ilustrativo; tendências relativas de Press et al.\ (2022), Kazemnejad et al.\ (2023)}}
+    {\scriptsize\textit{Curvas esquemáticas, não valores experimentais; tendências de Press et al.\ (2022) e Kazemnejad et al.\ (2023)}}
   \end{frame}
 
   %--- Slide: Transition ---
@@ -1367,14 +1367,12 @@
     \begin{columns}[t]
       \begin{column}{0.45\textwidth}
         \begin{alertblock}{1. Contexto longo realmente ajuda?}
-          \textit{Lost in the Middle}\\
-          $\to$ Parte 3
+          \textit{Lost in the Middle}
         \end{alertblock}
       \end{column}
       \begin{column}{0.45\textwidth}
         \begin{block}{2. Podemos estender contexto além do treino?}
-          LongRoPE, YaRN, PI\\
-          $\to$ Parte 4
+          LongRoPE, YaRN, PI
         \end{block}
       \end{column}
     \end{columns}
@@ -1487,7 +1485,7 @@
 
     Pico no início e fim (\textit{primacy / recency}), \textcolor{DarkRed}{\textbf{vale no meio}}.
 
-    {\scriptsize\textit{Redesenhado a partir de Liu et al., Lost in the Middle (TACL 2024)}}
+    {\scriptsize\textit{Curva esquemática; tendência de Liu et al., Lost in the Middle (TACL 2024)}}
   \end{frame}
 
   %--- Slide: Lost Why ---
@@ -1519,7 +1517,7 @@
           \item \textcolor{DarkBlue}{Colocar o contexto mais importante no início ou no fim}
           \item \textcolor{DarkBlue}{RAG (\textit{Retrieval-Augmented Generation}): buscar apenas o trecho relevante}
         \end{itemize}
-      \item \textbf{Extensão de contexto (Parte 4) precisa ser combinada com dados de treino de contexto longo}
+      \item \textbf{Extensão de contexto precisa ser combinada com dados de treino de contexto longo}
     \end{itemize}
   \end{frame}
 
@@ -1589,12 +1587,12 @@
     \resizebox{\linewidth}{!}{%
     \begin{tabular}{lccc}
       \toprule
-      \textbf{Modelo} & \textbf{Contexto} & \textbf{Meio a 64K} & \textbf{Padrão geral} \\
+      \textbf{Modelo} & \textbf{Contexto} & \textbf{Acurácia no meio} & \textbf{Padrão geral} \\
       \midrule
       GPT-4 Turbo      & 128K   & $\approx$ 90--100\%  & Quase perfeito \\
       GPT-3.5 Turbo    & 16K    & 50--70\%             & Falha em longo+meio \\
       LLaMA-2 (RoPE)   & 4K     & $<$ 20\% a 16K+      & Colapsa além de $L$ \\
-      Claude 2         & 100K   & $\approx$ 80\%       & Maioria verde, lacunas no meio \\
+      Claude 2         & 100K   & $\approx$ 80\%       & Lacunas no meio \\
       Modelos fracos    & varia  & $<$ 50\% meio        & Zona de falha em U \\
       \bottomrule
     \end{tabular}}
@@ -1602,11 +1600,11 @@
     \flushleft
     \begin{itemize}
       \item Modelos melhores (maiores, mais dados de treino de contexto longo) têm acurácia mais forte no meio
-      \item Extensão de contexto (Parte 4) primariamente estende o eixo x (maior $L$)
+      \item Extensão de contexto primariamente estende o eixo x (maior $L$)
       \item \textcolor{DarkRed}{\textbf{Estender $L$ sem corrigir o formato U não é suficiente para tarefas reais de contexto longo}}
     \end{itemize}
 
-    {\scriptsize\textit{Valores aproximados, compilados de avaliações públicas de Needle-in-a-Haystack (2023--2024)}}
+    {\scriptsize\textit{Ordens de grandeza de avaliações públicas de Needle-in-a-Haystack (2023--2024); não são medições controladas}}
   \end{frame}
 
   %--- Slide: Takeaway ---
@@ -1694,7 +1692,7 @@
     \begin{itemize}
       \item Alvo: estender contexto para 2\,048K \textit{tokens} (2M+) a partir de LLaMA-2 7B e Mistral 7B
       \item Inovação: fatores de reescalonamento não-uniformes por dimensão via busca evolucionária
-      \item \textit{Fine-tuning} em dois estágios para alcançar 2M preservando qualidade em contexto curto
+      \item Extensão progressiva: \textit{fine-tuning} até 256K e uma segunda busca de $\lambda$ para chegar a 2M
       \item \textcolor{DarkBlue}{\textbf{Em 2M \textit{tokens}: ainda competitivo em \textit{Needle-in-a-Haystack}}}
       \item Mostra que RoPE é extensível muito além de 100K com o reescalonamento correto
     \end{itemize}
@@ -1719,7 +1717,7 @@
 
     \smallskip
     PI aplica a mesma escala a \textbf{todas} as dimensões.
-    \textcolor{DarkRed}{Sobre-comprime dims \textit{low-k} e sub-comprime \textit{mid-k}.}
+    \textcolor{DarkRed}{Sobre-comprime as dims \textit{low-k} e \textit{mid-k}, que pedem escala menor.}
 
     \begin{block}{LongRoPE: reescalonamento por dimensão}
       $i \cdot \theta_k \;\leftarrow\; i \cdot \theta_k / \lambda_k$ \qquad $\lambda_k$ específico por dimensão (busca evolucionária)
@@ -1808,7 +1806,7 @@
   \end{frame}
 
   %--- Slide: LongRoPE Two-Stage ---
-  \begin{frame}{LongRoPE: \textit{Fine-Tuning} em Dois Estágios}
+  \begin{frame}{LongRoPE: Extensão Progressiva}
     \textcolor{DarkRed}{\textbf{Desafio:} \textit{fine-tuning} direto em 2M \textit{tokens} é computacionalmente proibitivo.}
 
     \vspace{0.3em}
@@ -1820,14 +1818,14 @@
       \midrule
       Base    & 4K (LLaMA-2)  & $\theta_k$ (inalterado)      & Ponto de partida pré-treinado \\
       Estágio 1 & 256K        & $\lambda^{(1)}$ da busca     & FT completo com dados de 256K \\
-      Estágio 2 & 2048K       & $\lambda^{(2)}$ da busca     & FT curto em 2M; ajustar $\lambda$ \\
+      Estágio 2 & 2048K       & $\lambda^{(2)}$ da busca     & Segunda busca de $\lambda$, sem novo FT \\
       \bottomrule
     \end{tabular}}
 
     \flushleft
     \begin{itemize}
       \item Estágio 1 (256K): dados de \textit{fine-tuning} completos; $\lambda^{(1)}$ otimizado para 256K
-      \item Estágio 2 (2M): dados mínimos; $\lambda^{(2)}$ re-otimizado para alvo de 2M
+      \item Estágio 2 (2M): sem \textit{fine-tuning}; $\lambda^{(2)}$ buscado sobre o modelo de 256K
       \item \textcolor{DarkBlue}{\textbf{Recuperação de contexto curto: $\lambda$ separado para contextos curtos após estágio 2}}
       \item \textcolor{DarkBlue}{Valores $\lambda$ diferentes para inferência curta vs.\ longa $\to$ chaveamento dinâmico}
     \end{itemize}
@@ -1870,7 +1868,7 @@
       \midrule
       PI       & RoPE & Uniforme             & 32K--100K & Baixo ($\sim$1K passos)  & Moderada \\
       YaRN     & RoPE & Não-uniforme (NTK)   & 128K     & Baixo ($\sim$400 passos) & Boa \\
-      LongRoPE & RoPE & Por dim (evoluída)   & 2M+      & Médio (2 estágios)       & Excelente \\
+      LongRoPE & RoPE & Por dim (evoluída)   & 2M+      & Médio (2 estágios)       & Cai após 2M \\
       \bottomrule
     \end{tabular}}
 

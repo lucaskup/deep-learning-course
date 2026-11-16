@@ -14,7 +14,7 @@
 
     \item Considere o paradigma dominante em visão computacional antes do CLIP, baseado em pré-treino supervisionado em \texttt{ImageNet} seguido de \textit{linear probe} ou \textit{fine-tuning}. Qual das alternativas abaixo melhor caracteriza a principal limitação dessa abordagem para tarefas de vocabulário aberto?
     \begin{enumerate}[(a)]
-        \item O conjunto de classes é fixado em tempo de treino e a rotulação manual é cara.
+        \item O conjunto de classes é fixado em tempo de treino, e cada classe nova exige rotulação manual e novo treinamento.
         \item As \textit{features} do \textit{backbone} só transferem para imagens na mesma resolução e distribuição de cores do \texttt{ImageNet}.
         \item O \textit{linear probe} exige re-treinar todas as camadas convolucionais para cada conjunto de dados alvo.
         \item O pré-treino supervisionado converge para representações que só separam classes vistas com mais de mil exemplos.
@@ -25,7 +25,7 @@
     \begin{enumerate}[(a)]
         \item Rótulos categóricos atribuídos por anotadores humanos a cada imagem do conjunto.
         \item Pseudo-rótulos produzidos por uma CNN previamente treinada em \texttt{ImageNet}.
-        \item A legenda que acompanha cada imagem na página de origem.
+        \item A legenda em linguagem natural que acompanha cada imagem na página de origem.
         \item Rótulos propagados por vizinhança a partir de um subconjunto anotado de \texttt{ImageNet}.
         %c
     \end{enumerate}
@@ -43,7 +43,7 @@
     \begin{enumerate}[(a)]
         \item Distância euclidiana $\lVert \mathbf{u} - \mathbf{v} \rVert_2$ entre as projeções.
         \item Produto interno $\mathbf{u}\,\mathbf{v}^{\top}$ sem normalização prévia.
-        \item Similaridade do cosseno entre $\mathbf{u}$ e $\mathbf{v}$.
+        \item Similaridade do cosseno entre as projeções $\mathbf{u}$ e $\mathbf{v}$.
         \item Distância de Mahalanobis com covariância estimada no \textit{batch}.
         %c
     \end{enumerate}
@@ -73,7 +73,7 @@
     \item A perda total do CLIP é definida como $\mathcal{L}_{\text{CLIP}} = \tfrac{1}{2}(\mathcal{L}_{i \to t} + \mathcal{L}_{t \to i})$. Qual é a justificativa principal para essa simetrização?
     \begin{enumerate}[(a)]
         \item Garantir que a matriz $\mathbf{S}$ fique simétrica, igualando $S_{ij}$ e $S_{ji}$ ao longo do treino.
-        \item Permitir que cada modalidade atue como consulta sobre a outra.
+        \item Treinar as duas direções de recuperação, de imagem para texto e de texto para imagem.
         \item Reduzir o custo do \textit{backpropagation}, já que as duas direções compartilham a mesma $\mathbf{S}$.
         \item Forçar os dois \textit{encoders} a convergir para projeções com os mesmos pesos.
         %b
@@ -84,13 +84,13 @@
         \item Os \textit{encoders} de imagem e de texto compartilham pesos e formam um único \textit{transformer} multimodal.
         \item O \textit{encoder} de texto recebe como entrada o vetor de saída do \textit{encoder} de imagem para então gerar a representação textual.
         \item Apenas o \textit{encoder} de imagem é treinado; o \textit{encoder} de texto é congelado a partir de um BERT pré-treinado.
-        \item Os \textit{encoders} são independentes e se conectam apenas no espaço de projeção.
+        \item Os \textit{encoders} têm pesos separados, são treinados em conjunto e se conectam apenas no espaço de projeção comum.
         %d
     \end{enumerate}
 
     \item Para realizar classificação \textit{zero-shot} com CLIP em um problema com $K$ classes, qual pipeline descreve corretamente o procedimento de inferência?
     \begin{enumerate}[(a)]
-        \item Codificar a imagem e as $K$ descrições de classe, e tomar o $\arg\max$ das similaridades.
+        \item Codificar a imagem e as $K$ descrições textuais das classes e escolher a classe cuja descrição tem a maior similaridade.
         \item Treinar uma camada linear sobre o \textit{encoder} de imagem usando exemplos rotulados das $K$ classes antes da inferência.
         \item Submeter a imagem a uma busca por vizinhos mais próximos no \texttt{ImageNet} e propagar o rótulo majoritário.
         \item Gerar legendas candidatas com um \textit{decoder} autoregressivo condicionado na imagem e escolher a de maior verossimilhança.
@@ -100,18 +100,18 @@
     \item Estudos com CLIP mostram que utilizar \textit{prompts} como ``\textit{a photo of a \{classe\}}'' produz acurácia maior do que usar apenas o nome da classe (``\textit{\{classe\}}''). Qual é a explicação mais consistente com o modo como o modelo foi treinado?
     \begin{enumerate}[(a)]
         \item O \textit{prompt} aumenta o número de \textit{tokens} de entrada, o que melhora a capacidade do \textit{transformer} de texto.
-        \item A entrada passa a se parecer com as legendas vistas no pré-treino.
+        \item O \textit{prompt} aproxima a entrada do \textit{encoder} de texto das legendas vistas durante o pré-treino.
         \item O \textit{template} fixa a posição do nome da classe, o que estabiliza o \textit{pooling} no token \texttt{[EOS]}.
         \item Frases mais longas produzem vetores de norma maior antes da normalização L2, o que aumenta os \textit{logits}.
         %b
     \end{enumerate}
 
-    \item Considere quatro estratégias para adaptar o CLIP a uma tarefa específica: (1) \textit{full fine-tuning}, (2) \textit{linear probe}, (3) \textit{adapter modules}, (4) LoRA. Qual delas mantém o \textit{backbone} congelado e treina apenas matrizes \textit{low rank} inseridas em camadas selecionadas?
+    \item Ao adaptar o CLIP a uma tarefa específica com LoRA, quais parâmetros são atualizados durante o treino?
     \begin{enumerate}[(a)]
-        \item \textit{Full fine-tuning}.
-        \item \textit{Linear probe}.
-        \item \textit{Adapter modules}.
-        \item LoRA.
+        \item Todos os pesos dos dois \textit{encoders}, com taxa de aprendizado reduzida.
+        \item Uma camada linear $K \times d_e$ aplicada sobre os \textit{embeddings} congelados.
+        \item Um MLP residual aplicado sobre o \textit{embedding} de saída do \textit{encoder}.
+        \item As matrizes $\mathbf{B}$ e $\mathbf{A}$ somadas aos pesos congelados dos \textit{transformers}.
         %d
     \end{enumerate}
 
@@ -140,7 +140,7 @@
         \item Calcule $\partial \mathcal{L}_{i \to t}/\partial S_{11}$ para $\tau = 1.0$ e $\tau = 0.1$, comente o que acontece com esse gradiente à medida que $\tau$ diminui, compare com o caso de uma linha em que um negativo supera o positivo, e explique por que isso justifica o \textit{clipping} de $\log(1/\tau)$ em $\log 100$ feito pelos autores.
     \end{enumerate}
 
-    \item (\textbf{Pipeline \textit{zero-shot}}) Você precisa classificar imagens em três espécies de plantas: \textit{samambaia}, \textit{cacto} e \textit{orquídea}, sem dispor de dados rotulados. Descreva, passo a passo, como construir o classificador usando o CLIP pré-treinado. Sua resposta deve cobrir:
+    \item (\textbf{Pipeline \textit{zero-shot}}) Você precisa classificar imagens em três tipos de plantas: \textit{samambaia}, \textit{cacto} e \textit{orquídea}, sem dispor de dados rotulados. Descreva, passo a passo, como construir o classificador usando o CLIP pré-treinado. Sua resposta deve cobrir:
     \begin{enumerate}[(a)]
         \item A escolha de um \textit{template} de \textit{prompt} e o motivo pelo qual ele tende a superar o uso do nome da classe isolado.
         \item Como obter os vetores de cada classe a partir do \textit{encoder} de texto e o que fazer com a normalização.
@@ -186,7 +186,7 @@
     \end{align*}
     Média: $\approx 0.021$, ou seja, aproximadamente $0.02$.
 
-    \item \textbf{(b)} Cada modalidade pode ser usada como consulta, então é desejável que recuperar texto a partir de imagem e recuperar imagem a partir de texto produzam gradientes simétricos. Sem a simetrização, o modelo poderia ficar enviesado a uma direção.
+    \item \textbf{(b)} Cada modalidade pode ser usada como consulta, então a perda treina as duas direções: a \textit{softmax} por linha (imagem recupera texto) e a \textit{softmax} por coluna (texto recupera imagem). Com apenas uma das direções, a outra tarefa de recuperação ficaria sem sinal direto de treino.
 
     \item \textbf{(d)} Os \textit{encoders} são independentes (uma CNN ou ViT para imagens, um \textit{transformer} para texto), treinados conjuntamente, e só interagem no espaço de projeção comum onde se calcula a similaridade. Não há compartilhamento de pesos.
 
@@ -194,7 +194,7 @@
 
     \item \textbf{(b)} As legendas vistas em treino são frases completas, então frases construídas com \textit{templates} ficam mais próximas dessa distribuição que palavras isoladas. As demais alternativas invocam mecanismos que não correspondem ao treino do modelo.
 
-    \item \textbf{(d)} LoRA insere produtos \textit{low rank} $\mathbf{A}\mathbf{B}^{\top}$ em camadas de atenção ou \textit{feed-forward}, treinando apenas $\mathbf{A}$ e $\mathbf{B}$ e mantendo o resto congelado. O \textit{linear probe} treina apenas a camada final, \textit{adapters} adicionam blocos não lineares completos, e \textit{full fine-tuning} ajusta todos os pesos.
+    \item \textbf{(d)} LoRA soma a correção \textit{low rank} $\mathbf{B}\mathbf{A}$ aos pesos congelados de camadas de atenção ou \textit{feed-forward} e treina apenas $\mathbf{B}$ e $\mathbf{A}$. A alternativa (a) descreve o \textit{full fine-tuning}, que ajusta todos os pesos. A alternativa (b) descreve o \textit{linear probe}, que treina só uma camada linear sobre os \textit{embeddings}. A alternativa (c) descreve um \textit{adapter}, que acrescenta um bloco não linear sobre a saída do \textit{encoder}.
 
     \item \textbf{(d)} Contagem precisa de objetos é uma falha conhecida do CLIP, junto com leitura de texto em imagens, tarefas de granularidade fina e raciocínio espacial. Recuperação semântica e classificação \textit{zero-shot} em classes amplas estão entre seus pontos fortes.
 \end{enumerate}
@@ -205,14 +205,14 @@
     \begin{enumerate}[(a)]
         \item $\mathcal{L}_{i \to t} = -\tfrac{1}{N}\sum_{i=1}^{N} \log\frac{\exp(S_{ii}/\tau)}{\sum_{j=1}^{N} \exp(S_{ij}/\tau)}$. A temperatura $\tau$ controla a ``nitidez'' da distribuição: $\tau$ pequeno aproxima a $\mathrm{softmax}$ do $\arg\max$, e $\tau$ grande a aproxima da distribuição uniforme.
         \item Para $\tau = 1.0$: linha 1 $\mathrm{softmax}(0.96,\, 0.64) \approx (0.579,\, 0.421)$, linha 2 $\mathrm{softmax}(0.36,\, 0.96) \approx (0.354,\, 0.646)$, então $\mathcal{L}_{i \to t} \approx \tfrac{1}{2}(-\log 0.579 - \log 0.646) \approx 0.492$. Para $\tau = 0.1$: linha 1 $\approx (0.961,\, 0.039)$, linha 2 $\approx (0.0025,\, 0.9975)$, então $\mathcal{L}_{i \to t} \approx \tfrac{1}{2}(0.040 + 0.0025) \approx 0.021$.
-        \item Para a perda média das duas linhas, $\partial \mathcal{L}_{i \to t}/\partial S_{11} = -\tfrac{1}{2}\,(1 - p_{11})/\tau = (p_{11} - 1)/(2\tau)$, com $p_{11}$ a probabilidade do positivo na primeira linha. Com $\tau = 1.0$, $p_{11} \approx 0.579$ e o gradiente vale $\approx -0.210$; com $\tau = 0.1$, $p_{11} \approx 0.961$ e o gradiente vale $\approx -0.196$. Como o positivo já é o maior score da linha (margem $0.32$), $1 - p_{11}$ decai exponencialmente quando $\tau \to 0$, mais rápido do que $1/\tau$ cresce: o módulo do gradiente passa por um máximo em torno de $\tau \approx 0.25$ ($\approx 0.43$) e depois tende a zero, e a linha deixa de contribuir. O quadro se inverte em uma linha na qual um negativo supera o positivo: ali $p_{11} \to 0$ e o gradiente tende a $-1/(2\tau)$, que cresce sem limite quando $\tau \to 0$, enquanto os \textit{logits} $S_{ij}/\tau$ crescem com $1/\tau$ e a $\mathrm{softmax}$ satura numericamente. Para conter esses gradientes e a instabilidade numérica, os autores aprendem $\log(1/\tau)$ e o recortam em $\log 100$, ou seja, $\tau \geq 0.01$.
+        \item Para a perda média das duas linhas, $\partial \mathcal{L}_{i \to t}/\partial S_{11} = -\tfrac{1}{2}\,(1 - p_{11})/\tau = (p_{11} - 1)/(2\tau)$, com $p_{11}$ a probabilidade do positivo na primeira linha. Com $\tau = 1.0$, $p_{11} \approx 0.579$ e o gradiente vale $\approx -0.210$; com $\tau = 0.1$, $p_{11} \approx 0.961$ e o gradiente vale $\approx -0.196$. Como o positivo já é o maior score da linha (margem $0.32$), $1 - p_{11}$ decai exponencialmente quando $\tau \to 0$, mais rápido do que $1/\tau$ cresce: o módulo do gradiente passa por um máximo em torno de $\tau \approx 0.25$ ($\approx 0.44$) e depois tende a zero, e a linha deixa de contribuir. O quadro se inverte em uma linha na qual um negativo supera o positivo: ali $p_{11} \to 0$ e o gradiente tende a $-1/(2\tau)$, que cresce sem limite quando $\tau \to 0$, enquanto os \textit{logits} $S_{ij}/\tau$ crescem com $1/\tau$ e a $\mathrm{softmax}$ satura numericamente. Para conter esses gradientes e a instabilidade numérica, os autores aprendem $\log(1/\tau)$ e o recortam em $\log 100$, ou seja, $\tau \geq 0.01$.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
         \item Usar um \textit{template} como ``\textit{a photo of a \{classe\}}'' aproxima a entrada da distribuição de legendas vistas em treino, em que frases completas predominam sobre palavras isoladas. Isso reduz a diferença entre as entradas vistas no treino e as usadas na inferência \textit{zero-shot}.
         \item Para cada classe $k \in \{\text{samambaia}, \text{cacto}, \text{orquídea}\}$, gere o \textit{prompt} correspondente, passe-o pelo \textit{encoder} de texto e aplique normalização L2 ao vetor de saída para obter $\tilde{\mathbf{v}}_k$. Esses três vetores podem ser pré-computados uma única vez.
-        \item Dada uma imagem nova, codifica-se a imagem (com normalização L2 também), calcula-se a similaridade do cosseno com cada $\tilde{\mathbf{v}}_k$, escala-se por $1/\tau$ e aplica-se $\mathrm{softmax}$. A classe escolhida é o $\arg\max$. Para empates ou similaridades próximas, pode-se usar \textit{prompt ensembling} (média dos vetores de vários \textit{templates}, como ``\textit{a photo of a \{classe\}}'', ``\textit{a close-up of a \{classe\}}'', ``\textit{an image of a \{classe\}}'') e definir um limiar de confiança mínimo, abaixo do qual o sistema se abstém.
+        \item Dada uma imagem nova, codifica-se a imagem (com normalização L2 também), calcula-se a similaridade do cosseno com cada $\tilde{\mathbf{v}}_k$, escala-se por $1/\tau$ e aplica-se $\mathrm{softmax}$. A classe escolhida é o $\arg\max$. Para empates ou similaridades próximas, pode-se usar \textit{prompt ensembling} (média dos vetores de vários \textit{templates}, como ``\textit{a photo of a \{classe\}}'', ``\textit{a close-up of a \{classe\}}'', ``\textit{an image of a \{classe\}}'', seguida de nova normalização L2) e definir um limiar de confiança mínimo, abaixo do qual o sistema se abstém.
     \end{enumerate}
 
     \item

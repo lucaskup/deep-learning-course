@@ -1,5 +1,6 @@
-/* Seção 1: trade-off Forget Quality vs Model Utility.
-   Fronteira ilustrativa Utility = 1 − ForgetQuality². A Model Utility global é a
+/* Seção 1: trade-off esquecimento vs Model Utility. O eixo x mede quanto de D_f
+   deixou de vazar (a Forget Quality do TOFU também penaliza o modelo trivial).
+   Fronteira ilustrativa Utility = 1 − esquecimento². A Model Utility global é a
    média harmônica das sub-métricas, H = 3 / Σ(1/sᵢ), que colapsa se uma delas cai. */
 (function () {
   'use strict';
@@ -70,7 +71,7 @@
         ylabel: 'Model Utility',
         xticks: [0, 0.5, 1], yticks: [0, 0.5, 1],
       });
-      P.label(ctx, fr.X(1), fr.Y(0) + 28, 'Forget Quality', th.comment, 'right');
+      P.label(ctx, fr.X(1), fr.Y(0) + 28, 'esquecimento (D_f deixa de vazar)', th.comment, 'right');
 
       /* Região inviável (acima da fronteira) levemente sombreada. */
       const xs = [], ys = [];
@@ -92,7 +93,7 @@
       /* "inviável" no canto superior direito da região sombreada; a fórmula na
          região viável à esquerda, onde nenhuma curva ou marcador passa. */
       P.mathText(ctx, 'inviável', fr.X(0.97), fr.Y(0.93), th.red, 'right', 11);
-      P.mathText(ctx, 'Utility = 1 − ForgetQuality²', fr.X(0.04), fr.Y(0.60), th.purple, 'left', 11);
+      P.mathText(ctx, 'Utility = 1 − esquecimento²', fr.X(0.04), fr.Y(0.60), th.purple, 'left', 11);
 
       /* Marcadores de referência (o de "sem unlearning" fica abaixo do ponto,
          pois a curva passa logo acima dele). */
@@ -168,7 +169,7 @@
     function updateReadout() {
       const r = harmonic();
       $('s1-readout').textContent =
-        'operação: Forget = ' + fm(op.x) + ' · Utility = ' + fm(op.y) +
+        'operação: esquecimento = ' + fm(op.x) + ' · Utility = ' + fm(op.y) +
         ' · H = ' + fm(r.H) + ' (média aritmética = ' + fm(r.mean) + ')';
       for (let i = 0; i < 3; i++) $('s1-s' + (i + 1) + '-val').textContent = fm(+slS[i].value);
     }

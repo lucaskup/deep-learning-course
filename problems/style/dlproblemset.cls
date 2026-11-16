@@ -61,7 +61,7 @@
 
 \pagestyle{scrheadings}
 \clearpairofpagestyles
-\ifoot*{Prof. Lucas Silveira Kupssinkü}
+\ifoot*{Prof. Lucas Silveira Kupssinskü}
 \ofoot*{\thepage}
 
 % Header content: title on the left, subtitle on the right. Resolved at \begin{document}

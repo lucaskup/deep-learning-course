@@ -7,7 +7,7 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/lucaskup/deep-learning-course)](https://github.com/lucaskup/deep-learning-course)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21212167.svg)](https://doi.org/10.5281/zenodo.21212167)
 
-Material completo de uma disciplina de Introdução a Deep Learning: slides, listas de exercícios, provas com gabarito e demonstrações interativas.
+Material completo de uma disciplina de Introdução a Deep Learning: slides, listas de exercícios, provas com gabarito, projetos e demonstrações interativas.
 
 **🌐 Acesse o material compilado em [lucaskup.github.io/deep-learning-course](https://lucaskup.github.io/deep-learning-course/)**, com todos os PDFs e demos navegáveis por aula.
 
@@ -22,8 +22,9 @@ Se você vai ministrar uma disciplina de Deep Learning, fique à vontade para us
 | Material | Quantidade | Onde |
 |---|---|---|
 | 🖥️ Aulas em Beamer (LaTeX) | 28 apresentações | [`slides/`](slides/) |
-| ✏️ Listas de exercícios | 24 listas | [`problems/`](problems/) |
-| 📝 Provas com gabarito | 8 provas + 2 formulários | [`exams/`](exams/) |
+| ✏️ Listas de exercícios | 28 listas | [`problems/`](problems/) |
+| 📝 Provas com gabarito | 15 provas + 4 formulários | [`exams/`](exams/) |
+| 🧪 Projetos | 2 especificações | [`projects/`](projects/) |
 | 🎛️ Demos interativas | 26 demonstrações | [`docs/`](docs/) |
 
 As demonstrações interativas são páginas em JavaScript puro (sem dependências externas, rodam direto no navegador) para construir intuição sobre os principais conceitos: perceptron, backpropagation, descida de gradiente, funções de ativação, inicialização de pesos, regularização, convoluções, conexões residuais, RNNs/LSTMs, modelagem de linguagem, self-attention, codificação posicional, tokenização, modelos decoder-only e encoder-only, treinamento de LLMs, GANs, normalizing flows, autoencoders/VAEs, modelos de difusão, GNNs, CLIP, fairness e unlearning. Cada demo vive em `docs/<tópico>/` e está vinculada à aula correspondente na página do curso.
@@ -91,7 +92,6 @@ deep-learning-course/
 │   ├── SimplePlusTheme/       Tema Beamer customizado
 │   ├── code/                  Exemplos em Python referenciados nos slides
 │   ├── img/                   Figuras e diagramas
-│   ├── ppt/                   Materiais de origem (PowerPoint, TikZ)
 │   ├── utils/                 Preâmbulo e comandos LaTeX compartilhados
 │   └── reference.bib          Bibliografia unificada do curso
 │
@@ -100,6 +100,9 @@ deep-learning-course/
 │   └── style/                 Classe LaTeX compartilhada (dlproblemset.cls)
 │
 ├── 📂 exams/                  Provas, gabaritos (_gabarito.tex) e formulários
+│   └── 2026-1/, 2026-2/ …     Provas organizadas por semestre
+│
+├── 📂 projects/               Especificações dos projetos (projetoNN_*.tex)
 │
 ├── 📂 docs/                   Site estático (GitHub Pages) com demos interativas
 │
@@ -107,9 +110,9 @@ deep-learning-course/
 │
 ├── 📂 build/                  PDFs compilados (gerado pelo latexmk)
 │
-├── Makefile                   Alvos para compilar listas e provas
+├── Makefile                   Alvos para compilar listas, provas e projetos
 ├── latexmkrc                  Configuração do latexmk (LuaLaTeX + shell-escape)
-└── LICENSE                    Creative Commons BY 4.0
+└── LICENSE                    Creative Commons BY-SA 4.0
 ```
 
 ## 🛠️ Como compilar
@@ -119,8 +122,10 @@ Os documentos usam **LuaLaTeX** e **latexmk**, com `-shell-escape` habilitado pe
 ```bash
 make problems          # compila todas as listas de exercícios
 make exams             # compila todas as provas e gabaritos
+make projects          # compila todas as especificações de projeto
 make clean-problems    # limpa artefatos das listas
 make clean-exams       # limpa artefatos das provas
+make clean-projects    # limpa artefatos dos projetos
 ```
 
 Slides são compilados individualmente (a mesma invocação vale para qualquer documento):
@@ -135,7 +140,7 @@ As demos interativas não têm etapa de build: basta servir `docs/` com qualquer
 
 ## 🚀 CI e publicação
 
-O workflow de CI ([`latex-ci.yml`](.github/workflows/latex-ci.yml)) compila todos os documentos LaTeX a cada push e pull request que altere material do curso (mudanças apenas em arquivos markdown não disparam compilação). A publicação no GitHub Pages acontece quando um release é criado no GitHub: nesse momento os PDFs e o site com as demos são compilados e publicados. Os gabaritos das provas são compilados no CI, mas excluídos da publicação.
+O workflow de CI ([`latex-ci.yml`](.github/workflows/latex-ci.yml)) compila todos os documentos LaTeX a cada push e pull request que altere material do curso (mudanças apenas em arquivos markdown não disparam compilação). A publicação no GitHub Pages acontece quando um release é criado no GitHub ou quando o workflow é disparado manualmente: nesse momento os PDFs e o site com as demos são compilados e publicados. Os gabaritos das provas são compilados no CI, mas excluídos da publicação.
 
 ## 🤝 Como contribuir
 
@@ -170,7 +175,7 @@ Em BibTeX:
 
 ## ⚖️ Licença
 
-Este trabalho está licenciado sob a Creative Commons Attribution 4.0 International License (CC BY 4.0).
+Este trabalho está licenciado sob a Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0).
 
 Isso significa que você tem a liberdade de:
 

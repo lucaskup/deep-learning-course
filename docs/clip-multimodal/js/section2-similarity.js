@@ -73,7 +73,7 @@
           ctx.strokeStyle = th.bg; ctx.lineWidth = 1.5; ctx.stroke();
           const lx = g.cx + (geom.r + 14) * Math.cos(arr[k]);
           const ly = g.cy + (geom.r + 14) * Math.sin(arr[k]);
-          P.mathText(ctx, sym + '_' + (k + 1), lx, ly + 4, col, 'center', 11);
+          P.pill(ctx, sym + '_' + (k + 1), lx, ly + 4, col, 'center', 11);
         }
       });
     }

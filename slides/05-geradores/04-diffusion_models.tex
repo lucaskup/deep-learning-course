@@ -323,7 +323,7 @@
           1 & 0.900 & 0.949 & 0.316 \\
           2 & 0.720 & 0.849 & 0.529 \\
           3 & 0.504 & 0.710 & 0.704 \\
-          4 & 0.302 & 0.550 & 0.836 \\
+          4 & 0.302 & 0.550 & 0.835 \\
           \bottomrule
         \end{tabular}
         \vspace{0.4em}\\
@@ -564,8 +564,8 @@
     \]
     \begin{block}{Quando essa aproximação é razoável}
       Se o número de passos $T$ for grande e $\beta_t$ for próximo de
-      0, cada passo da reversa é quase determinístico e a aproximação
-      gaussiana é boa.
+      0, a reversa verdadeira $q(\mathbf{z}_{t-1} \mid \mathbf{z}_t)$ é
+      aproximadamente normal e a aproximação gaussiana é boa.
     \end{block}
     \par
     \begin{footnotesize}
@@ -997,8 +997,8 @@
       de \textbf{embedding} de $c$ à U-Net, que passa a estimar
       $g_t[\mathbf{z}_t, c]$.
       \begin{itemize}
-        \item Por exemplo, embeddings do BERT sobre a descrição da
-        imagem (texto-para-imagem).
+        \item Por exemplo, embeddings de um codificador de texto como
+        CLIP ou T5 sobre a descrição da imagem (texto-para-imagem).
       \end{itemize}
       \item \emph{Classifier-Free}: durante o treino, com probabilidade
       $p \approx 0.1$ a condição $c$ é substituída por um \emph{token}
@@ -1025,9 +1025,11 @@
       saturação e artefatos. Valores entre $1$ e $7$ são comuns.
     \end{itemize}
     \begin{block}{Interpretação}
-      A diferença $g_t[\mathbf{z}_t, c] - g_t[\mathbf{z}_t, \varnothing]$ aponta na
-      direção em que a condição $c$ se torna mais provável, fazendo o
-      papel do gradiente de um classificador sem precisar treinar um.
+      Como $g_t$ estima o ruído, a diferença
+      $g_t[\mathbf{z}_t, c] - g_t[\mathbf{z}_t, \varnothing]$ é proporcional a
+      $-\nabla_{\mathbf{z}_t} \log p(c \mid \mathbf{z}_t)$. Subtraí-la no passo
+      reverso move a amostra na direção em que $c$ se torna mais provável,
+      o papel do gradiente de um classificador, sem treinar um.
     \end{block}
   \end{frame}
 

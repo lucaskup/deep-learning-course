@@ -134,7 +134,7 @@
       \end{column}
     \end{columns}
     \note{
-      Caso de Richard Lee, 2016, noticiado na imprensa internacional. Perguntar à turma: que tipo de dado de treino produz esse erro? A resposta (sub-representação) volta no Gender Shades e nos métodos distribucionais de \textit{debiasing}.
+      Caso de Richard Lee, 2016, noticiado na imprensa internacional. Perguntar à turma: que tipo de dado de treino produz esse erro? A resposta é a sub-representação, a mesma causa apontada pelo Gender Shades.
     }
   \end{frame}
 
@@ -229,7 +229,7 @@
       \item \textit{Embeddings} enviesados contaminam toda tarefa construída sobre eles (busca, ranqueamento de currículos, tradução)
     \end{itemize}
     \note{
-      Reforçar que a mesma propriedade que torna embeddings úteis (capturar regularidades distribucionais) é a que importa o estereótipo. O modelo fez o que foi pedido, e não há bug. Este exemplo volta na discussão de \textit{debiasing}.
+      Reforçar que a mesma propriedade que torna embeddings úteis (capturar regularidades distribucionais) é a que importa o estereótipo. O modelo fez o que foi pedido, e não há bug.
     }
   \end{frame}
 
@@ -308,7 +308,7 @@
     \vspace{0.5em}
     Exemplo: policiamento preditivo envia mais patrulhas a um bairro, mais patrulhas geram mais registros, mais registros confirmam que o bairro é \enquote{de risco}.
     \note{
-      Este é o argumento de que decisões automatizadas geram os dados do próximo treino, fechando o ciclo, então o viés em ML vai além de um espelho do passado. Sem intervenção, o sistema converge para um equilíbrio pior do que o ponto de partida.
+      Este é o argumento de que decisões automatizadas geram os dados do próximo treino, fechando o ciclo, então o viés em ML vai além de um espelho do passado. Sem intervenção, o sistema pode convergir para um equilíbrio pior do que o ponto de partida.
     }
   \end{frame}
 
@@ -467,7 +467,7 @@
       As taxas de erro são parecidas (36\% vs 33\%). Pela taxa de erro, o sistema trata os dois grupos de forma semelhante.
     \end{block}
     \note{
-      Pedir para a turma guardar essas duas tabelas: todos os números das próximas lâminas saem delas. A taxa de erro similar foi um dos argumentos de defesa da Northpointe.
+      Pedir para a turma guardar essas duas tabelas: todos os números de FPR, FNR e PPV por grupo saem delas. A taxa de erro similar foi um dos argumentos de defesa da Northpointe.
     }
   \end{frame}
 
@@ -531,7 +531,7 @@
       O falso negativo é \textbf{1.7$\times$ mais frequente} para pessoas brancas: o benefício da dúvida vai majoritariamente para um grupo.
     \end{alertblock}
     \note{
-      As duas disparidades são faces da mesma moeda: o escore superestima o risco de um grupo e subestima o do outro. Perguntar: alguém acha que isso aconteceu porque o algoritmo recebe a raça como entrada? Gancho para a próxima lâmina.
+      As duas disparidades são faces da mesma moeda: o escore superestima o risco de um grupo e subestima o do outro. Perguntar: alguém acha que isso aconteceu porque o algoritmo recebe a raça como entrada? Gancho para a discussão de \textit{proxies}.
     }
   \end{frame}
 
@@ -551,8 +551,8 @@
         Atributos correlacionados com raça carregam a informação para dentro do modelo.
       \end{column}
       \begin{column}{0.44\textwidth}
-        \begin{block}{Lição}
-          Remover o atributo sensível do vetor de entrada (\textit{fairness through unawareness}) \textbf{não garante} um modelo justo.
+        \begin{block}{\textit{Fairness through unawareness}}
+          Remover o atributo sensível do vetor de entrada \textbf{não garante} um modelo justo.
         \end{block}
         \begin{alertblock}{Consequência}
           Sem o atributo, fica mais difícil \textbf{auditar} a disparidade, pois ela precisa ser reconstruída por fora.
@@ -592,7 +592,7 @@
       Os dois lados usam métricas legítimas de justiça e chegam a conclusões opostas \textbf{sobre os mesmos dados}.
     \end{block}
     \note{
-      Não revelar ainda a resposta (o teorema da impossibilidade, que aparece depois das métricas de grupo). Deixar a tensão aberta: \enquote{alto risco significa a mesma coisa para os dois grupos} e \enquote{inocentes dos dois grupos correm o mesmo risco de rótulo errado} parecem ambas exigências razoáveis.
+      Não revelar ainda a resposta, que é o teorema da impossibilidade. Deixar a tensão aberta: \enquote{alto risco significa a mesma coisa para os dois grupos} e \enquote{inocentes dos dois grupos correm o mesmo risco de rótulo errado} parecem ambas exigências razoáveis.
     }
   \end{frame}
 
@@ -617,7 +617,7 @@
     \vspace{0.3em}
     Nesta aula, \enquote{viés} significa: comportamento sistematicamente desigual em relação a grupos ou indivíduos, sem justificativa legítima.
     \note{
-      Conectar com o início do curso: sem viés indutivo não há aprendizado (no free lunch). O objetivo é remover os vieses indesejados; \enquote{remover todo viés} seria impossível. Esta distinção evita confusão em discussões públicas sobre IA.
+      Sem viés indutivo não há aprendizado (no free lunch). O objetivo é remover os vieses indesejados; \enquote{remover todo viés} seria impossível. Esta distinção evita confusão em discussões públicas sobre IA.
     }
   \end{frame}
 
@@ -1013,7 +1013,7 @@
     \begin{block}{Resultado (Chouldechova, 2017; Kleinberg et al., 2017)}
       Se as taxas-base diferem ($p_0 \neq p_1$) e o classificador é imperfeito, é \textbf{matematicamente impossível} satisfazer ao mesmo tempo:
       \begin{enumerate}
-        \item Calibração por grupo (PPV igual)
+        \item Paridade preditiva (PPV igual, a calibração no caso binário)
         \item Igualdade de FPR
         \item Igualdade de FNR
       \end{enumerate}
@@ -1079,7 +1079,7 @@
       O grupo de maior taxa-base recebe \textbf{necessariamente} mais falsos positivos por pessoa negativa.
     \end{alertblock}
     \note{
-      $c = 0$ corresponde ao classificador perfeito na classe positiva ou ao classificador que nunca prevê positivo. Qualquer classificador útil e imperfeito tem $c > 0$. O exemplo a seguir põe números nessa conta.
+      $c = 0$ corresponde ao classificador perfeito na classe positiva ou ao classificador que nunca prevê positivo. Qualquer classificador útil e imperfeito tem $c > 0$. O exemplo com PPV e FNR iguais nos dois grupos põe números nessa conta.
     }
   \end{frame}
 
@@ -1197,8 +1197,8 @@
     \end{columns}
 
     \vspace{0.4em}
-    \begin{alertblock}{Lição}
-      \textit{Fairness} é um \textbf{trade-off} que precisa ser decidido, justificado e documentado por humanos. Nenhum modelo é \enquote{justo} ou \enquote{injusto} sem qualificação.
+    \begin{alertblock}{\textit{Fairness} como \textit{trade-off}}
+      A escolha do critério é um \textbf{trade-off} que precisa ser decidido, justificado e documentado por humanos. Chamar um modelo de \enquote{justo} exige dizer segundo qual critério.
     \end{alertblock}
     \note{
       Este slide é o ponto de chegada da aula. A matemática encerra a parte fácil da discussão (quem calculou certo) e abre a difícil (o que devemos igualar). Na prática judicial, o custo de um FP recai sobre o réu; a escolha da métrica embute essa decisão de política pública.
@@ -1255,7 +1255,7 @@
       \item Limitação prática: \textbf{quem define} $d_{\text{task}}$? A dificuldade só mudou de lugar
     \end{itemize}
     \note{
-      Aqui a justiça vem de olhar com cuidado para a similaridade. Dwork et al.\ contrapõem a proposta à \enquote{fairness through blindness}, ideia que a literatura posterior chamou de fairness through unawareness (apagar o atributo, que vimos falhar no COMPAS). A métrica de similaridade carrega toda a carga normativa.
+      Aqui a justiça vem de olhar com cuidado para a similaridade. Dwork et al.\ contrapõem a proposta à \enquote{fairness through blindness}, ideia que a literatura posterior chamou de fairness through unawareness (apagar o atributo, que falha no COMPAS). A métrica de similaridade carrega toda a carga normativa.
     }
   \end{frame}
 
@@ -1325,7 +1325,7 @@
 
     \vspace{0.6em}
     \raggedright
-    Na prática, critérios de grupo dominam auditorias e regulação por serem mensuráveis; critérios individuais guiam o \textbf{desenho} do sistema. As métricas de grupo seguem sendo o vocabulário padrão da área de \textit{debiasing}, que vemos agora.
+    Na prática, critérios de grupo dominam auditorias e regulação por serem mensuráveis; critérios individuais guiam o \textbf{desenho} do sistema. As métricas de grupo seguem sendo o vocabulário padrão da área de \textit{debiasing}.
     \note{
       Transição para \textit{debiasing}: dadas as métricas, como mover um modelo na direção certa? Apresentar a taxonomia do nosso survey.
     }
@@ -1412,7 +1412,7 @@
       \end{column}
     \end{columns}
     \note{
-      Exemplo para citar: a datasheet do Labeled Faces in the Wild documenta explicitamente o desbalanceamento demográfico, o que teria evitado parte dos problemas do Gender Shades se fosse lida.
+      Exemplo para citar: a datasheet do Labeled Faces in the Wild, incluída como exemplo no apêndice do artigo, documenta explicitamente o desbalanceamento demográfico da base, o tipo de informação que antecipa disparidades como as do Gender Shades.
     }
   \end{frame}
 

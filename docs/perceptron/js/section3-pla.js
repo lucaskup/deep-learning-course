@@ -6,7 +6,8 @@
 
   const N = 80;
   const HIST_WINDOW = 400;
-  const MAX_UPDATES = 2000;   /* teto do treino animado no caso não separável */
+  const MAX_UPDATES = 2000;   /* teto do treino animado, nos dois modos */
+  const SEP_CHECK_UPDATES = 500;   /* teto do PLA de verificação na aba separável */
   const MODES = {
     sep: { dist: 3.2, noise: 0.7, range: 4.2 },
     nonsep: { dist: 1.1, noise: 0.95, range: 3.2 },
@@ -36,10 +37,33 @@
       return e;
     }
 
+    /* PLA a partir de θ = 0: convergir em poucas atualizações garante que o
+       conjunto é linearmente separável com margem razoável. */
+    function isSeparable(d) {
+      const th = [0, 0, 0];
+      for (let u = 0; u < SEP_CHECK_UPDATES; u++) {
+        let bad = -1;
+        for (let i = 0; i < N; i++) {
+          const y = d.lab[i] === 0 ? -1 : 1;
+          if (predict(th, d.pts[i]) !== y) { bad = i; break; }
+        }
+        if (bad < 0) return true;
+        const y = d.lab[bad] === 0 ? -1 : 1;
+        th[0] += y; th[1] += y * d.pts[bad][0]; th[2] += y * d.pts[bad][1];
+      }
+      return false;
+    }
+
     function regenerate() {
-      const rng = U.mulberry32(seed);
       const cfg = MODES[mode];
-      const d = U.blobs(N, cfg.dist, cfg.noise, rng);
+      /* Na aba separável, reamostra até o conjunto ser de fato separável
+         (os blobs gaussianos podem se sobrepor em algumas sementes). */
+      let rng, d;
+      for (let attempt = 0; attempt < 50; attempt++) {
+        rng = U.mulberry32(seed + attempt * 7919);
+        d = U.blobs(N, cfg.dist, cfg.noise, rng);
+        if (mode !== 'sep' || isSeparable(d)) break;
+      }
       data = d.pts;
       ys = d.lab.map((c) => (c === 0 ? -1 : 1));
       thetaInit = [U.randn(rng) * 0.5, U.randn(rng) * 0.5, U.randn(rng) * 0.5];
@@ -82,7 +106,8 @@
       $('s3-status').textContent = 'atualizações: ' + updates +
         ' · mal classificados: ' + errHist[errHist.length - 1] + ' / ' + N +
         (converged ? ' · convergiu ✓' : '') +
-        (capped ? ' · parado em ' + MAX_UPDATES + ' atualizações: o PLA não converge aqui' : '');
+        (capped ? ' · parado em ' + MAX_UPDATES + ' atualizações' +
+          (mode === 'nonsep' ? ': o PLA não converge aqui' : '') : '');
       /* Depois de convergir (ou do teto) não há mais passo a dar. */
       btnTrain.disabled = converged || capped;
       btnStep.disabled = converged || capped;
@@ -243,7 +268,7 @@
         const ok = step();
         changed = true;
         if (!ok) { stopTraining(); break; }
-        if (mode === 'nonsep' && updates >= MAX_UPDATES) {
+        if (updates >= MAX_UPDATES) {
           capped = true;
           stopTraining();
           break;

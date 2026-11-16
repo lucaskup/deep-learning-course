@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Demonstrações interativas de Graph Neural Networks: message passing e receptive field, oversmoothing em uma GCN real, coeficientes de atenção em GAT e o teste de Weisfeiler-Lehman passo a passo." />
+  <meta name="description" content="Demonstrações interativas de Graph Neural Networks: message passing e receptive field, oversmoothing com a propagação da GCN, coeficientes de atenção em GAT e o teste de Weisfeiler-Lehman passo a passo." />
   <title>Graph Neural Networks — Demo Interativa</title>
   <script>
     (function () {
@@ -119,9 +119,13 @@
         </div>
         <p class="demo-text small">
           💡 Com <span class="formula">k = 2</span> as comunidades ainda são
-          separáveis (e a classificação seria fácil); com
+          separáveis (e a classificação seria fácil); em
           <span class="formula">k = 10</span> a distância média entre embeddings
-          desaba e os nós ficam indistinguíveis. Profundidade compra alcance
+          já caiu para menos da metade do valor inicial e as cores das duas
+          comunidades se aproximam. A distância se estabiliza acima de zero:
+          com a normalização simétrica, cada embedding converge para um
+          múltiplo de <span class="formula">√d̃_v</span> de um mesmo vetor, e
+          sobra apenas a informação de grau. Profundidade compra alcance
           ao custo da diversidade dos embeddings.
           Mitigações nos slides: skip connections, Jumping Knowledge, DropEdge.
         </p>
@@ -167,7 +171,7 @@
           para <span class="formula">θ = 90°</span> e quem domina passa a ser
           <span class="formula">u_2 = (0, 1)</span>. O vetor
           <span class="formula">a</span> é aprendido no treino: é a tarefa que
-          define o que conta como <em>semelhança</em>. Na GCN esses pesos seriam
+          define quais coordenadas do vizinho contam. Na GCN esses pesos seriam
           fixos, dados pelos graus.
         </p>
       </div>
@@ -210,8 +214,9 @@
           💡 No primeiro preset uma única iteração separa os grafos (multisets
           {A,A,B,B} vs {A,B,B,C}, como nos slides). No segundo, todo nó tem grau
           2 e vê sempre o mesmo multiset: as cores nunca divergem e o 1-WL
-          <strong>falha</strong>, mesmo os grafos não sendo isomorfos. Como GIN
-          ≤ 1-WL, nenhuma GNN de message passing puro distingue C₆ de dois
+          <strong>falha</strong>, mesmo os grafos não sendo isomorfos. Como
+          toda GNN de message passing é no máximo tão poderosa quanto o 1-WL
+          (e a GIN atinge esse teto), nenhuma delas distingue C₆ de dois
           triângulos: MPNNs não contam ciclos.
         </p>
       </div>

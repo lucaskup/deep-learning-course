@@ -54,7 +54,7 @@
          desloca-o na vertical, para o lado oposto ao centro. */
       if (shift !== 0) y += s >= 0 ? 14 : -14;
       y = Math.max(size, Math.min(h - 4, y));
-      P.mathText(ctx, text, x, y, color, align, size);
+      P.pill(ctx, text, x, y, color, align, size);
     }
     const tip = (ang, scale) => [geom.cx + geom.r * (scale || 1) * Math.cos(ang), geom.cy + geom.r * (scale || 1) * Math.sin(ang)];
 

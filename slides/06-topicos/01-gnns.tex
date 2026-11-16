@@ -79,8 +79,8 @@
               de muitos problemas que vemos em produção.
         \item Para a turma da PUCRS, vale citar dois exemplos próximos: o mapa de transporte
               público de Porto Alegre é um grafo; o LinkedIn de cada um é um grafo.
-        \item Vale contrastar mentalmente com imagens/áudio (grade regular, ordem natural)
-              que vimos em CNN/RNN.
+        \item Vale contrastar mentalmente com imagens/áudio (grade regular, ordem natural),
+              os domínios tratados por CNNs e RNNs.
       \end{itemize}
     }
   \end{frame}
@@ -105,7 +105,7 @@
         \item Esta aula vai focar em grafos não-dirigidos, homogêneos e estáticos para
               manter o escopo. Heterogêneos e dinâmicos são extensões do mesmo esquema.
         \item Vale mostrar que $\mathbf{X}$ existe: GNNs se diferenciam de embeddings
-              clássicos por usar atributos de nó como sinal supervisor.
+              clássicos por usar atributos de nó como entrada.
       \end{itemize}
     }
   \end{frame}
@@ -498,7 +498,7 @@
 
     \vspace{-0.5em}
     \begin{alertblock}{Por que importa}
-      GCN precisa do grafo todo; GraphSAGE nasce indutivo via \textit{sampling}.
+      GCN foi proposta no cenário transdutivo; GraphSAGE, no indutivo.
     \end{alertblock}
     \note{
       Quando um aluno perguntar \enquote{mas dá para usar GCN em grafo novo?}, a resposta é
@@ -729,7 +729,7 @@
         random walks parametrizados por $(p, q)$:
         \begin{itemize}
           \item $p$ (\textit{return}) controla a probabilidade de voltar ao nó anterior.
-          \item $q$ (\textit{in-out}) interpola entre busca local (tipo BFS, homofilia) e exploração distante (tipo DFS, equivalência estrutural).
+          \item $q$ (\textit{in-out}) interpola entre busca local (tipo BFS, equivalência estrutural) e exploração distante (tipo DFS, homofilia).
         \end{itemize}
         Permite balancear \textit{homofilia} vs \textit{equivalência estrutural}.
       \end{column}
@@ -957,7 +957,7 @@
 
   %--- Slide: Exemplo numérico GCN (1/2) ---
   \begin{frame}{Exemplo Numérico: GCN em 4 Nós (1/2)}
-    Mesmo grafo da Seção 1. Atributos iniciais 1D: $\mathbf{h}^{(0)} = (1, 2, 3, 4)^\top$.
+    Mesmo grafo do exemplo de matriz de adjacência. Atributos iniciais 1D: $\mathbf{h}^{(0)} = (1, 2, 3, 4)^\top$.
     Para clareza fazemos $W^{(1)} = 1$ (escalar) e $\sigma = \mathrm{Id}$.
     \begin{columns}[T]
       \begin{column}{0.24\textwidth}
@@ -1026,10 +1026,11 @@
       \mathbf{h}^{(1)} = \hat{\mathbf{A}}\, \mathbf{h}^{(0)} \approx (1.21,\; 2.87,\; 2.91,\; 2.91)^\top
     \]
     \begin{alertblock}{Observação}
-      $h^{(1)}_3 = h^{(1)}_4$ porque os nós $3$ e $4$ são \textbf{simétricos
-      no grafo}. GNNs não distinguem nós com a mesma estrutura local quando
-      os atributos não os diferenciam; essa é a questão da
-      \textit{expressividade} de GNNs.
+      $h^{(1)}_3 = h^{(1)}_4$ apesar de $h^{(0)}_3 \neq h^{(0)}_4$: os nós $3$
+      e $4$ têm a \textbf{mesma vizinhança com auto-laço}, $\{2,3,4\}$, e o
+      mesmo grau, então somam os mesmos valores com os mesmos pesos. A GCN
+      trata o próprio nó como mais um vizinho, um limite de
+      \textit{expressividade}.
     \end{alertblock}
     \note{
       Esse exemplo mostra como GCN é uma média ponderada de vizinhos:
@@ -1050,15 +1051,15 @@
     \vspace{0.4em}
     \begin{itemize}
       \item \textbf{Full-batch}: computar $\mathbf{H}^{(k)}$ exige propagar sobre o grafo todo, inclusive para classificar um nó novo.
-      \item \textbf{Custo de memória}: $\tilde{\mathbf{A}}$ esparsa de \texttt{ogbn-papers100M}
-            tem $\sim$1.6 B entradas. Não cabe em GPU.
+      \item \textbf{Custo de memória}: em \texttt{ogbn-papers100M}, $\tilde{\mathbf{A}}$ esparsa
+            tem $\sim$1.6 B entradas e cada $\mathbf{H}^{(k)}$ tem $\sim$111 M linhas. Não cabe em uma GPU.
     \end{itemize}
 
     \vspace{0.5em}
     \begin{block}{A ideia de \citeauthoryear{hamilton2017graphsage}}
       \textbf{Amostrar uma vizinhança fixa}
       $S_k(v) \subseteq \mathcal{N}(v)$ por nó por camada, sem tocar o grafo todo. O custo por minibatch
-      passa a depender de $|S_k|^K$, não de $n$.
+      passa a depender de $\prod_k S_k$ (com $S_k$ o tamanho da amostra), não de $n$.
     \end{block}
 
     \vspace{0.4em}
@@ -1079,8 +1080,8 @@
         \begin{itemize}
           \item \textbf{Mean}: média dos vizinhos.
           \item \textbf{Pool}: max-pool de MLP$(\mathbf{h}_u)$.
-          \item \textbf{LSTM}: LSTM sobre vizinhos (com ordem aleatória, para preservar
-                permutação).
+          \item \textbf{LSTM}: sobre os vizinhos em ordem aleatória (não é
+                invariante à permutação).
         \end{itemize}
 
         \vspace{0.5em}
@@ -1198,7 +1199,8 @@
     tarefa.
     \note{
       A softmax é sobre vizinhos de $v$ apenas, não sobre o grafo todo. É
-      atenção \textbf{local} guiada pela estrutura.
+      atenção \textbf{local} guiada pela estrutura. No artigo, $\mathcal{N}(v)$
+      inclui o próprio $v$.
     }
   \end{frame}
 
@@ -1206,7 +1208,7 @@
   \begin{frame}{Multi-Head e Ligação com Transformers}
     \begin{columns}[T]
       \begin{column}{0.55\textwidth}
-        Como em Transformers, \textbf{múltiplas cabeças} de atenção são empilhadas:
+        Como em Transformers, \textbf{múltiplas cabeças} de atenção rodam em paralelo e são concatenadas:
         \[
           \mathbf{h}^{(k)}_v = \big\Vert_{i=1}^{H}\, \sigma\!\left(
             \sum_{u \in \mathcal{N}(v)} \alpha^{(i)}_{vu}\, \mathbf{h}^{(k-1)}_u \mathbf{W}^{(i)\top}
@@ -1222,7 +1224,7 @@
       \begin{column}{0.42\textwidth}
         \begin{block}{Ligação com Transformers}
           \begin{itemize}
-            \item \textit{Self-attention} é GAT em um \textbf{grafo completamente conectado}
+            \item \textit{Self-attention} é atenção sobre um \textbf{grafo completamente conectado}
                   (cada token vê todos os tokens).
             \item GAT é o caso onde a estrutura do grafo \textbf{limita} a atenção
                   aos vizinhos.
@@ -1232,8 +1234,9 @@
       \end{column}
     \end{columns}
     \note{
-      Reforce o paralelo com o módulo 04: GAT é o mesmo mecanismo
-      de atenção que vimos em \textit{self-attention}, restrito por estrutura.
+      Reforce o paralelo com \textit{self-attention}: os dois calculam pesos
+      por softmax a partir do conteúdo. A GAT usa um score aditivo e restringe
+      a softmax aos vizinhos.
     }
   \end{frame}
 
@@ -1272,15 +1275,17 @@
             \approx (\, 0.66,\; 0.34 \,)
           \]
         \end{block}
-        $u_1$ (mais \enquote{parecido} com $v$ na 1\textsuperscript{a} coordenada)
-        recebe maior peso $\alpha$.
+        $u_1$ tem a maior 1\textsuperscript{a} coordenada, a que $\mathbf{a}$ pesa,
+        e recebe o maior $\alpha$.
       \end{column}
     \end{columns}
     \note{
       Pergunta para a turma: \enquote{se $\mathbf{a} = (0, 1, 0, 1)$, qual vizinho
       ganharia?} Resposta: $u_2$, porque $\mathbf{a}$ agora pesa a segunda
       coordenada de ambos. O ponto: a atenção é \textbf{aprendida}; o vetor
-      $\mathbf{a}$ define o que conta como \enquote{semelhança}.
+      $\mathbf{a}$ define quais coordenadas do vizinho contam. Como a parcela de
+      $\mathbf{h}_v$ é a mesma para todos os vizinhos, o ranking dos vizinhos
+      não depende de $v$ (atenção estática).
     }
   \end{frame}
 
@@ -1328,7 +1333,7 @@
           \draw[NodeRed!70, line width=1.8pt] (c)--(u3)
             node[midway, right=2pt, font=\scriptsize, NodeRed!85] {$0.31$};
         \end{tikzpicture}\\[0.5em]
-        \small Pesos $\alpha_{vu}$ do exemplo anterior: dependem do
+        \small Pesos $\alpha_{vu}$ do exemplo numérico: dependem do
         \textbf{conteúdo} dos embeddings.
       \end{column}
     \end{columns}
@@ -1444,9 +1449,9 @@
     A cada camada, cada nó vira uma média dos vizinhos: a \textbf{distância
     entre embeddings cai} até todos ficarem indistinguíveis (ilustração esquemática).
     \note{
-      A demo interativa da aula tem um slider de profundidade que reproduz
-      exatamente esta figura com uma GCN de verdade e mostra a distância média
-      entre pares de embeddings caindo para zero.
+      A demo interativa aplica a propagação da GCN a um grafo de duas
+      comunidades e mostra a distância média entre pares de embeddings caindo
+      com a profundidade.
     }
   \end{frame}
 
@@ -1461,7 +1466,7 @@
             análogo a dropout para a estrutura.
       \item \textbf{Normalização}: \textit{LayerNorm}, \textit{GraphNorm},
             \textit{PairNorm} ajudam a estabilizar magnitudes.
-      \item \textbf{Atenção esparsa global} (Graph Transformers): rota mensagens
+      \item \textbf{Atenção global} (Graph Transformers): rota mensagens
             de longo alcance sem precisar empilhar muitas camadas locais.
     \end{itemize}
 
@@ -1669,7 +1674,7 @@
             quanto o teste 1-WL.
       \item Para alcançar esse teto, AGG precisa ser \textbf{injetivo} sobre
             multisets.
-      \item Soma é injetiva (a menos de medida zero); média e máximo \textbf{não são}.
+      \item A soma permite representar funções injetivas de multisets; média e máximo \textbf{não}.
     \end{itemize}
 
     \vspace{0.5em}
@@ -1814,7 +1819,7 @@
   %--- Slide: PE em grafos ---
   \begin{frame}{Positional Encodings em Grafos}
     Em sequências, $\mathrm{PE}(t)$ é função do índice $t$. Em grafos, não há
-    índice canônico; precisamos de PEs invariantes à permutação:
+    índice canônico; precisamos de PEs que não dependam da rotulagem dos nós:
 
     \vspace{0.4em}
     \begin{itemize}
@@ -1823,14 +1828,14 @@
             estrutura global do grafo.
       \item \textbf{Random Walk PE} (RWPE): probabilidade de estar em $v$ após
             $t$ passos partindo de $v$ ($1$ a $T$ passos).
-      \item \textbf{Shortest-path bias}: adicionar termo na atenção
-            proporcional à distância $d(u,v)$ no grafo.
+      \item \textbf{Shortest-path bias}: adicionar à atenção um termo
+            aprendido, indexado pela distância $d(u,v)$ no grafo.
     \end{itemize}
 
     \vspace{0.4em}
     \begin{block}{GPS \citeauthoryear{rampavsek2022gps}}
       Combina \textbf{message passing local} + \textbf{atenção global} + \textbf{PE},
-      em camadas paralelas. Vence vários benchmarks OGB.
+      em paralelo dentro de cada camada. Resultados competitivos em vários benchmarks (ZINC, OGB).
     \end{block}
     \note{
       PE em grafos é tema ativo de pesquisa, não há
@@ -1888,8 +1893,6 @@
             \textit{in-context learning}.
     \end{itemize}
 
-    \vspace{0.4em}
-    O curso Stanford CS224W dedica cerca de 3 aulas a esse tópico.
     \note{
       Esse é o slide \enquote{para onde a pesquisa está indo}. Não tente cobrir cada
       sub-tópico, apenas dar a paisagem.
@@ -1906,8 +1909,8 @@
                 para predição de estrutura.
           \item \textbf{Descoberta de fármacos}: \texttt{ogbg-molhiv} e variantes,
                 screening em escala industrial.
-          \item \textbf{Recomendação}: PinSage (Pinterest), grafos
-                usuário--item com bilhões de arestas.
+          \item \textbf{Recomendação}: PinSage (Pinterest), grafo bipartido
+                de \textit{pins} e \textit{boards} com bilhões de arestas.
           \item \textbf{Detecção de fraude}: redes de transações como grafos,
                 detecção de comunidades suspeitas.
         \end{itemize}
@@ -1915,8 +1918,6 @@
       \begin{column}{0.46\textwidth}
         \begin{block}{Onde aprofundar}
           \begin{itemize}
-            \item \textbf{Stanford CS224W} (Leskovec): curso semestral, vídeos
-                  públicos no YouTube.
             \item \textbf{OGB}: datasets, leaderboards e código de referência.
             \item \textbf{PyTorch Geometric (PyG)} e \textbf{DGL}: bibliotecas
                   de implementação.
@@ -1927,8 +1928,8 @@
       \end{column}
     \end{columns}
     \note{
-      Encerre dizendo: \enquote{esta aula cobre o núcleo; CS224W é o próximo
-      passo se vocês quiserem se aprofundar}.
+      Encerre apontando o livro de Hamilton e o OGB como próximos passos
+      para quem quiser se aprofundar.
     }
   \end{frame}
 
@@ -1941,7 +1942,7 @@
     \begin{itemize}
       \item Grafos são domínio não-euclidiano sem ordem canônica; \textbf{permutação}
             é a simetria a respeitar.
-      \item Tarefas: \textbf{node / link / graph classification}; transdutivo vs
+      \item Tarefas: \textbf{node classification, link prediction, graph classification}; transdutivo vs
             indutivo muda o que o modelo precisa.
       \item \textbf{OGB} é o benchmark padrão; \textbf{Hits@K} e \textbf{MRR} são
             as métricas específicas para link prediction.
@@ -1966,9 +1967,6 @@
   \begin{frame}{Leituras Recomendadas}
     \leiturasize
     \begin{itemize}
-      \item \textbf{Curso}: Stanford CS224W, \textit{Machine Learning with
-            Graphs} (Jure Leskovec). Slides e vídeos em
-            \texttt{web.stanford.edu/class/cs224w}.
       \item \textbf{Livro}: Hamilton, \textit{Graph Representation Learning}
             (2020), livro introdutório que cobre toda a aula.
       \item \textbf{Artigos seminais} (em ordem sugerida): GCN

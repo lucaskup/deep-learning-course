@@ -34,7 +34,7 @@
     \begin{enumerate}[(a)]
         \item É um método aproximado, pois nunca reproduz exatamente o comportamento desejado, e é evitado por ser numericamente instável.
         \item É um método aproximado de baixo custo, preferido em produção por rodar em uma única GPU-hora por pedido.
-        \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo proibitivo de \textit{compute}.
+        \item É o \textit{oracle} de referência, exato por construção, mas é evitado em LLMs pelo custo de \textit{compute} do retreino.
         \item É um método exato cujo custo é comparável ao do \textit{unlearning} aproximado, mas sem garantias sobre $D_r$.
         %c
     \end{enumerate}
@@ -43,7 +43,7 @@
     \begin{enumerate}[(a)]
         \item $D_f$ recebe tanto o texto literal quanto o material sobre o universo, e $D_r$ fica vazio.
         \item $D_f$ recebe apenas os nomes próprios da saga e $D_r$ recebe os parágrafos completos dos livros.
-        \item $D_f$ recebe o material sobre o universo e $D_r$ recebe o texto literal dos livros, já que o texto é o que se quer preservar.
+        \item $D_f$ recebe o material sobre o universo e $D_r$ recebe o texto literal dos livros.
         \item $D_f$ recebe o texto literal dos livros e $D_r$ recebe material de terceiros sobre o universo.
         %d
     \end{enumerate}
@@ -89,15 +89,15 @@
         \item O gradiente cresce indefinidamente nas amostras já esquecidas, acelerando a convergência.
         \item A perda passa a depender apenas de $D_r$, dispensando o conjunto de esquecimento.
         \item A utility é maximizada porque a sigmoide ignora as amostras de $D_f$ desde o início.
-        \item O gradiente das amostras já esquecidas tende a zero, evitando o \textit{catastrophic collapse}.
+        \item O gradiente das amostras já esquecidas tende a zero, retardando o \textit{catastrophic collapse}.
         %d
     \end{enumerate}
 
-    \item Em um \textit{forget set} heterogêneo, o peso que a NPO aplica ao gradiente de $\log p_\theta(y\mid x)$ de cada amostra é $w_\theta = \frac{2\,p_\theta(y\mid x)^\beta}{p_\theta(y\mid x)^\beta + p_{\text{ref}}(y\mid x)^\beta}$, que para $\beta = 1$ e $p_\theta \ll p_{\text{ref}}$ se aproxima de $2\,p_\theta/p_{\text{ref}}$. Considere dois trechos a esquecer que, em um mesmo passo do \textit{fine-tuning}, têm o mesmo $p_\theta$, bem abaixo de suas referências: $A$, típico do corpus, com $p_{\text{ref}} = 0{,}40$; e $B$, raro, com $p_{\text{ref}} = 0{,}02$. Qual é o efeito desse \textit{reference-model bias}?
+    \item Em um \textit{forget set} heterogêneo, o peso que a NPO aplica ao gradiente de $\log p_\theta(y\mid x)$ de cada amostra é $w_\theta = \frac{2\,p_\theta(y\mid x)^\beta}{p_\theta(y\mid x)^\beta + p_{\text{ref}}(y\mid x)^\beta}$, que para $\beta = 1$ e $p_\theta \ll p_{\text{ref}}$ se aproxima de $2\,p_\theta/p_{\text{ref}}$. Considere dois trechos a esquecer que, em um mesmo passo do \textit{fine-tuning}, têm o mesmo $p_\theta = 0{,}001$, bem abaixo de suas referências: $A$, típico do corpus, com $p_{\text{ref}} = 0{,}40$; e $B$, raro, com $p_{\text{ref}} = 0{,}02$. Qual é o efeito desse \textit{reference-model bias}?
     \begin{enumerate}[(a)]
-        \item $A$ recebe peso vinte vezes maior que $B$, concentrando o esquecimento nos trechos típicos.
+        \item $A$ recebe peso cerca de vinte vezes maior que $B$, concentrando o esquecimento nos trechos típicos.
         \item Ambos recebem peso semelhante, pois a sigmoide compensa a diferença de $p_{\text{ref}}$.
-        \item $B$ recebe peso vinte vezes maior que $A$, então trechos raros dominam o gradiente em vez dos típicos.
+        \item $B$ recebe peso cerca de vinte vezes maior que $A$, então trechos raros dominam o gradiente em vez dos típicos.
         \item O peso independe de $p_{\text{ref}}$, sendo fixado pela temperatura $\beta$ da perda.
         %c
     \end{enumerate}
@@ -113,7 +113,7 @@
 
     \item \emoji{skull-and-crossbones} Em um ataque de \textit{membership inference} sobre $\theta_u$, ordenam-se quatro \textit{in-members} (de $D_f$) e quatro \textit{out-members} pela \textit{loss}. Da menor para a maior, os grupos ficam: \textit{out}, \textit{in}, \textit{in}, \textit{out}, \textit{out}, \textit{in}, \textit{in}, \textit{out}. A AUC do atacante é a fração de pares (\textit{in}, \textit{out}) com \textit{loss}(\textit{in}) $<$ \textit{loss}(\textit{out}), sobre $4\times 4$ pares. Qual é a AUC e o que ela indica?
     \begin{enumerate}[(a)]
-        \item AUC $\approx 0{,}50$, indicando vazamento de privacidade próximo ao ideal.
+        \item AUC $\approx 0{,}50$, indicando que o atacante não separa os grupos.
         \item AUC $\approx 0{,}88$, indicando vazamento alto pois \textit{members} têm \textit{loss} menor.
         \item AUC $\approx 0{,}25$, indicando que o atacante erra sistematicamente.
         \item AUC $\approx 1{,}00$, indicando separação perfeita entre os grupos.
@@ -133,14 +133,14 @@
         \item Explique por que ``aproximado'' não significa que $\theta_u$ deva acertar as perguntas sobre $D_f$, relacionando sua resposta ao fato de que $\theta^\star$ também não acerta as perguntas cuja resposta só está disponível em $D_f$.
     \end{enumerate}
 
-    \item \emoji{skull-and-crossbones} (\textbf{Métricas MUSE em um relatório}) Após aplicar um método de \textit{unlearning} ao corpus de HP, um relatório MUSE traz: VerbMem $= 0{,}05$, KnowMem(\textit{forget}) $= 0{,}18$, Utility (KnowMem no \textit{retain}) $= 0{,}93$ e, para o PrivLeak, a AUC do ataque de \textit{membership inference} contra $\theta_u$, $\mathrm{AUC}_u = 0{,}87$, com $\mathrm{AUC}_{\text{retrain}} = 0{,}50$ para o \textit{oracle}. O MUSE define $\text{PrivLeak} = (\mathrm{AUC}_u - \mathrm{AUC}_{\text{retrain}})/\mathrm{AUC}_{\text{retrain}}$.
+    \item \emoji{skull-and-crossbones} (\textbf{Métricas MUSE em um relatório}) Após aplicar um método de \textit{unlearning} ao corpus de HP, um relatório MUSE traz: VerbMem $= 0{,}05$, KnowMem(\textit{forget}) $= 0{,}18$, Utility (KnowMem no \textit{retain}) $= 0{,}94$ e, para o PrivLeak, a AUC do ataque de \textit{membership inference} contra $\theta_u$, $\mathrm{AUC}_u = 0{,}87$, com $\mathrm{AUC}_{\text{retrain}} = 0{,}50$ para o \textit{oracle}. O MUSE define $\text{PrivLeak} = (\mathrm{AUC}_u - \mathrm{AUC}_{\text{retrain}})/\mathrm{AUC}_{\text{retrain}}$.
     \begin{enumerate}[(a)]
         \item Para VerbMem, KnowMem(\textit{forget}), Utility e PrivLeak, indique a direção desejável de cada métrica (baixo, alto ou próximo de um alvo) e diga se o valor observado é bom ou ruim.
-        \item O contraste entre KnowMem(\textit{forget}) $= 0{,}18$ e Utility $= 0{,}93$ é o contraste que o MUSE destaca. Explique, em termos de texto versus universo da obra, o que esse contraste demonstra.
-        \item O PrivLeak observado contradiz as três métricas \textit{deployer-side}. Explique o que um AUC de $0{,}87$ revela sobre a \textit{loss} dos \textit{in-members} e por que esse modelo ainda não pode ser considerado privado.
+        \item O contraste entre KnowMem(\textit{forget}) $= 0{,}18$ e Utility $= 0{,}94$ é o contraste que o MUSE destaca. Explique, em termos de texto versus universo da obra, o que esse contraste demonstra.
+        \item O PrivLeak observado destoa das outras três métricas do relatório. Considere que a AUC conta os pares em que a \textit{loss} do \textit{in-member} é menor que a do \textit{out-member}. Explique o que uma AUC de $0{,}87$ revela sobre a \textit{loss} dos \textit{in-members} e por que esse modelo ainda não pode ser considerado privado.
     \end{enumerate}
 
-    \item (\textbf{Diagnóstico de \textit{scalability} e \textit{sustainability}}) Considere os dados abaixo, reportados para um mesmo método.
+    \item (\textbf{Diagnóstico de \textit{scalability} e \textit{sustainability}}) Considere os valores ilustrativos abaixo, obtidos com um mesmo método em \textit{forget sets} de três tamanhos.
 
     \begin{center}
     \begin{tabular}{@{}rccc@{}}
@@ -155,7 +155,7 @@
     \end{center}
 
     \begin{enumerate}[(a)]
-        \item Usando a coluna FQ $\times$ Utility, argumente se o método é escalável segundo o critério de \textit{scalability} (queda sublinear no logaritmo de $|D_f|$) e traduza o resultado para a operação: o que é fácil e o que é difícil de apagar.
+        \item Usando a coluna FQ $\times$ Utility, calcule a queda do produto a cada ordem de grandeza de $|D_f|$, argumente se o método escala bem e traduza o resultado para a operação: o que é fácil e o que é difícil de apagar.
         \item Suponha agora cinco pedidos sequenciais de $|D_{f,i}| = 50$ em que a Utility cai de $0{,}90$ ($t=1$) para $0{,}41$ ($t=5$). Calcule a taxa média de degradação de Utility por pedido e relacione esse resultado à propriedade de \textit{sustainability} e à realidade de pedidos contínuos sob o GDPR.
     \end{enumerate}
 
@@ -182,7 +182,7 @@
 
     \item \textbf{(d)} Queremos esquecer o texto, não o conceito: $D_f$ recebe o texto literal dos livros e $D_r$ recebe o material sobre o universo (FanWiki, resenhas). A alternativa (a) coloca o universo em $D_f$, o que apagaria também o conceito; (b) e (c) invertem a separação entre texto e universo.
 
-    \item \textbf{(b)} A média das paráfrases erradas é $(0{,}30 + 0{,}45 + 0{,}60)/3 = 0{,}45$, e $R_{\text{truth}} = 0{,}45/0{,}40 \approx 1{,}13$. Um valor próximo de $1$ indica que o modelo atribui às paráfrases erradas probabilidade semelhante à da correta, ou seja, deixou de preferir a resposta certa, que é o comportamento esperado de quem nunca leu $D_f$. A compatibilidade com o \textit{oracle} propriamente dita só se verifica comparando a distribuição dos \textit{truth ratios} de $\theta_u$ com a de $\theta^\star$ (teste KS); o valor isolado apenas sugere essa compatibilidade. A alternativa (a) usa só a probabilidade da resposta correta; (c) usa só a média do numerador; (d) não corresponde a nenhuma razão entre as quantidades dadas (inverter numerador e denominador daria $0{,}40/0{,}45 \approx 0{,}89$).
+    \item \textbf{(b)} A média das paráfrases erradas é $(0{,}30 + 0{,}45 + 0{,}60)/3 = 0{,}45$, e $R_{\text{truth}} = 0{,}45/0{,}40 \approx 1{,}13$. Um valor próximo de $1$ indica que o modelo atribui às paráfrases erradas probabilidade semelhante à da correta, ou seja, deixou de preferir a resposta certa, que é o comportamento esperado de quem nunca leu $D_f$. A compatibilidade com o \textit{oracle} propriamente dita só se verifica comparando a distribuição dos \textit{truth ratios} de $\theta_u$ com a de $\theta^\star$ (teste KS); o valor isolado apenas sugere essa compatibilidade. A alternativa (a) usa só a probabilidade da resposta correta; (c) usa só a média do numerador; (d) divide a soma das erradas pela maior delas, $1{,}35/0{,}60$ (inverter numerador e denominador daria $0{,}40/0{,}45 \approx 0{,}89$).
 
     \item \textbf{(a)} \textit{Forget Quality} alta significa não distinguir $\theta_u$ de $\theta^\star$, ou seja, $D$ pequeno e $p$-valor alto (não rejeitar $H_0$). A alternativa (b) inverte a leitura do $p$-valor; (c) confunde rejeitar $H_0$ com sucesso de esquecimento; (d) ignora que a métrica é distribucional, não de acurácia.
 
@@ -190,14 +190,13 @@
 
     \item \textbf{(c)} A DPO usa pares $(y_w, y_l)$; em \textit{unlearning} só há negativos, então a NPO descarta o termo da resposta positiva $y_w$, coerente com o objetivo de rebaixar negativos e não elevar positivos. A alternativa (a) inverte qual termo é descartado; (b) descreve a SimNPO; (d) cita a normalização por comprimento, ausente na NPO.
 
-    \item \textbf{(d)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o método ``para sozinho'' e evita o \textit{catastrophic collapse}. A alternativa (a) inverte o efeito da saturação; (b) e (c) descrevem comportamentos que a NPO não tem.
+    \item \textbf{(d)} Quando $p_\theta(y\mid x) \ll p_{\text{ref}}(y\mid x)$, a sigmoide satura e o gradiente das amostras já esquecidas vai a zero, então o esquecimento desacelera sozinho e o \textit{catastrophic collapse} é retardado: a divergência passa de linear (GA) para logarítmica. A alternativa (a) inverte o efeito da saturação; (b) e (c) descrevem comportamentos que a NPO não tem.
 
-    \item \textbf{(c)} Na inicialização, com $p_\theta = p_{\text{ref}}$, todo trecho tem $w_\theta = 1$. Quando $p_\theta$ já caiu bem abaixo das referências, $w_\theta \approx 2\,p_\theta/p_{\text{ref}}$ e, para um mesmo $p_\theta$, o peso fica proporcional a $1/p_{\text{ref}}$: $B$ ($1/0{,}02 = 50$) recebe peso vinte vezes maior que $A$ ($1/0{,}40 = 2{,}5$), e os trechos raros dominam o gradiente em vez dos típicos que queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
+    \item \textbf{(c)} Na inicialização, com $p_\theta = p_{\text{ref}}$, todo trecho tem $w_\theta = 1$. Quando $p_\theta$ já caiu bem abaixo das referências, $w_\theta \approx 2\,p_\theta/p_{\text{ref}}$ e, para um mesmo $p_\theta$, o peso fica aproximadamente proporcional a $1/p_{\text{ref}}$ nesse regime: $B$ recebe peso cerca de vinte vezes maior que $A$ (razão exata $0{,}401/0{,}021 \approx 19$), e os trechos raros dominam o gradiente em vez dos típicos que queremos esquecer. A alternativa (a) inverte qual recebe mais peso; (b) ignora o viés; (d) nega a dependência de $p_{\text{ref}}$.
 
-    \item \textbf{(b)} Trocar a razão por uma \textit{log-prob} normalizada por comprimento e remover $p_{\text{ref}}$ elimina o viés de referência e dispensa armazenar o modelo de referência, reduzindo a memória de \textit{fine-tuning}. A alternativa (a) afirma que o viés é reintroduzido; (c) afirma que ainda são precisas duas cópias; (d) afirma que $p_{\text{ref}}$ é mantido.
+    \item \textbf{(b)} Trocar a razão por uma \textit{log-prob} normalizada por comprimento e remover $p_{\text{ref}}$ elimina o viés de referência e dispensa armazenar o modelo de referência, reduzindo a memória de \textit{fine-tuning}. As alternativas (a) e (d) contradizem a remoção de $p_{\text{ref}}$; (c) ignora que sem referência basta uma cópia do modelo. A margem $\gamma$ é o hiperparâmetro que passa a regular a intensidade do esquecimento.
 
-    \item \textbf{(a)} Listando os pares (\textit{in}, \textit{out}) e contando aqueles em que a \textit{loss} do \textit{in} é menor que a do \textit{out}, obtém-se $8$ de $16$, logo AUC $= 0{,}50$. Um atacante que chuta atinge $0{,}5$, então o vazamento está próximo do ideal. A alternativa (b) corresponderia a uma ordenação em que quase todos os \textit{in} precedem os \textit{out}; (c) e (d) não correspondem à contagem. Detalhe: com a ordem dada, os \textit{in} ocupam posições $2,3,6,7$ e os \textit{out} posições $1,4,5,8$, e a contagem de pares favoráveis resulta em $8/16$.
-
+    \item \textbf{(a)} Listando os pares (\textit{in}, \textit{out}) e contando aqueles em que a \textit{loss} do \textit{in} é menor que a do \textit{out}, obtém-se $8$ de $16$, logo AUC $= 0{,}50$. Um atacante que chuta atinge $0{,}5$, que é também a AUC esperada contra o \textit{oracle}; o PrivLeak fica próximo de zero. A alternativa (b) corresponderia a uma ordenação em que quase todos os \textit{in} precedem os \textit{out}; (c) e (d) não correspondem à contagem.
 \end{enumerate}
 
 \paragraph{Dissertativas.}
@@ -211,20 +210,20 @@
 
     \item
     \begin{enumerate}[(a)]
-        \item VerbMem (memorização literal) e KnowMem(\textit{forget}) devem ser \textbf{baixos}: $0{,}05$ e $0{,}18$ são bons. Utility (KnowMem no \textit{retain}) deve ser \textbf{alto}: $0{,}93$ é bom. PrivLeak deve ficar \textbf{próximo de zero}, o que corresponde a $\mathrm{AUC}_u \approx \mathrm{AUC}_{\text{retrain}}$: aqui $\text{PrivLeak} = (0{,}87 - 0{,}50)/0{,}50 = 0{,}74$, longe do alvo, portanto ruim (valores positivos grandes indicam vazamento; negativos grandes, esquecimento excessivo).
+        \item VerbMem (memorização literal) e KnowMem(\textit{forget}) devem ser \textbf{baixos}: $0{,}05$ e $0{,}18$ são bons. Utility (KnowMem no \textit{retain}) deve ser \textbf{alto}: $0{,}94$ é bom. PrivLeak deve ficar \textbf{próximo de zero}, o que corresponde a $\mathrm{AUC}_u \approx \mathrm{AUC}_{\text{retrain}}$: aqui $\text{PrivLeak} = (0{,}87 - 0{,}50)/0{,}50 = 0{,}74$, longe do alvo, portanto ruim (desvios grandes em qualquer direção vazam pertencimento: com a AUC contando pares em que o \textit{in-member} tem \textit{loss} menor, $\mathrm{AUC}_u$ acima da do \textit{oracle} indica \textit{under-unlearning} e abaixo indica \textit{over-unlearning}).
         \item KnowMem(\textit{forget}) baixo mostra que o modelo deixou de responder o que exigia ter lido o \textbf{texto} dos livros, enquanto Utility alto mostra que ele preservou o conhecimento do \textbf{universo} (FanWiki, personagens, magia). O contraste demonstra que é possível esquecer o texto sem apagar o conceito, que era exatamente o objetivo da separação $D_f$ versus $D_r$.
-        \item AUC $= 0{,}87$ significa que, na maioria dos pares (\textit{in}, \textit{out}), o \textit{in-member} (trecho que estava em $D_f$) ainda tem \textit{loss} sistematicamente menor que um \textit{out-member}, então o modelo continua ``reconhecendo'' o que deveria ter esquecido. As métricas \textit{deployer-side} mostram que o comportamento visível mudou (não há mais regurgitação literal nem QA correto), mas o vazamento de pertencimento persiste no nível da \textit{loss}: o esquecimento foi superficial, não profundo, e o modelo não é privado.
+        \item AUC $= 0{,}87$ significa que, na maioria dos pares (\textit{in}, \textit{out}), o \textit{in-member} (trecho que estava em $D_f$) ainda tem \textit{loss} sistematicamente menor que um \textit{out-member}, então o modelo continua ``reconhecendo'' o que deveria ter esquecido. VerbMem, KnowMem e Utility mostram que o comportamento visível mudou (não há mais regurgitação literal nem QA correto), mas o vazamento de pertencimento persiste no nível da \textit{loss}: o esquecimento foi superficial, não profundo, e o modelo não é privado.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
-        \item O produto FQ $\times$ Utility cai de $0{,}77$ para $0{,}51$ na primeira década de $|D_f|$ (queda de $0{,}26$) e de $0{,}51$ para $0{,}20$ na segunda (queda de $0{,}31$). As quedas por década crescem, então no intervalo observado a queda não é sublinear no logaritmo de $|D_f|$, logo o método \textbf{não é escalável} segundo esse critério; três pontos não bastam para estabelecer uma lei assintótica, mas bastam para reprovar o método no intervalo medido. Em produção, isso significa que apagar trechos pequenos (capítulos individuais) é fácil, mas apagar conjuntos grandes (livros inteiros) é difícil.
+        \item O produto FQ $\times$ Utility cai de $0{,}77$ para $0{,}51$ (queda de $0{,}26$) e de $0{,}51$ para $0{,}20$ (queda de $0{,}31$), cerca de $0{,}3$ a cada ordem de grandeza, e perde quase três quartos do valor em duas ordens. Um método que escala bem manteria FQ e Utility quase estáveis, logo este \textbf{não escala bem}. Em produção, isso significa que apagar trechos pequenos (capítulos individuais) é fácil, mas apagar conjuntos grandes (livros inteiros) é difícil.
         \item A taxa média de degradação de Utility por pedido é $(0{,}90 - 0{,}41)/4 \approx 0{,}12$ por pedido, ou seja, quatro pedidos consumiram $0{,}49$ de Utility. Isso indica \textbf{sustainability} baixa: a cada pedido o modelo perde utilidade. Os dois extremos não informam se a queda é uniforme ou acelera ao longo da sequência; para isso seriam necessários os valores intermediários. Como o GDPR implica um fluxo contínuo de pedidos, um operador em produção precisa de \textit{sustainability} alta (próxima de manter a Utility estável), o que este método não oferece.
     \end{enumerate}
 
     \item
     \begin{enumerate}[(a)]
-        \item A falha é o \textit{catastrophic collapse}: como $-\mathcal{L}_{\text{NLL}}(D_f,\theta)$ é ilimitada inferiormente, o \textit{ascent} sem freio empurra os \textit{logits} de $D_f$ para $-\infty$ e degrada o modelo em qualquer entrada. A correção mais direta é acoplar o termo de \textit{retain}, usando $\mathcal{L}_{\text{GA}}(\theta) = -\mathcal{L}_{\text{NLL}}(D_f,\theta) + \lambda\,\mathcal{L}_{\text{NLL}}(D_r,\theta)$ com $\lambda$ típico em $[1,10]$, que penaliza a perda de utility em $D_r$. Métodos com perda autorregulada (NPO, SimNPO), em que a sigmoide satura e o gradiente vai a zero quando o item já foi esquecido, evitam o colapso de forma mais robusta.
+        \item A falha é o \textit{catastrophic collapse}: como $-\mathcal{L}_{\text{NLL}}(D_f,\theta)$ é ilimitada inferiormente, o \textit{ascent} sem freio empurra os \textit{logits} de $D_f$ para $-\infty$ e degrada o modelo em qualquer entrada. A correção mais direta é acoplar o termo de \textit{retain}, usando $\mathcal{L}_{\text{GA}}(\theta) = -\mathcal{L}_{\text{NLL}}(D_f,\theta) + \lambda\,\mathcal{L}_{\text{NLL}}(D_r,\theta)$ em que $\lambda$ regula o compromisso entre esquecer e preservar e o termo de \textit{retain} penaliza a perda de utility em $D_r$. Métodos com perda autorregulada (NPO, SimNPO), em que a sigmoide satura e o gradiente vai a zero quando o item já foi esquecido, retardam o colapso mesmo sem esse termo.
         \item O IDK é uma \textbf{política de resposta}: o modelo aprende a \textit{frase} ``\textit{I don't know}'' para perguntas, mas o conteúdo memorizado dos livros continua nos pesos. Por isso é vulnerável a \textit{prefix-leak attacks}: quando o atacante força a continuação de um trecho literal em vez de fazer uma pergunta, a memorização vaza. Um método que otimiza diretamente a \textit{log-prob} de $D_f$ (GA com \textit{retain}, NPO, SimNPO) ataca a causa, reduzindo a probabilidade do próprio conteúdo, em vez de apenas trocar a resposta às perguntas.
         \item A propriedade violada é a \textbf{robustness} (esquecimento durável), e o ataque é o \textit{relearning attack}: poucos passos de \textit{fine-tuning} numa amostra residual trazem o conhecimento de volta. Entre GA, NPO e SimNPO, a SimNPO foi reportada como mais resistente a \textit{relearning} que NPO e GA.
     \end{enumerate}

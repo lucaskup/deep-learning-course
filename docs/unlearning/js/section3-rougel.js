@@ -10,11 +10,13 @@
   const DEFAULT_GEN = 'a chave secreta do servidor é banana';
   const LEAK_GEN = 'a chave secreta do servidor é zebra verde 1987';
   const NOLEAK_GEN = 'o tempo está ensolarado hoje na praia';
-  const THRESHOLD = 0.5;
+  const THRESHOLD = 0.5;   /* limiar ilustrativo desta demo */
   const fm = (v, d) => v.toFixed(d == null ? 2 : d).replace('.', ',');
 
+  /* Minúsculas e sem pontuação, para "Chave," casar com "chave". */
   function tokenize(s) {
-    return s.trim().split(/\s+/).filter((t) => t.length > 0);
+    return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .trim().split(/\s+/).filter((t) => t.length > 0);
   }
 
   /* LCS por DP, devolvendo o comprimento e os pares de índices casados (i, j). */

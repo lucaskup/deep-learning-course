@@ -6,7 +6,7 @@
 
 \begin{document}
 
-\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Use a notação: $y \in \{0,1\}$ é o resultado real (1 = resultado positivo), $\hat{y} \in \{0,1\}$ é a predição do modelo (1 = decisão favorável), $a \in \{0,1\}$ é o atributo protegido (dois grupos) e $p_a = P(y{=}1 \mid a)$ é a taxa-base do grupo $a$. As taxas $TPR$, $FPR$ e $PPV$ são as definidas a partir da matriz de confusão por grupo. Use a vírgula como separador decimal.
+\paragraph{Instruções:} Responda às questões de múltipla escolha assinalando apenas uma alternativa. Nas questões dissertativas, apresente o raciocínio passo a passo, incluindo fórmulas e cálculos intermediários quando solicitado. Use a notação: $y \in \{0,1\}$ é o resultado real (1 = resultado positivo), $\hat{y} \in \{0,1\}$ é a predição do modelo (1 = classe positiva, que é a decisão favorável salvo indicação em contrário), $a \in \{0,1\}$ é o atributo protegido (dois grupos) e $p_a = P(y{=}1 \mid a)$ é a taxa-base do grupo $a$. As taxas $TPR$, $FPR$, $FNR$ e $PPV$ são as definidas a partir da matriz de confusão por grupo. As famílias de \textit{debiasing} são: distribucional (altera os dados e exige retreino), \textit{one-step} (altera o objetivo do treino), \textit{two-step} (etapa adicional de treino sobre o modelo pronto) e inferencial (atua só na predição, sem alterar parâmetros). Use a vírgula como separador decimal.
 
 \subsection*{Questões de Múltipla Escolha.}
 
@@ -33,7 +33,7 @@
     \item Para o grupo $a{=}0$ obteve-se a matriz de confusão $TN=120$, $FP=80$, $FN=30$, $TP=70$ (linhas = resultado real, colunas = predição, positivo = decisão favorável). Qual é a taxa de verdadeiros positivos ($TPR$) desse grupo?
     \begin{enumerate}[(a)]
         \item $0{,}40$
-        \item $0{,}54$
+        \item $0{,}63$
         \item $0{,}47$
         \item $0{,}70$
         %d
@@ -75,20 +75,20 @@
         \item $0{,}05$
         \item $0{,}25$
         \item $0{,}10$
-        \item $0{,}15$
+        \item $0{,}20$
         %c
     \end{enumerate}
 
     \item Usando as mesmas matrizes da questão anterior, deseja-se verificar se o critério de igualdade de chances (\textit{equalized odds}) está satisfeito. Qual conclusão é correta?
     \begin{enumerate}[(a)]
-        \item O critério é satisfeito, pois tanto os $TPR$ quanto os $FPR$ coincidem entre os grupos.
-        \item O critério é violado, pois embora os $FPR$ coincidam em $0{,}25$, os $TPR$ diferem ($0{,}80$ contra $0{,}70$).
-        \item O critério é violado, pois os $FPR$ diferem ($0{,}25$ contra $0{,}40$), embora os $TPR$ coincidam em $0{,}80$.
-        \item O critério é satisfeito, pois a taxa de decisões favoráveis é igual nos dois grupos.
+        \item O critério é satisfeito, pois os $TPR$ e os $FPR$ coincidem entre os grupos.
+        \item O critério é violado, pois os $FPR$ coincidem, mas os $TPR$ diferem.
+        \item O critério é violado, pois os $TPR$ coincidem, mas os $FPR$ diferem.
+        \item O critério é satisfeito, pois a taxa de decisões favoráveis é igual nos grupos.
         %b
     \end{enumerate}
 
-    \item Um modelo de risco de reincidência tem, para o grupo $a{=}1$, $FPR = 0{,}45$ e $FNR = 0{,}28$. Sabendo que $TPR = 1 - FNR$, qual é o $TPR$ desse grupo?
+    \item Um modelo de risco de reincidência tem, para o grupo $a{=}1$, $FPR = 0{,}45$ e $FNR = 0{,}28$. Qual é o $TPR$ desse grupo?
     \begin{enumerate}[(a)]
         \item $0{,}72$
         \item $0{,}55$
@@ -136,7 +136,7 @@
     \item Dois candidatos a crédito têm exatamente o mesmo histórico financeiro relevante e diferem apenas no atributo protegido $a$. O modelo aprova um e nega o outro. Considerando as famílias de critérios de \textit{fairness}, qual noção de \textit{fairness} é diretamente violada por esse caso isolado?
     \begin{enumerate}[(a)]
         \item \textit{Fairness} individual, que exige tratamento similar para indivíduos similares na tarefa.
-        \item \textit{Counterfactual fairness}, que exige que a decisão não mude ao se intervir causalmente em $a$ e em seus descendentes.
+        \item \textit{Counterfactual fairness}, que exige a mesma decisão no mundo contrafactual em que $a$ é alterado no modelo causal.
         \item Calibração por grupo, que exige que o escore tenha o mesmo significado nos grupos.
         \item Igualdade de oportunidade, que exige $TPR$ igual entre os grupos.
         %a
@@ -209,17 +209,17 @@
 \begin{enumerate}[I)]
     \item \textbf{(c)} O problema está no rótulo: ``bom pagador'' foi definido a partir de decisões passadas já enviesadas (poucos bairros recebiam crédito), então o alvo aprendido mede o padrão histórico de decisões, não a capacidade de pagamento. Isso é viés histórico. Não é amostragem (não se trata de número de exemplos por grupo), nem medição (a renda não foi medida com instrumento distinto), nem agregação (não há um único modelo forçado sobre subpopulações com relações distintas; o defeito está na variável-alvo).
 
-    \item \textbf{(b)} Remover o atributo protegido (\textit{fairness through unawareness}) não garante \textit{fairness}: atributos correlacionados (clubes, cursos) funcionam como \textit{proxies} e reconstroem a informação removida. A alternativa (a) está errada porque a disparidade é esperada via \textit{proxies}; (c) inverte o que a remoção garante, pois ela não garante nenhuma das duas noções; (d) calibração é outro critério e nada nos números informados a sustenta.
+    \item \textbf{(b)} Remover o atributo protegido (\textit{fairness through unawareness}) não garante \textit{fairness}: atributos correlacionados (clubes, cursos) funcionam como \textit{proxies} e reconstroem a informação removida. A alternativa (a) está errada porque a disparidade é esperada via \textit{proxies}; (c) atribui à remoção uma garantia de \textit{fairness} individual que ela não dá: com \textit{proxies}, nenhuma das duas noções fica garantida; (d) calibração é outro critério e nada nos números informados a sustenta.
 
-    \item \textbf{(d)} $TPR = \frac{TP}{TP+FN} = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A alternativa (c) traz $\frac{TP}{TP+FP}=\frac{70}{150}\approx 0{,}47$, que é o $PPV$, com o denominador $TP+FP$ no lugar de $TP+FN$; (a) é o $FPR$ ($\frac{80}{200} = 0{,}40$), a taxa da outra linha da matriz; (b) corresponde a outra razão da matriz com o denominador errado.
+    \item \textbf{(d)} $TPR = \frac{TP}{TP+FN} = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A alternativa (c) traz $\frac{TP}{TP+FP}=\frac{70}{150}\approx 0{,}47$, que é o $PPV$, com o denominador $TP+FP$ no lugar de $TP+FN$; (a) é o $FPR$ ($\frac{80}{200} = 0{,}40$), a taxa da outra linha da matriz; (b) é a acurácia, $\frac{TP+TN}{N} = \frac{190}{300} \approx 0{,}63$.
 
     \item \textbf{(a)} A paridade demográfica exige $P(\hat{y}{=}1 \mid a{=}0) = P(\hat{y}{=}1 \mid a{=}1)$. Como ambos os grupos recebem o anúncio a uma taxa de $30\%$, a paridade está satisfeita. As demais alternativas exigiriam condicionar em $y$ (oportunidade, chances) ou olhar $P(y{=}1\mid \hat{y})$ (calibração); os dados informados não dizem nada sobre $y$, então não há como afirmar que esses critérios valem.
 
-    \item \textbf{(c)} $TPR_0 = \frac{160}{160+40} = \frac{160}{200} = 0{,}80$ e $TPR_1 = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A lacuna é $|0{,}80 - 0{,}70| = 0{,}10$. O valor $0{,}25$ em (b) é o $FPR$ comum aos dois grupos, medido no lugar do $TPR$; (a) e (d) resultam de usar as células erradas da matriz.
+    \item \textbf{(c)} $TPR_0 = \frac{160}{160+40} = \frac{160}{200} = 0{,}80$ e $TPR_1 = \frac{70}{70+30} = \frac{70}{100} = 0{,}70$. A lacuna é $|0{,}80 - 0{,}70| = 0{,}10$. O valor $0{,}25$ em (b) é o $FPR$ comum aos dois grupos, medido no lugar do $TPR$; (a) é a diferença entre as taxas de decisões favoráveis ($\frac{210}{400} - \frac{95}{200} = 0{,}525 - 0{,}475$), a lacuna de paridade demográfica; (d) é o $FNR_0 = \frac{40}{200}$, uma taxa de um único grupo.
 
-    \item \textbf{(b)} A igualdade de chances exige $TPR$ \textbf{e} $FPR$ iguais. Os $FPR$ coincidem: $FPR_0 = \frac{50}{50+150} = 0{,}25$ e $FPR_1 = \frac{25}{25+75} = 0{,}25$. Mas os $TPR$ diferem: $0{,}80$ contra $0{,}70$. Como basta uma das duas igualdades falhar, o critério está violado. A alternativa (a) afirma falsamente que as duas taxas coincidem; (c) inverte qual taxa difere; (d) confunde \textit{equalized odds} com paridade demográfica.
+    \item \textbf{(b)} A igualdade de chances exige $TPR$ \textbf{e} $FPR$ iguais. Os $FPR$ coincidem: $FPR_0 = \frac{50}{50+150} = 0{,}25$ e $FPR_1 = \frac{25}{25+75} = 0{,}25$. Mas os $TPR$ diferem: $TPR_0 = \frac{160}{200} = 0{,}80$ contra $TPR_1 = \frac{70}{100} = 0{,}70$. Como basta uma das duas igualdades falhar, o critério está violado. A alternativa (a) afirma que as duas taxas coincidem, o que os $TPR$ desmentem; (c) inverte qual taxa difere; (d) confunde \textit{equalized odds} com paridade demográfica, e as taxas de decisões favoráveis também diferem ($0{,}525$ contra $0{,}475$).
 
-    \item \textbf{(a)} $TPR = 1 - FNR = 1 - 0{,}28 = 0{,}72$. A alternativa (c) repete o $FPR$, e (d) repete o $FNR$, ambos confundindo qual taxa foi pedida.
+    \item \textbf{(a)} $TPR = 1 - FNR = 1 - 0{,}28 = 0{,}72$. A alternativa (b) é $1 - FPR = 0{,}55$, a taxa de verdadeiros negativos; (c) repete o $FPR$, e (d) repete o $FNR$, ambos confundindo qual taxa foi pedida.
 
     \item \textbf{(d)} A igualdade de $PPV$ entre grupos, $P(y{=}1\mid \hat{y}{=}1, a)$ igual nos dois grupos, é o critério chamado aqui de calibração por grupo e que a literatura também nomeia paridade preditiva (Chouldechova); a calibração de um escore contínuo $s$ exige $P(y{=}1\mid s, a) = s$ para todo valor de $s$, e a igualdade de $PPV$ é a sua versão para decisões binárias. Aqui $62\%$ contra $61\%$, aproximadamente satisfeita. A fração de bons pagadores marcados como alto risco que difere é o $FNR$ (entre $y{=}1$, os que recebem $\hat{y}{=}0$). As demais alternativas trocam o critério satisfeito ($TPR$, paridade, $FPR$), que não corresponde a $P(y{=}1\mid\hat{y}{=}1)$.
 
@@ -229,7 +229,7 @@
 
     \item \textbf{(d)} O \textit{two-step-training} parte do modelo já treinado e adiciona uma etapa barata (\textit{fine-tuning}, adapters), viável em foundation models (mesma economia do PEFT) e mais persistente que correções só na inferência. Distribucional (a) e \textit{one-step} (b) implicam retreinar do zero, proibitivo na escala dada; a edição na inferência (c) é o tipo de correção reversível que o enunciado quer evitar.
 
-    \item \textbf{(a)} Dois indivíduos idênticos na tarefa recebem decisões opostas: isso viola diretamente a \textit{fairness} individual (tratamento similar para similares). A alternativa (b) exige intervir causalmente em $a$ para um mesmo indivíduo, e aqui são duas pessoas distintas, não contrafactuais uma da outra. As noções de grupo (c, d) são estatísticas agregadas e podem estar satisfeitas mesmo com esse caso individual injusto, pois não olham pares de indivíduos.
+    \item \textbf{(a)} Dois indivíduos idênticos na tarefa recebem decisões opostas: isso viola diretamente a \textit{fairness} individual (tratamento similar para similares). A alternativa (b) compara um indivíduo com o seu próprio contrafactual, em que alterar $a$ também altera os descendentes de $a$ (renda, CEP); aqui são duas pessoas distintas com os demais atributos iguais, e sem o modelo causal não se sabe se uma é o contrafactual da outra. As noções de grupo (c, d) são estatísticas agregadas e podem estar satisfeitas mesmo com esse caso individual injusto, pois não olham pares de indivíduos.
 \end{enumerate}
 
 \paragraph{Dissertativas.}
