@@ -115,6 +115,8 @@ Three project-specific skills generate course material end-to-end and follow the
 - `create-problem-set` — new `lista` for a unit.
 - `create-exam` — new prova + gabarito pair.
 
+A fourth skill, `course-review`, covers the review of batch changes: after a change that touches several frames, questions, or documents, use it instead of asking the user to open PDFs. It lives outside this repository, in `~/Projects/courses/course-review/` (shared by the three courses), and writes nothing to `build/`.
+
 ## Conventions
 
 - Course content is written in **Portuguese (pt-BR)**. Code identifiers, file names, and git history stay in English/snake_case (`06-llm_training.tex`, `lista03_backprop.tex`).
