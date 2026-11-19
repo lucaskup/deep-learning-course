@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Um transformer encoder-decoder de 312 parâmetros traduz frases de três palavras do português para o inglês. A página mostra cada matriz do forward pass, etapa por etapa, com a conta de cada célula, a geração token a token e a atenção para frases fora do treino." />
+  <title>Transformer Passo a Passo — Demo Interativa</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme');
+      var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    })();
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../shared/demo.css" />
+  <style>
+    /* Layout da etapa: contas à esquerda, diagrama da arquitetura à direita. */
+    .steps-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+    .steps-main { flex: 3 1 520px; min-width: 0; }
+    .steps-side { flex: 1 1 230px; max-width: 300px; position: sticky; top: 70px; }
+    .stage-title { color: var(--purple); font-size: 1rem; font-weight: 600; margin: .2rem 0 .5rem; }
+    .explain-box {
+      border: 1px dashed var(--line); border-radius: 6px; padding: .6rem .8rem; margin-top: .8rem;
+      color: var(--fg); font-size: .88rem; line-height: 1.6; min-height: 4.2em; overflow-wrap: anywhere;
+    }
+    .controls-label { color: var(--comment); font-size: .85rem; }
+    code { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: .92em; color: var(--orange); }
+
+    /* Equações e matrizes. */
+    .eq { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .6rem; margin: .7rem 0; overflow-x: auto; padding-bottom: .2rem; }
+    .mx { display: inline-flex; align-items: flex-end; gap: .3rem; }
+    .mx-rows { display: flex; flex-direction: column; text-align: right; font-family: ui-monospace, Menlo, monospace; font-size: .74rem; color: var(--comment); padding: .2rem 0; }
+    .mx-rows span { height: 1.55rem; line-height: 1.55rem; }
+    .mx-rows span.hi { color: var(--pink); font-weight: 700; }
+    .mx-bracket { border: 2px solid var(--fg); border-top: none; border-bottom: none; border-radius: 6px; padding: .2rem .25rem; }
+    .mx table { border-collapse: collapse; }
+    .mx td, .mx th { height: 1.55rem; padding: 0 .38rem; text-align: right; font-size: .82rem; font-variant-numeric: tabular-nums; border-radius: 3px; }
+    .mx td { color: var(--fg); font-family: ui-monospace, Menlo, monospace; }
+    .mx th { color: var(--comment); font-family: ui-monospace, Menlo, monospace; font-size: .7rem; font-weight: 400; text-align: center; }
+    .mx tr.hi td { color: var(--pink); font-weight: 700; }
+    .mx-w td { color: var(--comment); }
+    .mx-q .mx-bracket { border-color: var(--purple); }
+    .mx-k .mx-bracket { border-color: var(--yellow, var(--orange)); }
+    .mx-v .mx-bracket { border-color: var(--cyan); }
+    .mx td.has-explain { cursor: help; }
+    .mx td.has-explain:hover, .mx td.picked { outline: 2px solid var(--pink); outline-offset: -2px; }
+    .mx td.mark { background: color-mix(in srgb, var(--green) 35%, transparent) !important; color: var(--fg); }
+
+    /* Diagrama da arquitetura. */
+    #s1-diagram svg { width: 100%; height: auto; display: block; }
+    #s1-diagram .wire { fill: none; stroke: var(--comment); stroke-width: 1.5; }
+    #s1-diagram .cap { fill: var(--comment); font-size: 10px; text-anchor: middle; font-family: sans-serif; }
+    #s1-diagram .blk { cursor: pointer; }
+    #s1-diagram .blk rect { fill: var(--card); stroke: var(--line); stroke-width: 1.2; }
+    #s1-diagram .blk text { fill: var(--fg); font-size: 10.5px; text-anchor: middle; font-family: sans-serif; pointer-events: none; }
+    #s1-diagram .b-att rect { stroke: var(--orange); }
+    #s1-diagram .b-ff rect { stroke: var(--cyan); }
+    #s1-diagram .b-an rect { stroke: var(--green); }
+    #s1-diagram .b-emb rect, #s1-diagram .b-pe rect { stroke: var(--purple); }
+    #s1-diagram .blk:hover rect { stroke-width: 2.4; }
+    #s1-diagram .blk.active rect { stroke: var(--red); stroke-width: 3; fill: color-mix(in srgb, var(--red) 22%, var(--card)); }
+    @media (max-width: 760px) { .steps-side { position: static; max-width: 260px; margin: 0 auto; } }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <span class="nav-brand">Deep Learning</span>
+    <ul class="nav-links">
+      <li><a href="../index.html">← Voltar ao curso</a></li>
+      <li><a href="#s1">Passo a passo</a></li>
+      <li><a href="#s2">Geração</a></li>
+      <li><a href="#s3">Outras frases</a></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+    </ul>
+  </nav>
+
+  <header class="demo-hero">
+    <div class="container">
+      <h1 class="course-title">Transformer <span>Passo a Passo</span></h1>
+      <p class="course-subtitle">O exemplo completo da aula de transformers, com todas as contas</p>
+      <p class="course-desc">
+        Um transformer encoder-decoder com <span class="formula">d = 4</span>, uma cabeça de
+        atenção, um bloco de cada lado e 312 parâmetros foi treinado para traduzir frases como
+        <code>O gato preto</code> em <code>The black cat</code>. O adjetivo troca de lugar com o
+        substantivo, então o decoder precisa consultar a origem fora de ordem. Os pesos foram
+        arredondados para uma casa decimal, e esta página refaz o cálculo inteiro no navegador:
+        cada matriz que aparece nos slides está aqui, e cada célula mostra a conta que a produziu.
+      </p>
+    </div>
+  </header>
+
+  <!-- ════════ Seção 1: forward pass etapa por etapa ════════ -->
+  <section id="s1" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">1 · O cálculo, etapa por etapa</h2>
+      <p class="demo-text">
+        Escolha uma das oito frases do treino e avance pelas etapas. As oito primeiras percorrem
+        o encoder, que lê a origem inteira de uma vez. As demais percorrem o decoder para um
+        passo da geração: escolha em <em>Passo do decoder</em> quantos tokens já foram escritos.
+        O diagrama destaca o bloco da etapa atual, e um clique em um bloco leva até ele.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <span class="controls-label">Frase:</span>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-det-0" type="button">O</button>
+            <button class="tab" id="s1-det-1" type="button">Um</button>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-noun-0" type="button">gato</button>
+            <button class="tab" id="s1-noun-1" type="button">cão</button>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s1-adj-0" type="button">preto</button>
+            <button class="tab" id="s1-adj-1" type="button">branco</button>
+          </div>
+        </div>
+        <div class="controls">
+          <span class="controls-label">Passo do decoder (já escrito):</span>
+          <div class="tabs" role="tablist" id="s1-dec-steps"></div>
+        </div>
+        <div class="controls">
+          <button class="btn-ctl" id="s1-prev" type="button">◀ Etapa anterior</button>
+          <button class="btn-ctl primary" id="s1-next" type="button">Próxima etapa ▶</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <span class="readout" id="s1-readout"></span>
+        </div>
+        <div class="steps-row">
+          <div class="steps-main">
+            <p class="stage-title" id="s1-stage-title"></p>
+            <div id="s1-stage"></div>
+            <div class="explain-box" id="s1-explain"></div>
+          </div>
+          <div class="steps-side">
+            <p class="canvas-caption">Arquitetura: o bloco em vermelho é a etapa atual</p>
+            <div id="s1-diagram"></div>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Nas etapas de Add &amp; Norm, passe o mouse nas colunas
+          <span class="formula">μ</span> e <span class="formula">σ</span> para ver a média, os
+          desvios e a variância de cada linha, e depois em uma célula do resultado para ver a
+          normalização. Matrizes em cinza são pesos aprendidos e não mudam com a frase. Troque
+          <code>gato</code> por <code>cão</code> e acompanhe quais linhas mudam em cada etapa.
+          Na etapa da cross-attention, avance o passo do decoder e observe a última linha de
+          <span class="formula">A</span>: ao escrever o adjetivo, o peso vai para a terceira
+          palavra da origem, e ao escrever o substantivo, para a segunda. Na masked
+          self-attention com mais de um token, os scores acima da diagonal valem −∞.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 2: geração autoregressiva ════════ -->
+  <section id="s2" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">2 · Geração token a token</h2>
+      <p class="demo-text">
+        O encoder roda uma vez. O decoder roda uma vez por token: recebe o que já foi escrito,
+        devolve uma distribuição sobre os oito tokens do alvo, e o mais provável volta como
+        entrada do passo seguinte. A geração para em <code>&lt;eos&gt;</code>.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <span class="controls-label">Frase:</span>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s2-det-0" type="button">O</button>
+            <button class="tab" id="s2-det-1" type="button">Um</button>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s2-noun-0" type="button">gato</button>
+            <button class="tab" id="s2-noun-1" type="button">cão</button>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab" id="s2-adj-0" type="button">preto</button>
+            <button class="tab" id="s2-adj-1" type="button">branco</button>
+          </div>
+          <button class="btn-ctl primary" id="s2-step" type="button">⏭ Gerar próximo token</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <p class="readout" id="s2-readout"></p>
+        <div class="canvas-row">
+          <div class="canvas-box wide">
+            <p class="canvas-caption">Probabilidade de cada token do alvo no passo atual (em rosa, o escolhido)</p>
+            <canvas id="s2-probs"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Cross-attention: linha = token escrito, coluna = token da origem</p>
+            <canvas id="s2-cross"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 O mapa de calor ganha uma linha por passo. Na segunda linha o maior peso cai na
+          terceira coluna, e na terceira linha cai na segunda coluna: o modelo aprendeu a
+          inverter a ordem entre substantivo e adjetivo. Repare também no segundo token mais
+          provável de cada passo: ele costuma ser a outra palavra da mesma classe.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ Seção 3: frases fora do treino ════════ -->
+  <section id="s3" class="demo-section">
+    <div class="container">
+      <h2 class="section-title">3 · Frases fora do treino</h2>
+      <p class="demo-text">
+        O modelo só viu oito frases, todas na ordem artigo, substantivo, adjetivo. Monte aqui
+        qualquer sequência de três tokens do vocabulário de origem e veja o que ele produz.
+      </p>
+      <div class="panel">
+        <div class="controls">
+          <label class="slider-label">Posição 1 <select id="s3-pos-0"></select></label>
+          <label class="slider-label">Posição 2 <select id="s3-pos-1"></select></label>
+          <label class="slider-label">Posição 3 <select id="s3-pos-2"></select></label>
+          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+        </div>
+        <p class="readout" id="s3-readout"></p>
+        <div class="canvas-row">
+          <div class="canvas-box">
+            <p class="canvas-caption">Self-attention do encoder: linha = token que consulta, coluna = token consultado</p>
+            <canvas id="s3-enc"></canvas>
+          </div>
+          <div class="canvas-box">
+            <p class="canvas-caption">Cross-attention: linha = token escrito, coluna = token da origem</p>
+            <canvas id="s3-cross"></canvas>
+          </div>
+        </div>
+        <p class="demo-text small">
+          💡 Comece com <code>O preto gato</code>, a ordem do inglês: compare a saída e a
+          cross-attention com as de <code>O gato preto</code> para descobrir se o modelo segue a
+          posição ou o conteúdo dos tokens. Teste também uma frase com dois substantivos ou sem
+          artigo. Com oito exemplos de treino, o modelo não tem motivo para acertar fora desse
+          padrão, e as probabilidades costumam cair.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo interativa da aula de <span>Self-Attention e Transformers</span> · Prof. Lucas S. Kupssinskü · PUCRS</p>
+  </footer>
+
+  <script defer src="../shared/js/utils.js"></script>
+  <script defer src="../shared/js/plot.js"></script>
+  <script defer src="js/weights.js"></script>
+  <script defer src="js/model.js"></script>
+  <script defer src="js/section1-steps.js"></script>
+  <script defer src="js/section2-generation.js"></script>
+  <script defer src="js/section3-free-sentence.js"></script>
+  <script defer src="../shared/js/boot.js"></script>
+</body>
+</html>

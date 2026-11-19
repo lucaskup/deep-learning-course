@@ -5,6 +5,7 @@
 
 % Bibliotecas TikZ adicionais usadas neste deck
 \usetikzlibrary{matrix,fit,backgrounds}
+\usepackage{adjustbox}
 
 % Cores locais para consistência com o material original
 \definecolor{qcolor}{RGB}{139,76,177}      % roxo (queries)
@@ -33,6 +34,26 @@
 \newcommand{\Qc}{\textcolor{qcolor}{\mathbf{Q}}}
 \newcommand{\Kc}{\textcolor{kcolor}{\mathbf{K}}}
 \newcommand{\Vc}{\textcolor{vcolor}{\mathbf{V}}}
+
+% Exemplo completo: \tfx{Nome}, \tfx{Nome:i} e \tfx{Nome:i:j} são gerados por
+% scripts/export_transformer_trace.py (matriz inteira, linha i, entrada i,j).
+\input{slides/data/04-transformers/toy-trace}
+% Rótulos das linhas (tokens da origem) à esquerda de uma matriz 3 x d.
+\newcommand{\tfxsrc}{\begin{matrix} \texttt{O} \\ \texttt{gato} \\ \texttt{preto} \end{matrix}\;}
+% Equação centralizada do exemplo completo: matrizes em \small, reduzidas
+% para a largura da linha quando não cabem.
+% Miniatura da arquitetura com a etapa do exemplo em destaque.
+\tikzset{tfoco/.style={foco, line width=3.5pt, fill=red, fill opacity=0.12, draw opacity=1}}
+% As margens laterais da figura (rótulos "Nx") são cortadas para ela ocupar a coluna.
+\newcommand{\tfxmap}[1]{\adjustbox{trim={.07\width} 0pt {.07\width} 0pt, clip, width=\linewidth}{\transformerfig{#1}}}
+\newsavebox{\tfxbox}
+\newcommand{\tfxeq}[1]{%
+    \par\vspace{3pt}%
+    {\centering\small\setlength{\arraycolsep}{3pt}%
+    \sbox{\tfxbox}{$\displaystyle #1$}%
+    \ifdim\wd\tfxbox>\linewidth \resizebox{\linewidth}{!}{\usebox{\tfxbox}}\else \usebox{\tfxbox}\fi
+    \par}\vspace{3pt}%
+}
 
 % Coluna de três "bolinhas" (vetor) para o diagrama de self-attention.
 % #1: nome do nó; #2, #3: coordenadas x, y; #4: cor das bolinhas.
@@ -1968,6 +1989,496 @@ Pesquisas (Voita et al., 2019; entre outros) mostram que algumas \textbf{attenti
 \begin{exampleblock}{Conclusão}
 As cabeças aprendem \textbf{papéis distintos}. Algumas podem ser podadas com perda mínima, sugerindo redundância controlável.
 \end{exampleblock}
+
+\end{frame}
+
+% ============================================================
+\section{Exemplo Completo}
+% ============================================================
+% Todos os números desta seção vêm de slides/data/04-transformers/toy-trace.tex,
+% gerado por scripts/export_transformer_trace.py. Os comentários em prosa
+% descrevem o modelo gravado em toy-weights.json: releia-os após um retreino.
+
+\begin{frame}{Exemplo Completo: o Modelo}
+
+Um transformer encoder-decoder treinado para traduzir frases de três palavras em que o adjetivo troca de lugar com o substantivo.
+
+\vspace{4pt}
+
+\begin{columns}[T]
+\begin{column}{0.56\textwidth}
+\begin{block}{Configuração}
+\begin{itemize}
+    \item $d = 4$, uma cabeça de atenção, $N = 1$ bloco no encoder e no decoder, FFN $4 \to 4 \to 4$
+    \item \tfx{NumParams} parâmetros, treinados em \tfx{NumPairs} pares: \{\texttt{O}, \texttt{Um}\} $\times$ \{\texttt{gato}, \texttt{cão}\} $\times$ \{\texttt{preto}, \texttt{branco}\}
+    \item Atenção sem bias; LayerNorm com $\boldsymbol{\gamma} = \mathbf{1}$ e $\boldsymbol{\beta} = \mathbf{0}$
+    \item Pesos arredondados para uma casa decimal depois do treino; valores intermediários exibidos com duas casas
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.40\textwidth}
+\centering
+\small
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{cl@{\hspace{14pt}}cl}
+\toprule
+\multicolumn{2}{c}{\textbf{Origem}} & \multicolumn{2}{c}{\textbf{Alvo}} \\
+\midrule
+1 & \texttt{O} & 1 & \texttt{<bos>} \\
+2 & \texttt{Um} & 2 & \texttt{<eos>} \\
+3 & \texttt{gato} & 3 & \texttt{The} \\
+4 & \texttt{cão} & 4 & \texttt{A} \\
+5 & \texttt{preto} & 5 & \texttt{cat} \\
+6 & \texttt{branco} & 6 & \texttt{dog} \\
+ & & 7 & \texttt{black} \\
+ & & 8 & \texttt{white} \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+
+\vspace{2pt}
+
+\centering
+Frase do exemplo: \texttt{O gato preto}. Tradução esperada: \texttt{The black cat}.
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (1/11): Índices e Embeddings}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A frase \texttt{O gato preto} vira os índices $[1, 3, 5]$, e cada índice seleciona uma linha da matriz de embedding da origem.
+
+\vspace{2pt}
+
+\tfxeq{%
+\mathbf{E} =
+\begin{matrix}
+\textbf{\texttt{O}} \\ \texttt{Um} \\ \textbf{\texttt{gato}} \\ \texttt{cão} \\ \textbf{\texttt{preto}} \\ \texttt{branco}
+\end{matrix}\;
+\tfx{Esrc}%
+}
+\tfxeq{%
+\mathbf{X}_{\text{emb}} = \tfxsrc\tfx{EncEmb}%
+}
+
+\vspace{2pt}
+
+$\mathbf{X}_{\text{emb}} \in \mathbb{R}^{3 \times 4}$ empilha as linhas $1$, $3$ e $5$ de $\mathbf{E}$, uma por token da frase.
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-in)(enc-emb)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (2/11): Positional Encoding}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+Com $d = 4$ e $n = 10000$, a posição $i$ recebe o vetor
+$\mathbf{P}_{i,:} = \bigl[\sin(i),\ \cos(i),\ \sin(i/100),\ \cos(i/100)\bigr]$, para $i = 0, 1, 2$.
+
+\vspace{2pt}
+
+\tfxeq{%
+\mathbf{X}_{\text{emb}} + \mathbf{P} = \tfx{EncEmb} + \tfx{EncPE}%
+}
+\tfxeq{%
+\mathbf{X} = \mathbf{X}_{\text{emb}} + \mathbf{P} = \tfxsrc\tfx{EncIn}%
+}
+
+\vspace{2pt}
+
+\begin{itemize}
+    \item As duas primeiras colunas de $\mathbf{P}$ mudam a cada posição; as duas últimas usam uma frequência $100$ vezes menor e quase não variam em três posições
+    \item $\mathbf{X} \in \mathbb{R}^{3 \times 4}$ é a entrada do bloco do encoder
+\end{itemize}
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-plus)(enc-pe)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (3/11): Projeções $\Qc, \Kc, \Vc$ do Encoder}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A self-attention do encoder projeta a mesma matriz $\mathbf{X}$ três vezes: $\Qc = \mathbf{X}\mathbf{W}_q$, $\Kc = \mathbf{X}\mathbf{W}_k$ e $\Vc = \mathbf{X}\mathbf{W}_v$.
+
+\tfxeq{%
+\mathbf{W}_q = \tfx{EncWq} \quad
+\mathbf{W}_k = \tfx{EncWk} \quad
+\mathbf{W}_v = \tfx{EncWv}%
+}
+\tfxeq{%
+\Qc = \tfxsrc\tfx{EncQ} \qquad
+\Kc = \tfx{EncK}%
+}
+\tfxeq{%
+\Vc = \tfxsrc\tfx{EncV}%
+}
+
+Cada linha de $\Qc$, $\Kc$ e $\Vc$ é a projeção de um token: a linha $2$ pertence a \texttt{gato}.
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-mha)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (4/11): Pesos de Atenção e Contexto}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+Scores escalados por $\sqrt{d} = 2$, softmax por linha e média ponderada dos values:
+
+\tfxeq{%
+\frac{\Qc\,\Kc^{\top}}{\sqrt{4}} = \tfx{EncS}
+\;\;\xrightarrow{\ \mathrm{softmax}\ }\;\;
+\mathbf{A} = \tfxsrc\tfx{EncA}%
+}
+\tfxeq{%
+\mathbf{C} = \mathbf{A}\,\Vc = \tfxsrc\tfx{EncC}%
+}
+
+\textbf{Linha de \texttt{gato}:} o score de \texttt{gato} sobre \texttt{O}, antes da divisão por $2$, é
+\tfxeq{%
+\mathbf{q}_2 \mathbf{k}_1^{\top} = (\tfx{EncQ:2:1})(\tfx{EncK:1:1}) + (\tfx{EncQ:2:2})(\tfx{EncK:1:2}) + (\tfx{EncQ:2:3})(\tfx{EncK:1:3}) + (\tfx{EncQ:2:4})(\tfx{EncK:1:4}) \approx \tfx{EncSraw:2:1}%
+}
+
+\texttt{gato} e \texttt{preto} concentram o peso em \texttt{O} ($\tfx{EncA:2:1}$ e $\tfx{EncA:3:1}$); \texttt{O} divide o peso entre \texttt{gato} ($\tfx{EncA:1:2}$) e \texttt{preto} ($\tfx{EncA:1:3}$).
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-mha)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (5/11): Add \& Norm}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A conexão residual soma a entrada da atenção à sua saída, e a LayerNorm deixa cada linha com média $0$ e variância $1$:
+
+\tfxeq{%
+\mathbf{X} + \mathbf{C} = \tfxsrc\tfx{EncSum1}%
+}
+\tfxeq{%
+\mathbf{H} = \mathrm{LN}(\mathbf{X} + \mathbf{C}) = \tfxsrc\tfx{EncH1}%
+}
+
+Cada linha usa a sua própria média e o seu próprio desvio padrão, um par por token:
+\tfxeq{%
+\boldsymbol{\mu} = \tfx{EncLN1Mu} \qquad \boldsymbol{\sigma} = \tfx{EncLN1Sigma}%
+}
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-an1)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (5/11): LayerNorm na Linha de \texttt{gato}}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A linha de \texttt{gato} em $\mathbf{X} + \mathbf{C}$ é $\mathbf{s} = \tfx{EncSum1:2}$, com $d = 4$ componentes.
+
+\vspace{2pt}
+
+\textbf{1. Média das componentes:}
+\tfxeq{%
+\mu = \frac{\tfx{EncSum1:2:1} + \tfx{EncSum1:2:2} + \tfx{EncSum1:2:3} + \tfx{EncSum1:2:4}}{4} \approx \tfx{EncLN1Mu:2}%
+}
+\textbf{2. Desvio de cada componente em relação à média:}
+\tfxeq{%
+\mathbf{s} - \mu = \tfx{EncLN1Dev:2}%
+}
+\textbf{3. Variância e desvio padrão:}
+\tfxeq{%
+\sigma^2 = \frac{(\tfx{EncLN1Dev:2:1})^2 + (\tfx{EncLN1Dev:2:2})^2 + (\tfx{EncLN1Dev:2:3})^2 + (\tfx{EncLN1Dev:2:4})^2}{4} \approx \tfx{EncLN1Var:2}
+\qquad \sigma = \sqrt{\sigma^2} \approx \tfx{EncLN1Sigma:2}%
+}
+\textbf{4. Normalização, com $\boldsymbol{\gamma} = \mathbf{1}$ e $\boldsymbol{\beta} = \mathbf{0}$:}
+\tfxeq{%
+\mathrm{LN}(\mathbf{s}) = \frac{\mathbf{s} - \mu}{\sigma} = \frac{1}{\tfx{EncLN1Sigma:2}}\,\tfx{EncLN1Dev:2} \approx \tfx{EncH1:2}%
+}
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-an1)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (6/11): Feed Forward e Saída do Encoder}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+O mesmo MLP é aplicado a cada linha de $\mathbf{H}$:
+
+\tfxeq{%
+\mathbf{W}_1 = \tfx{EncW1} \qquad
+\mathbf{W}_2 = \tfx{EncW2}%
+}
+\tfxeq{%
+\mathbf{b}_1 = \tfx{EncB1} \qquad
+\mathbf{b}_2 = \tfx{EncB2}%
+}
+\tfxeq{%
+\mathrm{ReLU}(\mathbf{H}\mathbf{W}_1 + \mathbf{b}_1) = \tfx{EncHid}
+\qquad
+\mathrm{FFN}(\mathbf{H}) = \tfx{EncF}%
+}
+\tfxeq{%
+\mathbf{M} = \mathrm{LN}\bigl(\mathbf{H} + \mathrm{FFN}(\mathbf{H})\bigr) = \tfxsrc\tfx{EncOut}%
+}
+
+$\mathbf{M}$ é a \textbf{saída do encoder}. A LayerNorm usou $\boldsymbol{\mu} = \tfx{EncLN2Mu}$ e $\boldsymbol{\sigma} = \tfx{EncLN2Sigma}$.
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(enc-ff)(enc-an2)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (7/11): Decoder, Passo 1}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+O decoder recebeu apenas \texttt{<bos>}: $\mathbf{y}$ soma o embedding de \texttt{<bos>} ao positional encoding da posição $0$.
+
+\tfxeq{%
+\mathbf{y} = \tfx{DecEmb} + \tfx{DecPE}%
+}
+\tfxeq{%
+\mathbf{y} = \tfx{DecIn}%
+}
+
+\textbf{Masked self-attention.} Com um único token, o peso de atenção é $1$ e o contexto é o próprio value:
+
+\tfxeq{%
+\mathbf{W}_v = \tfx{DecWv} \qquad \mathbf{c} = \mathbf{y}\,\mathbf{W}_v = \tfx{DecC1}%
+}
+
+\textbf{Add \& Norm.}
+
+\tfxeq{%
+\mathbf{y} + \mathbf{c} = \tfx{DecSum1} \qquad \mu \approx \tfx{DecLN1Mu:1} \quad \sigma \approx \tfx{DecLN1Sigma:1}%
+}
+\tfxeq{%
+\mathbf{d}_1 = \mathrm{LN}(\mathbf{y} + \mathbf{c}) = \tfx{DecH1}%
+}
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(dec-in)(dec-emb)(dec-pe)(dec-mmha)(dec-an1)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (8/11): Cross-Attention}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A \textcolor{qcolor}{query} vem do decoder ($\mathbf{d}_1$); as \textcolor{kcolor}{keys} e os \textcolor{vcolor}{values} vêm da saída do encoder ($\mathbf{M}$).
+
+\tfxeq{%
+\mathbf{W}_q = \tfx{XWq} \quad
+\mathbf{W}_k = \tfx{XWk} \quad
+\mathbf{W}_v = \tfx{XWv}%
+}
+\tfxeq{%
+\Kc = \mathbf{M}\mathbf{W}_k = \tfxsrc\tfx{XK}
+\qquad
+\Vc = \mathbf{M}\mathbf{W}_v = \tfx{XV}%
+}
+\tfxeq{%
+\textcolor{qcolor}{\mathbf{q}} = \mathbf{d}_1\mathbf{W}_q = \tfx{XQ}
+\qquad
+\frac{\mathbf{q}\,\Kc^{\top}}{\sqrt{4}} = \tfx{XS}%
+}
+\tfxeq{%
+\mathbf{a} = \mathrm{softmax} = \tfx{XA}
+\qquad
+\mathbf{c} = \mathbf{a}\,\Vc = \tfx{XC}%
+}
+\tfxeq{%
+\mathbf{d}_1 + \mathbf{c} = \tfx{DecSum2} \qquad \mu \approx \tfx{DecLN2Mu:1} \quad \sigma \approx \tfx{DecLN2Sigma:1}%
+}
+\tfxeq{%
+\mathbf{d}_2 = \mathrm{LN}(\mathbf{d}_1 + \mathbf{c}) = \tfx{DecH2}%
+}
+
+Para escrever a primeira palavra do alvo, o decoder dá peso $\tfx{XA:1}$ a \texttt{O}.
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(dec-xmha)(dec-an2)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (9/11): Feed Forward do Decoder}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+O decoder tem o seu próprio MLP, aplicado a $\mathbf{d}_2$:
+
+\tfxeq{%
+\mathbf{W}_1 = \tfx{DecW1} \qquad
+\mathbf{W}_2 = \tfx{DecW2}%
+}
+\tfxeq{%
+\mathbf{b}_1 = \tfx{DecB1} \qquad
+\mathbf{b}_2 = \tfx{DecB2}%
+}
+\tfxeq{%
+\mathrm{ReLU}(\mathbf{d}_2\mathbf{W}_1 + \mathbf{b}_1) = \tfx{DecHid}%
+}
+\tfxeq{%
+\mathrm{FFN}(\mathbf{d}_2) = \tfx{DecF}%
+}
+\tfxeq{%
+\mathbf{d}_2 + \mathrm{FFN}(\mathbf{d}_2) = \tfx{DecSum3} \qquad \mu \approx \tfx{DecLN3Mu:1} \quad \sigma \approx \tfx{DecLN3Sigma:1}%
+}
+\tfxeq{%
+\mathbf{d}_3 = \mathrm{LN}\bigl(\mathbf{d}_2 + \mathrm{FFN}(\mathbf{d}_2)\bigr) = \tfx{DecOut}%
+}
+
+\vspace{2pt}
+
+$\mathbf{d}_3$ é a saída do bloco do decoder para a posição do token que será escrito.
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(dec-ff)(dec-an3)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (10/11): Linear e Softmax}
+
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+A camada linear projeta $\mathbf{d}_3$ de $d = 4$ para $|V| = 8$, e a softmax transforma os logits em probabilidades.
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.1}
+\setlength{\tabcolsep}{5pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l*{8}{r}}
+\toprule
+ & \texttt{<bos>} & \texttt{<eos>} & \textbf{\texttt{The}} & \texttt{A} & \texttt{cat} & \texttt{dog} & \texttt{black} & \texttt{white} \\
+\midrule
+ & $\tfx{Wout:1:1}$ & $\tfx{Wout:1:2}$ & $\tfx{Wout:1:3}$ & $\tfx{Wout:1:4}$ & $\tfx{Wout:1:5}$ & $\tfx{Wout:1:6}$ & $\tfx{Wout:1:7}$ & $\tfx{Wout:1:8}$ \\
+$\mathbf{W}_{\text{out}}$ & $\tfx{Wout:2:1}$ & $\tfx{Wout:2:2}$ & $\tfx{Wout:2:3}$ & $\tfx{Wout:2:4}$ & $\tfx{Wout:2:5}$ & $\tfx{Wout:2:6}$ & $\tfx{Wout:2:7}$ & $\tfx{Wout:2:8}$ \\
+ & $\tfx{Wout:3:1}$ & $\tfx{Wout:3:2}$ & $\tfx{Wout:3:3}$ & $\tfx{Wout:3:4}$ & $\tfx{Wout:3:5}$ & $\tfx{Wout:3:6}$ & $\tfx{Wout:3:7}$ & $\tfx{Wout:3:8}$ \\
+ & $\tfx{Wout:4:1}$ & $\tfx{Wout:4:2}$ & $\tfx{Wout:4:3}$ & $\tfx{Wout:4:4}$ & $\tfx{Wout:4:5}$ & $\tfx{Wout:4:6}$ & $\tfx{Wout:4:7}$ & $\tfx{Wout:4:8}$ \\
+\midrule
+logits $\mathbf{d}_3\mathbf{W}_{\text{out}}$
+ & $\tfx{Logits:1}$ & $\tfx{Logits:2}$ & $\boldsymbol{\tfx{Logits:3}}$ & $\tfx{Logits:4}$ & $\tfx{Logits:5}$ & $\tfx{Logits:6}$ & $\tfx{Logits:7}$ & $\tfx{Logits:8}$ \\
+softmax
+ & $\tfx{Probs:1}$ & $\tfx{Probs:2}$ & $\boldsymbol{\tfx{Probs:3}}$ & $\tfx{Probs:4}$ & $\tfx{Probs:5}$ & $\tfx{Probs:6}$ & $\tfx{Probs:7}$ & $\tfx{Probs:8}$ \\
+\bottomrule
+\end{tabular}}
+\end{center}
+
+\begin{itemize}
+    \item O logit de um token é o produto escalar de $\mathbf{d}_3$ com a coluna desse token em $\mathbf{W}_{\text{out}}$
+    \item O token mais provável é \tfx{Pred:1}, com probabilidade $\tfx{PredProb:1}$
+\end{itemize}
+\end{column}
+\begin{column}{0.27\textwidth}
+\tfxmap{\node[tfoco, fit=(out-lin)(out-sm)(out-prob)] {};}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+% ============================================================
+
+\begin{frame}{Exemplo (11/11): a Tradução Completa}
+
+O token escolhido volta como entrada do decoder, e o cálculo se repete com uma linha a mais em cada matriz do decoder.
+
+\vspace{2pt}
+
+\begin{columns}[c]
+\begin{column}{0.56\textwidth}
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{clcc}
+\toprule
+\textbf{Passo} & \textbf{Já escrito} & \textbf{Predição} & \textbf{Prob.} \\
+\midrule
+1 & \texttt{<bos>} & \tfx{Pred:1} & $\tfx{PredProb:1}$ \\
+2 & \texttt{<bos>} \texttt{The} & \tfx{Pred:2} & $\tfx{PredProb:2}$ \\
+3 & \texttt{<bos>} \texttt{The black} & \tfx{Pred:3} & $\tfx{PredProb:3}$ \\
+4 & \texttt{<bos>} \texttt{The black cat} & \tfx{Pred:4} & $\tfx{PredProb:4}$ \\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.42\textwidth}
+\centering
+\begin{tikzpicture}[x=1.25cm, y=0.62cm, every node/.style={font=\small}]
+    \foreach \r in {1,...,4} {
+        \foreach \c in {1,...,3} {
+            \edef\peso{\tfx{FullXA:\r:\c}}
+            \fill[RoyalBlue!\fpeval{round(100*\peso)}!white] (\c, -\r) rectangle ++(1,1);
+            \node[font=\footnotesize] at (\c+0.5, -\r+0.5) {\ifdim\peso pt>0.5pt \color{white}\fi $\peso$};
+        }
+    }
+    \draw[gray!50, xstep=1, ystep=1] (1,-4) grid (4,0);
+    \foreach \w [count=\c] in {O, gato, preto} { \node[anchor=south] at (\c+0.5, 0) {\texttt{\w}}; }
+    \foreach \r in {1,...,4} { \node[anchor=east] at (0.95, -\r+0.5) {\tfx{Pred:\r}}; }
+\end{tikzpicture}
+
+\footnotesize Pesos da cross-attention: linha = token escrito, coluna = token da origem.
+\end{column}
+\end{columns}
+
+\vspace{4pt}
+
+\begin{itemize}
+    \item Cada palavra do alvo consulta a palavra da origem que ela traduz: \texttt{black} dá peso $\tfx{FullXA:2:3}$ a \texttt{preto}, e \texttt{cat} dá peso $\tfx{FullXA:3:2}$ a \texttt{gato}
+    \item A ordem das palavras muda entre origem e alvo, e os pesos saem da diagonal
+    \item A máscara causal mantém as linhas dos passos anteriores inalteradas quando um token é acrescentado
+\end{itemize}
 
 \end{frame}
 
