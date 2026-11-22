@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Autoencoders e VAEs: gargalo e reconstrução com detecção de anomalias, buracos no espaço latente do AE versus o posterior gaussiano do VAE, reparametrization trick z = μ + σ·ε e o ELBO com peso β no termo KL." />
   <title>Autoencoders e VAEs — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Latente AE × VAE</a></li>
       <li><a href="#s3">Reparametrização</a></li>
       <li><a href="#s4">ELBO e β</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -70,10 +73,10 @@
             <button class="tab active" id="s1-tab-1d" type="button">Latente 1D (gargalo)</button>
             <button class="tab" id="s1-tab-2d" type="button">Latente 2D (sem gargalo)</button>
           </div>
-          <button class="btn-ctl primary" id="s1-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s1-step" type="button">⏭ +1000 passos</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s1-resample" type="button">🎲 Novos dados</button>
+          <button class="btn-ctl primary" id="s1-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s1-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>+1000 passos</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s1-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos dados</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -87,7 +90,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Treine até <span class="formula">J &lt; 0.05</span> e arraste a sonda: sobre as luas
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Treine até <span class="formula">J &lt; 0.05</span> e arraste a sonda: sobre as luas
           <span class="formula">s(x) ≈ 0.01</span>, no vão entre elas e nos cantos
           <span class="formula">s(x) &gt; 1</span>. Agora troque para a aba de latente 2D: a perda
           cai muito mais rápido e <span class="formula">s(x)</span> fica pequeno em quase todo o
@@ -119,9 +122,9 @@
           <label class="slider-label">z* = <span id="s2-z-val">0.00</span>
             <input type="range" id="s2-z" min="-3" max="3" value="0" step="0.05" />
           </label>
-          <button class="btn-ctl primary" id="s2-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s2-resample" type="button">🎲 Novos dados</button>
+          <button class="btn-ctl primary" id="s2-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s2-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos dados</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -141,7 +144,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Treine os dois modelos (uns 4000 passos) e arraste
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Treine os dois modelos (uns 4000 passos) e arraste
           <span class="formula">z*</span> da esquerda para a direita. No histograma do AE aparecem
           vales sem código nenhum: quando <span class="formula">z*</span> cruza um vale, o ponto
           ciano <span class="formula">f<sub>AE</sub>(z*)</span> atravessa regiões vazias do plano.
@@ -179,9 +182,9 @@
           <label class="slider-label">σ = <span id="s3-sigma-val">0.80</span>
             <input type="range" id="s3-sigma" min="0.05" max="2.5" value="0.8" step="0.05" />
           </label>
-          <button class="btn-ctl primary" id="s3-anim" type="button">▶ Chuva de amostras</button>
-          <button class="btn-ctl" id="s3-sample" type="button">🎲 Reamostrar ε</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl primary" id="s3-anim" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Chuva de amostras</button>
+          <button class="btn-ctl" id="s3-sample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar ε</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
         </div>
         <div class="controls">
           <span class="readout" id="s3-readout"></span>
@@ -197,7 +200,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Ligue a chuva de amostras e arraste <span class="formula">μ</span>: as amostras já
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Ligue a chuva de amostras e arraste <span class="formula">μ</span>: as amostras já
           sorteadas deslizam junto, porque <span class="formula">z</span> é função determinística de
           <span class="formula">(μ, σ)</span> dado o ruído. Com <span class="formula">σ = 0.05</span>
           a reta fica quase horizontal e o histograma vira um espeto, mas o KL dispara por causa do
@@ -238,9 +241,9 @@
           <label class="slider-label">β = <span id="s4-beta-val">1.00</span>
             <input type="range" id="s4-beta" min="0" max="10" value="1" step="0.25" />
           </label>
-          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s4-resample" type="button">🎲 Novos dados</button>
+          <button class="btn-ctl primary" id="s4-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s4-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos dados</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -260,7 +263,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Treine com <span class="formula">β = 1</span> até estabilizar e então arraste
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Treine com <span class="formula">β = 1</span> até estabilizar e então arraste
           <span class="formula">β</span> para <span class="formula">10</span> sem pausar: a curva
           vermelha (KL) despenca, as marcas de <span class="formula">μ(x)</span> colapsam em zero e as
           reconstruções cianas se amontoam no centro, o quadro de posterior collapse. Volte
@@ -283,6 +286,7 @@
   <script defer src="js/section2-latent-space.js"></script>
   <script defer src="js/section3-reparam.js"></script>
   <script defer src="js/section4-elbo-beta.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

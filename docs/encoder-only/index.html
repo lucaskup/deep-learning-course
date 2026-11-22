@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de modelos encoder-only: atenção bidirecional vs causal, masked language modeling com a regra 80/10/10, o token [CLS] com feature extraction vs fine-tuning, e aprendizado contrastivo com InfoNCE e in-batch negatives." />
   <title>Encoder-only — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">MLM</a></li>
       <li><a href="#s3">[CLS]</a></li>
       <li><a href="#s4">Contrastivo</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -69,7 +72,7 @@
           <label class="slider-label">[PAD] = <span id="s1-pad-val">0</span>
             <input type="range" id="s1-pad" min="0" max="3" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-seed" type="button">🎲 Reprojetar Q e K</button>
+          <button class="btn-ctl" id="s1-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reprojetar Q e K</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -83,11 +86,11 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Clique na linha de "gato": no encoder ele recebe peso de "tapete", que vem depois
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Clique na linha de "gato": no encoder ele recebe peso de "tapete", que vem depois
           dele na frase; no decoder esse peso é zero. Aumente
           <span class="formula">[PAD]</span> para 3 e veja que as colunas de padding somem nas
           duas máscaras, a soma de cada linha continua 1 porque o softmax renormaliza sobre as
-          posições reais. Use 🎲 para sortear novas projeções e confirmar que o
+          posições reais. Use "Reprojetar Q e K" para sortear novas projeções e confirmar que o
           <strong>padrão da máscara</strong> não muda, só os pesos.
         </p>
       </div>
@@ -121,8 +124,8 @@
           <label class="slider-label">taxa de máscara = <span id="s2-rate-val">15%</span>
             <input type="range" id="s2-rate" min="5" max="50" value="15" step="5" />
           </label>
-          <button class="btn-ctl primary" id="s2-sample" type="button">🎲 Mascarar (80/10/10)</button>
-          <button class="btn-ctl" id="s2-clear" type="button">↺ Limpar</button>
+          <button class="btn-ctl primary" id="s2-sample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Mascarar (80/10/10)</button>
+          <button class="btn-ctl" id="s2-clear" type="button">↺︎ Limpar</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -136,11 +139,11 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Mascare só "sentou" e observe a distribuição: o contexto bidirecional ("o gato"
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Mascare só "sentou" e observe a distribuição: o contexto bidirecional ("o gato"
           à esquerda, "no tapete" à direita) concentra a probabilidade em verbos plausíveis.
           Agora mascare também "tapete" e veja a perda subir: com menos contexto visível a
           previsão piora, que é o motivo de a taxa ficar em 15% e não em 50%. Use o botão
-          🎲 várias vezes com taxa 15% e repare nos casos raros de troca aleatória (laranja)
+          "Mascarar (80/10/10)" várias vezes com taxa 15% e repare nos casos raros de troca aleatória (laranja)
           e de token mantido (verde): o modelo precisa prever a palavra original mesmo assim.
         </p>
       </div>
@@ -173,9 +176,9 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s3-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s3-sample" type="button">🎲 Novos embeddings</button>
+          <button class="btn-ctl primary" id="s3-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s3-sample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos embeddings</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -189,7 +192,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Treine no modo congelado: a fronteira linear estaciona com alguns pontos do lado
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Treine no modo congelado: a fronteira linear estaciona com alguns pontos do lado
           errado, a acurácia satura porque os embeddings não mudam. Reinicie, mude para
           fine-tuning e treine de novo: além da fronteira, os próprios pontos migram e as
           duas nuvens se afastam, a acurácia chega a 100%. Clique nos pontos perto da
@@ -227,10 +230,10 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s4-step" type="button">⏭ Passo</button>
-          <button class="btn-ctl primary" id="s4-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s4-seed" type="button">🎲 Novo batch</button>
+          <button class="btn-ctl" id="s4-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Passo</button>
+          <button class="btn-ctl primary" id="s4-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s4-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novo batch</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -244,7 +247,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Treine com <span class="formula">τ = 0.10</span> e observe a matriz virar uma
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Treine com <span class="formula">τ = 0.10</span> e observe a matriz virar uma
           diagonal: além de cada par se alinhar, os pares se <strong>espalham</strong> pelo
           círculo para fugir uns dos outros (uniformidade). Compare com
           <span class="formula">τ = 1</span>: a softmax fica achatada e os negativos difíceis
@@ -267,6 +270,7 @@
   <script defer src="js/section2-mlm.js"></script>
   <script defer src="js/section3-cls.js"></script>
   <script defer src="js/section4-contrastive.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

@@ -285,7 +285,7 @@
     function stopTraining() {
       if (!training) return;
       training = false;
-      btnTrain.textContent = '▶ Treinar';
+      DL.btnLabel(btnTrain, 'play', 'Treinar');
       DL.stopTicker(trainTick);
       drawBoundary();
       notify();
@@ -294,7 +294,7 @@
     btnTrain.addEventListener('click', () => {
       if (training) { stopTraining(); return; }
       training = true;
-      btnTrain.textContent = '⏸ Pausar';
+      DL.btnLabel(btnTrain, 'pause', 'Pausar');
       DL.startTicker(trainTick);
     });
     btnReset.addEventListener('click', resetModel);

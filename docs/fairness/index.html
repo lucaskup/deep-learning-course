@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Fairness em Deep Learning: limiar de decisão e erros por grupo, o teorema da impossibilidade no caso COMPAS e debiasing de word embeddings por projeção." />
   <title>Fairness — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -25,7 +28,7 @@
       <li><a href="#s1">Limiar τ</a></li>
       <li><a href="#s2">Impossibilidade</a></li>
       <li><a href="#s3">Embeddings</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -82,7 +85,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Não existe limiar que zere os dois erros ao mesmo tempo: baixar
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Não existe limiar que zere os dois erros ao mesmo tempo: baixar
           <span class="formula">τ</span> reduz falsos negativos e infla falsos positivos,
           e vice-versa. Note também que a <span class="formula">PPV</span> depende da
           taxa-base <span class="formula">p</span>: com o mesmo limiar, um grupo com
@@ -128,8 +131,8 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s2-compas" type="button">⚖ Taxas-base do COMPAS (p_A = 0,51, p_B = 0,39)</button>
-          <button class="btn-ctl" id="s2-equal" type="button">↺ Taxas-base iguais</button>
+          <button class="btn-ctl primary" id="s2-compas" type="button" title="p_A = 0,51 e p_B = 0,39"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>Taxas-base do COMPAS</button>
+          <button class="btn-ctl" id="s2-equal" type="button">↺︎ Taxas-base iguais</button>
         </div>
         <div class="controls" id="s2-badges"></div>
         <div class="canvas-row">
@@ -147,8 +150,8 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">p_A = p_B</span> e limiares iguais, tudo fica verde.
-          Com as taxas-base do COMPAS, limiares iguais dão TPR e FPR iguais, mas a
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">p_A = p_B</span> e limiares iguais, tudo fica verde.
+          Com as taxas-base do COMPAS (<span class="formula">p_A = 0,51</span> e <span class="formula">p_B = 0,39</span>), limiares iguais dão TPR e FPR iguais, mas a
           calibração quebra; mover <span class="formula">τ_B</span> para consertar a PPV
           quebra TPR e FPR. Com <span class="formula">τ_B = 0,54</span> a PPV se iguala
           e o grupo de maior taxa-base fica com FPR maior e FNR menor, o padrão do
@@ -184,8 +187,8 @@
           <label class="slider-label">λ = <span id="s3-lambda-val">0.00</span>
             <input type="range" id="s3-lambda" min="0" max="1" value="0" step="0.01" />
           </label>
-          <button class="btn-ctl primary" id="s3-debias" type="button">▶ Debias (λ = 1)</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Original (λ = 0)</button>
+          <button class="btn-ctl primary" id="s3-debias" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Debias (λ = 1)</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Original (λ = 0)</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -199,7 +202,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">λ = 1</span> as profissões caem sobre o eixo
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">λ = 1</span> as profissões caem sobre o eixo
           neutro: a analogia enviesada he:programmer :: she:homemaker desaparece
           (o cosseno entre programmer − homemaker e he − she cai de 0,93 para 0),
           enquanto king/queen preservam o gênero (que ali é legítimo). Ressalva:
@@ -220,6 +223,7 @@
   <script defer src="js/section1-threshold.js"></script>
   <script defer src="js/section2-impossibility.js"></script>
   <script defer src="js/section3-embeddings.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

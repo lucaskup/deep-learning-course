@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Um transformer encoder-decoder de 312 parâmetros traduz frases de três palavras do português para o inglês. A página mostra cada matriz do forward pass, etapa por etapa, com a conta de cada célula, a geração token a token e a atenção para frases fora do treino." />
   <title>Transformer Passo a Passo — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -73,7 +76,7 @@
       <li><a href="#s1">Passo a passo</a></li>
       <li><a href="#s2">Geração</a></li>
       <li><a href="#s3">Outras frases</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -123,9 +126,9 @@
           <div class="tabs" role="tablist" id="s1-dec-steps"></div>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s1-prev" type="button">◀ Etapa anterior</button>
-          <button class="btn-ctl primary" id="s1-next" type="button">Próxima etapa ▶</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-prev" type="button">◀︎ Etapa anterior</button>
+          <button class="btn-ctl primary" id="s1-next" type="button">Próxima etapa ▶︎</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="steps-row">
@@ -140,7 +143,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Nas etapas de Add &amp; Norm, passe o mouse nas colunas
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Nas etapas de Add &amp; Norm, passe o mouse nas colunas
           <span class="formula">μ</span> e <span class="formula">σ</span> para ver a média, os
           desvios e a variância de cada linha, e depois em uma célula do resultado para ver a
           normalização. Matrizes em cinza são pesos aprendidos e não mudam com a frase. Troque
@@ -178,8 +181,8 @@
             <button class="tab" id="s2-adj-0" type="button">preto</button>
             <button class="tab" id="s2-adj-1" type="button">branco</button>
           </div>
-          <button class="btn-ctl primary" id="s2-step" type="button">⏭ Gerar próximo token</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl primary" id="s2-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Gerar próximo token</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
         </div>
         <p class="readout" id="s2-readout"></p>
         <div class="canvas-row">
@@ -193,7 +196,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 O mapa de calor ganha uma linha por passo. Na segunda linha o maior peso cai na
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>O mapa de calor ganha uma linha por passo. Na segunda linha o maior peso cai na
           terceira coluna, e na terceira linha cai na segunda coluna: o modelo aprendeu a
           inverter a ordem entre substantivo e adjetivo. Repare também no segundo token mais
           provável de cada passo: ele costuma ser a outra palavra da mesma classe.
@@ -215,7 +218,7 @@
           <label class="slider-label">Posição 1 <select id="s3-pos-0"></select></label>
           <label class="slider-label">Posição 2 <select id="s3-pos-1"></select></label>
           <label class="slider-label">Posição 3 <select id="s3-pos-2"></select></label>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
         </div>
         <p class="readout" id="s3-readout"></p>
         <div class="canvas-row">
@@ -229,7 +232,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Comece com <code>O preto gato</code>, a ordem do inglês: compare a saída e a
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Comece com <code>O preto gato</code>, a ordem do inglês: compare a saída e a
           cross-attention com as de <code>O gato preto</code> para descobrir se o modelo segue a
           posição ou o conteúdo dos tokens. Teste também uma frase com dois substantivos ou sem
           artigo. Com oito exemplos de treino, o modelo não tem motivo para acertar fora desse
@@ -250,6 +253,7 @@
   <script defer src="js/section1-steps.js"></script>
   <script defer src="js/section2-generation.js"></script>
   <script defer src="js/section3-free-sentence.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* Cola compartilhada: tema, laço de animação e inicialização das seções.
+/* Cola compartilhada: laço de animação e inicialização das seções.
    Deve ser o ÚLTIMO script carregado na página da demo. */
 (function () {
   'use strict';
@@ -24,17 +24,7 @@
   };
   DL.stopTicker = function (fn) { tickers.delete(fn); };
 
-  /* Botão de tema (mesmo mecanismo da página inicial do curso). */
-  const root = document.documentElement;
-  const btn = document.getElementById('theme-toggle');
-  function syncIcon() { if (btn) btn.textContent = root.getAttribute('data-theme') === 'light' ? '🌙' : '☀'; }
-  if (btn) btn.addEventListener('click', function () {
-    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('theme', next); } catch (e) { /* armazenamento bloqueado */ }
-    syncIcon();
-  });
-  syncIcon();
+  /* O botão de tema e o seletor de paleta ficam em shared/js/theme.js. */
 
   /* Inicializa as seções registradas (scripts defer rodam em ordem). */
   DL.sections = DL.sections || [];

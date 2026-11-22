@@ -178,7 +178,7 @@
 
     function stopAnim() {
       animating = false;
-      btnAnim.textContent = '▶ Chuva de amostras';
+      DL.btnLabel(btnAnim, 'play', 'Chuva de amostras');
       DL.stopTicker(tick);
     }
 
@@ -228,7 +228,7 @@
       if (animating) { stopAnim(); return; }
       animating = true;
       acc = 0;
-      btnAnim.textContent = '⏸ Pausar';
+      DL.btnLabel(btnAnim, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => {

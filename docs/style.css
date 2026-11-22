@@ -6,7 +6,7 @@
   --card:     #2d2f3f;
   --line:     #44475a;
   --fg:       #f8f8f2;
-  --comment:  #6272a4;
+  --comment:  #8b96c0;
   --cyan:     #8be9fd;
   --green:    #50fa7b;
   --orange:   #ffb86c;
@@ -33,16 +33,22 @@
   --yellow:   #a16207;
 }
 
+/* ── Fontes (self-hosted, para o site ter a mesma aparência em qualquer sistema) ── */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('fonts/inter-latin-wght-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: italic; font-weight: 100 900; font-display: swap; src: url('fonts/inter-latin-wght-italic.woff2') format('woff2'); }
+
 /* ── Reset & Base ────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
   background-color: var(--bg);
   color: var(--fg);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.7;
 }
+/* Controles de formulário não herdam a fonte do body por padrão (sairiam em Arial). */
+button, input, select, textarea { font-family: inherit; }
 a { color: var(--cyan); text-decoration: none; transition: color .2s; }
 a:hover { color: var(--purple); }
 h1, h2, h3, h4 { font-weight: 700; line-height: 1.3; }
@@ -139,10 +145,9 @@ section + section { border-top: 1px solid var(--line); }
   white-space: nowrap;
   cursor: pointer;
 }
-.btn-github { border-color: var(--cyan); color: var(--cyan); }
-.btn-github:hover { background: var(--line); color: var(--fg); border-color: var(--fg); }
-.btn-pdf { border-color: var(--cyan); color: var(--cyan); }
-.btn-pdf:hover { background: var(--line); color: var(--fg); border-color: var(--fg); }
+/* Contorno neutro em todos os botões; a cor de destaque aparece no hover. */
+.btn { border-color: var(--line); color: var(--fg); }
+.btn:hover { background: transparent; color: var(--purple); border-color: var(--purple); }
 .btn-video {
   border-color: var(--line);
   color: var(--comment);
@@ -152,6 +157,24 @@ section + section { border-top: 1px solid var(--line); }
   font-size: .82rem;
   font-weight: 600;
 }
+.btn-video:hover { border-color: var(--line); color: var(--comment); }
+
+/* Ícones de linha: dimensionados pelo texto ao redor e desenhados na cor dele. */
+.icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Ícone no meio do texto (dicas, botões das demos): alinhado à linha de base. */
+.icon-inline { vertical-align: -.18em; margin-right: .35em; }
+/* Ícones de estado: a cor reforça o que o rótulo ao lado já diz. */
+.icon-ok { color: var(--green); }
+.icon-warn { color: var(--yellow); }
 
 /* ── Theme Toggle ────────────────────────────────────────── */
 .theme-toggle {
@@ -164,13 +187,16 @@ section + section { border-top: 1px solid var(--line); }
   border-radius: 6px;
   background: transparent;
   color: var(--fg);
-  font-size: .95rem;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
-  transition: background .2s, border-color .2s, color .2s;
+  position: relative;
+  transition: border-color .2s, color .2s;
   font-family: inherit;
 }
-.theme-toggle:hover { background: var(--line); border-color: var(--fg); }
+.theme-toggle:hover { border-color: var(--purple); color: var(--purple); }
+/* Margem invisível em volta do botão, para facilitar o toque no celular. */
+.theme-toggle::after { content: ''; position: absolute; inset: -.4rem; }
 
 /* ── Badges ──────────────────────────────────────────────── */
 .badge {
@@ -283,6 +309,21 @@ footer {
 }
 footer span { color: var(--purple); }
 
+/* Seletor de paleta no rodapé (criado por shared/js/theme.js) */
+.palette-switch { margin-top: .9rem; font-size: .72rem; opacity: .7; transition: opacity .2s; }
+.palette-switch:hover, .palette-switch:focus-within { opacity: 1; }
+.palette-switch button {
+  background: none;
+  border: 0;
+  padding: 0 .15rem;
+  color: var(--comment);
+  font: inherit;
+  cursor: pointer;
+  transition: color .2s;
+}
+.palette-switch button:hover { color: var(--cyan); }
+.palette-switch button[aria-pressed="true"] { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
 /* ── Recommended Reading ─────────────────────────────────── */
 .reading-details {
   border: 1px solid var(--line);
@@ -305,8 +346,9 @@ footer span { color: var(--purple); }
   user-select: none;
 }
 .reading-summary::-webkit-details-marker { display: none; }
+.reading-label { display: inline-flex; align-items: center; gap: .45rem; }
 .reading-summary::after {
-  content: "▶";
+  content: "▶︎";
   font-size: .7rem;
   color: var(--comment);
   transition: transform .2s;
@@ -352,4 +394,72 @@ footer span { color: var(--purple); }
   .nav-brand { display: none; }
   .lecture-card { gap: .75rem; }
   .lecture-actions { justify-content: flex-end; width: 100%; }
+}
+
+/* ── Paleta Omarchy (Tokyo Night) ────────────────────────────
+   Escolhida no seletor do rodapé, que grava data-palette em <html>.
+   Um acento azul, cantos retos, bordas finas e JetBrains Mono em títulos
+   e rótulos de interface. Só em tela: a impressão não recebe cores de tema. */
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/jetbrains-mono-latin-400-italic.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); }
+
+@media screen {
+  :root[data-palette="omarchy"] {
+    --bg: #1a1b26; --surface: #13141c; --card: #1e202e; --line: #33384f;
+    --fg: #c0caf5; --comment: #7f89b3;
+    --purple: #7aa2f7; --cyan: #7dcfff; --green: #9ece6a; --orange: #ff9e64;
+    --pink: #bb9af7; --red: #f7768e; --yellow: #e0af68;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  :root[data-palette="omarchy"][data-theme="light"] {
+    --bg: #e1e2e7; --surface: #d5d6db; --card: #f3f4f8; --line: #b4b8cc;
+    --fg: #343b58; --comment: #4f5880;
+    --purple: #2854c5; --cyan: #005f80; --green: #48622d; --orange: #8f4a00;
+    --pink: #6f3fc8; --red: #b23326; --yellow: #6d5126;
+  }
+
+  [data-palette="omarchy"] *, [data-palette="omarchy"] *::before, [data-palette="omarchy"] *::after { border-radius: 0 !important; }
+  [data-palette="omarchy"] body { font-size: 15.5px; line-height: 1.65; }
+  [data-palette="omarchy"] :is(h1, h2, h3, h4, nav, .btn, .badge, .course-subtitle, .unit-num, .lecture-num,
+    .exercise-chip, .exercises-label, .reading-summary, .reading-group-title,
+    .tab, .btn-ctl, .slider-label, .readout, .canvas-caption, footer) { font-family: var(--mono); }
+  /* Readouts que são fórmulas mantêm a fonte matemática (a mono é mais larga e transbordaria). */
+  [data-palette="omarchy"] .readout.formula { font-family: "STIX Two Math", "Cambria Math", Georgia, serif; }
+
+  [data-palette="omarchy"] nav { border-bottom-width: 1px; }
+  /* Links monoespaçados são mais largos; o espaçamento menor mantém a linha da navegação. */
+  [data-palette="omarchy"] .nav-links { gap: 1.1rem; }
+  [data-palette="omarchy"] .nav-links a { font-size: .76rem; letter-spacing: 0; }
+  [data-palette="omarchy"] .nav-brand { font-size: .92rem; }
+  [data-palette="omarchy"] footer { border-top-width: 1px; }
+  [data-palette="omarchy"] section { padding: 56px 0; }
+  [data-palette="omarchy"] #hero { padding-top: 72px; padding-bottom: 72px; }
+  [data-palette="omarchy"] .course-title { font-size: 2rem; }
+  [data-palette="omarchy"] .course-subtitle { font-size: .88rem; font-weight: 500; }
+
+  [data-palette="omarchy"] .section-title { font-size: 1.05rem; text-transform: lowercase; letter-spacing: .5px; margin-bottom: 1.6rem; }
+  /* Títulos das demos trazem siglas e símbolos (LSTM, QKᵀ, K camadas): mantêm a caixa original. */
+  [data-palette="omarchy"] .demo-section .section-title { text-transform: none; }
+  /* A segunda declaração dá ao "#" decorativo um texto alternativo vazio, para
+     leitores de tela o ignorarem; navegadores sem essa sintaxe ficam com a primeira. */
+  [data-palette="omarchy"] .section-title::before { content: '#'; content: '#' / ''; color: var(--comment); }
+  [data-palette="omarchy"] .sub-title { font-size: .95rem; }
+
+  [data-palette="omarchy"] :is(.btn, .btn-video) { border-width: 1px; font-weight: 500; font-size: .78rem; }
+  [data-palette="omarchy"] :is(.btn-ctl, .tab) { font-size: .78rem; }
+  [data-palette="omarchy"] .btn-ctl:hover:not(:disabled) { border-color: var(--purple); color: var(--purple); }
+
+  [data-palette="omarchy"] :is(.lecture-card, .reading-details) { border: 1px solid var(--line); }
+  [data-palette="omarchy"] .lecture-card:hover { border-color: var(--purple); transform: none; }
+  [data-palette="omarchy"] .exercise-chip {
+    border: 1px solid var(--line); background: transparent; font-size: .76rem;
+  }
+  [data-palette="omarchy"] .exercise-chip:hover { border-color: var(--purple); color: var(--purple); background: transparent; transform: none; }
+  [data-palette="omarchy"] .exercise-chip .icon { color: var(--comment); }
+  [data-palette="omarchy"] .chip-lista .icon { color: var(--orange); }
+  [data-palette="omarchy"] .chip-demo .icon { color: var(--purple); }
+  [data-palette="omarchy"] .chip-lab .icon { color: var(--cyan); }
+  [data-palette="omarchy"] .badge { background: color-mix(in srgb, currentColor 12%, transparent) !important; font-weight: 500; }
 }

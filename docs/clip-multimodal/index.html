@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de CLIP e modelos multimodais: similaridade do cosseno no espaço compartilhado, a matriz contrastiva S = UVᵀ, a perda InfoNCE com temperatura e a classificação zero-shot construída na inferência." />
   <title>CLIP e Modelos Multimodais — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Matriz S</a></li>
       <li><a href="#s3">InfoNCE</a></li>
       <li><a href="#s4">Zero-shot</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -65,7 +68,7 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar vetores</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar vetores</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -79,7 +82,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Quando <span class="formula">u</span> e <span class="formula">v</span> apontam
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Quando <span class="formula">u</span> e <span class="formula">v</span> apontam
           para o mesmo lado, <span class="formula">cosθ</span> se aproxima de 1 e os pontos
           <span class="formula">ũ</span>, <span class="formula">ṽ</span> quase coincidem.
           Em ângulo reto o produto interno zera (<span class="formula">cosθ = 0</span>) e em
@@ -110,7 +113,7 @@
           <label class="slider-label">N = <span id="s2-n-val">4</span>
             <input type="range" id="s2-n" min="2" max="6" value="4" step="1" />
           </label>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -124,7 +127,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 O objetivo do treino é deixar a diagonal alta (positivos com cosseno perto de 1)
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>O objetivo do treino é deixar a diagonal alta (positivos com cosseno perto de 1)
           e o resto baixo (negativos com cosseno perto de 0 ou negativo). Alinhe
           <span class="formula">ũ<sub>1</sub></span> com <span class="formula">ṽ<sub>1</sub></span>:
           a célula <span class="formula">S<sub>11</sub></span> acende. Gire um texto para perto
@@ -157,7 +160,7 @@
           <label class="slider-label">alinhamento = <span id="s3-align-val">0.30</span>
             <input type="range" id="s3-align" min="0" max="100" value="30" step="1" />
           </label>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -175,7 +178,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">τ</span> grande o softmax se aproxima da distribuição
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">τ</span> grande o softmax se aproxima da distribuição
           uniforme e as barras da diagonal ficam baixas. Com <span class="formula">τ</span>
           pequeno a distribuição afia em torno do maior valor de cada linha: se esse valor é a
           diagonal, <span class="formula">p<sub>ii</sub></span> vai a 1 e a perda cai; se é um
@@ -210,7 +213,7 @@
           <label class="slider-label">τ = <span id="s4-tau-val">0.10</span>
             <input type="range" id="s4-tau" min="0" max="100" value="50" step="1" />
           </label>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -224,7 +227,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Nenhum peso foi treinado para essas classes: o classificador surge das comparações
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Nenhum peso foi treinado para essas classes: o classificador surge das comparações
           de cosseno na inferência. Aproxime <span class="formula">ũ</span> de um prompt e ele
           vence; coloque a imagem entre dois prompts e baixe <span class="formula">τ</span> para
           ver a decisão ficar mais agressiva, com quase toda a massa na classe mais próxima.
@@ -243,6 +246,7 @@
   <script defer src="js/section2-similarity.js"></script>
   <script defer src="js/section3-infonce.js"></script>
   <script defer src="js/section4-zeroshot.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

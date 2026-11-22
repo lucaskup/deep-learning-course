@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Regularização: capacidade e sobreajuste com penalidade L2 (ridge), early stopping com um MLP treinado ao vivo e dropout com máscaras aleatórias." />
   <title>Regularização — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -25,7 +28,7 @@
       <li><a href="#s1">L2</a></li>
       <li><a href="#s2">Early stopping</a></li>
       <li><a href="#s3">Dropout</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -69,7 +72,7 @@
           <label class="slider-label">λ = <span id="s1-lam-val">0</span>
             <input type="range" id="s1-lam" min="0" max="21" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar dados</button>
+          <button class="btn-ctl" id="s1-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar dados</button>
           <span class="readout formula" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -83,7 +86,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">λ = 0</span>, arraste <span class="formula">d</span> até 15
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">λ = 0</span>, arraste <span class="formula">d</span> até 15
           e veja o U no gráfico da direita: o MSE de treino sempre cai, o de validação
           volta a subir. Depois fixe <span class="formula">d = 15</span> e aumente
           <span class="formula">λ</span>: o melhor MSE de validação reaparece sem reduzir a
@@ -108,10 +111,10 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl primary" id="s2-train" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar pesos</button>
-          <button class="btn-ctl" id="s2-restore" type="button" disabled>⏮ Voltar à melhor época</button>
-          <button class="btn-ctl" id="s2-resample" type="button">🎲 Reamostrar dados</button>
+          <button class="btn-ctl primary" id="s2-train" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar pesos</button>
+          <button class="btn-ctl" id="s2-restore" type="button" disabled><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 20L9 12l10-8z"/><path d="M5 19V5"/></svg>Voltar à melhor época</button>
+          <button class="btn-ctl" id="s2-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar dados</button>
         </div>
         <div class="controls">
           <span class="readout" id="s2-status">época: 0 · treino: — · validação: — · melhor época: —</span>
@@ -127,8 +130,8 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Deixe treinar bastante até a curva roxa interpolar o ruído, depois clique em
-          ⏮ e compare o ajuste restaurado com o sobreajustado. O patamar da loss de validação
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Deixe treinar bastante até a curva roxa interpolar o ruído, depois clique em
+          "Voltar à melhor época" e compare o ajuste restaurado com o sobreajustado. O patamar da loss de validação
           fica acima de <span class="formula">σ²</span>, o componente irredutível de ruído da
           decomposição viés-variância e um limite inferior para a loss de validação. A loss de
           treino cai abaixo desse limite justamente porque o modelo memoriza o ruído.
@@ -156,8 +159,8 @@
           <label class="slider-label">p = <span id="s3-p-val">0.50</span>
             <input type="range" id="s3-p" min="0" max="0.8" value="0.5" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s3-mask" type="button">🎲 Nova máscara</button>
-          <button class="btn-ctl primary" id="s3-play" type="button">▶ Animar máscaras</button>
+          <button class="btn-ctl" id="s3-mask" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Nova máscara</button>
+          <button class="btn-ctl primary" id="s3-play" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Animar máscaras</button>
           <span class="readout" id="s3-active">conexões ativas: 54 / 54</span>
           <span class="readout formula" id="s3-scale"></span>
         </div>
@@ -168,7 +171,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">p = 0.5</span>, cada forward usa em média metade das
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">p = 0.5</span>, cada forward usa em média metade das
           unidades ocultas, e duas máscaras consecutivas quase nunca coincidem: nenhuma unidade
           pode depender de uma parceira específica para corrigir seus erros, o que reduz
           coadaptação. A animação dá a intuição do ensemble: o modelo final se comporta como
@@ -187,6 +190,7 @@
   <script defer src="js/section1-ridge.js"></script>
   <script defer src="js/section2-earlystop.js"></script>
   <script defer src="js/section3-dropout.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

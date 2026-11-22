@@ -196,7 +196,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar gerador';
+      DL.btnLabel(btnRun, 'play', 'Treinar gerador');
       DL.stopTicker(tick);
     }
 
@@ -234,7 +234,7 @@
       if (running) { stopRun(); return; }
       running = true;
       accT = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => {

@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Tokenização: granularidade caractere vs palavra vs subpalavra, treinamento de BPE passo a passo no corpus dos slides, codificação de texto novo com os merges aprendidos, a comparação entre BPE e WordPiece e o lattice de segmentações do Unigram LM com Viterbi e poda do vocabulário." />
   <title>Tokenização — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -28,7 +31,7 @@
       <li><a href="#s3">Codificar</a></li>
       <li><a href="#s4">WordPiece</a></li>
       <li><a href="#s5">Unigram</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -70,7 +73,7 @@
       <div class="panel">
         <div class="controls">
           <input type="text" id="s1-text" class="text-input" autocomplete="off" spellcheck="false" aria-label="Texto a tokenizar" />
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Texto de exemplo</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Texto de exemplo</button>
         </div>
         <p class="tok-label">Caractere <span class="tok-info" id="s1-char-info"></span></p>
         <div class="tok-row" id="s1-char-row"></div>
@@ -89,7 +92,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 O texto de exemplo termina em "lowest", que nunca apareceu no corpus: no nível de
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>O texto de exemplo termina em "lowest", que nunca apareceu no corpus: no nível de
           palavra vira <span class="formula">[UNK]</span>, no BPE vira
           <span class="formula">low + est_</span>. Digite "wider" e veja que o BPE com 7 merges
           o decompõe em caracteres (nenhum merge se aplica), sem perder a palavra. Digite algo
@@ -121,9 +124,9 @@
           <label class="slider-label">k = <span id="s2-k-val">0</span> merges
             <input type="range" id="s2-k" min="0" max="15" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s2-step" type="button">⏭ Um merge</button>
-          <button class="btn-ctl primary" id="s2-run" type="button">▶ Rodar</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Um merge</button>
+          <button class="btn-ctl primary" id="s2-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Rodar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <p class="demo-text small" id="s2-merge-info"></p>
@@ -146,7 +149,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Siga os 7 primeiros merges e compare com os slides: es, est, est_, lo, low, ne,
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Siga os 7 primeiros merges e compare com os slides: es, est, est_, lo, low, ne,
           new. Em <span class="formula">k = 7</span> o sufixo
           <span class="formula">est_</span> é compartilhado por "newest" e "widest". Note o
           trade-off na curva: cada merge reduz os tokens do corpus (de 95 até 16) mas aumenta
@@ -178,14 +181,14 @@
           <label class="slider-label">k = <span id="s3-k-val">7</span> merges
             <input type="range" id="s3-k" min="0" max="15" value="7" step="1" />
           </label>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <p class="tok-label">Tokens (clique numa palavra para ver a derivação)</p>
         <div class="tok-row" id="s3-tokens"></div>
         <div id="s3-deriv"></div>
         <p class="demo-text small">
-          💡 Deixe "lowest" selecionado e arraste <span class="formula">k</span> de 0 a 7: os
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Deixe "lowest" selecionado e arraste <span class="formula">k</span> de 0 a 7: os
           merges 1, 2, 3, 4 e 5 disparam um a um e reconstroem a derivação dos slides
           (o 6 e o 7, ne e new, não se aplicam). Com <span class="formula">k = 0</span> tudo
           degenera em caracteres. Teste "widest lowest newest" e veja o mesmo token
@@ -218,8 +221,8 @@
           <label class="slider-label">k = <span id="s4-k-val">0</span> merges
             <input type="range" id="s4-k" min="0" max="15" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s4-step" type="button">⏭ Um merge</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Um merge</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <p class="tok-label">Scores do WordPiece na segmentação atual (amarelo: escolha do WordPiece; ciano: o que a frequência pura escolheria)</p>
@@ -243,7 +246,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Em <span class="formula">k = 1</span> o WordPiece já criou
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Em <span class="formula">k = 1</span> o WordPiece já criou
           <span class="formula">id</span> (score 0.333) enquanto o BPE criou
           <span class="formula">es</span> (contagem 9): critérios diferentes, vocabulários
           diferentes. Avance até <span class="formula">k = 5</span> e compare as segmentações
@@ -275,8 +278,8 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl primary" id="s5-prune" type="button">✂ Podar tokens com Δ = 0</button>
-          <button class="btn-ctl" id="s5-reset" type="button">↺ Restaurar vocabulário</button>
+          <button class="btn-ctl primary" id="s5-prune" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>Podar tokens com Δ = 0</button>
+          <button class="btn-ctl" id="s5-reset" type="button">↺︎ Restaurar vocabulário</button>
           <label class="slider-label"><input type="checkbox" id="s5-renorm" /> renormalizar P no vocabulário atual</label>
         </div>
         <p class="tok-label">Vocabulário 𝒱 (clique para podar ou restaurar; caracteres nunca são podados)</p>
@@ -299,7 +302,7 @@
         </div>
         <p class="demo-text small" id="s5-readout"></p>
         <p class="demo-text small">
-          💡 Reproduza o slide de poda: remova <span class="formula">owe</span> ou
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Reproduza o slide de poda: remova <span class="formula">owe</span> ou
           <span class="formula">lo</span> e note <span class="formula">ΔL = 0</span>, nenhum
           melhor caminho passa por eles. Agora remova <span class="formula">low</span>:
           "low" vira <span class="formula">l·ow</span>, "lower" vira o token único
@@ -327,6 +330,7 @@
   <script defer src="js/section3-encode.js"></script>
   <script defer src="js/section4-wordpiece.js"></script>
   <script defer src="js/section5-unigram.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

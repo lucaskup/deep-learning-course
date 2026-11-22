@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Positional Encoding: invariância a permutação da atenção, codificação sinusoidal posição × dimensão, produto interno PE_i·PE_j como função da distância relativa e a rotação 2D do RoPE." />
   <title>Positional Encoding — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Sinusoidal</a></li>
       <li><a href="#s3">Produto interno</a></li>
       <li><a href="#s4">RoPE</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -80,8 +83,8 @@
             <button class="tab active" id="s1-tab-nope" type="button">Sem PE</button>
             <button class="tab" id="s1-tab-pe" type="button">Com PE sinusoidal</button>
           </div>
-          <button class="btn-ctl primary" id="s1-shuffle" type="button">🎲 Permutar frase</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Ordem original</button>
+          <button class="btn-ctl primary" id="s1-shuffle" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Permutar frase</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Ordem original</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -95,7 +98,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Na aba <strong>Sem PE</strong>, permute a frase várias vezes: o readout mostra
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Na aba <strong>Sem PE</strong>, permute a frase várias vezes: o readout mostra
           Δ ≈ 0, a saída de “gato” é a mesma em qualquer posição (equivariância), ou seja,
           “O tapete sentou no gato” produz o mesmo conjunto de saídas e é indistinguível
           para o modelo. Troque para
@@ -151,7 +154,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">d = 32</span>, compare
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">d = 32</span>, compare
           <span class="formula">k = 0</span> (ω = 1, período ≈ 6 posições, listras finas
           na base do heatmap) com <span class="formula">k = 15</span> (ω ≈ 0.0002, a curva
           parece constante: precisaria de milhares de posições para completar um ciclo).
@@ -208,7 +211,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Arraste <span class="formula">i</span> de 0 até 60 e observe que a curva
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Arraste <span class="formula">i</span> de 0 até 60 e observe que a curva
           ciano apenas desliza, sem mudar de forma: a similaridade decai com a distância
           relativa do mesmo jeito em qualquer ponto da sequência, e o readout confirma
           numericamente que <span class="formula">PE<sub>i</sub>·PE<sub>i+8</sub></span>
@@ -254,7 +257,7 @@
           <label class="slider-label">δ = <span id="s4-delta-val">0</span>
             <input type="range" id="s4-delta" min="0" max="16" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -268,7 +271,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Reproduza o cálculo manual dos slides: com
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Reproduza o cálculo manual dos slides: com
           <span class="formula">q = (1, 0)</span>, <span class="formula">k = (0, 1)</span>,
           <span class="formula">θ = 1.0</span>, <span class="formula">i = 1</span> e
           <span class="formula">j = 3</span>, o bloco contribui
@@ -294,6 +297,7 @@
   <script defer src="js/section2-sinusoidal.js"></script>
   <script defer src="js/section3-dot-product.js"></script>
   <script defer src="js/section4-rope.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

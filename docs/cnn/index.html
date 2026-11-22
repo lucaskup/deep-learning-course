@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Redes Convolucionais: convolução 2D com kernels clássicos, padding, stride e dilation com a fórmula do tamanho da saída, pooling com invariância a translação, crescimento do campo receptivo, convolução em imagens reais com Sobel, DoG e blur gaussiano, e uma CNN completa em miniatura treinada no navegador com todos os valores visíveis." />
   <title>Redes Convolucionais — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -66,7 +69,7 @@
       <li><a href="#s4">Campo receptivo</a></li>
       <li><a href="#s5">Imagem real</a></li>
       <li><a href="#s6">CNN completa</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -138,8 +141,8 @@
               <option value="gradiente">gradiente</option>
             </select>
           </label>
-          <button class="btn-ctl" id="s1-noise" type="button">🎲 Ruído</button>
-          <button class="btn-ctl" id="s1-clear" type="button">↺ Limpar</button>
+          <button class="btn-ctl" id="s1-noise" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Ruído</button>
+          <button class="btn-ctl" id="s1-clear" type="button">↺︎ Limpar</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -153,7 +156,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com o padrão borda vertical, o Sobel vertical responde forte na transição e zero
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com o padrão borda vertical, o Sobel vertical responde forte na transição e zero
           nas regiões constantes; troque para o Sobel horizontal e a resposta some, cada kernel
           detecta uma orientação. No padrão xis, compare blur (suaviza) com sharpen (realça).
           Edite um peso do kernel (por exemplo, zere o <span class="formula">w<sub>2,1</sub> = −2</span>
@@ -181,7 +184,7 @@
         <span class="formula">O = ⌊(N + 2P − D·(K−1) − 1)/S⌋ + 1</span>. Essa é a fórmula do
         PyTorch, com dilatação; para <span class="formula">D = 1</span> ela se reduz à dos slides,
         <span class="formula">⌊(N + 2P − K)/S⌋ + 1</span>.
-        Use ⏭ ou ▶ para percorrer as posições do kernel.
+        Use "Posição" ou "Animar" para percorrer as posições do kernel.
       </p>
       <div class="panel">
         <div class="controls">
@@ -202,9 +205,9 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s2-step" type="button">⏭ Posição</button>
-          <button class="btn-ctl primary" id="s2-run" type="button">▶ Animar</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s2-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Posição</button>
+          <button class="btn-ctl primary" id="s2-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Animar</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -218,7 +221,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">N = 8, K = 3, P = 0, S = 1</span> a saída é
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">N = 8, K = 3, P = 0, S = 1</span> a saída é
           <span class="formula">6×6</span> (valid); suba para <span class="formula">P = 1</span>
           e ela volta a <span class="formula">8×8</span> (same). Com
           <span class="formula">S = 2</span> a resolução cai para cerca da metade, como no slide
@@ -258,7 +261,7 @@
           <label class="slider-label">Δy = <span id="s3-dy-val">0</span>
             <input type="range" id="s3-dy" min="0" max="5" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Δ = 0</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Δ = 0</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -272,7 +275,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 No max pooling, vá de <span class="formula">Δ = (0, 0)</span> para
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>No max pooling, vá de <span class="formula">Δ = (0, 0)</span> para
           <span class="formula">(1, 0)</span>: a entrada mudou em todas as células do padrão,
           mas pouquíssimas células da saída diferem. Agora teste
           <span class="formula">Δ = (2, 0)</span>: nenhuma célula difere, a saída é exatamente a
@@ -334,7 +337,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com três convoluções <span class="formula">3×3</span> e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com três convoluções <span class="formula">3×3</span> e
           <span class="formula">S = 1</span>, o RF cresce 3, 5, 7, como no exemplo dos slides.
           Mude <span class="formula">S₂ = 2</span> e veja
           <span class="formula">RF₃ = 9</span>: o stride acelera o crescimento, ao custo de
@@ -380,9 +383,9 @@
             </select>
           </label>
           <canvas id="s5-kernel" style="width:120px;height:120px;flex:0 0 auto;"></canvas>
-          <button class="btn-ctl" id="s5-upload" type="button">📷 Enviar imagem</button>
+          <button class="btn-ctl" id="s5-upload" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Enviar imagem</button>
           <input type="file" id="s5-file" accept="image/*" style="display:none;" />
-          <button class="btn-ctl" id="s5-default" type="button">↺ Imagem padrão</button>
+          <button class="btn-ctl" id="s5-default" type="button">↺︎ Imagem padrão</button>
         </div>
         <div class="controls">
           <label class="slider-label">S = <span id="s5-s-val">1</span>
@@ -414,7 +417,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Compare Sobel x e Sobel y na imagem padrão: cada um acende um conjunto diferente
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Compare Sobel x e Sobel y na imagem padrão: cada um acende um conjunto diferente
           de bordas (verticais ou horizontais), por isso uma camada convolucional tem vários
           kernels em paralelo, um mapa de características por filtro. O DoG responde a
           manchas claras cercadas de escuro (centro e periferia, como células da retina) e o
@@ -445,27 +448,27 @@
         <span class="formula">w<sup>(1)</sup></span> tem
         <span class="formula">2 filtros × 2 canais × 3 × 3 = 36</span> pesos e a rede inteira
         tem 95 parâmetros. Passe o mouse sobre qualquer célula para ver a janela que ela leu e a
-        conta completa, use ⏭ para percorrer o cálculo posição a posição, pinte a entrada e
+        conta completa, use "Passo" para percorrer o cálculo posição a posição, pinte a entrada e
         treine a rede por SGD para ver filtros, mapas e predição mudarem ao vivo.
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl" id="s6-new" type="button">🎲 Nova imagem</button>
-          <button class="btn-ctl" id="s6-clear" type="button">↺ Limpar imagem</button>
+          <button class="btn-ctl" id="s6-new" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Nova imagem</button>
+          <button class="btn-ctl" id="s6-clear" type="button">↺︎ Limpar imagem</button>
           <span class="readout" id="s6-img-readout"></span>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s6-train" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s6-reset" type="button">↺ Reiniciar pesos</button>
+          <button class="btn-ctl primary" id="s6-train" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s6-reset" type="button">↺︎ Reiniciar pesos</button>
           <label class="slider-label">η = <span id="s6-lr-val">0.10</span>
             <input type="range" id="s6-lr" min="0.01" max="0.50" value="0.10" step="0.01" />
           </label>
           <span class="readout" id="s6-train-readout"></span>
         </div>
         <div class="controls">
-          <button class="btn-ctl" id="s6-step" type="button">⏭ Passo</button>
-          <button class="btn-ctl" id="s6-anim" type="button">▶ Animar cálculo</button>
-          <button class="btn-ctl" id="s6-showall" type="button">↺ Mostrar tudo</button>
+          <button class="btn-ctl" id="s6-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Passo</button>
+          <button class="btn-ctl" id="s6-anim" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Animar cálculo</button>
+          <button class="btn-ctl" id="s6-showall" type="button">↺︎ Mostrar tudo</button>
           <span class="readout" id="s6-step-readout"></span>
         </div>
         <div class="canvas-row">
@@ -494,7 +497,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Antes de treinar, a rede responde <span class="formula">p ≈ 0.5</span> para quase
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Antes de treinar, a rede responde <span class="formula">p ≈ 0.5</span> para quase
           tudo. Treine algumas épocas e inspecione <span class="formula">w<sup>(1)</sup></span>:
           com frequência um filtro passa a responder a transições verticais e o outro a
           transições horizontais, a versão aprendida dos Sobel da seção 1. Repare que um mesmo
@@ -523,6 +526,7 @@
   <script defer src="js/tinycnn.js"></script>
   <script defer src="js/section5-imagem.js"></script>
   <script defer src="js/section6-cnn-completa.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

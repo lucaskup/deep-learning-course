@@ -216,7 +216,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar';
+      DL.btnLabel(btnRun, 'play', 'Treinar');
       DL.stopTicker(tick);
     }
 
@@ -245,7 +245,7 @@
       if (done()) resetTraining();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     $('s3-reset').addEventListener('click', () => {

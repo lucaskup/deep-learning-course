@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Aplicações de CNN: arquitetura e contagem de parâmetros da VGG16, bounding boxes com IoU e Dice ao vivo, non-maximum suppression com limiares ajustáveis e segmentação semântica com janela deslizante vs predição densa." />
   <title>Aplicações de CNN — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">IoU e Dice</a></li>
       <li><a href="#s3">NMS</a></li>
       <li><a href="#s4">Segmentação</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -71,9 +74,9 @@
           <label class="slider-label">camada = <span id="s1-layer-val">entrada</span>
             <input type="range" id="s1-layer" min="0" max="23" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-step" type="button">⏭ Próxima camada</button>
-          <button class="btn-ctl primary" id="s1-run" type="button">▶ Percorrer</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s1-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Próxima camada</button>
+          <button class="btn-ctl primary" id="s1-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Percorrer</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar</button>
         </div>
         <div class="controls">
           <span class="readout" id="s1-readout"></span>
@@ -89,7 +92,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Avance até <span class="formula">conv1_2</span> e compare com
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Avance até <span class="formula">conv1_2</span> e compare com
           <span class="formula">conv1_1</span>: o número de pesos salta de 1.728 para 36.864
           só porque <span class="formula">C<sub>in</sub></span> passou de 3 para 64. Depois vá até
           <span class="formula">fc1</span>: uma única camada densa concentra 102,8M de parâmetros,
@@ -116,9 +119,9 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Exemplo dos slides</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Exemplo dos slides</button>
           <button class="btn-ctl" id="s2-half" type="button">IoU = 1/3, Dice = 1/2</button>
-          <button class="btn-ctl" id="s2-rand" type="button">🎲 Caixas aleatórias</button>
+          <button class="btn-ctl" id="s2-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Caixas aleatórias</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -132,7 +135,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Reproduza o exemplo numérico dos slides: deixe as duas caixas com a mesma área e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Reproduza o exemplo numérico dos slides: deixe as duas caixas com a mesma área e
           interseção igual à metade dela, e confira <span class="formula">IoU ≈ 0,333</span>
           contra <span class="formula">Dice = 0,5</span>. Depois sobreponha B perfeitamente em A
           (as duas métricas vão a 1) e afaste B até a interseção zerar. Note no gráfico à direita
@@ -166,8 +169,8 @@
           <label class="slider-label">IoU do NMS = <span id="s3-iou-val">0,50</span>
             <input type="range" id="s3-iou" min="0.05" max="0.95" value="0.5" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s3-rand" type="button">🎲 Nova cena</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Nova cena</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
         </div>
         <div class="controls">
           <span class="readout" id="s3-readout"></span>
@@ -183,7 +186,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">τ = 0,50</span> e IoU do NMS em
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">τ = 0,50</span> e IoU do NMS em
           <span class="formula">0,50</span>, sobra tipicamente uma caixa por objeto. Suba o IoU
           do NMS para 0,9 e veja duplicatas sobrevivendo (a precisão cai); desça para 0,1 e a
           supressão fica agressiva demais quando dois objetos se encostam. Agora zere
@@ -221,9 +224,9 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s4-run" type="button">▶ Janela deslizante</button>
-          <button class="btn-ctl" id="s4-dense" type="button">⚡ 1 forward (encoder-decoder)</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Limpar máscara</button>
+          <button class="btn-ctl primary" id="s4-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Janela deslizante</button>
+          <button class="btn-ctl" id="s4-dense" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>1 forward (encoder-decoder)</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Limpar máscara</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -237,7 +240,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Rode a janela deslizante em 32×32 e conte: 1.024 forwards para uma máscara
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Rode a janela deslizante em 32×32 e conte: 1.024 forwards para uma máscara
           minúscula. Suba a resolução para 64×64 e o custo quadruplica para 4.096, enquanto o
           encoder-decoder continua custando 1 forward em qualquer resolução (para 224×224 a
           ideia ingênua exigiria 50.176 forwards). Troque para a aba Instâncias e compare com a
@@ -258,6 +261,7 @@
   <script defer src="js/section2-iou.js"></script>
   <script defer src="js/section3-nms.js"></script>
   <script defer src="js/section4-segmentation.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

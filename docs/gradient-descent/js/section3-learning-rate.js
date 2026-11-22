@@ -196,7 +196,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Rodar';
+      DL.btnLabel(btnRun, 'play', 'Rodar');
       DL.stopTicker(tick);
     }
 
@@ -235,7 +235,7 @@
       if (diverged || hist.length > MAX_STEPS || converged()) { hist = [x0]; diverged = false; }
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => {

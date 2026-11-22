@@ -183,7 +183,7 @@
     const { pts: data, lab: labels } = U.twoMoons(NDATA, 0.08, dataRng);
 
     let model = null, steps = 0, lossEma = null, lossHist = [];
-    let sampleCount = 0; /* entra na semente: cada ▶ Amostrar sorteia uma nuvem nova */
+    let sampleCount = 0; /* entra na semente: cada "Amostrar" sorteia uma nuvem nova */
     let training = false;
     let trainRng = null;
 
@@ -240,14 +240,14 @@
 
     function stopTraining() {
       training = false;
-      btnTrain.textContent = '▶ Treinar';
+      DM.btnLabel(btnTrain, 'play', 'Treinar');
       DM.stopTicker(trainTick);
     }
 
     btnTrain.addEventListener('click', () => {
       if (training) { stopTraining(); return; }
       training = true;
-      btnTrain.textContent = '⏸ Pausar';
+      DM.btnLabel(btnTrain, 'pause', 'Pausar');
       DM.startTicker(trainTick);
     });
     btnReset.addEventListener('click', resetModel);

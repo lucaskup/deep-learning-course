@@ -143,7 +143,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar RM';
+      DL.btnLabel(btnRun, 'play', 'Treinar RM');
       DL.stopTicker(tick);
     }
 
@@ -187,7 +187,7 @@
       if (doneTrain()) resetPairs();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); resetPairs(); redraw(); });

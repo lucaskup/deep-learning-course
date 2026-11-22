@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Diffusion Models: processo forward, noise schedule, kernel de difusão e treinamento ao vivo de um mini modelo difusor." />
   <title>Diffusion Models — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Schedule</a></li>
       <li><a href="#s3">Gaussianas</a></li>
       <li><a href="#s4">Treinar</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -57,12 +60,12 @@
         normal padrão (tracejado).
       </p>
       <p class="demo-text small">
-        💡 Arraste <span class="formula">t</span> devagar a partir de 0 e acompanhe as três
+        <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Arraste <span class="formula">t</span> devagar a partir de 0 e acompanhe as três
         trajetórias destacadas: cada uma segue um caminho aleatório diferente, mas a marginal
         roxa perde as duas modas e vira a gaussiana tracejada bem antes de
         <span class="formula">t = T</span>. Na aba 2D, repare que as duas luas se fundem num
         disco e que os círculos de 1σ e 2σ passam a conter a fração esperada dos pontos; clique
-        em 🎲 para confirmar que o destino final não depende da amostra inicial.
+        em "Reamostrar" para confirmar que o destino final não depende da amostra inicial.
       </p>
       <div class="panel">
         <div class="controls">
@@ -70,11 +73,11 @@
             <button class="tab active" id="s1-tab-1d" type="button">1D bimodal</button>
             <button class="tab" id="s1-tab-2d" type="button">2D two moons</button>
           </div>
-          <button class="btn-ctl" id="s1-play" type="button">▶ Difundir</button>
+          <button class="btn-ctl" id="s1-play" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Difundir</button>
           <label class="slider-label">t = <span id="s1-t-val">0</span> / <span id="s1-T-val">50</span>
             <input type="range" id="s1-t" min="0" max="50" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+          <button class="btn-ctl" id="s1-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar</button>
         </div>
         <div class="canvas-row" id="s1-row-1d">
           <div class="canvas-box wide">
@@ -112,7 +115,7 @@
         <span class="formula">β<sub>max</sub> = 0,02</span> com <span class="formula">T = 1000</span>).
       </p>
       <p class="demo-text small">
-        💡 Compare as abas Linear e Cosseno com o mesmo <span class="formula">T</span>: no
+        <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Compare as abas Linear e Cosseno com o mesmo <span class="formula">T</span>: no
         schedule linear, <span class="formula">α<sub>t</sub></span> despenca nos primeiros passos
         e a imagem do gato já está irreconhecível na metade do processo; no cosseno a queda é
         gradual e o sinal sobrevive por mais tempo. Depois reduza <span class="formula">T</span>
@@ -151,7 +154,7 @@
           <label class="slider-label">t = <span id="s2-t-val">0</span> / <span id="s2-t-max">50</span>
             <input type="range" id="s2-t" min="0" max="50" value="0" step="1" />
           </label>
-          <button class="btn-ctl" id="s2-resample" type="button">🎲 Reamostrar ε</button>
+          <button class="btn-ctl" id="s2-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar ε</button>
           <span class="readout formula" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -185,7 +188,7 @@
           <label class="slider-label">x = <span id="s3a-x-val">1.5</span>
             <input type="range" id="s3a-x" min="-2.5" max="2.5" value="1.5" step="0.1" />
           </label>
-          <button class="btn-ctl" id="s3a-resample" type="button">🎲 Reamostrar</button>
+          <button class="btn-ctl" id="s3a-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar</button>
         </div>
         <div class="canvas-row">
           <div class="canvas-box wide">
@@ -222,7 +225,7 @@
         </div>
         <p class="demo-text formula formula-lines" id="s3b-formula"></p>
         <p class="demo-text small">
-          💡 Observe com o slider: com <span class="formula">t</span> pequeno a prior é estreita
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Observe com o slider: com <span class="formula">t</span> pequeno a prior é estreita
           (pouco ruído acumulado, variância <span class="formula">1−α<sub>t−1</sub></span> pequena)
           e a posterior praticamente coincide com ela, a informação vem de
           <span class="formula">x</span>. Com <span class="formula">t</span> grande a prior fica
@@ -254,9 +257,9 @@
       </p>
       <div class="panel">
         <div class="controls">
-          <button class="btn-ctl primary" id="s4-train" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Resetar pesos</button>
-          <button class="btn-ctl primary" id="s4-sample" type="button" disabled>✨ Amostrar</button>
+          <button class="btn-ctl primary" id="s4-train" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Resetar pesos</button>
+          <button class="btn-ctl primary" id="s4-sample" type="button" disabled><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg>Amostrar</button>
           <span class="readout" id="s4-status">passos: 0 · loss: —</span>
         </div>
         <div class="controls">
@@ -303,6 +306,7 @@
   <script defer src="js/section2-schedule.js"></script>
   <script defer src="js/section3-gaussian.js"></script>
   <script defer src="js/section4-train.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="js/main.js"></script>
 </body>
 </html>

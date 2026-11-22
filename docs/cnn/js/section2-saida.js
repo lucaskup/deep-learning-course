@@ -122,7 +122,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Animar';
+      DL.btnLabel(btnRun, 'play', 'Animar');
       DL.stopTicker(tick);
     }
 
@@ -151,7 +151,7 @@
       if (cur >= o * o - 1) cur = 0;
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => {

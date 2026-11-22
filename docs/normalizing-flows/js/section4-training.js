@@ -346,7 +346,7 @@
 
     function stopTrain() {
       running = false;
-      btnTrain.textContent = '▶ Treinar';
+      DL.btnLabel(btnTrain, 'play', 'Treinar');
       DL.stopTicker(trainTick);
       computeHeat();
       redraw();
@@ -371,7 +371,7 @@
       stagePos = K;
       stageTarget = K;
       running = true;
-      btnTrain.textContent = '⏸ Pausar';
+      DL.btnLabel(btnTrain, 'pause', 'Pausar');
       DL.startTicker(trainTick);
     });
 
@@ -389,7 +389,7 @@
     });
 
     $('s4-reset').addEventListener('click', () => {
-      if (running) { running = false; btnTrain.textContent = '▶ Treinar'; DL.stopTicker(trainTick); }
+      if (running) { running = false; DL.btnLabel(btnTrain, 'play', 'Treinar'); DL.stopTicker(trainTick); }
       DL.stopTicker(stageTick);
       initModel();
       computeHeat();
@@ -397,7 +397,7 @@
     });
 
     $('s4-seed').addEventListener('click', () => {
-      if (running) { running = false; btnTrain.textContent = '▶ Treinar'; DL.stopTicker(trainTick); }
+      if (running) { running = false; DL.btnLabel(btnTrain, 'play', 'Treinar'); DL.stopTicker(trainTick); }
       DL.stopTicker(stageTick);
       seed = (seed * 1103515245 + 12345) % 2147483647;
       makeData();
@@ -407,7 +407,7 @@
     });
 
     slK.addEventListener('input', () => {
-      if (running) { running = false; btnTrain.textContent = '▶ Treinar'; DL.stopTicker(trainTick); }
+      if (running) { running = false; DL.btnLabel(btnTrain, 'play', 'Treinar'); DL.stopTicker(trainTick); }
       DL.stopTicker(stageTick);
       K = +slK.value;
       $('s4-k-val').textContent = K;
@@ -418,7 +418,7 @@
 
     function setDataset(name) {
       if (dataset === name) return;
-      if (running) { running = false; btnTrain.textContent = '▶ Treinar'; DL.stopTicker(trainTick); }
+      if (running) { running = false; DL.btnLabel(btnTrain, 'play', 'Treinar'); DL.stopTicker(trainTick); }
       DL.stopTicker(stageTick);
       dataset = name;
       tabMoons.classList.toggle('active', name === 'moons');

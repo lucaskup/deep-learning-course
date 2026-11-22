@@ -168,7 +168,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Janela deslizante';
+      DL.btnLabel(btnRun, 'play', 'Janela deslizante');
       DL.stopTicker(tick);
     }
 
@@ -204,7 +204,7 @@
       if (denseUsed || cursor >= g * g) clearMask();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
 

@@ -133,7 +133,7 @@
       if (differ) {
         msg += '✗ multisets diferem → G₁ e G₂ NÃO são isomorfos';
       } else if (state.stable) {
-        msg += '◼ multisets iguais e o refinamento estabilizou → o 1-WL FALHA: inconclusivo';
+        msg += '■ multisets iguais e o refinamento estabilizou → o 1-WL FALHA: inconclusivo';
       } else {
         msg += 'multisets iguais até aqui → continue iterando';
       }

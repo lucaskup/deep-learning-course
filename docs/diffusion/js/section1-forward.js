@@ -138,7 +138,7 @@
 
     function stop() {
       playing = false;
-      btnPlay.textContent = '▶ Difundir';
+      DM.btnLabel(btnPlay, 'play', 'Difundir');
       DM.stopTicker(tick);
     }
 
@@ -147,7 +147,7 @@
       if (t >= T) { t = 0; slider.value = 0; }
       playing = true;
       tAcc = 0;
-      btnPlay.textContent = '⏸ Pausar';
+      DM.btnLabel(btnPlay, 'pause', 'Pausar');
       DM.startTicker(tick);
     });
 

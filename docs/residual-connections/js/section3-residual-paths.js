@@ -1,5 +1,5 @@
 /* Seção 3: os 2^n caminhos da entrada à saída numa rede com n blocos
-   residuais. ⏭ percorre os caminhos; o histograma mostra o ensemble
+   residuais. "Próximo caminho" percorre os caminhos; o histograma mostra o ensemble
    implícito de profundidades (coeficiente binomial). */
 (function () {
   'use strict';
@@ -162,7 +162,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Percorrer';
+      DL.btnLabel(btnRun, 'play', 'Percorrer');
       DL.stopTicker(tick);
     }
 
@@ -179,7 +179,7 @@
       if (running) { stopRun(); return; }
       running = true;
       accT = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); path = 0; redraw(); });

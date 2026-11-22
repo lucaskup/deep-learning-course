@@ -265,7 +265,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar';
+      DL.btnLabel(btnRun, 'play', 'Treinar');
       DL.stopTicker(tick);
     }
 
@@ -286,7 +286,7 @@
       if (stepCount >= MAX_STEPS) rebuild();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); rebuild(); redraw(); });

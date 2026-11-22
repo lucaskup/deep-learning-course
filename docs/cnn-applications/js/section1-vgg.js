@@ -235,7 +235,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Percorrer';
+      DL.btnLabel(btnRun, 'play', 'Percorrer');
       DL.stopTicker(tick);
     }
 
@@ -271,7 +271,7 @@
       if (idx >= STAGES.length - 1) setIdx(0);
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', function () { stopRun(); setIdx(0); });

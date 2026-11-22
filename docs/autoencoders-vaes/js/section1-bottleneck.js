@@ -180,7 +180,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar';
+      DL.btnLabel(btnRun, 'play', 'Treinar');
       DL.stopTicker(tick);
     }
 
@@ -225,7 +225,7 @@
       if (running) { stopRun(); return; }
       if (k >= MAX_STEPS) buildModels();
       running = true;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnStep.addEventListener('click', () => { trainSteps(1000); redraw(); });

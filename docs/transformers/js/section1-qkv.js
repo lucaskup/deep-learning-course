@@ -134,7 +134,7 @@
         P.mathText(ctx, 'q = xW_q   k = xW_k   v = xW_v   (d = 2)',
           left + (w - left) / 2, h - 8, th.comment, 'center', 11);
       } else {
-        P.mathText(ctx, 'use ⏭ para projetar os embeddings em q, k, v',
+        P.mathText(ctx, 'use "Próxima etapa" para projetar os embeddings em q, k, v',
           left + (w - left) / 2, h - 8, th.comment, 'center', 11);
       }
     }
@@ -148,7 +148,7 @@
       const cw = (w - left - 10) / TOKENS.length;
 
       if (stage < 2) {
-        P.mathText(ctx, 'avance com ⏭ até os scores', w / 2, h / 2, th.comment, 'center', 12);
+        P.mathText(ctx, 'avance com "Próxima etapa" até os scores', w / 2, h / 2, th.comment, 'center', 12);
         return;
       }
 
@@ -183,7 +183,7 @@
         ctx.lineTo(left + TOKENS.length * cw, base);
         ctx.stroke();
       } else {
-        P.mathText(ctx, 'pesos: avance com ⏭', left, 158, th.comment, 'left', 11);
+        P.mathText(ctx, 'pesos: avance com "Próxima etapa"', left, 158, th.comment, 'left', 11);
       }
 
       /* saída c */
@@ -194,7 +194,7 @@
         P.mathText(ctx, 'c ≈ (' + fmt(c[0]) + '; ' + fmt(c[1]) + ')',
           left + 110, cy + 4, th.purple, 'left', 11);
       } else if (stage >= 3) {
-        P.mathText(ctx, 'saída: avance com ⏭', left, 256, th.comment, 'left', 11);
+        P.mathText(ctx, 'saída: avance com "Próxima etapa"', left, 256, th.comment, 'left', 11);
       }
     }
 

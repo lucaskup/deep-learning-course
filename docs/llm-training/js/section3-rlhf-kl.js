@@ -177,7 +177,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Otimizar';
+      DL.btnLabel(btnRun, 'play', 'Otimizar');
       DL.stopTicker(tick);
     }
 
@@ -194,7 +194,7 @@
       if (k >= MAX_ITERS) resetOpt();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); resetOpt(); redraw(); });

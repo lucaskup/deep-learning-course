@@ -229,7 +229,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Treinar';
+      DL.btnLabel(btnRun, 'play', 'Treinar');
       DL.stopTicker(tick);
     }
 
@@ -275,7 +275,7 @@
       if (running) { stopRun(); return; }
       running = true;
       accum = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     $('s4-reset').addEventListener('click', () => {

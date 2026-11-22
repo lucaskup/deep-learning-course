@@ -279,7 +279,7 @@
 
     function stopTraining() {
       training = false;
-      btnTrain.textContent = '▶ Treinar';
+      DL.btnLabel(btnTrain, 'play', 'Treinar');
       DL.stopTicker(tick);
     }
 
@@ -288,7 +288,7 @@
       if (converged) return;
       training = true;
       acc = 0;
-      btnTrain.textContent = '⏸ Pausar';
+      DL.btnLabel(btnTrain, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
 

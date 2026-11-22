@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de modelos Decoder-only: máscara causal e sliding window, geração autoregressiva com KV-cache, variantes MHA, MQA e GQA, e as leis de escala de Chinchilla." />
   <title>Decoder-only — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">KV-cache</a></li>
       <li><a href="#s3">MQA/GQA</a></li>
       <li><a href="#s4">Leis de escala</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -78,7 +81,7 @@
           <label class="slider-label disabled" id="s1-w-wrap">w = <span id="s1-w-val">2</span>
             <input type="range" id="s1-w" min="1" max="6" value="2" step="1" disabled />
           </label>
-          <button class="btn-ctl" id="s1-reseed" type="button">🎲 Novos scores</button>
+          <button class="btn-ctl" id="s1-reseed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos scores</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -92,7 +95,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Selecione a linha <span class="formula">i = 1</span> no modo causal: o primeiro
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Selecione a linha <span class="formula">i = 1</span> no modo causal: o primeiro
           token só pode atender a si mesmo, então o peso é 1 por definição. Troque entre
           bidirecional e causal observando a mesma linha: os scores são idênticos, mas a softmax
           renormaliza só sobre <span class="formula">j ≤ i</span>. Na sliding window com
@@ -137,10 +140,10 @@
               <option value="o rei de">o rei de</option>
             </select>
           </label>
-          <button class="btn-ctl" id="s2-step" type="button">⏭ Gerar token</button>
-          <button class="btn-ctl primary" id="s2-run" type="button">▶ Gerar tudo</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s2-reseed" type="button">🎲 Outra amostra</button>
+          <button class="btn-ctl" id="s2-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Gerar token</button>
+          <button class="btn-ctl primary" id="s2-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Gerar tudo</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s2-reseed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Outra amostra</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -160,11 +163,11 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Gere passo a passo e observe que com cache só uma coluna fica laranja por passo,
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Gere passo a passo e observe que com cache só uma coluna fica laranja por passo,
           enquanto no modo sem cache todas ficam: é exatamente a diferença entre as curvas linear
           e quadrática do gráfico de custo. Repare também que a distribuição muda a cada token
           gerado, pois o contexto <span class="formula">x<sub>&lt;t</sub></span> cresceu: isso é o
-          laço autoregressivo. Use 🎲 para amostrar outra continuação do mesmo prompt.
+          laço autoregressivo. Use "Outra amostra" para gerar outra continuação do mesmo prompt.
         </p>
       </div>
     </div>
@@ -217,7 +220,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Carregue o preset do GPT-3 e veja o cache de MHA passar de 9 GB já com
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Carregue o preset do GPT-3 e veja o cache de MHA passar de 9 GB já com
           <span class="formula">n = 2048</span>: por isso servir LLMs com MHA pura é caro. No
           preset do Llama 2 70B (<span class="formula">H = 64</span>,
           <span class="formula">G = 8</span>) a redução é de <span class="formula">8×</span> com
@@ -253,7 +256,7 @@
           <label class="slider-label">log₁₀ C = <span id="s4-c-val">23.8</span>
             <input type="range" id="s4-c" min="20" max="26" value="23.8" step="0.1" />
           </label>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Voltar ao ótimo</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Voltar ao ótimo</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -267,7 +270,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">log₁₀ C = 23.8</span> (o orçamento do Chinchilla) o ótimo
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">log₁₀ C = 23.8</span> (o orçamento do Chinchilla) o ótimo
           fica perto de 70B parâmetros e 1.4T tokens, e o ponto do Chinchilla cai em cima das
           retas do gráfico da direita. Arraste o ponto branco para
           <span class="formula">N = 280B</span> nesse mesmo orçamento e veja a perda subir: é o
@@ -290,6 +293,7 @@
   <script defer src="js/section2-kv-cache.js"></script>
   <script defer src="js/section3-gqa.js"></script>
   <script defer src="js/section4-scaling-laws.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

@@ -156,7 +156,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Rodar';
+      DL.btnLabel(btnRun, 'play', 'Rodar');
       DL.stopTicker(tick);
     }
 
@@ -176,7 +176,7 @@
       if (t >= T) t = 0;
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); t = 0; redraw(); });

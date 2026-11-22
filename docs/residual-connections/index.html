@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Conexões Residuais: treino ao vivo de rede plain vs residual, gradiente quebrado e fluxo pelo skip, os 2^n caminhos da entrada à saída e a variância das ativações com batch norm." />
   <title>Conexões Residuais — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Gradiente</a></li>
       <li><a href="#s3">Caminhos</a></li>
       <li><a href="#s4">Batch norm</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -74,9 +77,9 @@
           <label class="slider-label">profundidade = <span id="s1-depth-val">16</span> blocos
             <input type="range" id="s1-depth" min="1" max="20" value="16" step="1" />
           </label>
-          <button class="btn-ctl primary" id="s1-run" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s1-seed" type="button">🎲 Novos dados</button>
+          <button class="btn-ctl primary" id="s1-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s1-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos dados</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -90,10 +93,10 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com 4 a 8 blocos as duas redes ajustam bem e a comparação quase empata.
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com 4 a 8 blocos as duas redes ajustam bem e a comparação quase empata.
           Com 16 ou 20 blocos a rede plain frequentemente trava numa aproximação grosseira
           (a curva ciano de loss estagna ordens de grandeza acima) enquanto a residual recupera
-          todas as oscilações do alvo. Use 🎲 para repetir o experimento com outros dados e outra
+          todas as oscilações do alvo. Use "Novos dados" para repetir o experimento com outros dados e outra
           inicialização: em algumas sementes a plain até escapa, mas raramente alcança a residual,
           que converge de forma consistente em todas.
         </p>
@@ -128,7 +131,7 @@
           <label class="slider-label">g = <span id="s2-gain-val">1.00</span>
             <input type="range" id="s2-gain" min="0.4" max="1.3" value="1.0" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s2-seed" type="button">🎲 Novos pesos</button>
+          <button class="btn-ctl" id="s2-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos pesos</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -142,7 +145,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com profundidade 30 e <span class="formula">g = 1</span> a curva ciano vira ruído,
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com profundidade 30 e <span class="formula">g = 1</span> a curva ciano vira ruído,
           pequenos deslocamentos em <span class="formula">x</span> mudam o gradiente por completo,
           enquanto a laranja preserva estrutura suave. Com <span class="formula">g = 0.7</span> a
           norma da plain despenca em linha reta na escala log (decaimento exponencial) e a residual
@@ -164,7 +167,7 @@
         <strong>aplicado</strong> (segue por <span class="formula">f<sub>i</sub></span>), então uma rede
         com <span class="formula">n</span> blocos residuais tem <span class="formula">2<sup>n</sup></span>
         caminhos distintos da entrada à saída, e <span class="formula">2<sup>n−1</sup></span> deles passam
-        por cada <span class="formula">f<sub>i</sub></span> específica. Use ⏭ para percorrer os caminhos
+        por cada <span class="formula">f<sub>i</sub></span> específica. Use "Próximo caminho" para percorrer os caminhos
         um a um no grafo. O gráfico da direita conta quantos caminhos existem com cada profundidade
         <span class="formula">k</span> (coeficiente binomial <span class="formula">C(n, k)</span>):
         a saída funciona como um ensemble implícito de redes de profundidades diferentes.
@@ -174,9 +177,9 @@
           <label class="slider-label">n = <span id="s3-n-val">4</span> blocos
             <input type="range" id="s3-n" min="1" max="5" value="4" step="1" />
           </label>
-          <button class="btn-ctl" id="s3-step" type="button">⏭ Próximo caminho</button>
-          <button class="btn-ctl primary" id="s3-run" type="button">▶ Percorrer</button>
-          <button class="btn-ctl" id="s3-reset" type="button">↺ Reiniciar</button>
+          <button class="btn-ctl" id="s3-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Próximo caminho</button>
+          <button class="btn-ctl primary" id="s3-run" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Percorrer</button>
+          <button class="btn-ctl" id="s3-reset" type="button">↺︎ Reiniciar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -190,7 +193,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">n = 4</span> existem 16 caminhos e 8 deles passam por
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">n = 4</span> existem 16 caminhos e 8 deles passam por
           <span class="formula">f<sub>1</sub></span>. Repare na distribuição: só 1 caminho usa todos
           os blocos e só 1 não usa nenhum (a identidade pura, que carrega o termo
           <span class="formula">I</span> do gradiente); a maioria tem profundidade intermediária.
@@ -224,7 +227,7 @@
           <label class="slider-label">profundidade = <span id="s4-depth-val">6</span> blocos
             <input type="range" id="s4-depth" min="1" max="10" value="6" step="1" />
           </label>
-          <button class="btn-ctl" id="s4-seed" type="button">🎲 Novos pesos</button>
+          <button class="btn-ctl" id="s4-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos pesos</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -238,10 +241,10 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Em escala log₂, a curva sem batch norm (ciano) é uma reta de inclinação ≈ 1, cada bloco
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Em escala log₂, a curva sem batch norm (ciano) é uma reta de inclinação ≈ 1, cada bloco
           dobra a variância: com 10 blocos ela passa de 2¹⁰ ≈ 1000. A curva com batch norm (laranja)
           segue log₂(k+1), crescimento linear. No histograma, as ativações sem batch norm se espalham
-          tanto que as com batch norm viram um pico estreito no centro. Use 🎲 para confirmar que o
+          tanto que as com batch norm viram um pico estreito no centro. Use "Novos pesos" para confirmar que o
           comportamento é estrutural: vale para qualquer sorteio dos pesos.
         </p>
       </div>
@@ -258,6 +261,7 @@
   <script defer src="js/section2-gradient-flow.js"></script>
   <script defer src="js/section3-residual-paths.js"></script>
   <script defer src="js/section4-variance-batchnorm.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

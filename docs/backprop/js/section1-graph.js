@@ -318,7 +318,7 @@
 
     function stopPlay() {
       playing = false;
-      btnPlay.textContent = '▶ Reproduzir';
+      DL.btnLabel(btnPlay, 'play', 'Reproduzir');
       DL.stopTicker(tick);
     }
 
@@ -339,7 +339,7 @@
       if (step >= LAST) setStep(0);
       playing = true;
       acc = 0;
-      btnPlay.textContent = '⏸ Pausar';
+      DL.btnLabel(btnPlay, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
 

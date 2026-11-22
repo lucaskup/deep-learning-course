@@ -154,7 +154,7 @@
 
     function stopPlay() {
       playing = false;
-      btnPlay.textContent = '▶ Animar máscaras';
+      DL.btnLabel(btnPlay, 'play', 'Animar máscaras');
       DL.stopTicker(tick);
     }
 
@@ -162,7 +162,7 @@
       if (playing) { stopPlay(); return; }
       playing = true;
       acc = MASK_INTERVAL;   /* primeira máscara imediata */
-      btnPlay.textContent = '⏸ Pausar';
+      DL.btnLabel(btnPlay, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnMask.addEventListener('click', () => { stopPlay(); sampleMask(); refresh(); });

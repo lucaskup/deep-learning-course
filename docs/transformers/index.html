@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Self-Attention e Transformers: o pipeline queries, keys e values passo a passo, a matriz de atenção softmax(QKᵀ/√d), a escala 1/√d e a atenção como média ponderada dos values; depois, como o bloco Transformer envolve esse mecanismo com self-attention multi-head, positional encoding sinusoidal e Add & Norm (residual + LayerNorm) em profundidade." />
   <title>Self-Attention e Transformers — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -29,7 +32,7 @@
       <li><a href="#s5">Multi-head</a></li>
       <li><a href="#s6">Posicional</a></li>
       <li><a href="#s7">Add &amp; Norm</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -65,7 +68,7 @@
         value <span class="formula">v<sub>t</sub> = x<sub>t</sub>W<sub>v</sub></span>
         (aqui <span class="formula">d = 2</span>, então cada projeção tem 2 componentes,
         mostradas como barras). Escolha o token de consulta <span class="formula">t</span>
-        nas abas e use ⏭ para avançar pelas etapas dos slides: embeddings, projeções,
+        nas abas e use "Próxima etapa" para avançar pelas etapas dos slides: embeddings, projeções,
         scores <span class="formula">q<sub>t</sub><sup>⊤</sup>k<sub>i</sub>/√d</span>,
         softmax e soma ponderada dos values. Note que o token repetido "o" tem o mesmo
         embedding nas duas posições, logo as mesmas projeções.
@@ -79,9 +82,9 @@
             <button class="tab" id="s1-tok-3" type="button">o</button>
             <button class="tab" id="s1-tok-4" type="button">rato</button>
           </div>
-          <button class="btn-ctl primary" id="s1-step" type="button">⏭ Próxima etapa</button>
-          <button class="btn-ctl" id="s1-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s1-rand" type="button">🎲 Novos pesos</button>
+          <button class="btn-ctl primary" id="s1-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Próxima etapa</button>
+          <button class="btn-ctl" id="s1-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s1-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos pesos</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -95,13 +98,13 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Avance até a etapa da softmax e troque o token de consulta nas abas: os pesos
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Avance até a etapa da softmax e troque o token de consulta nas abas: os pesos
           <span class="formula">a<sub>i</sub><sup>(t)</sup></span> mudam, mas as keys e os
           values continuam os mesmos, cada query faz uma consulta diferente sobre a mesma
           memória. Compare as colunas dos dois "o": embeddings idênticos geram
           <span class="formula">q</span>, <span class="formula">k</span> e
           <span class="formula">v</span> idênticos, então as duas posições recebem o mesmo
-          peso de atenção. Clique em 🎲 e observe que outros
+          peso de atenção. Clique em "Novos pesos" e observe que outros
           <span class="formula">W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub></span> produzem
           outro padrão de atenção: é exatamente isso que o treinamento ajusta.
         </p>
@@ -132,7 +135,7 @@
             <button class="tab active" id="s2-tab-trained" type="button">Pesos treinados</button>
             <button class="tab" id="s2-tab-random" type="button">Pesos aleatórios</button>
           </div>
-          <button class="btn-ctl" id="s2-rand" type="button">🎲 Sortear pesos</button>
+          <button class="btn-ctl" id="s2-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Sortear pesos</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -146,10 +149,10 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com os pesos treinados, olhe a linha de "ele": o maior peso vai para "animal",
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com os pesos treinados, olhe a linha de "ele": o maior peso vai para "animal",
           a atenção resolve a correferência do exemplo dos slides. Veja também as linhas dos
           artigos "o" e "a" (atendem substantivos) e a de "não" (atende verbos). Troque para
-          pesos aleatórios e sorteie algumas vezes com 🎲: antes do treinamento a matriz não
+          pesos aleatórios e clique em "Sortear pesos" algumas vezes: antes do treinamento a matriz não
           tem estrutura útil, são os <span class="formula">W<sub>q</sub></span> e
           <span class="formula">W<sub>k</sub></span> aprendidos que criam o padrão.
         </p>
@@ -177,7 +180,7 @@
           <label class="slider-label">d = <span id="s3-d-val">32</span>
             <input type="range" id="s3-d" min="0" max="8" value="4" step="1" />
           </label>
-          <button class="btn-ctl" id="s3-rand" type="button">🎲 Reamostrar</button>
+          <button class="btn-ctl" id="s3-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -191,13 +194,13 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Em <span class="formula">d = 2</span> as duas distribuições quase coincidem e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Em <span class="formula">d = 2</span> as duas distribuições quase coincidem e
           as duas softmax são parecidas. Suba para <span class="formula">d = 128</span> ou
           <span class="formula">512</span>: sem escala os scores se espalham
           (desvio padrão <span class="formula">√d ≈ 22.6</span> em
           <span class="formula">d = 512</span>) e a softmax vira quase one-hot, com o maior
           peso perto de 1 e os demais perto de 0. Com a escala, a distribuição laranja não
-          muda com <span class="formula">d</span> e a softmax permanece suave. Use 🎲 para
+          muda com <span class="formula">d</span> e a softmax permanece suave. Use "Reamostrar" para
           ver que o efeito não depende da amostra.
         </p>
       </div>
@@ -226,8 +229,8 @@
           <label class="slider-label">γ = <span id="s4-gamma-val">1.0</span>
             <input type="range" id="s4-gamma" min="0" max="6" value="1" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar</button>
-          <button class="btn-ctl" id="s4-rand" type="button">🎲 Novos values e scores</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar</button>
+          <button class="btn-ctl" id="s4-rand" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos values e scores</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -241,7 +244,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">γ = 0</span> a softmax é uniforme e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">γ = 0</span> a softmax é uniforme e
           <span class="formula">c</span> coincide com a média simples (× verde). Em torno de
           <span class="formula">γ ≈ 1</span> a saída é uma mistura suave. Com
           <span class="formula">γ = 6</span> a softmax fica quase one-hot e
@@ -282,7 +285,7 @@
             <button class="tab active" id="s5-tab-enc" type="button">Sem máscara (encoder)</button>
             <button class="tab" id="s5-tab-dec" type="button">Máscara causal (decoder)</button>
           </div>
-          <button class="btn-ctl" id="s5-resample" type="button">🎲 Novos pesos W</button>
+          <button class="btn-ctl" id="s5-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos pesos W</button>
           <span class="readout" id="s5-readout"></span>
         </div>
         <div class="canvas-row">
@@ -296,13 +299,13 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">H = 1</span> há um único padrão de atenção; com
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">H = 1</span> há um único padrão de atenção; com
           <span class="formula">H = 8</span> cada cabeça olha a frase de um jeito diferente
           (algumas quase diagonais, outras espalhadas). Selecione o token
           <span class="formula">"it"</span> e compare os pesos entre cabeças: em algumas,
           <span class="formula">"animal"</span> recebe peso alto, ecoando a correferência.
           Troque para a máscara causal e veja o triângulo superior zerar: a linha do
-          primeiro token vira 1 na própria posição. Clique em 🎲 e note que os padrões
+          primeiro token vira 1 na própria posição. Clique em "Novos pesos W" e note que os padrões
           mudam, pois <span class="formula">W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub></span>
           aqui são aleatórios, não treinados.
         </p>
@@ -352,7 +355,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">n = 10000</span> cada posição tem assinatura única e o
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">n = 10000</span> cada posição tem assinatura única e o
           produto escalar decai suavemente. Reduza para <span class="formula">n = 10</span>:
           todas as colunas viram ondas rápidas, o padrão se repete e aparecem picos
           secundários altos no gráfico da direita, posições distantes ficam parecidas
@@ -411,7 +414,7 @@
           <label class="slider-label">ganho g = <span id="s7-gain-val">1.00</span>
             <input type="range" id="s7-gain" min="0.5" max="1.6" value="1" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s7-resample" type="button">🎲 Novos pesos</button>
+          <button class="btn-ctl" id="s7-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novos pesos</button>
           <span class="readout" id="s7-readout"></span>
         </div>
         <div class="canvas-row">
@@ -425,7 +428,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Na LN, suba <span class="formula">μ<sub>in</sub></span> para 3 e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Na LN, suba <span class="formula">μ<sub>in</sub></span> para 3 e
           <span class="formula">σ<sub>in</sub></span> para 3: a entrada vira faixas
           desbalanceadas, mas a saída continua igual (a LN apaga média e escala de cada
           token); <span class="formula">γ</span> e <span class="formula">β</span> reintroduzem
@@ -456,6 +459,7 @@
   <script defer src="js/section5-multihead.js"></script>
   <script defer src="js/section6-positional-encoding.js"></script>
   <script defer src="js/section7-addnorm-depth.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

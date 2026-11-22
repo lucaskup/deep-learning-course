@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Demonstrações interativas de Normalizing Flows: mudança de variável em 1D com o termo do jacobiano, composição de K camadas inversíveis, affine coupling em 2D e treino por máxima verossimilhança com a NLL caindo ao vivo." />
   <title>Normalizing Flows — Demo Interativa</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <script>
     (function () {
       var saved = localStorage.getItem('theme');
       var preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+      var palette = localStorage.getItem('palette');
+      if (palette === 'omarchy') document.documentElement.setAttribute('data-palette', palette);
     })();
   </script>
   <link rel="stylesheet" href="../style.css" />
@@ -26,7 +29,7 @@
       <li><a href="#s2">Composição</a></li>
       <li><a href="#s3">Affine coupling</a></li>
       <li><a href="#s4">Treino MLE</a></li>
-      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro">🌙</button></li>
+      <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Alternar tema claro/escuro"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button></li>
     </ul>
   </nav>
 
@@ -82,7 +85,7 @@
           <label class="slider-label">alongamento c = <span id="s1-c-val">0.00</span>
             <input type="range" id="s1-c" min="0" max="2.5" value="0" step="0.05" />
           </label>
-          <button class="btn-ctl" id="s1-resample" type="button">🎲 Reamostrar</button>
+          <button class="btn-ctl" id="s1-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar</button>
           <span class="readout" id="s1-readout"></span>
         </div>
         <div class="canvas-row">
@@ -100,7 +103,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">a = 1, b = 0, c = 0</span> o flow é a identidade e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">a = 1, b = 0, c = 0</span> o flow é a identidade e
           <span class="formula">p<sub>X</sub> = p<sub>Z</sub></span>. Suba para
           <span class="formula">c ≈ 1.5</span> e reduza <span class="formula">a ≈ 0.5</span>:
           o centro do eixo é esticado, a massa é empurrada para os lados e surge uma
@@ -134,9 +137,9 @@
           <label class="slider-label">K = <span id="s2-k-val">3</span> camadas
             <input type="range" id="s2-k" min="0" max="8" value="3" step="1" />
           </label>
-          <button class="btn-ctl" id="s2-step" type="button">⏭ Empilhar camada</button>
-          <button class="btn-ctl" id="s2-reset" type="button">↺ K = 0</button>
-          <button class="btn-ctl" id="s2-shuffle" type="button">🎲 Novas camadas</button>
+          <button class="btn-ctl" id="s2-step" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Empilhar camada</button>
+          <button class="btn-ctl" id="s2-reset" type="button">↺︎ K = 0</button>
+          <button class="btn-ctl" id="s2-shuffle" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Novas camadas</button>
           <span class="readout" id="s2-readout"></span>
         </div>
         <div class="canvas-row">
@@ -150,10 +153,10 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">K = 0</span> a densidade é a própria base. Clique
-          ⏭ uma camada por vez e acompanhe o readout: o jacobiano composto em
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">K = 0</span> a densidade é a própria base. Clique em
+          "Empilhar camada" uma camada por vez e acompanhe o readout: o jacobiano composto em
           <span class="formula">z = 0</span> é o produto dos jacobianos das camadas, e em log
-          vira uma soma, exatamente o termo que entra na NLL. Clique 🎲 algumas vezes:
+          vira uma soma, exatamente o termo que entra na NLL. Clique em "Novas camadas" algumas vezes:
           composições diferentes geram multimodalidades diferentes, mesmo com cada
           <span class="formula">g<sub>k</sub></span> sendo um único "solavanco" de tanh.
         </p>
@@ -200,8 +203,8 @@
           <label class="slider-label">interpolação α = <span id="s3-alpha-val">1.00</span>
             <input type="range" id="s3-alpha" min="0" max="1" value="1" step="0.01" />
           </label>
-          <button class="btn-ctl primary" id="s3-anim" type="button">▶ Animar</button>
-          <button class="btn-ctl" id="s3-resample" type="button">🎲 Reamostrar</button>
+          <button class="btn-ctl primary" id="s3-anim" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Animar</button>
+          <button class="btn-ctl" id="s3-resample" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Reamostrar</button>
           <span class="readout" id="s3-readout"></span>
         </div>
         <div class="canvas-row">
@@ -215,7 +218,7 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Com <span class="formula">α = 0</span> a camada é a identidade; clique ▶ e
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Com <span class="formula">α = 0</span> a camada é a identidade; clique em "Animar" e
           veja a gaussiana se curvar em forma de banana, um passo na direção das two moons
           da seção 4. Teste <span class="formula">w<sub>s</sub> = 1.2, w<sub>t</sub> = 0</span>:
           só a escala muda, e o readout mostra <span class="formula">log|det J| = s(x<sup>A</sup>)</span>
@@ -240,7 +243,7 @@
         o primeiro termo puxa <span class="formula">z = f(x)</span> para a gaussiana base e o
         log-determinante paga o preço da deformação de volume. Para amostrar, basta passar
         <span class="formula">z ∼ 𝒩(0, I)</span> pelas inversas em ordem contrária.
-        Use ⏭ para ver as amostras atravessando o flow camada a camada.
+        Use "Camada a camada" para ver as amostras atravessando o flow uma camada por vez.
       </p>
       <div class="panel">
         <div class="controls">
@@ -253,10 +256,10 @@
           </label>
         </div>
         <div class="controls">
-          <button class="btn-ctl primary" id="s4-train" type="button">▶ Treinar</button>
-          <button class="btn-ctl" id="s4-stage" type="button">⏭ Camada a camada</button>
-          <button class="btn-ctl" id="s4-reset" type="button">↺ Reiniciar pesos</button>
-          <button class="btn-ctl" id="s4-seed" type="button">🎲 Nova semente</button>
+          <button class="btn-ctl primary" id="s4-train" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Treinar</button>
+          <button class="btn-ctl" id="s4-stage" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>Camada a camada</button>
+          <button class="btn-ctl" id="s4-reset" type="button">↺︎ Reiniciar pesos</button>
+          <button class="btn-ctl" id="s4-seed" type="button"><svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M12 12h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/></svg>Nova semente</button>
           <span class="readout" id="s4-readout"></span>
         </div>
         <div class="canvas-row">
@@ -270,11 +273,11 @@
           </div>
         </div>
         <p class="demo-text small">
-          💡 Antes de treinar as amostras são quase a própria gaussiana base. Clique
-          ▶ Treinar e observe a NLL despencar nos primeiros segundos enquanto a nuvem
+          <svg class="icon icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Antes de treinar as amostras são quase a própria gaussiana base. Clique em
+          "Treinar" e observe a NLL despencar nos primeiros segundos enquanto a nuvem
           laranja se parte em duas luas. Compare <span class="formula">K = 2</span> com
           <span class="formula">K = 6</span>: com poucas camadas o flow não consegue separar
-          os modos (a expressividade vem da composição). Pause e clique ⏭ repetidamente:
+          os modos (a expressividade vem da composição). Pause e clique em "Camada a camada" repetidamente:
           cada clique mostra as amostras após mais uma camada inversa, a deformação gradual
           de <span class="formula">𝒩(0, I)</span> até os dados. Nos anéis, repare como o flow
           precisa "rasgar" a gaussiana para cobrir um suporte com buraco.
@@ -293,6 +296,7 @@
   <script defer src="js/section2-composition.js"></script>
   <script defer src="js/section3-affine-coupling.js"></script>
   <script defer src="js/section4-training.js"></script>
+  <script defer src="../shared/js/theme.js"></script>
   <script defer src="../shared/js/boot.js"></script>
 </body>
 </html>

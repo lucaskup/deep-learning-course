@@ -170,7 +170,7 @@
 
     function stopAnim() {
       animating = false;
-      btnAnim.textContent = '▶ Animar';
+      DL.btnLabel(btnAnim, 'play', 'Animar');
       DL.stopTicker(tick);
     }
 
@@ -188,7 +188,7 @@
       if (animating) { stopAnim(); return; }
       if (alpha >= 1) setAlpha(0, true);
       animating = true;
-      btnAnim.textContent = '⏸ Pausar';
+      DL.btnLabel(btnAnim, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
 

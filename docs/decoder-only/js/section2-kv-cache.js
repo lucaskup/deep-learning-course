@@ -261,7 +261,7 @@
         ctx.fillStyle = th.comment;
         ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('geração encerrada (↺ para recomeçar)', w / 2, h / 2);
+        ctx.fillText('geração encerrada (↺︎ para recomeçar)', w / 2, h / 2);
         return;
       }
       const top = dist.slice(0, 8);
@@ -330,7 +330,7 @@
 
     function stopRun() {
       running = false;
-      btnRun.textContent = '▶ Gerar tudo';
+      DL.btnLabel(btnRun, 'play', 'Gerar tudo');
       DL.stopTicker(tick);
     }
 
@@ -364,7 +364,7 @@
       if (finished) reset();
       running = true;
       acc = 0;
-      btnRun.textContent = '⏸ Pausar';
+      DL.btnLabel(btnRun, 'pause', 'Pausar');
       DL.startTicker(tick);
     });
     btnReset.addEventListener('click', () => { stopRun(); reset(); redraw(); });

@@ -478,7 +478,7 @@
     function calcHtml() {
       let fc = focus();
       if (!fc) {
-        return 'Passe o mouse sobre qualquer célula para ver a conta que a produziu, ou use ⏭ Passo para percorrer a rede posição a posição.';
+        return 'Passe o mouse sobre qualquer célula para ver a conta que a produziu, ou use "Passo" para percorrer a rede posição a posição.';
       }
       if (fc.kind === 'x') {
         return F('x' + sub(fc.c) + '[' + fc.i + ',' + fc.j + ']') + ' = <b>' + fmtS(X[fc.c][fc.i][fc.j]) + '</b>. Clique para alternar entre 0 e 1 e criar sua própria imagem.';
@@ -603,7 +603,7 @@
 
     /* ── Passo a passo ──────────────────────────────────────────────── */
     function stopAnim() {
-      if (animating) { animating = false; DL.stopTicker(animTick); $('s6-anim').textContent = '▶ Animar cálculo'; }
+      if (animating) { animating = false; DL.stopTicker(animTick); DL.btnLabel($('s6-anim'), 'play', 'Animar cálculo'); }
     }
     function advance() {
       stepIdx = stepIdx === null ? 0 : stepIdx + 1;
@@ -617,7 +617,9 @@
     $('s6-step').addEventListener('click', () => { stopAnim(); advance(); redraw(); });
     $('s6-anim').addEventListener('click', () => {
       if (animating) { stopAnim(); }
-      else { animating = true; animClock = 0; if (stepIdx === null) stepIdx = -1; DL.startTicker(animTick); $('s6-anim').textContent = '⏸ Pausar cálculo'; }
+      /* A animação parte da posição 0, como o botão "Passo": stepIdx nunca fica
+         negativo, pois stepCell() e o leitor de cálculo indexam os filtros por ele. */
+      else { animating = true; animClock = 0; if (stepIdx === null) stepIdx = 0; DL.startTicker(animTick); DL.btnLabel($('s6-anim'), 'pause', 'Pausar cálculo'); }
       redraw();
     });
     $('s6-showall').addEventListener('click', () => { stopAnim(); stepIdx = null; redraw(); });
@@ -652,13 +654,13 @@
       if (training) return;
       training = true;
       DL.startTicker(trainTick);
-      $('s6-train').textContent = '⏸ Pausar treino';
+      DL.btnLabel($('s6-train'), 'pause', 'Pausar treino');
     }
     function stopTraining() {
       if (!training) return;
       training = false;
       DL.stopTicker(trainTick);
-      $('s6-train').textContent = '▶ Treinar';
+      DL.btnLabel($('s6-train'), 'play', 'Treinar');
     }
     $('s6-train').addEventListener('click', () => { if (training) stopTraining(); else startTraining(); });
     $('s6-reset').addEventListener('click', () => {

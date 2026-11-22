@@ -33,7 +33,7 @@
   function redrawAll() { for (const cb of redrawCallbacks) cb(); }
 
   new MutationObserver(() => { themeCache = null; redrawAll(); })
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-palette'] });
 
   /* Dimensiona o backing store pelo devicePixelRatio; desenho em px CSS. */
   function setup(canvas) {
